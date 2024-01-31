@@ -473,6 +473,15 @@ impl PartialEq for Secp256r1PublicKey {
 	}
 }
 
+impl From<Vec<u8>> for Secp256r1PublicKey {
+	fn from(bytes: Vec<u8>) -> Self {
+		match Secp256r1PublicKey::from_bytes(&bytes) {
+			Ok(v) => v,
+			Err(_) => panic!("Invalid public key"),
+		}
+	}
+}
+
 pub trait PrivateKeyExtension
 where
 	Self: Sized,

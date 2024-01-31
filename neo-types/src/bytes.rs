@@ -95,3 +95,13 @@ impl BitXor for Bytes {
 		Ok(Bytes(bytes))
 	}
 }
+
+pub trait ReverseTrait {
+	fn reverse(&self) -> Self;
+}
+
+impl ReverseTrait for Vec<u8> {
+	fn reverse(&self) -> Self {
+		self.iter().rev().copied().collect()
+	}
+}

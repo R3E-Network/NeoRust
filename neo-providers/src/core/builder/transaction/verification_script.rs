@@ -30,28 +30,22 @@ impl VerificationScript {
 		let mut builder = ScriptBuilder::new();
 		builder
 			.push_data(public_key.get_encoded(true))
-			.unwrap()
 			.op_code(&vec![OpCode::Syscall])
-			.push_data(InteropService::SystemCryptoCheckSig.hash().into_bytes())
-			.unwrap();
+			.push_data(InteropService::SystemCryptoCheckSig.hash().into_bytes());
 		Self::from(builder.to_bytes())
 	}
 
 	pub fn from_multi_sig(public_keys: &[Secp256r1PublicKey], threshold: u8) -> Self {
 		// Build multi-sig script
 		let mut builder = ScriptBuilder::new();
-		builder
-			.push_integer(BigInt::from(threshold))
-			.expect("Threshold must be between 1 and 16");
+		builder.push_integer(BigInt::from(threshold));
 		for key in public_keys {
-			builder.push_data(key.to_vec()).unwrap();
+			builder.push_data(key.to_vec());
 		}
 		builder
 			.push_integer(BigInt::from(public_keys.len()))
-			.unwrap()
 			.op_code(vec![OpCode::Syscall].as_slice())
-			.push_data(InteropService::SystemCryptoCheckMultiSig.hash().into_bytes())
-			.unwrap();
+			.push_data(InteropService::SystemCryptoCheckMultiSig.hash().into_bytes());
 		Self::from(builder.to_bytes())
 	}
 

@@ -4,6 +4,7 @@ use crate::{
 };
 use base64::encode;
 use elliptic_curve::sec1::ToEncodedPoint;
+use std::collections::HashMap;
 
 use neo_codec::encode::NeoSerializable;
 use neo_crypto::keys::Secp256r1PublicKey;
@@ -108,11 +109,11 @@ impl From<&Vec<ContractParameter>> for ContractParameter {
 	}
 }
 
-impl From<&[(ContractParameter, ContractParameter)]> for ContractParameter {
-	fn from(value: &[(ContractParameter, ContractParameter)]) -> Self {
-		Self::map(value.to_vec())
-	}
-}
+// impl From<&[(ContractParameter, ContractParameter)]> for ContractParameter {
+// 	fn from(value: &[(ContractParameter, ContractParameter)]) -> Self {
+// 		Self::map(value.to_vec())
+// 	}
+// }
 
 impl From<&NefFile> for ContractParameter {
 	fn from(value: &NefFile) -> Self {
@@ -126,6 +127,11 @@ impl From<String> for ContractParameter {
 	}
 }
 
+impl From<bool> for ContractParameter {
+	fn from(value: bool) -> Self {
+		Self::bool(value)
+	}
+}
 impl From<&String> for ContractParameter {
 	fn from(value: &String) -> Self {
 		Self::string(value.to_string())
@@ -156,11 +162,43 @@ impl From<Value> for ContractParameter {
 	}
 }
 
+impl Into<Value> for ContractParameter {
+	fn into(self) -> Value {
+		match self.value.unwrap() {
+			ParameterValue::Boolean(b) => Value::Bool(b),
+			ParameterValue::Integer(i) => Value::Number(serde_json::Number::from(i)),
+			ParameterValue::ByteArray(b) => Value::String(b),
+			ParameterValue::String(s) => Value::String(s),
+			ParameterValue::Hash160(h) => Value::String(h),
+			ParameterValue::Hash256(h) => Value::String(h),
+			ParameterValue::PublicKey(p) => Value::String(p),
+			ParameterValue::Signature(s) => Value::String(s),
+			ParameterValue::Array(a) => Value::Array(a.into_iter().map(|v| v.into()).collect()),
+			ParameterValue::Map(m) => Value::Array(
+				m.iter()
+					.flat_map(|(key, value)| vec![key.clone().into(), value.clone().into()])
+					.collect(),
+			),
+			ParameterValue::Any => Value::Null,
+		}
+	}
+}
+
 impl From<Vec<Value>> for ContractParameter {
 	fn from(value: Vec<Value>) -> Self {
 		Self::array(value.into_iter().map(|v| ContractParameter::from(v)).collect())
 	}
 }
+
+// impl Into<Vec<Value>> for ContractParameter{
+// 	fn into(self) -> Vec<Value> {
+// 		match self.value.clone().unwrap() {
+// 			ParameterValue::Array(a) => a.into_iter().map(|v| v.into()).collect(),
+// 			ParameterValue::Map(m) => m.into_iter().map(|v| v.into()).collect(),
+// 			_ => panic!("Cannot convert {:?} to Vec<Value>", self.clone()),
+// 		}
+// 	}
+// }
 
 impl ValueExtension for ContractParameter {
 	fn to_value(&self) -> Value {
@@ -186,7 +224,7 @@ pub enum ParameterValue {
 	PublicKey(String),
 	Signature(String),
 	Array(Vec<ContractParameter>),
-	Map(Vec<serde_json::Value>),
+	Map(HashMap<ContractParameter, ContractParameter>),
 	Any,
 }
 
@@ -203,9 +241,9 @@ impl Hash for ParameterValue {
 			ParameterValue::Signature(s) => s.hash(state),
 			ParameterValue::Array(a) => a.hash(state),
 			ParameterValue::Map(m) =>
-				for v in m {
-					let bytes: Vec<u8> = serde_json::to_vec(v).unwrap();
-					bytes.hash(state);
+				for (k, v) in m {
+					k.hash(state);
+					v.hash(state);
 				},
 			ParameterValue::Any => "Any".hash(state),
 		}
@@ -269,10 +307,9 @@ impl ContractParameter {
 		Self::with_value(ContractParameterType::Array, ParameterValue::Array(values))
 	}
 
-	pub fn map(values: Vec<(Self, Self)>) -> Self {
-		let json = values.into_iter().map(|(k, v)| json!({"key": k, "value": v})).collect();
-
-		Self::with_value(ContractParameterType::Map, ParameterValue::Map(json))
+	pub fn map(values: HashMap<Self, Self>) -> Self {
+		// let json = values.into_iter().map(|(k, v)| json!({"key": k, "value": v})).collect();
+		Self::with_value(ContractParameterType::Map, ParameterValue::Map(values))
 	}
 
 	pub fn hash(self) -> Vec<u8> {
