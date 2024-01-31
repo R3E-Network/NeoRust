@@ -106,10 +106,8 @@ impl InvocationScript {
 	/// The constructed invocation script
 	pub fn from_signature(signature: Secp256r1Signature) -> Self {
 		let mut script = ScriptBuilder::new();
-		// 		for signature in signatures {
 		let mut signature_bytes = signature.to_bytes();
 		script.push_data(signature_bytes.to_vec()).expect("Incorrect signature length");
-		// 		}
 		Self { script: script.to_bytes() }
 	}
 
@@ -211,8 +209,8 @@ mod tests {
 			OpCode::PushData1.to_string(),
 			expected_signature.to_bytes().to_hex()
 		);
-		assert_eq!(expected.as_bytes(), script.script);
-		assert_eq!(format!("42{}", expected).as_bytes(), script.to_array());
+		assert_eq!(expected.from_hex().unwrap(), script.script);
+		assert_eq!(format!("42{}", expected).from_hex().unwrap(), script.to_array());
 	}
 
 	#[test]
