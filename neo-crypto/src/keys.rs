@@ -68,7 +68,7 @@ use p256::{
 use primitive_types::U256;
 use rand_core::OsRng;
 use rustc_serialize::hex::{FromHex, ToHex};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use signature::{Keypair, SignerMut, Verifier};
 use std::hash::{Hash, Hasher};
 use typenum::Unsigned;
@@ -79,23 +79,24 @@ pub struct Secp256r1PublicKey {
 	inner: PublicKey,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub struct Secp256r1PrivateKey {
 	inner: SecretKey,
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct Secp256r1Signature {
 	inner: Signature,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Secp256r1SignedMsg<T: Serialize> {
 	pub msg: T,
 	pub signature: Secp256r1Signature,
 }
 
 impl Secp256r1PublicKey {
+
 	/// Constructs a new `Secp256r1PublicKey` from the given x and y coordinates.
 	///
 	/// This function attempts to create a public key from uncompressed x and y coordinates.
@@ -209,12 +210,6 @@ impl Secp256r1PublicKey {
 			Ok(v) => Some(v),
 			Err(_) => None,
 		}
-	}
-}
-
-impl PartialEq<Self> for Secp256r1PublicKey {
-	fn eq(&self, other: &Self) -> bool {
-		self.get_encoded(false) == other.get_encoded(false)
 	}
 }
 
@@ -380,6 +375,85 @@ impl fmt::Display for Secp256r1Signature {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		write!(f, "Secp256r1Signature\n").unwrap();
 		write!(f, "x: {}\n", hex::encode(&self.to_bytes()))
+	}
+}
+
+
+impl Serialize for Secp256r1PublicKey {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+		serializer.serialize_bytes(&self.get_encoded(true))
+	}
+}
+
+impl Serialize for Secp256r1PrivateKey {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+		serializer.serialize_bytes(&self.to_raw_bytes())
+	}
+}
+
+impl Serialize for Secp256r1Signature {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+		serializer.serialize_bytes(&self.to_bytes())
+	}
+}
+
+impl<'de> Deserialize<'de> for Secp256r1PublicKey {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+		let bytes = <Vec<u8>>::deserialize(deserializer)?;
+		Secp256r1PublicKey::from_bytes(&bytes).map_err(|_| serde::de::Error::custom("Invalid public key"))
+	}
+}
+
+impl<'de> Deserialize<'de> for Secp256r1PrivateKey {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+		let bytes = <Vec<u8>>::deserialize(deserializer)?;
+		Secp256r1PrivateKey::from_bytes(&bytes).map_err(|_| serde::de::Error::custom("Invalid private key"))
+	}
+}
+
+impl<'de> Deserialize<'de> for Secp256r1Signature {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+		let bytes = <Vec<u8>>::deserialize(deserializer)?;
+		Secp256r1Signature::from_bytes(&bytes).map_err(|_| serde::de::Error::custom("Invalid signature"))
+	}
+}
+
+
+
+impl Hash for Secp256r1PublicKey {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.get_encoded(false).hash(state);
+	}
+}
+
+impl Hash for Secp256r1PrivateKey {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.to_raw_bytes().hash(state);
+	}
+}
+
+impl Hash for Secp256r1Signature {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.to_bytes().hash(state);
+	}
+}
+
+
+impl PartialEq for Secp256r1PrivateKey {
+	fn eq(&self, other: &Self) -> bool {
+		self.to_raw_bytes() == other.to_raw_bytes()
+	}
+}
+
+impl PartialEq for Secp256r1Signature {
+	fn eq(&self, other: &Self) -> bool {
+		self.to_bytes() == other.to_bytes()
+	}
+}
+
+impl PartialEq for Secp256r1PublicKey {
+	fn eq(&self, other: &Self) -> bool {
+		self.get_encoded(false) == other.get_encoded(false)
 	}
 }
 

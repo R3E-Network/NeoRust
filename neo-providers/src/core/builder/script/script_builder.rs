@@ -225,7 +225,7 @@ impl ScriptBuilder {
 
 	pub fn build_verification_script(pub_key: &Secp256r1PublicKey) -> Bytes {
 		let mut sb = ScriptBuilder::new();
-		sb.push_data(pub_key.to_raw_bytes().to_vec())
+		sb.push_data(pub_key.get_encoded(true))
 			.unwrap()
 			.sys_call(InteropService::SystemCryptoCheckSig);
 		sb.to_bytes()
@@ -237,9 +237,9 @@ impl ScriptBuilder {
 	) -> Result<Bytes, BuilderError> {
 		let mut sb = ScriptBuilder::new();
 		sb.push_integer(BigInt::from(threshold)).unwrap();
-		pubkeys.sort_by(|a, b| a.to_raw_bytes().cmp(&b.to_raw_bytes()));
+		pubkeys.sort_by(|a, b| a.get_encoded(true).cmp(&b.get_encoded(true)));
 		for pk in pubkeys.iter() {
-			sb.push_data(pk.to_raw_bytes().to_vec()).unwrap();
+			sb.push_data(pk.get_encoded(true)).unwrap();
 		}
 		sb.push_integer(BigInt::from(pubkeys.len())).unwrap();
 		sb.sys_call(InteropService::SystemCryptoCheckMultiSig);

@@ -62,15 +62,15 @@ pub fn deserialize_pubkey<'de, D>(deserializer: D) -> Result<Secp256r1PublicKey,
 where
 	D: Deserializer<'de>,
 {
-	let s: Secp256r1PublicKey = Deserialize::deserialize(deserializer)?;
-	Ok(s)
+	let a: &[u8] = Deserialize::deserialize(deserializer)?;
+	Secp256r1PublicKey::from_bytes(a).map_err(serde::de::Error::custom)
 }
 
 pub fn serialize_pubkey<S>(item: Secp256r1PublicKey, serializer: S) -> Result<S::Ok, S::Error>
 where
 	S: Serializer,
 {
-	let item_str = format!("{:?}", item.to_raw_bytes());
+	let item_str = format!("{:?}", item.get_encoded(true));
 	serializer.serialize_str(&item_str)
 }
 
@@ -417,7 +417,7 @@ pub fn serialize_public_key<S>(item: &Secp256r1PublicKey, serializer: S) -> Resu
 where
 	S: Serializer,
 {
-	let item_str = encode_string_h256(&H256::from_slice(&item.to_raw_bytes().to_vec()));
+	let item_str = encode_string_h256(&H256::from_slice(&item.get_encoded(true)));
 	serializer.serialize_str(&item_str)
 }
 
@@ -446,7 +446,7 @@ where
 {
 	let mut seq = serializer.serialize_seq(Some(item.len()))?;
 	for i in item {
-		seq.serialize_element(&encode_string_h256(&H256::from_slice(&i.to_raw_bytes())))?;
+		seq.serialize_element(&encode_string_h256(&H256::from_slice(&i.get_encoded(true))))?;
 	}
 	seq.end()
 }
@@ -461,7 +461,7 @@ where
 {
 	match item {
 		Some(key) => {
-			let key_str = encode_string_h256(&H256::from_slice(&key.to_raw_bytes().to_vec()));
+			let key_str = encode_string_h256(&H256::from_slice(&key.get_encoded(true)));
 			serializer.serialize_str(&key_str)
 		},
 		None => serializer.serialize_none(),

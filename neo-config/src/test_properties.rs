@@ -1,5 +1,10 @@
+use scrypt::Params;
+
 pub struct TestConstants {}
 impl TestConstants {
+
+	// pub const TEST_SCRYPT_PARAMS: Params = Params::new(7, 8, 9, 32).unwrap();
+
 	// Default Account
 	pub const DEFAULT_ACCOUNT_ADDRESS: &'static str = "NM7Aky765FG8NhhwtxjXRx7jEL1cnw7PBP";
 	pub const DEFAULT_ACCOUNT_SCRIPT_HASH: &'static str =

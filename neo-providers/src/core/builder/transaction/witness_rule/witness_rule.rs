@@ -6,7 +6,7 @@ use crate::core::transaction::{
 use neo_codec::{encode::NeoSerializable, Decoder, Encoder};
 use serde::{ser::SerializeTuple, Deserialize, Deserializer, Serialize, Serializer};
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Clone)]
 pub struct WitnessRule {
 	pub action: WitnessAction,
 	pub condition: WitnessCondition,

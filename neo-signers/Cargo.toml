@@ -43,12 +43,10 @@ neo-codec.workspace=true
 neo-providers.workspace=true
 bs58.workspace=true
 serde_json.workspace=true
-# bincode.workspace=true
 
 # futures
 futures-util = { workspace = true, optional = true }
 futures-executor = { workspace = true, optional = true }
-scrypt = "0.11.0"
 p256 = {workspace = true}
 
 # aws
@@ -70,6 +68,7 @@ educe = "0.5"
 hex-literal = "0.4.1"
 rustc-serialize = "0.3.24"
 derive_more = "0.99"
+aes = "0.8.3"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 home = { workspace = true, optional = true }

@@ -36,7 +36,7 @@ impl ValueExtension for H160 {
 
 impl ValueExtension for Secp256r1PublicKey {
 	fn to_value(&self) -> Value {
-		Value::String(hex::encode(self.to_raw_bytes()))
+		Value::String(hex::encode(self.get_encoded(true)))
 	}
 }
 

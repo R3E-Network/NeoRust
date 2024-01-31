@@ -1,8 +1,10 @@
+#![feature(inherent_associated_types)]
 #![doc = include_str!("../README.md")]
 #![allow(clippy::type_complexity)]
 #![warn(missing_docs)]
 #![deny(unsafe_code, rustdoc::broken_intra_doc_links)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+
 
 pub mod core;
 pub mod protocol_error;

@@ -29,7 +29,7 @@ impl VerificationScript {
 	pub fn from_public_key(public_key: &Secp256r1PublicKey) -> Self {
 		let mut builder = ScriptBuilder::new();
 		builder
-			.push_data(public_key.to_raw_bytes().to_vec())
+			.push_data(public_key.get_encoded(true))
 			.unwrap()
 			.op_code(&vec![OpCode::Syscall])
 			.push_data(InteropService::SystemCryptoCheckSig.hash().into_bytes())

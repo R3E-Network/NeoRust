@@ -1,5 +1,3 @@
-mod mnemonic;
-pub use mnemonic::{MnemonicBuilder, MnemonicBuilderError};
 
 mod nep6account;
 pub use nep6account::*;
@@ -12,11 +10,8 @@ pub use wallet::*;
 mod wallet_error;
 pub use wallet_error::*;
 
-mod nep2;
 #[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
 mod yubi;
-
-pub use nep2::*;
 
 use crate::Signer;
 use neo_crypto::keys::PrivateKeyExtension;

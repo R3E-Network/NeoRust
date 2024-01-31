@@ -27,7 +27,7 @@ impl InvocationScript {
 	pub fn from_signature(signature: &Secp256r1Signature) -> Self {
 		let mut builder = ScriptBuilder::new();
 		builder
-			.push_data(signature.to_raw_bytes().to_vec())
+			.push_data(signature.to_bytes().into())
 			.expect("TODO: panic message");
 		Self { script: builder.to_bytes() }
 	}
@@ -40,7 +40,7 @@ impl InvocationScript {
 		let signature = key_pair.private_key.sign_tx(&message_hash)?;
 		let mut builder = ScriptBuilder::new();
 		// Convert signature to bytes
-		let signature_bytes = signature.to_raw_bytes();
+		let signature_bytes = signature.to_bytes();
 		builder.push_data(signature_bytes.to_vec()).expect("Incorrect signature length");
 		Ok(Self { script: builder.to_bytes() })
 	}
@@ -48,7 +48,7 @@ impl InvocationScript {
 	pub fn from_signatures(signatures: &[Secp256r1Signature]) -> Self {
 		let mut builder = ScriptBuilder::new();
 		for signature in signatures {
-			let mut signature_bytes = signature.to_raw_bytes();
+			let mut signature_bytes = signature.to_bytes();
 			// signature.write_scalars(&mut signature_bytes).unwrap();
 
 			builder.push_data(signature_bytes.to_vec()).expect("Incorrect signature length");

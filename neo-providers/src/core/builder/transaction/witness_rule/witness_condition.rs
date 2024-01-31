@@ -11,7 +11,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::hash::{Hash, Hasher};
 
 /// Enum representing the different types of witness conditions that can be used in a smart contract.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum WitnessCondition {
 	/// Boolean value.
 	Boolean(bool),
@@ -42,10 +42,10 @@ impl Hash for WitnessCondition {
 			WitnessCondition::And(exp) => exp.hash(state),
 			WitnessCondition::Or(exp) => exp.hash(state),
 			WitnessCondition::ScriptHash(hash) => hash.hash(state),
-			WitnessCondition::Group(group) => group.to_raw_bytes().to_vec().hash(state),
+			WitnessCondition::Group(group) => group.get_encoded(true).hash(state),
 			WitnessCondition::CalledByEntry => WitnessCondition::CalledByEntry.hash(state),
 			WitnessCondition::CalledByContract(hash) => hash.hash(state),
-			WitnessCondition::CalledByGroup(group) => group.to_raw_bytes().to_vec().hash(state),
+			WitnessCondition::CalledByGroup(group) => group.get_encoded(true).hash(state),
 		}
 	}
 }

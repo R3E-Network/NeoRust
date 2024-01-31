@@ -155,12 +155,33 @@ pub trait SignerTrait {
 	}
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, )]
 pub enum Signer {
 	Account(AccountSigner),
 	Contract(ContractSigner),
 	Transaction(TransactionSigner),
 }
+
+impl PartialEq for Signer {
+	fn eq(&self, other: &Self) -> bool {
+		match self {
+			Signer::Account(account_signer) => match other {
+				Signer::Account(other_account_signer) => account_signer.get_signer_hash() == other_account_signer.get_signer_hash(),
+				_ => false,
+			},
+			Signer::Contract(contract_signer) => match other {
+				Signer::Contract(other_contract_signer) => contract_signer.get_signer_hash() == other_contract_signer.get_signer_hash(),
+				_ => false,
+			},
+			Signer::Transaction(transaction_signer) => match other {
+				Signer::Transaction(other_transaction_signer) =>
+					transaction_signer.get_signer_hash() == other_transaction_signer.get_signer_hash(),
+				_ => false,
+			},
+		}
+	}
+}
+
 
 impl Signer {
 	pub fn get_type(&self) -> SignerType {

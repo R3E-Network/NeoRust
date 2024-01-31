@@ -1,9 +1,9 @@
 use crate::{
 	core::{transaction::verification_script::VerificationScript, wallet::WalletTrait},
-	utils::{private_key_from_wif, public_key_to_address},
+	utils::{public_key_to_address},
 	ProviderError,
 };
-use neo_crypto::{key_pair::KeyPair, keys::Secp256r1PublicKey, nep2::NEP2};
+use neo_crypto::{key_pair::KeyPair, keys::Secp256r1PublicKey};
 use neo_types::{
 	address::Address,
 	address_or_scripthash::AddressOrScriptHash,
@@ -18,6 +18,11 @@ use std::{
 	str::FromStr,
 	sync::{Mutex, Weak},
 };
+use rustc_serialize::hex::ToHex;
+use scrypt::Params;
+use neo_crypto::wif::private_key_from_wif;
+use neo_types::util::vec_to_array32;
+use crate::core::{get_nep2_from_private_key, get_private_key_from_nep2, NEP2};
 
 pub trait AccountTrait: Sized + PartialEq + Send + Sync + Debug + Clone {
 	type Error: Sync + Send + Debug + Sized;
@@ -281,8 +286,8 @@ impl AccountTrait for Account {
 			.as_ref()
 			.ok_or(Self::Error::IllegalState("No encrypted private key present".to_string()))
 			.unwrap();
-		let key_pair = NEP2::decrypt(password, encrypted_private_key).unwrap();
-		self.key_pair = Some(KeyPair::from_secret_key(&key_pair.private_key().clone()));
+		let key_pair = get_private_key_from_nep2(password, encrypted_private_key).unwrap();
+		self.key_pair = Some(KeyPair::from_private_key( &vec_to_array32(key_pair).unwrap()).unwrap());
 		Ok(())
 	}
 
@@ -292,7 +297,7 @@ impl AccountTrait for Account {
 			.as_ref()
 			.ok_or(Self::Error::IllegalState("No decrypted key pair present".to_string()))
 			.unwrap();
-		let encrypted_private_key = NEP2::encrypt(password, key_pair).unwrap();
+		let encrypted_private_key = get_nep2_from_private_key(key_pair.private_key.to_raw_bytes().to_hex().as_str(), password).unwrap();
 		self.encrypted_private_key = Some(encrypted_private_key);
 		self.key_pair = None;
 		Ok(())

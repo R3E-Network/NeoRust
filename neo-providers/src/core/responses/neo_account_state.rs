@@ -4,7 +4,7 @@ use neo_types::*;
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct AccountState {
 	pub balance: i64,
 	pub balance_height: Option<i64>,

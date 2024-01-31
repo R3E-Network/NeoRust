@@ -82,12 +82,12 @@ impl Base64Encode for &[u8] {
 }
 
 pub fn secret_key_to_script_hash(secret_key: &Secp256r1PrivateKey) -> ScriptHash {
-	let public_key = secret_key.to_public_key().unwrap();
+	let public_key = secret_key.to_public_key();
 	public_key_to_script_hash(&public_key)
 }
 
 pub fn public_key_to_script_hash(pubkey: &Secp256r1PublicKey) -> ScriptHash {
-	raw_public_key_to_script_hash(&pubkey.to_raw_bytes()[1..])
+	raw_public_key_to_script_hash(&pubkey.get_encoded(true)[1..])
 }
 
 pub fn raw_public_key_to_script_hash<T: AsRef<[u8]>>(pubkey: T) -> ScriptHash {

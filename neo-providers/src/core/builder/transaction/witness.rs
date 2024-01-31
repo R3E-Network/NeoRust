@@ -40,7 +40,7 @@ impl Witness {
 		let invocation_script =
 			InvocationScript::from_message_and_key_pair(message_to_sign, key_pair).unwrap();
 		let verification_script =
-			VerificationScript::from(key_pair.public_key().to_raw_bytes().to_vec());
+			VerificationScript::from(key_pair.public_key().get_encoded(true));
 		Ok(Self { invocation: invocation_script, verification: verification_script })
 	}
 

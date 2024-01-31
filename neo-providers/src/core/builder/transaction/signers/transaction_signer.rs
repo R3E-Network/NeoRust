@@ -20,7 +20,7 @@ use std::{
 	str::FromStr,
 };
 
-#[derive(Default, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(Default, Serialize, Deserialize, Clone, Debug)]
 pub struct TransactionSigner {
 	#[serde(rename = "account")]
 	#[serde(serialize_with = "serialize_script_hash")]
@@ -41,6 +41,17 @@ pub struct TransactionSigner {
 
 	#[serde(rename = "rules")]
 	pub rules: Option<Vec<WitnessRule>>,
+}
+
+
+impl Hash for TransactionSigner {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.account.hash(state);
+		self.scopes.hash(state);
+		self.allowed_contracts.hash(state);
+		self.allowed_groups.hash(state);
+		self.rules.hash(state);
+	}
 }
 
 impl TransactionSigner {

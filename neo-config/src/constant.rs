@@ -1,3 +1,5 @@
+use scrypt::Params;
+
 pub struct NeoConstants {}
 impl NeoConstants {
 	// Accounts, Addresses, Keys
@@ -20,11 +22,24 @@ impl NeoConstants {
 	pub const MAX_SIGNER_SUBITEMS: u32 = 16;
 	pub const MAX_MANIFEST_SIZE: u32 = 0xFFFF;
 
+	// pub const DEFAULT_SCRYPT_PARAMS: Params = Params::new(14, 8, 8, 32).unwrap();
+
 	pub const SEED_1: &'static str = "seed1.neo.org:10333";
 	pub const SEED_2: &'static str = "seed2.neo.org:10333";
 	pub const SEED_3: &'static str = "seed3.neo.org:10333";
 	pub const SEED_4: &'static str = "seed4.neo.org:10333";
 	pub const SEED_5: &'static str = "seed5.neo.org:10333";
+
+	pub const SCRYPT_N: usize = 16384;
+	pub const SCRYPT_R: u32 = 8;
+	pub const SCRYPT_P: u32 = 8;
+	pub const SCRYPT_LOG_N: u8 = 14;
+	pub const SCRYPT_DK_LEN: usize = 64;
+
+	pub const NEP_HEADER_1: u8 = 0x01;
+	pub const NEP_HEADER_2: u8 = 0x42;
+	pub const NEP_FLAG: u8 = 0xe0;
+
 
 	pub fn new() -> Self {
 		Self {}

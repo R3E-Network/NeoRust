@@ -177,6 +177,8 @@ pub enum ProviderError {
 	CryptoError(#[from] CryptoError),
 	#[error(transparent)]
 	TypeError(#[from] TypeError),
+	#[error("Invalid password")]
+    InvalidPassword,
 }
 
 impl RpcError for ProviderError {

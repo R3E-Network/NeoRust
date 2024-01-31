@@ -254,7 +254,7 @@ impl ContractParameter {
 	pub fn public_key(value: &Secp256r1PublicKey) -> Self {
 		Self::with_value(
 			ContractParameterType::PublicKey,
-			ParameterValue::PublicKey(hex::encode(value.to_raw_bytes())),
+			ParameterValue::PublicKey(hex::encode(value.get_encoded(true))),
 		)
 	}
 

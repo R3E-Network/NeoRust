@@ -412,7 +412,7 @@ mod tests {
 			Response::Success { id, result } => {
 				assert_eq!(id, 0);
 				let result: u64 = serde_json::from_str(result.get()).unwrap();
-				assert_eq!(result.as_u64(), 250);
+				assert_eq!(result, 250);
 			},
 			_ => panic!("expected `Success` response"),
 		}

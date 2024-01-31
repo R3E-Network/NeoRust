@@ -36,7 +36,7 @@ pub struct TransactionResult {
 	pub vm_state: Option<NeoVMStateType>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq,  Hash)]
 pub struct NeoTransactionSigner {
 	account: H160,
 	scopes: Vec<WitnessScope>,
