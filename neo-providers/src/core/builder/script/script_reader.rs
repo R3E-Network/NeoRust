@@ -54,3 +54,20 @@ impl ScriptReader {
 		}
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use rustc_serialize::hex::FromHex;
+	use super::*; // Adjust this to import your ScriptReader and other necessary items.
+
+	#[test]
+	fn test_convert_to_op_code_string() {
+		let script = "0c0548656c6c6f0c05576f726c642150419bf667ce41e63f18841140".from_hex().unwrap();
+		let expected_op_code_string = "PUSHDATA1 5 48656c6c6f\nPUSHDATA1 5 576f726c64\nNOP\nSWAP\nSYSCALL 9bf667ce\nSYSCALL e63f1884\nPUSH1\nRET\n";
+
+		// Assuming ScriptReader::convert_to_op_code_string exists and performs as expected
+		let op_code_string = ScriptReader::convert_to_op_code_string(&script);
+
+		assert_eq!(op_code_string.as_str(), expected_op_code_string);
+	}
+}
