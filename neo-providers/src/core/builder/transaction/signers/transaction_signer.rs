@@ -43,7 +43,6 @@ pub struct TransactionSigner {
 	pub rules: Option<Vec<WitnessRule>>,
 }
 
-
 impl Hash for TransactionSigner {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.account.hash(state);

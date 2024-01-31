@@ -24,7 +24,7 @@ impl Witness {
 
 	pub fn from_scripts(invocation_script: Bytes, verification_script: Bytes) -> Self {
 		Self {
-			invocation: InvocationScript::from(invocation_script),
+			invocation: InvocationScript::new_with_script(invocation_script),
 			verification: VerificationScript::from(verification_script),
 		}
 	}
@@ -39,8 +39,7 @@ impl Witness {
 	pub fn create(message_to_sign: Bytes, key_pair: &KeyPair) -> Result<Self, BuilderError> {
 		let invocation_script =
 			InvocationScript::from_message_and_key_pair(message_to_sign, key_pair).unwrap();
-		let verification_script =
-			VerificationScript::from(key_pair.public_key().get_encoded(true));
+		let verification_script = VerificationScript::from(key_pair.public_key().get_encoded(true));
 		Ok(Self { invocation: invocation_script, verification: verification_script })
 	}
 
@@ -82,7 +81,7 @@ impl Witness {
 		let invocation_script = builder.to_bytes();
 
 		Ok(Self {
-			invocation: InvocationScript::from(invocation_script),
+			invocation: InvocationScript::new_with_script(invocation_script),
 			verification: VerificationScript::new(),
 		})
 	}

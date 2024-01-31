@@ -5,7 +5,6 @@
 #![deny(unsafe_code, rustdoc::broken_intra_doc_links)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-
 pub mod core;
 pub mod protocol_error;
 

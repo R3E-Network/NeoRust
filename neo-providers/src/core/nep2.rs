@@ -45,20 +45,24 @@
 //! Proper error handling is implemented to deal with common issues like incorrect password, invalid NEP2 format,
 //! and other cryptographic errors.
 
-use crate::{ProviderError, public_key_to_script_hash};
+use crate::{public_key_to_script_hash, ProviderError};
 
 extern crate openssl;
 
 use openssl::symm::{Cipher, Crypter, Mode};
 
-use scrypt::{Params, scrypt};
 use neo_config::NeoConstants;
-use neo_crypto::{key_pair::KeyPair, keys::PrivateKeyExtension};
-use neo_crypto::base58_helper::base58check_decode;
-use neo_crypto::hash::HashableForVec;
-use neo_crypto::keys::Secp256r1PrivateKey;
-use neo_types::script_hash::ScriptHashExtension;
-use neo_types::util::{ToBase58, vec_to_array32};
+use neo_crypto::{
+	base58_helper::base58check_decode,
+	hash::HashableForVec,
+	key_pair::KeyPair,
+	keys::{PrivateKeyExtension, Secp256r1PrivateKey},
+};
+use neo_types::{
+	script_hash::ScriptHashExtension,
+	util::{vec_to_array32, ToBase58},
+};
+use scrypt::{scrypt, Params};
 
 type Aes256EcbEnc = ecb::Encryptor<aes::Aes256>;
 type Aes256EcbDec = ecb::Decryptor<aes::Aes256>;
@@ -78,11 +82,14 @@ fn encrypt_aes256_ecb(data: &[u8], key: &[u8]) -> Result<Vec<u8>, ProviderError>
 	assert_eq!(key.len(), 32);
 
 	let cipher = Cipher::aes_256_ecb();
-	let mut crypter = Crypter::new(cipher, Mode::Encrypt, key, None).map_err(|_| ProviderError::InvalidPassword)?;
+	let mut crypter = Crypter::new(cipher, Mode::Encrypt, key, None)
+		.map_err(|_| ProviderError::InvalidPassword)?;
 
 	let mut output = vec![0; data.len() + cipher.block_size()];
 	let count = crypter.update(data, &mut output).map_err(|_| ProviderError::InvalidPassword)?;
-	let rest = crypter.finalize(&mut output[count..]).map_err(|_| ProviderError::InvalidPassword)?;
+	let rest = crypter
+		.finalize(&mut output[count..])
+		.map_err(|_| ProviderError::InvalidPassword)?;
 	output.truncate(count + rest);
 	Ok(output)
 }
@@ -92,17 +99,21 @@ fn decrypt_aes256_ecb(encrypted_data: &[u8], key: &[u8]) -> Result<Vec<u8>, Prov
 	assert_eq!(key.len(), 32);
 
 	let cipher = Cipher::aes_256_ecb();
-	let mut crypter = Crypter::new(cipher, Mode::Decrypt, key, None).map_err(|_| ProviderError::InvalidPassword)?;
+	let mut crypter = Crypter::new(cipher, Mode::Decrypt, key, None)
+		.map_err(|_| ProviderError::InvalidPassword)?;
 
 	let mut output = vec![0; encrypted_data.len() + cipher.block_size()];
-	let count = crypter.update(encrypted_data, &mut output).map_err(|_| ProviderError::InvalidPassword)?;
-	let rest = crypter.finalize(&mut output[count..]).map_err(|_| ProviderError::InvalidPassword)?;
+	let count = crypter
+		.update(encrypted_data, &mut output)
+		.map_err(|_| ProviderError::InvalidPassword)?;
+	let rest = crypter
+		.finalize(&mut output[count..])
+		.map_err(|_| ProviderError::InvalidPassword)?;
 	output.truncate(count + rest);
 	Ok(output)
 }
 
 pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<String, ProviderError> {
-
 	let private_key = pri_key.as_bytes();
 
 	let key_pair = KeyPair::from_private_key(&vec_to_array32(private_key.to_vec()).unwrap())?;
@@ -110,14 +121,11 @@ pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<Stri
 	let mut addresshash: [u8; 4] = address_hash_from_pubkey(&key_pair.public_key.get_encoded(true));
 
 	let mut result = vec![0u8; NeoConstants::SCRYPT_DK_LEN];
-	let params = Params::new(NeoConstants::SCRYPT_LOG_N, NeoConstants::SCRYPT_R, NeoConstants::SCRYPT_P, 32).unwrap();
+	let params =
+		Params::new(NeoConstants::SCRYPT_LOG_N, NeoConstants::SCRYPT_R, NeoConstants::SCRYPT_P, 32)
+			.unwrap();
 
-	scrypt(
-		passphrase.as_bytes(),
-		addresshash.to_vec().as_slice(),
-		&params,
-		&mut result,
-	).unwrap();
+	scrypt(passphrase.as_bytes(), addresshash.to_vec().as_slice(), &params, &mut result).unwrap();
 
 	let half_1 = &result[0..32];
 	let half_2 = &result[32..64];
@@ -127,7 +135,7 @@ pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<Stri
 		u8xor[i] = &private_key[i] ^ half_1[i];
 	}
 
-	let encrypted =  encrypt_aes256_ecb(&u8xor.to_vec(), private_key)?;
+	let encrypted = encrypt_aes256_ecb(&u8xor.to_vec(), private_key)?;
 
 	// # Assemble the final result
 	let mut assembled = Vec::new();
@@ -142,7 +150,7 @@ pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<Stri
 	Ok(assembled.to_base58())
 }
 
-pub fn get_private_key_from_nep2(nep2: & str, passphrase: &str) -> Result<Vec<u8>, ProviderError> {
+pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>, ProviderError> {
 	if nep2.len() != 58 {
 		println!("Wrong Nep2");
 		()
@@ -154,15 +162,11 @@ pub fn get_private_key_from_nep2(nep2: & str, passphrase: &str) -> Result<Vec<u8
 
 	// pwd_normalized = bytes(unicodedata.normalize('NFC', passphrase), 'utf-8')
 	let mut result = vec![0u8; NeoConstants::SCRYPT_DK_LEN];
-	let params = Params::new(NeoConstants::SCRYPT_LOG_N, NeoConstants::SCRYPT_R, NeoConstants::SCRYPT_P, 32).unwrap();
+	let params =
+		Params::new(NeoConstants::SCRYPT_LOG_N, NeoConstants::SCRYPT_R, NeoConstants::SCRYPT_P, 32)
+			.unwrap();
 
-	scrypt(
-		passphrase.as_bytes(),
-		&address_hash,
-		&params,
-		&mut result,
-	).unwrap();
-
+	scrypt(passphrase.as_bytes(), &address_hash, &params, &mut result).unwrap();
 
 	// derived = scrypt.hash(pwd_normalized, address_hash,
 	//                       N=SCRYPT_ITERATIONS,
@@ -188,7 +192,8 @@ pub fn get_private_key_from_nep2(nep2: & str, passphrase: &str) -> Result<Vec<u8
 	// private_key = xor_bytes(decrypted, derived1)
 
 	let key_pair = KeyPair::from_private_key(&pri_key)?;
-	let mut kp_addresshash: [u8; 4] = address_hash_from_pubkey(&key_pair.public_key.get_encoded(true));
+	let mut kp_addresshash: [u8; 4] =
+		address_hash_from_pubkey(&key_pair.public_key.get_encoded(true));
 
 	// # Now check that the address hashes match. If they don't, the password was wrong.
 	// kp_new = KeyPair(priv_key=private_key)
@@ -219,14 +224,17 @@ fn address_hash_from_pubkey(pubkey: &[u8]) -> [u8; 4] {
 
 #[cfg(test)]
 mod tests {
-	use scrypt::{Params};
 	use super::*;
 	use neo_config::TestConstants;
 	use neo_crypto::keys::Secp256r1PrivateKey;
+	use scrypt::Params;
 
 	#[test]
 	fn test_decrypt_with_default_scrypt_params() {
-		let decrypted_key_pair = match get_private_key_from_nep2(TestConstants::DEFAULT_ACCOUNT_ENCRYPTED_PRIVATE_KEY,TestConstants::DEFAULT_ACCOUNT_PASSWORD) {
+		let decrypted_key_pair = match get_private_key_from_nep2(
+			TestConstants::DEFAULT_ACCOUNT_ENCRYPTED_PRIVATE_KEY,
+			TestConstants::DEFAULT_ACCOUNT_PASSWORD,
+		) {
 			Ok(key_pair) => key_pair,
 			Err(_) => panic!("Decryption failed"),
 		};
@@ -238,7 +246,11 @@ mod tests {
 
 	#[test]
 	fn test_encrypt_with_default_scrypt_params() {
-		let encrypted = get_nep2_from_private_key( &TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY, TestConstants::DEFAULT_ACCOUNT_PASSWORD).unwrap();
+		let encrypted = get_nep2_from_private_key(
+			&TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY,
+			TestConstants::DEFAULT_ACCOUNT_PASSWORD,
+		)
+		.unwrap();
 		assert_eq!(encrypted, TestConstants::DEFAULT_ACCOUNT_ENCRYPTED_PRIVATE_KEY);
 	}
 }

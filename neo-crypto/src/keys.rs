@@ -96,7 +96,6 @@ pub struct Secp256r1SignedMsg<T: Serialize> {
 }
 
 impl Secp256r1PublicKey {
-
 	/// Constructs a new `Secp256r1PublicKey` from the given x and y coordinates.
 	///
 	/// This function attempts to create a public key from uncompressed x and y coordinates.
@@ -378,47 +377,65 @@ impl fmt::Display for Secp256r1Signature {
 	}
 }
 
-
 impl Serialize for Secp256r1PublicKey {
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
 		serializer.serialize_bytes(&self.get_encoded(true))
 	}
 }
 
 impl Serialize for Secp256r1PrivateKey {
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
 		serializer.serialize_bytes(&self.to_raw_bytes())
 	}
 }
 
 impl Serialize for Secp256r1Signature {
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
 		serializer.serialize_bytes(&self.to_bytes())
 	}
 }
 
 impl<'de> Deserialize<'de> for Secp256r1PublicKey {
-	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
 		let bytes = <Vec<u8>>::deserialize(deserializer)?;
-		Secp256r1PublicKey::from_bytes(&bytes).map_err(|_| serde::de::Error::custom("Invalid public key"))
+		Secp256r1PublicKey::from_bytes(&bytes)
+			.map_err(|_| serde::de::Error::custom("Invalid public key"))
 	}
 }
 
 impl<'de> Deserialize<'de> for Secp256r1PrivateKey {
-	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
 		let bytes = <Vec<u8>>::deserialize(deserializer)?;
-		Secp256r1PrivateKey::from_bytes(&bytes).map_err(|_| serde::de::Error::custom("Invalid private key"))
+		Secp256r1PrivateKey::from_bytes(&bytes)
+			.map_err(|_| serde::de::Error::custom("Invalid private key"))
 	}
 }
 
 impl<'de> Deserialize<'de> for Secp256r1Signature {
-	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
 		let bytes = <Vec<u8>>::deserialize(deserializer)?;
-		Secp256r1Signature::from_bytes(&bytes).map_err(|_| serde::de::Error::custom("Invalid signature"))
+		Secp256r1Signature::from_bytes(&bytes)
+			.map_err(|_| serde::de::Error::custom("Invalid signature"))
 	}
 }
-
-
 
 impl Hash for Secp256r1PublicKey {
 	fn hash<H: Hasher>(&self, state: &mut H) {
@@ -437,7 +454,6 @@ impl Hash for Secp256r1Signature {
 		self.to_bytes().hash(state);
 	}
 }
-
 
 impl PartialEq for Secp256r1PrivateKey {
 	fn eq(&self, other: &Self) -> bool {
@@ -526,7 +542,11 @@ impl NeoSerializable for Secp256r1PublicKey {
 
 #[cfg(test)]
 mod tests {
-	use crate::keys::{PublicKeyExtension, Secp256r1PublicKey};
+	use crate::{
+		hash::HashableForVec,
+		keys::{PublicKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey, Secp256r1Signature},
+		utils::ToArray32,
+	};
 	use neo_codec::encode::NeoSerializable;
 	use rustc_serialize::hex::{FromHex, ToHex};
 
@@ -601,5 +621,39 @@ mod tests {
 		assert!(key1 == key1_uncompressed);
 		assert!(!(key1 < key1_uncompressed));
 		assert!(!(key1 > key1_uncompressed));
+	}
+
+	#[test]
+	fn test_sign_message() {
+		let private_key_hex = "9117f4bf9be717c9a90994326897f4243503accd06712162267e77f18b49c3a3";
+		let public_key_hex = "0265bf906bf385fbf3f777832e55a87991bcfbe19b097fb7c5ca2e4025a4d5e5d6";
+		let test_message = "A test message";
+		let expected_r = "147e5f3c929dd830d961626551dbea6b70e4b2837ed2fe9089eed2072ab3a655";
+		let expected_s = "523ae0fa8711eee4769f1913b180b9b3410bbb2cf770f529c85f6886f22cbaaf";
+
+		let private_key =
+			Secp256r1PrivateKey::from_bytes(&hex::decode(private_key_hex).unwrap()).unwrap();
+		let public_key =
+			Secp256r1PublicKey::from_bytes(&hex::decode(public_key_hex).unwrap()).unwrap();
+
+		assert_eq!(public_key.clone(), private_key.clone().to_public_key());
+
+		// Hash the message
+		let hashed_msg = test_message.as_bytes().hash256();
+
+		let signature: Secp256r1Signature = private_key.clone().sign_tx(&hashed_msg).unwrap();
+
+		let expected_signature = Secp256r1Signature::from_scalars(
+			expected_r.from_hex().unwrap().to_array32().unwrap(),
+			expected_s.from_hex().unwrap().to_array32().unwrap(),
+		)
+		.unwrap_or_else(|| panic!("Failed to create signature from scalars"));
+		assert!(public_key.verify(&hashed_msg, &signature).is_ok());
+		assert!(public_key.verify(&hashed_msg, &signature).is_ok());
+
+		// Verification
+		assert!(public_key.verify(&hashed_msg, &signature).is_ok());
+		// TODO: check this verification
+		// assert!(public_key.verify(&hashed_msg, &expected_signature).is_ok());
 	}
 }

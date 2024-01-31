@@ -8,12 +8,11 @@ use rand::{
 	SeedableRng,
 };
 
-use crate::script_hash::ScriptHash;
+use crate::{error::TypeError, script_hash::ScriptHash};
 use futures::AsyncWriteExt;
 use neo_crypto::hash::HashableForVec;
 use primitive_types::{H160, H256, U256};
 use tiny_keccak::{Hasher, Keccak};
-use crate::error::TypeError;
 
 pub fn parse_string_u64(u64_str: &str) -> u64 {
 	if u64_str.starts_with("0x") {
@@ -111,13 +110,29 @@ pub fn u256_min(x: U256, y: U256) -> U256 {
 
 pub fn vec_to_array32(vec: Vec<u8>) -> Result<[u8; 32], TypeError> {
 	if vec.len() != 32 {
-		return Err(TypeError::InvalidData("Vector does not contain exactly 32 elements".to_string()));
+		return Err(TypeError::InvalidData(
+			"Vector does not contain exactly 32 elements".to_string(),
+		))
 	}
 
 	let mut array = [0u8; 32];
 	let bytes = &vec[..array.len()]; // Take a slice of the vec
-	array.copy_from_slice(bytes);    // Copy the slice into the array
+	array.copy_from_slice(bytes); // Copy the slice into the array
 	Ok(array)
+}
+
+pub fn var_size(value: usize) -> usize {
+	let mut v = value;
+	let mut bytes = 0;
+	while v > 0 {
+		v >>= 8;
+		bytes += 1;
+	}
+	if bytes == 0 {
+		1
+	} else {
+		bytes
+	}
 }
 
 pub trait ToBase58 {
@@ -139,9 +154,6 @@ impl ToBase64 for [u8] {
 		base64::encode(self)
 	}
 }
-
-
-
 
 #[cfg(test)]
 mod test {

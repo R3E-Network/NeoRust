@@ -2,7 +2,6 @@ use scrypt::Params;
 
 pub struct TestConstants {}
 impl TestConstants {
-
 	// pub const TEST_SCRYPT_PARAMS: Params = Params::new(7, 8, 9, 32).unwrap();
 
 	// Default Account

@@ -1,4 +1,3 @@
-
 mod nep6account;
 pub use nep6account::*;
 mod nep6contract;

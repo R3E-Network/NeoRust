@@ -44,3 +44,29 @@ pub fn public_key_from_hex(hex: &str) -> Result<Secp256r1PublicKey, CryptoError>
 	let public_key = Secp256r1PublicKey::from_slice(&bytes)?;
 	Ok(public_key)
 }
+
+pub trait ToArray32 {
+	fn to_array32(&self) -> Result<[u8; 32], CryptoError>;
+}
+
+macro_rules! impl_to_array32 {
+	($type:ty) => {
+		impl ToArray32 for $type {
+			fn to_array32(&self) -> Result<[u8; 32], CryptoError> {
+				if self.len() != 32 {
+					return Err(CryptoError::InvalidFormat(
+						"Vector does not contain exactly 32 elements".to_string(),
+					))
+				}
+
+				let mut array = [0u8; 32];
+				let bytes = &self[..array.len()]; // Take a slice of the vec
+				array.copy_from_slice(bytes); // Copy the slice into the array
+				Ok(array)
+			}
+		}
+	};
+}
+
+impl_to_array32!(Vec<u8>);
+impl_to_array32!(&[u8]);

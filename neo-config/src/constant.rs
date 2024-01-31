@@ -40,7 +40,6 @@ impl NeoConstants {
 	pub const NEP_HEADER_2: u8 = 0x42;
 	pub const NEP_FLAG: u8 = 0xe0;
 
-
 	pub fn new() -> Self {
 		Self {}
 	}
