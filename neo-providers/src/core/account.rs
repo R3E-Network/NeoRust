@@ -89,7 +89,7 @@ pub trait AccountTrait: Sized + PartialEq + Send + Sync + Debug + Clone {
 	fn from_public_key(public_key: &Secp256r1PublicKey) -> Result<Self, Self::Error>;
 
 	fn create_multi_sig(
-		public_keys: &[Secp256r1PublicKey],
+		public_keys: &mut [Secp256r1PublicKey],
 		signing_threshold: u32,
 	) -> Result<Self, Self::Error>;
 
@@ -360,7 +360,7 @@ impl AccountTrait for Account {
 	}
 
 	fn create_multi_sig(
-		public_keys: &[Secp256r1PublicKey],
+		public_keys: &mut [Secp256r1PublicKey],
 		signing_threshold: u32,
 	) -> Result<Self, Self::Error> {
 		let script = VerificationScript::from_multi_sig(public_keys, signing_threshold as u8);

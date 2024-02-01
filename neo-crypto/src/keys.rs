@@ -70,11 +70,14 @@ use rand_core::OsRng;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use signature::{Keypair, SignerMut, Verifier};
-use std::hash::{Hash, Hasher};
+use std::{
+	cmp::Ordering,
+	hash::{Hash, Hasher},
+};
 use typenum::Unsigned;
 
 #[cfg_attr(feature = "substrate", serde(crate = "serde_substrate"))]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Secp256r1PublicKey {
 	inner: PublicKey,
 }
@@ -84,7 +87,7 @@ pub struct Secp256r1PrivateKey {
 	inner: SecretKey,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Secp256r1Signature {
 	inner: Signature,
 }
@@ -209,15 +212,6 @@ impl Secp256r1PublicKey {
 			Ok(v) => Some(v),
 			Err(_) => None,
 		}
-	}
-}
-
-impl PartialOrd for Secp256r1PublicKey {
-	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-		let self_bytes = self.get_encoded(false);
-		let other_bytes = other.get_encoded(false);
-
-		self_bytes.partial_cmp(&other_bytes)
 	}
 }
 
@@ -437,6 +431,30 @@ impl<'de> Deserialize<'de> for Secp256r1Signature {
 	}
 }
 
+impl PartialEq for Secp256r1PublicKey {
+	fn eq(&self, other: &Secp256r1PublicKey) -> bool {
+		self.get_encoded(true) == other.get_encoded(true)
+	}
+}
+
+impl PartialOrd for Secp256r1PublicKey {
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		let self_bytes = self.get_encoded(true);
+		let other_bytes = other.get_encoded(true);
+		self_bytes.partial_cmp(&other_bytes)
+	}
+}
+
+impl Eq for Secp256r1PublicKey {}
+
+impl Ord for Secp256r1PublicKey {
+	fn cmp(&self, other: &Self) -> Ordering {
+		let self_bytes = self.get_encoded(true);
+		let other_bytes = other.get_encoded(true);
+		self_bytes.cmp(&other_bytes)
+	}
+}
+
 impl Hash for Secp256r1PublicKey {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.get_encoded(false).hash(state);
@@ -464,12 +482,6 @@ impl PartialEq for Secp256r1PrivateKey {
 impl PartialEq for Secp256r1Signature {
 	fn eq(&self, other: &Self) -> bool {
 		self.to_bytes() == other.to_bytes()
-	}
-}
-
-impl PartialEq for Secp256r1PublicKey {
-	fn eq(&self, other: &Self) -> bool {
-		self.get_encoded(false) == other.get_encoded(false)
 	}
 }
 
@@ -564,7 +576,7 @@ mod tests {
 
 	#[test]
 	fn test_new_public_key_from_point() {
-		let public_key = Secp256r1PublicKey::from_encoded(ENCODED_POINT).unwrap();
+		let mut public_key = Secp256r1PublicKey::from_encoded(ENCODED_POINT).unwrap();
 
 		assert_eq!(public_key.get_encoded(true).as_slice(), ENCODED_POINT.from_hex().unwrap());
 		assert_eq!(public_key.get_encoded_compressed_hex(), ENCODED_POINT);
@@ -596,20 +608,20 @@ mod tests {
 
 	#[test]
 	fn test_serialize_public_key() {
-		let public_key = Secp256r1PublicKey::from_encoded(ENCODED_POINT).unwrap();
+		let mut public_key = Secp256r1PublicKey::from_encoded(ENCODED_POINT).unwrap();
 		assert_eq!(public_key.get_encoded(true), ENCODED_POINT.from_hex().unwrap());
 	}
 
 	#[test]
 	fn test_deserialize_public_key() {
 		let data = "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296";
-		let public_key = Secp256r1PublicKey::from_encoded(&data).unwrap();
+		let mut public_key = Secp256r1PublicKey::from_encoded(&data).unwrap();
 		assert_eq!(public_key.get_encoded(true).to_hex(), data);
 	}
 
 	#[test]
 	fn test_public_key_size() {
-		let key = Secp256r1PublicKey::from_encoded(
+		let mut key = Secp256r1PublicKey::from_encoded(
 			"036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
 		)
 		.unwrap();

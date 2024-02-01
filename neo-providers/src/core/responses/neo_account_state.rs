@@ -17,7 +17,7 @@ impl Hash for AccountState {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.balance.hash(state);
 		self.balance_height.hash(state);
-		self.public_key.unwrap().to_vec().hash(state);
+		self.public_key.clone().unwrap().to_vec().hash(state);
 	}
 }
 

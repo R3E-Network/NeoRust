@@ -46,10 +46,10 @@ impl Witness {
 	pub fn create_multi_sig_witness(
 		signing_threshold: u8,
 		signatures: Vec<Secp256r1Signature>,
-		public_keys: Vec<Secp256r1PublicKey>,
+		mut public_keys: Vec<Secp256r1PublicKey>,
 	) -> Result<Self, BuilderError> {
 		let verification_script =
-			VerificationScript::from_multi_sig(&public_keys, signing_threshold);
+			VerificationScript::from_multi_sig(public_keys.as_mut_slice(), signing_threshold);
 		Self::create_multi_sig_witness_script(signatures, verification_script)
 	}
 

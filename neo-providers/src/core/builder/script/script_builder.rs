@@ -15,6 +15,7 @@ use neo_types::{
 use num_bigint::{BigInt, Sign};
 use num_traits::{Signed, ToBytes, ToPrimitive};
 use primitive_types::H160;
+use rustc_serialize::hex::FromHex;
 use std::collections::HashMap;
 use tokio::io::AsyncWriteExt;
 
@@ -62,7 +63,7 @@ impl ScriptBuilder {
 	}
 
 	pub fn sys_call(&mut self, operation: InteropService) -> &mut Self {
-		self.op_code(&[OpCode::Syscall]).push_data(operation.hash().into_bytes())
+		self.push_opcode_bytes(OpCode::Syscall, operation.hash().from_hex().unwrap())
 	}
 
 	pub fn push_params(&mut self, params: &[ContractParameter]) -> &mut Self {

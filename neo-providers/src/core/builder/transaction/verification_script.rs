@@ -3,11 +3,17 @@ use crate::core::{
 	script::{interop_service::InteropService, script_builder::ScriptBuilder},
 };
 use getset::{Getters, Setters};
+use hex_literal::hex;
 use neo_codec::{encode::NeoSerializable, Decoder, Encoder};
-use neo_crypto::keys::{PublicKeyExtension, Secp256r1PublicKey, Secp256r1Signature};
-use neo_types::{op_code::OpCode, Bytes};
+use neo_crypto::{
+	keys::{PublicKeyExtension, Secp256r1PublicKey, Secp256r1Signature},
+	utils::ToArray32,
+};
+use neo_types::{op_code::OpCode, util::var_size, Bytes};
 use num_bigint::BigInt;
+use p256::pkcs8::der::Encode;
 use primitive_types::H160;
+use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, vec};
 
@@ -30,29 +36,39 @@ impl VerificationScript {
 		let mut builder = ScriptBuilder::new();
 		builder
 			.push_data(public_key.get_encoded(true))
-			.op_code(&vec![OpCode::Syscall])
-			.push_data(InteropService::SystemCryptoCheckSig.hash().into_bytes());
+			.sys_call(InteropService::SystemCryptoCheckSig);
 		Self::from(builder.to_bytes())
 	}
 
-	pub fn from_multi_sig(public_keys: &[Secp256r1PublicKey], threshold: u8) -> Self {
+	pub fn from_multi_sig(public_keys: &mut [Secp256r1PublicKey], threshold: u8) -> Self {
 		// Build multi-sig script
 		let mut builder = ScriptBuilder::new();
 		builder.push_integer(BigInt::from(threshold));
-		for key in public_keys {
-			builder.push_data(key.to_vec());
+		public_keys.sort();
+		for key in public_keys.iter() {
+			builder.push_data(key.get_encoded(true));
 		}
 		builder
 			.push_integer(BigInt::from(public_keys.len()))
-			.op_code(vec![OpCode::Syscall].as_slice())
-			.push_data(InteropService::SystemCryptoCheckMultiSig.hash().into_bytes());
+			.sys_call(InteropService::SystemCryptoCheckMultiSig);
 		Self::from(builder.to_bytes())
 	}
 
+	/// Checks if this verification script is from a single signature account.
+	///
+	/// Returns `true` if this script is from a single signature account, otherwise `false`.
 	pub fn is_single_sig(&self) -> bool {
-		self.script.len() == 35
-			&& self.script[0] == OpCode::PushData1 as u8
-			&& self.script[34] == OpCode::Syscall as u8
+		if self.script.len() != 40 {
+			return false
+		}
+
+		let interop_service = &self.script[self.script.len() - 4..]; // Get the last 4 bytes
+		let interop_service_hex = interop_service.to_hex();
+
+		self.script[0] == OpCode::PushData1.opcode()
+			&& self.script[1] == 33
+			&& self.script[35] == OpCode::Syscall.opcode()
+			&& interop_service_hex == InteropService::SystemCryptoCheckSig.hash() // Assuming `hash` returns a hex string
 	}
 
 	pub fn is_multi_sig(&self) -> bool {
@@ -171,7 +187,7 @@ impl NeoSerializable for VerificationScript {
 	type Error = BuilderError;
 
 	fn size(&self) -> usize {
-		self.script.len()
+		var_size(self.script.len()) + self.script.len()
 	}
 
 	fn encode(&self, writer: &mut Encoder) {
@@ -186,5 +202,127 @@ impl NeoSerializable for VerificationScript {
 		let mut writer = Encoder::new();
 		self.encode(&mut writer);
 		writer.to_bytes()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use rustc_serialize::hex::FromHex;
+	#[test]
+	fn test_from_public_key() {
+		let key =
+			hex!("035fdb1d1f06759547020891ae97c729327853aeb1256b6fe0473bc2e9fa42ff50").to_vec();
+		let pubkey = Secp256r1PublicKey::from(key.clone());
+		let script = VerificationScript::from_public_key(&pubkey);
+		let expected = format!(
+			"{}21{}{}{}",
+			OpCode::PushData1.to_string(),
+			key.to_hex(),
+			OpCode::Syscall.to_string(),
+			InteropService::SystemCryptoCheckSig.hash()
+		)
+		.from_hex()
+		.unwrap();
+
+		assert_eq!(script.script(), &expected);
+	}
+
+	#[test]
+	fn test_from_public_keys() {
+		let key1 =
+			hex!("035fdb1d1f06759547020891ae97c729327853aeb1256b6fe0473bc2e9fa42ff50").to_vec();
+		let key2 =
+			hex!("03eda286d19f7ee0b472afd1163d803d620a961e1581a8f2704b52c0285f6e022d").to_vec();
+		let key3 =
+			hex!("03ac81ec17f2f15fd6d193182f927c5971559c2a32b9408a06fec9e711fb7ca02e").to_vec();
+
+		let mut pubkeys = vec![
+			Secp256r1PublicKey::from(key1.clone()),
+			Secp256r1PublicKey::from(key2.clone()),
+			Secp256r1PublicKey::from(key3.clone()),
+		];
+
+		let script = VerificationScript::from_multi_sig(&mut pubkeys, 2);
+
+		let expected = format!(
+			"{}{}21{}{}21{}{}21{}{}{}{}",
+			OpCode::Push2.to_string(),
+			OpCode::PushData1.to_string(),
+			key1.to_hex(),
+			OpCode::PushData1.to_string(),
+			key3.to_hex(),
+			OpCode::PushData1.to_string(),
+			key2.to_hex(),
+			OpCode::Push3.to_string(),
+			OpCode::Syscall.to_string(),
+			InteropService::SystemCryptoCheckMultiSig.hash()
+		)
+		.from_hex()
+		.unwrap();
+
+		assert_eq!(script.script(), &expected);
+	}
+
+	#[test]
+	fn test_serialize_deserialize() {
+		let key =
+			hex!("035fdb1d1f06759547020891ae97c729327853aeb1256b6fe0473bc2e9fa42ff50").to_vec();
+		let pubkey = Secp256r1PublicKey::from(key.clone());
+
+		let script = VerificationScript::from_public_key(&pubkey);
+
+		let mut expected = ScriptBuilder::new();
+		expected.push_data(hex!("21").to_vec());
+		expected.push_data(key);
+		expected.sys_call(InteropService::SystemCryptoCheckSig);
+
+		let serialized = script.to_array();
+
+		// Manually deserialize
+		let deserialized = VerificationScript::from(serialized[1..].to_vec());
+
+		// Check deserialized script matches
+		assert_eq!(deserialized.script(), &expected.to_bytes());
+	}
+
+	#[test]
+	fn test_get_signing_threshold() {
+		// let key = hex!("...").to_vec();
+		//
+		// let script = VerificationScript::from(key);
+		// assert_eq!(script.get_signing_threshold(), 2);
+		//
+		// let script = VerificationScript::from(long_script);
+		// assert_eq!(script.get_signing_threshold(), 127);
+	}
+
+	#[test]
+	fn test_invalid_script() {
+		let script = VerificationScript::from(hex!("0123456789abcdef").to_vec());
+
+		assert!(script.get_signing_threshold().is_err());
+		assert!(script.get_public_keys().is_err());
+		assert!(script.get_nr_of_accounts().is_err());
+	}
+
+	#[test]
+	fn test_size() {
+		let data = hex!("147e5f3c929dd830d961626551dbea6b70e4b2837ed2fe9089eed2072ab3a655523ae0fa8711eee4769f1913b180b9b3410bbb2cf770f529c85f6886f22cbaaf").to_vec();
+		let script = VerificationScript::from(data);
+		assert_eq!(script.size(), 65);
+	}
+
+	#[test]
+	fn test_is_single_sig_script() {
+		let script = format!(
+			"{}2102028a99826edc0c97d18e22b6932373d908d323aa7f92656a77ec26e8861699ef{}{}",
+			OpCode::PushData1.to_string(),
+			OpCode::Syscall.to_string(),
+			InteropService::SystemCryptoCheckSig.hash()
+		);
+
+		let verification = VerificationScript::from(script.from_hex().unwrap());
+		assert!(verification.is_single_sig());
 	}
 }
