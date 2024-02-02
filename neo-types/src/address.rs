@@ -6,9 +6,6 @@ use serde_derive::{Deserialize, Serialize};
 
 pub type Address = String;
 
-// NameOrAddress::Name(nns_name) => self.resolve_name(&nns_name).await?,
-// NameOrAddress::Address(addr) => addr,
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NameOrAddress {
 	Name(String),
