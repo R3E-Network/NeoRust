@@ -2,6 +2,7 @@ mod binary_decoder;
 pub mod binary_encoder;
 pub mod encode;
 mod error;
+mod op_code;
 
 pub use binary_decoder::*;
 pub use binary_encoder::*;

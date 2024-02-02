@@ -1,4 +1,3 @@
-use crate::encode::NeoSerializable;
 /// This module provides a binary decoder that can read various types of data from a byte slice.
 ///
 /// # Examples
@@ -19,6 +18,7 @@ use crate::encode::NeoSerializable;
 /// assert_eq!(decoder.read_i64(), 0x0807060504030201);
 /// ```
 use crate::CodecError;
+use crate::{encode::NeoSerializable, op_code::OpCode};
 use getset::{Getters, Setters};
 use num_bigint::{BigInt, Sign};
 use serde::Deserialize;
@@ -184,11 +184,10 @@ impl<'a> Decoder<'a> {
 	/// Reads a push byte slice from the byte slice.
 	pub fn read_push_bytes(&mut self) -> Result<Vec<u8>, CodecError> {
 		let opcode = self.read_u8();
-		let len = match opcode {
-			0x01..=0x4B => opcode as usize,
-			0x4C => self.read_u8() as usize,
-			0x4D => self.read_u16() as usize,
-			0x4E => self.read_u32() as usize,
+		let len = match OpCode::from(opcode) {
+			OpCode::PushData1 => self.read_u8() as usize,
+			OpCode::PushData2 => self.read_i16() as usize,
+			OpCode::PushData4 => self.read_i32() as usize,
 			_ => return Err(CodecError::InvalidOpCode),
 		};
 
@@ -196,25 +195,26 @@ impl<'a> Decoder<'a> {
 	}
 
 	/// Reads a push integer from the byte slice.
-	pub fn read_push_int(&mut self) -> Result<i64, CodecError> {
-		let opcode = self.read_u8();
-		match opcode {
-			0x00..=0x16 => Ok(opcode as i64 - 1),
-			0x01..=0x04 => {
-				let n = match opcode {
-					0x51 => 1,
-					0x52 => 2,
-					0x53 => 4,
-					0x54 => 8,
-					_ => {
-						panic!("Invalid opcode")
-					},
-				};
-				let bytes = self.read_bytes(n).unwrap();
-				Ok(i64::from_be_bytes(bytes.try_into().unwrap()))
-			},
-			_ => Err(CodecError::InvalidOpCode),
+	pub fn read_push_int(&mut self) -> Result<BigInt, CodecError> {
+		let byte = self.read_u8();
+
+		if (OpCode::PushM1 as u8..=OpCode::Push16 as u8).contains(&byte) {
+			return Ok(BigInt::from(byte as i8 - OpCode::Push0 as i8))
 		}
+
+		let count = match OpCode::from(byte) {
+			OpCode::PushInt8 => 1,
+			OpCode::PushInt16 => 2,
+			OpCode::PushInt32 => 4,
+			OpCode::PushInt64 => 8,
+			OpCode::PushInt128 => 16,
+			OpCode::PushInt256 => 32,
+			_ =>
+				return Err(CodecError::InvalidEncoding("Couldn't parse PUSHINT OpCode".to_string())),
+		};
+
+		let bytes = self.read_bytes(count)?;
+		Ok(BigInt::from_signed_bytes_be(&bytes))
 	}
 
 	/// Reads a push string from the byte slice.
@@ -283,5 +283,95 @@ impl<'a> Decoder<'a> {
 
 	pub fn available(&self) -> usize {
 		self.data.len() - self.pointer
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::Decoder;
+	use num_bigint::BigInt;
+
+	#[test]
+	fn test_read_push_data_bytes() {
+		let prefix_count_map = [
+			(hex::decode("0c01").unwrap(), 1),
+			(hex::decode("0cff").unwrap(), 255),
+			(hex::decode("0d0001").unwrap(), 256),
+			(hex::decode("0d0010").unwrap(), 4096),
+			(hex::decode("0e00000100").unwrap(), 65536),
+		];
+
+		for (prefix, count) in prefix_count_map {
+			let bytes = vec![1u8; count];
+			let data = [prefix.as_slice(), bytes.as_slice()].concat();
+			assert_eq!(Decoder::new(&data).read_push_bytes().unwrap(), bytes);
+		}
+	}
+
+	#[test]
+	fn test_fail_read_push_data() {
+		let data = hex::decode("4b010000").unwrap();
+		let err = Decoder::new(&data).read_push_bytes().unwrap_err();
+		assert_eq!(err.to_string(), "Invalid op code")
+	}
+
+	#[test]
+	fn test_read_push_data_string() {
+		let empty = hex::decode("0c00").unwrap();
+		assert_eq!(Decoder::new(&empty).read_push_string().unwrap(), "");
+
+		let a = hex::decode("0c0161").unwrap();
+		assert_eq!(Decoder::new(&a).read_push_string().unwrap(), "a");
+
+		let bytes = vec![0u8; 10000];
+		let input = [hex::decode("0e10270000").unwrap(), bytes.as_slice().to_vec()].concat();
+		let expected = String::from_utf8(bytes).unwrap();
+
+		assert_eq!(Decoder::new(&input).read_push_string().unwrap(), expected);
+	}
+
+	#[test]
+	fn test_read_push_data_big_integer() {
+		let zero = hex::decode("10").unwrap();
+		assert_eq!(Decoder::new(&zero).read_push_int().unwrap(), BigInt::from(0));
+
+		let one = hex::decode("11").unwrap();
+		assert_eq!(Decoder::new(&one).read_push_int().unwrap(), BigInt::from(1));
+
+		let minus_one = hex::decode("0f").unwrap();
+		assert_eq!(Decoder::new(&minus_one).read_push_int().unwrap(), BigInt::from(-1));
+
+		let sixteen = hex::decode("20").unwrap();
+		assert_eq!(Decoder::new(&sixteen).read_push_int().unwrap(), BigInt::from(16));
+	}
+
+	#[test]
+	fn test_read_u32() {
+		let max = [0xffu8; 4];
+		assert_eq!(Decoder::new(&max).read_u32(), 4_294_967_295);
+
+		let one = hex::decode("01000000").unwrap();
+		assert_eq!(Decoder::new(&one).read_u32(), 1);
+
+		let zero = [0u8; 4];
+		assert_eq!(Decoder::new(&zero).read_u32(), 0);
+
+		let custom = hex::decode("8cae0000ff").unwrap();
+		assert_eq!(Decoder::new(&custom).read_u32(), 44_684);
+	}
+
+	#[test]
+	fn test_read_i64() {
+		let min = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80];
+		assert_eq!(Decoder::new(&min).read_i64(), i64::MIN);
+
+		let max = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f];
+		assert_eq!(Decoder::new(&max).read_i64(), i64::MAX);
+
+		let zero = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+		assert_eq!(Decoder::new(&zero).read_i64(), 0);
+
+		let custom = [0x11, 0x33, 0x22, 0x8c, 0xae, 0x00, 0x00, 0x00, 0xff];
+		assert_eq!(Decoder::new(&custom).read_i64(), 749_675_361_041);
 	}
 }
