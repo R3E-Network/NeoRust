@@ -1,4 +1,5 @@
 use crate::{CodecError, Decoder, Encoder};
+use neo_config::NeoConstants;
 use primitive_types::{H160, H256};
 use std::fmt::Debug;
 
@@ -26,7 +27,9 @@ impl NeoSerializable for H160 {
 	where
 		Self: Sized,
 	{
-		reader.read_var_bytes().map(|bytes| H160::from_slice(&bytes))
+		reader
+			.read_bytes(NeoConstants::HASH160_SIZE as usize)
+			.map(|bytes| H160::from_slice(&bytes))
 	}
 
 	fn to_array(&self) -> Vec<u8> {
@@ -41,14 +44,16 @@ impl NeoSerializable for H256 {
 		H256::len_bytes()
 	}
 	fn encode(&self, writer: &mut Encoder) {
-		writer.write_var_bytes(&self.as_bytes());
+		writer.write_bytes(&self.as_bytes());
 	}
 
 	fn decode(reader: &mut Decoder) -> Result<Self, CodecError>
 	where
 		Self: Sized,
 	{
-		reader.read_var_bytes().map(|bytes| H256::from_slice(&bytes))
+		reader
+			.read_bytes(NeoConstants::HASH256_SIZE as usize)
+			.map(|bytes| H256::from_slice(&bytes))
 	}
 
 	fn to_array(&self) -> Vec<u8> {

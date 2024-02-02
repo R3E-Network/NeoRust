@@ -27,3 +27,4 @@ primitive-types.workspace = true
 num_enum = "0.7.2"
 strum_macros = "0.26.1"
 hex = "0.4.3"
+neo-config.workspace = true

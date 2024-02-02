@@ -35,8 +35,7 @@ mod tests {
 
 	#[test]
 	fn test_to_array() {
-		let mut hash =
-			H160::from_hex("23ba2703c53263e8d6e522dc32203339dcd8eee9").unwrap().to_le_vec();
+		let hash = H160::from_hex("23ba2703c53263e8d6e522dc32203339dcd8eee9").unwrap().to_le_vec();
 		let mut expected = hex::decode("23ba2703c53263e8d6e522dc32203339dcd8eee9").unwrap();
 		expected.reverse();
 		assert_eq!(hash, expected);
