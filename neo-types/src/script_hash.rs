@@ -3,6 +3,7 @@ use hex::FromHexError;
 use neo_config::DEFAULT_ADDRESS_VERSION;
 use neo_crypto::hash::HashableForVec;
 use primitive_types::H160;
+use rustc_serialize::hex::ToHex;
 
 pub type ScriptHash = H160;
 
@@ -37,6 +38,9 @@ where
 
 	/// Converts the object into its address string representation.
 	fn to_address(&self) -> String;
+
+	/// Converts the object into its hex string representation.
+	fn to_hex(&self) -> String;
 
 	/// Converts the object into a byte vector.
 	fn to_vec(&self) -> Vec<u8>;
@@ -96,6 +100,10 @@ impl ScriptHashExtension for H160 {
 		let mut sha = &data.hash256().hash256();
 		data.extend_from_slice(&sha[..4]);
 		bs58::encode(data).into_string()
+	}
+
+	fn to_hex(&self) -> String {
+		self.0.to_hex()
 	}
 
 	fn to_vec(&self) -> Vec<u8> {

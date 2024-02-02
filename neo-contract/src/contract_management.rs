@@ -35,8 +35,7 @@ impl<'a, P: JsonRpcClient> ContractManagement<'a, P> {
 			.provider
 			.unwrap()
 			.invoke_function(&self.script_hash, "getMinimumDeploymentFee".to_string(), vec![], None)
-			.await
-			.unwrap()
+			.await?
 			.stack[0]
 			.as_int()
 			.unwrap() as u64)
@@ -52,8 +51,7 @@ impl<'a, P: JsonRpcClient> ContractManagement<'a, P> {
 				vec![fee.into()],
 				None,
 			)
-			.await
-			.unwrap()
+			.await?
 			.stack[0]
 			.as_int()
 			.unwrap() as u64)
