@@ -1,7 +1,7 @@
-use crate::error::TypeError;
+use crate::{error::TypeError, public_key_to_script_hash};
 use hex::FromHexError;
 use neo_config::DEFAULT_ADDRESS_VERSION;
-use neo_crypto::hash::HashableForVec;
+use neo_crypto::{hash::HashableForVec, keys::Secp256r1PublicKey};
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
 
@@ -13,7 +13,7 @@ where
 	Self: Sized,
 {
 	/// Returns a string representation of the object.
-	fn to_string(&self) -> String;
+	fn to_bs58_string(&self) -> String;
 
 	/// Creates an instance from a byte slice.
 	///
@@ -50,10 +50,12 @@ where
 
 	/// Creates an instance from a script byte slice.
 	fn from_script(script: &[u8]) -> Self;
+
+	fn from_public_key(public_key: &[u8]) -> Result<Self, TypeError>;
 }
 
 impl ScriptHashExtension for H160 {
-	fn to_string(&self) -> String {
+	fn to_bs58_string(&self) -> String {
 		bs58::encode(self.0).into_string()
 	}
 
@@ -96,7 +98,9 @@ impl ScriptHashExtension for H160 {
 
 	fn to_address(&self) -> String {
 		let mut data = vec![DEFAULT_ADDRESS_VERSION];
-		data.extend_from_slice(&self.0);
+		let mut script = self.0.clone();
+		script.reverse();
+		data.extend_from_slice(&script);
 		let mut sha = &data.hash256().hash256();
 		data.extend_from_slice(&sha[..4]);
 		bs58::encode(data).into_string()
@@ -123,13 +127,25 @@ impl ScriptHashExtension for H160 {
 		arr.copy_from_slice(&hash);
 		Self(arr)
 	}
+
+	fn from_public_key(public_key: &[u8]) -> Result<Self, TypeError> {
+		let script =
+			public_key_to_script_hash(&Secp256r1PublicKey::from_bytes(public_key).unwrap());
+		Ok(script)
+	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
 
-	use rustc_serialize::hex::ToHex;
+	use crate::{
+		interop_service::InteropService, op_code::OpCode, stack_item::StackItem::InteropInterface,
+	};
+	use neo_codec::{encode::NeoSerializable, Encoder};
+	use neo_config::TestConstants;
+	use neo_crypto::hash::HashableForString;
+	use rustc_serialize::hex::{FromHex, ToHex};
 	use std::str::FromStr;
 
 	#[test]
@@ -167,15 +183,15 @@ mod tests {
 	}
 
 	#[test]
-	fn test_serialize_deserialize() {
-		let expected = "23ba2703c53263e8d6e522dc32203339dcd8eee9";
-		let expected_bytes: Vec<u8> = hex::decode(expected).unwrap().into_iter().rev().collect();
+	fn test_serialize_and_deserialize() {
+		let hex_str = "23ba2703c53263e8d6e522dc32203339dcd8eee9";
+		let data = hex_str.from_hex().unwrap();
 
-		// let mut writer = vec![];
-		// // H160::from_str(expected).unwrap().serialize(&mut writer).unwrap();
-		//
-		// assert_eq!(writer, expected_bytes);
-		// assert_eq!(H160::deserialize(&expected_bytes).unwrap().to_string(), expected);
+		let mut buffer = Encoder::new();
+		H160::from_hex(hex_str).unwrap().encode(&mut buffer);
+
+		assert_eq!(buffer.to_bytes(), data);
+		assert_eq!(H160::from_slice(&data).as_bytes().to_hex(), hex_str);
 	}
 
 	#[test]
@@ -201,5 +217,40 @@ mod tests {
 			H160::from_address("NLnyLtep7jwyq1qhNPkwXbJpurC4jUT8keas"),
 			Err(TypeError::InvalidAddress)
 		);
+	}
+
+	#[test]
+	fn test_from_public_key_bytes() {
+		let public_key = "035fdb1d1f06759547020891ae97c729327853aeb1256b6fe0473bc2e9fa42ff50";
+		let script = format!(
+			"{}21{}{}{}",
+			OpCode::PushData1.to_string(),
+			public_key,
+			OpCode::Syscall.to_string(),
+			InteropService::SystemCryptoCheckSig.hash()
+		);
+
+		let hash = H160::from_public_key(&public_key.from_hex().unwrap()).unwrap();
+		let mut hash = hash.to_array();
+		hash.reverse();
+		let expected = script.sha256_ripemd160();
+		assert_eq!(hash, expected.from_hex().unwrap());
+	}
+
+	#[test]
+	fn test_from_contract_script() {
+		let script =
+			"110c21026aa8fe6b4360a67a530e23c08c6a72525afde34719c5436f9d3ced759f939a3d110b41138defaf";
+		let hash = H160::from_script(&script.from_hex().unwrap());
+
+		assert_eq!(hash.to_hex(), "afaed076854454449770763a628f379721ea9808");
+	}
+
+	#[test]
+	fn test_to_address() {
+		let public_key = TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY;
+		let hash = H160::from_public_key(&public_key.from_hex().unwrap()).unwrap();
+
+		assert_eq!(hash.to_address(), TestConstants::DEFAULT_ACCOUNT_ADDRESS);
 	}
 }

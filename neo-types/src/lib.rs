@@ -1,13 +1,19 @@
 use base64::{engine::general_purpose, Engine};
 use elliptic_curve::sec1::ToEncodedPoint;
 use primitive_types::H256;
+use rustc_serialize::hex::{FromHex, ToHex};
+use serde::__private::de::IdentifierDeserializer;
 use serde_derive::{Deserialize, Serialize};
 use std::hash::Hash;
+
 mod contract;
 mod nns;
 
 pub use contract::*;
-use neo_crypto::keys::{Secp256r1PrivateKey, Secp256r1PublicKey};
+use neo_crypto::{
+	hash::HashableForVec,
+	keys::{Secp256r1PrivateKey, Secp256r1PublicKey},
+};
 pub use nns::*;
 
 pub mod address;
@@ -22,10 +28,14 @@ pub mod path_or_string;
 pub mod plugin_type;
 pub mod serde_value;
 pub mod serde_with_utils;
-use crate::{address::Address, script_hash::ScriptHash, string::StringExt};
+use crate::{
+	address::Address, interop_service::InteropService, op_code::OpCode, script_hash::ScriptHash,
+	string::StringExt,
+};
 pub use serde_with_utils::*;
 
 pub mod error;
+mod interop_service;
 pub mod role;
 pub mod script_hash;
 pub mod stack_item;
@@ -95,9 +105,19 @@ pub fn public_key_to_script_hash(pubkey: &Secp256r1PublicKey) -> ScriptHash {
 
 pub fn raw_public_key_to_script_hash<T: AsRef<[u8]>>(pubkey: T) -> ScriptHash {
 	let pubkey = pubkey.as_ref();
-	assert_eq!(pubkey.len(), 64, "raw public key must be 64 bytes");
-	let digest = vec![]; // keccak256(pubkey);
-	ScriptHash::from_slice(&digest)
+	let script = format!(
+		"{}21{}{}{}{}",
+		OpCode::PushData1.to_string(),
+		"03",
+		pubkey.to_hex(),
+		OpCode::Syscall.to_string(),
+		InteropService::SystemCryptoCheckSig.hash()
+	)
+	.from_hex()
+	.unwrap();
+	let mut script = script.sha256_ripemd160();
+	script.reverse();
+	ScriptHash::from_slice(&script)
 }
 
 pub fn to_checksum(addr: &ScriptHash, chain_id: Option<u8>) -> String {

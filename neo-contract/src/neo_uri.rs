@@ -116,7 +116,7 @@ impl<'a, P: JsonRpcClient> NeoURI<'a, P> {
 				Self::NEO_TOKEN_STRING.to_owned(),
 			token if *token == GasToken::<P>::new(None).script_hash() =>
 				Self::GAS_TOKEN_STRING.to_owned(),
-			_ => ScriptHashExtension::to_string(token),
+			_ => ScriptHashExtension::to_bs58_string(token),
 		})
 	}
 
@@ -203,7 +203,7 @@ impl<'a, P: JsonRpcClient> NeoURI<'a, P> {
 					Self::NEO_TOKEN_STRING.to_owned(),
 				token if *token == GasToken::new(self.provider).script_hash() =>
 					Self::GAS_TOKEN_STRING.to_owned(),
-				_ => ScriptHashExtension::to_string(token),
+				_ => ScriptHashExtension::to_bs58_string(token),
 			};
 
 			parts.push(format!("asset={}", token_str));

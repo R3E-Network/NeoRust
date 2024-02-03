@@ -58,6 +58,7 @@ neo-crypto.workspace = true
 serde-big-array.workspace = true
 ring = { version = "0.16.20", features = [] }
 signature = { version = "2.1.0", features = [] }
+lazy_static = "1.4.0"
 
 [features]
 default = ["std", "serialize"]

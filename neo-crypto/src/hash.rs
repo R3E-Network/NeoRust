@@ -5,6 +5,7 @@ use crypto::{
 	ripemd160::Ripemd160,
 	sha2::{Sha256, Sha512},
 };
+use rustc_serialize::hex::FromHex;
 
 pub trait HashableForVec {
 	fn hash256(&self) -> Vec<u8>;
@@ -94,7 +95,7 @@ fn hex_encode(bytes: &[u8]) -> String {
 	hex::encode(bytes)
 }
 
-trait HashableForString {
+pub trait HashableForString {
 	fn hash256(&self) -> String;
 	fn ripemd160(&self) -> String;
 	fn sha256_ripemd160(&self) -> String;
@@ -111,7 +112,7 @@ impl HashableForString for String {
 	}
 
 	fn sha256_ripemd160(&self) -> String {
-		hex_encode(&self.as_bytes().sha256_ripemd160())
+		hex_encode(&self.from_hex().unwrap().sha256_ripemd160())
 	}
 
 	fn hmac_sha512(&self, key: &str) -> String {

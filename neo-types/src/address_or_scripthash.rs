@@ -31,7 +31,6 @@ impl Hash for AddressOrScriptHash {
 impl Default for AddressOrScriptHash {
 	fn default() -> Self {
 		AddressOrScriptHash::Address(Default::default())
-		// Or use AddressOrScriptHash::ScriptHash(Default::default()) if that's the desired default
 	}
 }
 

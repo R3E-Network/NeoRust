@@ -153,7 +153,7 @@ impl AccountTrait for Account {
 	}
 
 	fn address_or_scripthash(&self) -> &AddressOrScriptHash {
-		match self.address_or_scripthash {}
+		&self.address_or_scripthash
 	}
 
 	fn label(&self) -> &Option<String> {
@@ -342,7 +342,7 @@ impl AccountTrait for Account {
 
 		Ok(Self {
 			address_or_scripthash: AddressOrScriptHash::ScriptHash(address),
-			label: Some(ScriptHashExtension::to_string(&address)),
+			label: Some(ScriptHashExtension::to_bs58_string(&address)),
 			verification_script: Some(script.clone()),
 			signing_threshold: signing_threshold.map(|x| x as u32),
 			nr_of_participants: nr_of_participants.map(|x| x as u32),
@@ -356,7 +356,7 @@ impl AccountTrait for Account {
 
 		Ok(Self {
 			address_or_scripthash: AddressOrScriptHash::ScriptHash(address),
-			label: Some(ScriptHashExtension::to_string(&address)),
+			label: Some(ScriptHashExtension::to_bs58_string(&address)),
 			verification_script: Some(script),
 			..Default::default()
 		})
@@ -577,7 +577,7 @@ mod tests {
 		);
 		assert_eq!(account.label, Some(TestConstants::DEFAULT_ACCOUNT_ADDRESS.to_string()));
 		assert_eq!(
-			neo_types::script_hash::ScriptHashExtension::to_string(
+			neo_types::script_hash::ScriptHashExtension::to_bs58_string(
 				&account.address_or_scripthash.script_hash()
 			),
 			TestConstants::DEFAULT_ACCOUNT_SCRIPT_HASH
