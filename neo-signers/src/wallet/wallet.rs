@@ -27,9 +27,9 @@ use std::{collections::HashMap, fs::File, io::Write, path::PathBuf, str::FromStr
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wallet {
-	pub(crate) name: String,
-	pub(crate) version: String,
-	pub(crate) scrypt_params: ScryptParamsDef,
+	pub name: String,
+	pub version: String,
+	pub scrypt_params: ScryptParamsDef,
 	#[serde(deserialize_with = "deserialize_hash_map_h160_account")]
 	#[serde(serialize_with = "serialize_hash_map_h160_account")]
 	pub accounts: HashMap<H160, Account>,
@@ -87,7 +87,8 @@ impl WalletTrait for Wallet {
 }
 
 impl Wallet {
-	// Constructor
+	pub const DEFAULT_WALLET_NAME: &'static str = "NeoRustWallet";
+	pub const CURRENT_VERSION: &'static str = "3.0";
 
 	pub fn new() -> Self {
 		Self {
@@ -312,5 +313,90 @@ impl Signer for Wallet {
 	/// Sets the wallet's network_magic, used in conjunction with EIP-155 signing
 	fn with_network_magic<T: Into<u32>>(mut self, network_magic: T) -> Self {
 		todo!()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::Wallet;
+	use neo_config::TestConstants;
+	use neo_providers::core::account::{Account, AccountTrait};
+
+	#[test]
+	fn test_is_default() {
+		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+		let mut wallet = Wallet::create().unwrap();
+		wallet.add_account(account).unwrap();
+
+		// assert!(!account.is_default);
+
+		wallet.set_default_account(account.address_or_scripthash.script_hash());
+		// assert!(account.is_default);
+	}
+
+	// #[test]
+	// fn test_wallet_link() {
+	// 	let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+	// 	let wallet = Wallet::create().unwrap();
+	//
+	// 	assert!(account.wallet.is_none());
+	//
+	// 	wallet.add_account(account).unwrap();
+	// 	assert_eq!(account.wallet.as_ref().unwrap().as_ptr(), wallet.as_ptr());
+	// }
+
+	#[test]
+	fn test_create_default_wallet() {
+		let wallet = Wallet::create().unwrap();
+
+		assert_eq!(wallet.name, "NeoRustWallet");
+		assert_eq!(wallet.version, Wallet::CURRENT_VERSION);
+		assert!(!wallet.accounts.is_empty());
+	}
+
+	#[test]
+	fn test_create_wallet_with_accounts() {
+		let account1 = Account::create().unwrap();
+		let account2 = Account::create().unwrap();
+
+		let wallet = Wallet::with_accounts(vec![account1, account2]).unwrap();
+
+		assert_eq!(wallet.default_account.as_ref().unwrap(), &account1);
+		assert_eq!(wallet.accounts.len(), 2);
+		assert!(wallet.accounts.contains(&account1));
+		assert!(wallet.accounts.contains(&account2));
+	}
+
+	#[test]
+	fn test_is_default_account() {
+		let account = Account::create().unwrap();
+		let mut wallet = Wallet::with_accounts(vec![account]).unwrap();
+
+		assert!(wallet.is_default(&account));
+	}
+
+	#[test]
+	fn test_add_account() {
+		let account = Account::create().unwrap();
+		let mut wallet = Wallet::create().unwrap();
+
+		wallet.add_account(account).unwrap();
+
+		assert_eq!(wallet.accounts.len(), 2);
+		assert_eq!(wallet.get_account(&account.script_hash().unwrap()), Some(&account));
+	}
+
+	#[test]
+	fn test_encrypt_wallet() {
+		let mut wallet = Wallet::create().unwrap();
+		wallet.add_account(Account::create().unwrap());
+
+		assert!(wallet.accounts[0].key_pair().is_some());
+		assert!(wallet.accounts[1].key_pair().is_some());
+
+		wallet.encrypt_all("pw").unwrap();
+
+		assert!(wallet.accounts[0].key_pair().is_none());
+		assert!(wallet.accounts[1].key_pair().is_none());
 	}
 }

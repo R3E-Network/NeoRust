@@ -84,28 +84,11 @@ impl ScriptBuilder {
 			ParameterValue::ByteArray(b)
 			| ParameterValue::Signature(b)
 			| ParameterValue::PublicKey(b) => self.push_data(b.as_bytes().to_vec()),
-			ParameterValue::Hash160(h) => self.push_data(h.as_bytes().to_vec()),
-			ParameterValue::Hash256(h) => self.push_data(h.as_bytes().to_vec()),
+			ParameterValue::H160(h) => self.push_data(h.as_bytes().to_vec()),
+			ParameterValue::H256(h) => self.push_data(h.as_bytes().to_vec()),
 			ParameterValue::String(s) => self.push_data(s.as_bytes().to_vec()),
 			ParameterValue::Array(arr) => self.push_array(arr).unwrap(),
-			ParameterValue::Map(map) => {
-				// Create an empty HashMap to hold your ContractParameter key-value pairs
-				// let mut map_value: HashMap<ContractParameter, ContractParameter> = HashMap::new();
-				//
-				// // Iterate over pairs of elements in the vector
-				// // (assuming the vector has an even number of elements)
-				// for i in (0..map.len()).step_by(2) {
-				// 	let key: ContractParameter =
-				// 		let a = serde_json::from_value(map[i]);
-				// 	let value: ContractParameter =
-				// 		serde_json::(map[i + 1].as_str().unwrap()).unwrap();
-				//
-				// 	// Insert the key-value pair into the HashMap
-				// 	map_value.insert(key, value);
-				// }
-
-				self.push_map(&map).unwrap()
-			},
+			ParameterValue::Map(map) => self.push_map(&map.0).unwrap(),
 			_ =>
 				return Err(BuilderError::IllegalArgument("Unsupported parameter type".to_string())),
 		};

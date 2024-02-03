@@ -287,7 +287,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 				.invoke_function(
 					&GAS_TOKEN_HASH,
 					Self::BALANCE_OF_FUNCTION.to_string(),
-					vec![ContractParameter::hash160(sender.get_signer_hash())],
+					vec![ContractParameter::from(sender.get_signer_hash())],
 					None,
 				)
 				.await?

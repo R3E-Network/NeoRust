@@ -397,3 +397,209 @@ impl AccountTrait for Account {
 		self.signing_threshold.is_some() && self.nr_of_participants.is_some()
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use crate::core::{
+		account::{Account, AccountTrait},
+		transaction::verification_script::VerificationScript,
+	};
+	use neo_config::{NeoConstants, TestConstants};
+	use neo_crypto::{
+		key_pair::KeyPair,
+		keys::{Secp256r1PrivateKey, Secp256r1PublicKey},
+		utils::ToArray32,
+	};
+
+	#[test]
+	fn test_create_generic_account() {
+		let account = Account::create().unwrap();
+		assert!(!account.address_or_scripthash()_or_scripthash().is_nil());
+		assert!(!account.verification_script.is_nil());
+		assert!(!account.key_pair.is_nil());
+		assert!(!account.label.is_empty());
+		assert!(account.encrypted_private_key.is_none());
+		assert!(!account.is_locked);
+		assert!(!account.is_default);
+	}
+
+	#[test]
+	fn test_init_account_from_existing_key_pair() {
+		let key_pair =
+			KeyPair::create(hex::decode(TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY).unwrap())
+				.unwrap();
+		let account = Account::from_key_pair(key_pair, None, None).unwrap();
+
+		assert!(!account.is_multi_sig());
+		assert_eq!(account.address_or_scripthash(), TestConstants::DEFAULT_ACCOUNT_ADDRESS);
+		assert_eq!(account.label, TestConstants::DEFAULT_ACCOUNT_ADDRESS);
+		assert_eq!(
+			account.verification_script.unwrap().as_bytes(),
+			hex::decode(TestConstants::DEFAULT_ACCOUNT_VERIFICATION_SCRIPT).unwrap()
+		);
+	}
+
+	#[test]
+	fn test_from_verification_script() {
+		let verification_script = VerificationScript::from(
+			hex::decode(TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT).unwrap(),
+		);
+		let account = Account::from_verification_script(&verification_script).unwrap();
+
+		assert_eq!(account.address_or_scripthash()_or_scripthash(), TestConstants::COMMITTEE_ACCOUNT_ADDRESS);
+		assert_eq!(
+			account.verification_script.unwrap().as_bytes(),
+			hex::decode(TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT).unwrap()
+		);
+	}
+
+	#[test]
+	fn test_from_public_key() {
+		let public_key = Secp256r1PublicKey::from_bytes(
+			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
+		)
+		.unwrap();
+		let account = Account::from_public_key(public_key).unwrap();
+
+		assert_eq!(account.address_or_scripthash(), TestConstants::DEFAULT_ACCOUNT_ADDRESS);
+		assert_eq!(
+			account.verification_script.unwrap().as_bytes(),
+			hex::decode(TestConstants::DEFAULT_ACCOUNT_VERIFICATION_SCRIPT).unwrap()
+		);
+	}
+
+	#[test]
+	fn test_create_multi_sig_account_from_public_keys() {
+		let public_key = Secp256r1PublicKey::from_bytes(
+			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
+		)
+		.unwrap();
+		let account = Account::create_multi_sig(&mut vec![public_key], 1).unwrap();
+
+		assert!(account.is_multi_sig());
+		assert_eq!(account.address_or_scripthash(), TestConstants::COMMITTEE_ACCOUNT_ADDRESS);
+		assert_eq!(account.label, TestConstants::COMMITTEE_ACCOUNT_ADDRESS);
+		assert_eq!(
+			account.verification_script.unwrap().as_bytes(),
+			hex::decode(TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT).unwrap()
+		);
+	}
+
+	#[test]
+	fn test_nil_values_when_not_multi_sig() {
+		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+		assert!(account.signing_threshold.is_none());
+		assert!(account.nr_of_participants.is_none());
+	}
+
+	#[test]
+	fn test_encrypt_public_key() {
+		let key_pair =
+			KeyPair::create(hex::decode(TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY).unwrap())
+				.unwrap();
+		let mut account = Account::from_key_pair(key_pair, None, None).unwrap();
+
+		account.encrypt_private_key(TestConstants::DEFAULT_ACCOUNT_PASSWORD).unwrap();
+
+		assert_eq!(
+			account.encrypted_private_key.unwrap(),
+			TestConstants::DEFAULT_ACCOUNT_ENCRYPTED_PRIVATE_KEY
+		);
+	}
+
+	#[test]
+	fn test_to_nep6_account_with_only_an_address() {
+		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+
+		let nep6_account = account.to_nep6_account().unwrap();
+
+		assert!(nep6_account.contract.is_none());
+		assert!(!nep6_account.is_default);
+		// ...
+	}
+
+	#[test]
+	fn test_create_account_from_wif() {
+		let account = Account::from_wif(TestConstants::DEFAULT_ACCOUNT_WIF).unwrap();
+
+		let expected_key_pair = KeyPair::from_private_key(
+			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY)
+				.unwrap()
+				.to_array32()
+				.unwrap(),
+		)
+		.unwrap();
+
+		assert_eq!(account.key_pair.unwrap(), expected_key_pair);
+		assert_eq!(account.address_or_scripthash(), TestConstants::DEFAULT_ACCOUNT_ADDRESS);
+		// ...
+	}
+
+	#[test]
+	fn test_create_account_from_address() {
+		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+
+		assert_eq!(account.address_or_scripthash(), TestConstants::DEFAULT_ACCOUNT_ADDRESS);
+		assert_eq!(account.label, TestConstants::DEFAULT_ACCOUNT_ADDRESS);
+		assert_eq!(
+			account.address_or_scripthash.script_hash().unwrap().to_string(),
+			TestConstants::DEFAULT_ACCOUNT_SCRIPT_HASH
+		);
+		// assert!(!account.is_default);
+		assert!(!account.is_locked);
+		assert!(account.verification_script.is_none());
+	}
+
+	#[test]
+	fn test_get_nep17_balances() {
+		// Create mock HTTP client
+
+		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+
+		let balances = account.get_nep17_balances(&mock_client).await.unwrap();
+
+		assert_eq!(balances.len(), 2);
+		assert!(balances.contains_key(&TestConstants::GAS_TOKEN_HASH));
+		assert!(balances.contains_key(&TestConstants::NEO_TOKEN_HASH));
+		assert!(balances.values().contains(&300000000));
+		assert!(balances.values().contains(&5));
+	}
+
+	#[test]
+	fn test_is_multi_sig() {
+		let a = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+		assert!(!a.is_multi_sig());
+
+		let a1 = Account::create_multi_sig(
+			&mut vec![
+				Secp256r1PublicKey::from_encoded(TestConstants::COMMITTEE_ACCOUNT_ADDRESS).unwrap()
+			],
+			1,
+			1,
+		)
+		.unwrap();
+		assert!(a1.is_multi_sig());
+
+		let a2 = Account::from_verification_script(VerificationScript::from_bytes(
+			hex::decode(TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT).unwrap(),
+		))
+		.unwrap();
+		assert!(a2.is_multi_sig());
+
+		let a3 = Account::from_verification_script(VerificationScript::from_bytes(
+			hex::decode(TestConstants::DEFAULT_ACCOUNT_VERIFICATION_SCRIPT).unwrap(),
+		))
+		.unwrap();
+		assert!(!a3.is_multi_sig());
+	}
+
+	#[test]
+	fn test_unlock() {
+		let mut account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+		account = account.lock();
+		assert!(account.is_locked);
+
+		account.unlock();
+		assert!(!account.is_locked);
+	}
+}

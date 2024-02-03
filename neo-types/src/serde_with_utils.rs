@@ -20,6 +20,7 @@ use std::{
 use crate::{
 	address::Address,
 	address_or_scripthash::AddressOrScriptHash,
+	contract_parameter::ContractParameter,
 	nef_file::MethodToken,
 	script_hash::{ScriptHash, ScriptHashExtension},
 	util::{
@@ -29,7 +30,6 @@ use crate::{
 };
 use neo_crypto::keys::{Secp256r1PrivateKey, Secp256r1PublicKey};
 use serde::ser::{SerializeMap, SerializeSeq};
-use crate::contract_parameter::ContractParameter;
 
 use crate::util::encode_string_u256;
 
@@ -755,27 +755,31 @@ where
 	Ok(hashmap)
 }
 
-pub fn serialize_map<S>(map: &HashMap<ContractParameter, ContractParameter>, serializer: S) -> Result<S::Ok, S::Error>
-	where
-		S: Serializer,
+pub fn serialize_map<S>(
+	map: &HashMap<ContractParameter, ContractParameter>,
+	serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+	S: Serializer,
 {
-	let serializable_map: Vec<(_, _)> = map.iter().map(|(k, v)| {
-		(serde_json::to_string(k).unwrap(), v)
-	}).collect();
+	let serializable_map: Vec<(_, _)> =
+		map.iter().map(|(k, v)| (serde_json::to_string(k).unwrap(), v)).collect();
 	serializable_map.serialize(serializer)
 }
 
-pub fn deserialize_map<'de, D>(deserializer: D) -> Result<HashMap<ContractParameter, ContractParameter>, D::Error>
-	where
-		D: Deserializer<'de>,
+pub fn deserialize_map<'de, D>(
+	deserializer: D,
+) -> Result<HashMap<ContractParameter, ContractParameter>, D::Error>
+where
+	D: Deserializer<'de>,
 {
 	let deserialized_vector: Vec<(String, ContractParameter)> = Vec::deserialize(deserializer)?;
-	let map: HashMap<ContractParameter, ContractParameter> = deserialized_vector.into_iter().map(|(k, v)| {
-		(serde_json::from_str(&k).unwrap(), v)
-	}).collect();
+	let map: HashMap<ContractParameter, ContractParameter> = deserialized_vector
+		.into_iter()
+		.map(|(k, v)| (serde_json::from_str(&k).unwrap(), v))
+		.collect();
 	Ok(map)
 }
-
 
 #[cfg(test)]
 mod test {

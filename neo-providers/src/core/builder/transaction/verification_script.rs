@@ -11,6 +11,7 @@ use neo_crypto::{
 };
 use neo_types::{op_code::OpCode, util::var_size, Bytes};
 use num_bigint::BigInt;
+use num_traits::{ToPrimitive, Zero};
 use p256::pkcs8::der::Encode;
 use primitive_types::H160;
 use rustc_serialize::hex::{FromHex, ToHex};
@@ -87,11 +88,11 @@ impl VerificationScript {
 			Ok(n) => n,
 			Err(_) => return false,
 		};
-		if !(1..=16).contains(&n) {
+		if !(1..=16).contains(&(n.to_i32().unwrap())) {
 			return false
 		}
 
-		let mut m = 0;
+		let mut m: BigInt = BigInt::zero();
 		while reader.by_ref().read_u8() == OpCode::PushData1.opcode() {
 			let len = reader.by_ref().read_u8();
 			if len != 33 {
@@ -101,7 +102,7 @@ impl VerificationScript {
 			m += 1;
 		}
 
-		if !(m >= n && m <= 16) {
+		if !(m >= n && m <= BigInt::from(16)) {
 			return false
 		}
 
@@ -112,7 +113,7 @@ impl VerificationScript {
 
 		match reader.by_ref().read_var_int() {
 			Ok(v) =>
-				if v != m {
+				if BigInt::from(v) != m {
 					return false
 				},
 			Err(_) => return false,

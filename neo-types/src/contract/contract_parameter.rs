@@ -1,12 +1,10 @@
 use crate::{
 	contract_parameter_type::ContractParameterType, nef_file::NefFile, nns_name::NNSName,
-	role::Role, serde_value::ValueExtension,
+	role::Role, script_hash::ScriptHashExtension, serde_value::ValueExtension, serde_with_utils::*,
+	util::ToBase64,
 };
 use base64::encode;
 use elliptic_curve::sec1::ToEncodedPoint;
-use std::collections::HashMap;
-use serde::de::IgnoredAny;
-use crate::{script_hash::ScriptHashExtension, util::ToBase64};
 use neo_codec::encode::NeoSerializable;
 use neo_crypto::keys::Secp256r1PublicKey;
 use primitive_types::{H160, H256};
@@ -14,17 +12,20 @@ use rustc_serialize::{
 	base64::FromBase64,
 	hex::{FromHex, ToHex},
 };
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{
+	de,
+	de::{value::MapAccessDeserializer, IgnoredAny},
+	ser::SerializeMap,
+	Deserialize, Deserializer, Serialize,
+};
 use serde_json::{json, Value};
 use sha3::Digest;
 use std::{
+	collections::HashMap,
 	hash::{Hash, Hasher},
 	str::FromStr,
 };
-use serde::de::value::MapAccessDeserializer;
-use serde::ser::SerializeMap;
 use strum_macros::{Display, EnumString};
-use crate::serde_with_utils::*;
 
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Clone)]
 pub struct ContractParameter {
@@ -247,7 +248,6 @@ impl ValueExtension for Vec<ContractParameter> {
 	}
 }
 
-
 #[derive(Display, EnumString, Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum ParameterValue {
@@ -282,7 +282,7 @@ impl Hash for ParameterValue {
 			// 		v.hash(state);
 			// 	},
 			ParameterValue::Any => "Any".hash(state),
-			_=>panic!("Invalid Hash Key"),
+			_ => panic!("Invalid Hash Key"),
 		}
 	}
 }
@@ -436,19 +436,22 @@ impl ContractParameter {
 	}
 }
 
-#[derive(Default,Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-struct  ContractParameterMap(#[serde(serialize_with = "serialize_map", deserialize_with = "deserialize_map")]HashMap<ContractParameter, ContractParameter>);
+#[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
+pub struct ContractParameterMap(
+	#[serde(serialize_with = "serialize_map", deserialize_with = "deserialize_map")]
+	pub  HashMap<ContractParameter, ContractParameter>,
+);
 
-impl ContractParameterMap{
-	pub fn new()->Self{
+impl ContractParameterMap {
+	pub fn new() -> Self {
 		Self(HashMap::new())
 	}
 
-	pub fn from_map(map:HashMap<ContractParameter, ContractParameter>)->Self{
+	pub fn from_map(map: HashMap<ContractParameter, ContractParameter>) -> Self {
 		Self(map)
 	}
 
-	pub fn to_map(&mut self)->&HashMap<ContractParameter,ContractParameter>{
+	pub fn to_map(&mut self) -> &HashMap<ContractParameter, ContractParameter> {
 		&mut self.0
 	}
 }
@@ -540,12 +543,12 @@ impl ParameterValue {
 #[cfg(test)]
 mod tests {
 	use crate::{
-		contract_parameter::ContractParameter, contract_parameter_type::ContractParameterType,
+		contract_parameter::{ContractParameter, ContractParameterMap},
+		contract_parameter_type::ContractParameterType,
 	};
 	use neo_crypto::keys::Secp256r1PublicKey;
 	use primitive_types::{H160, H256};
 	use rustc_serialize::hex::FromHex;
-	use crate::contract_parameter::ContractParameterMap;
 
 	#[test]
 	fn test_string_from_string() {
@@ -622,7 +625,8 @@ mod tests {
 	#[test]
 	fn test_map() {
 		let mut map = ContractParameterMap::new();
-		map.0.insert(ContractParameter::integer(1), ContractParameter::string("first".to_string()));
+		map.0
+			.insert(ContractParameter::integer(1), ContractParameter::string("first".to_string()));
 
 		let param = ContractParameter::map(map);
 
@@ -671,7 +675,8 @@ mod tests {
 		let array_param_2 = ContractParameter::integer(2000);
 
 		let mut inner_map = ContractParameterMap::new();
-		inner_map.0
+		inner_map
+			.0
 			.insert(ContractParameter::integer(5), ContractParameter::string("value".to_string()));
 		inner_map.0.insert(
 			ContractParameter::byte_array(vec![0x01, 0x02, 0x03]),
