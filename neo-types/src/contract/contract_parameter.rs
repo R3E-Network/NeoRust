@@ -5,7 +5,7 @@ use crate::{
 use base64::encode;
 use elliptic_curve::sec1::ToEncodedPoint;
 use std::collections::HashMap;
-
+use serde::de::IgnoredAny;
 use crate::{script_hash::ScriptHashExtension, util::ToBase64};
 use neo_codec::encode::NeoSerializable;
 use neo_crypto::keys::Secp256r1PublicKey;
@@ -14,14 +14,17 @@ use rustc_serialize::{
 	base64::FromBase64,
 	hex::{FromHex, ToHex},
 };
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
 use sha3::Digest;
 use std::{
 	hash::{Hash, Hasher},
 	str::FromStr,
 };
+use serde::de::value::MapAccessDeserializer;
+use serde::ser::SerializeMap;
 use strum_macros::{Display, EnumString};
+use crate::serde_with_utils::*;
 
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Clone)]
 pub struct ContractParameter {
@@ -109,7 +112,12 @@ impl Into<Vec<u8>> for ContractParameter {
 }
 
 impl Into<String> for ContractParameter {
-	fn into(self) -> String {}
+	fn into(self) -> String {
+		match self.clone().value.unwrap() {
+			ParameterValue::String(s) => s,
+			_ => panic!("Cannot convert {:?} to String", self.clone()),
+		}
+	}
 }
 
 // impl Into<Vec<u8>> for Vec<ContractParameter> {
@@ -180,11 +188,11 @@ impl From<Value> for ContractParameter {
 			Value::String(s) => Self::string(s),
 			Value::Array(a) =>
 				Self::array(a.into_iter().map(|v| ContractParameter::from(v)).collect()),
-			Value::Object(o) => Self::map(
+			Value::Object(o) => Self::map(ContractParameterMap::from_map(
 				o.into_iter()
 					.map(|(k, v)| (ContractParameter::from(k), ContractParameter::from(v)))
 					.collect(),
-			),
+			)),
 		}
 	}
 }
@@ -202,7 +210,7 @@ impl Into<Value> for ContractParameter {
 			ParameterValue::Signature(s) => Value::String(s),
 			ParameterValue::Array(a) => Value::Array(a.into_iter().map(|v| v.into()).collect()),
 			ParameterValue::Map(m) => Value::Array(
-				m.iter()
+				m.0.iter()
 					.flat_map(|(key, value)| vec![key.clone().into(), value.clone().into()])
 					.collect(),
 			),
@@ -239,6 +247,7 @@ impl ValueExtension for Vec<ContractParameter> {
 	}
 }
 
+
 #[derive(Display, EnumString, Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum ParameterValue {
@@ -251,7 +260,7 @@ pub enum ParameterValue {
 	PublicKey(String),
 	Signature(String),
 	Array(Vec<ContractParameter>),
-	Map(HashMap<ContractParameter, ContractParameter>),
+	Map(ContractParameterMap),
 	Any,
 }
 
@@ -267,12 +276,13 @@ impl Hash for ParameterValue {
 			ParameterValue::PublicKey(p) => p.hash(state),
 			ParameterValue::Signature(s) => s.hash(state),
 			ParameterValue::Array(a) => a.hash(state),
-			ParameterValue::Map(m) =>
-				for (k, v) in m {
-					k.hash(state);
-					v.hash(state);
-				},
+			// ParameterValue::Map(m) =>
+			// 	for (k, v) in m.0 {
+			// 		k.hash(state);
+			// 		v.hash(state);
+			// 	},
 			ParameterValue::Any => "Any".hash(state),
+			_=>panic!("Invalid Hash Key"),
 		}
 	}
 }
@@ -331,6 +341,13 @@ impl ContractParameter {
 	pub fn to_string(&self) -> String {
 		match self.value.as_ref().unwrap() {
 			ParameterValue::String(s) => s.clone(),
+			// ParameterValue::ByteArray(b) => b.clone(),
+			// ParameterValue::H160(h) => h.clone(),
+			// ParameterValue::H256(h) => h.clone(),
+			// ParameterValue::PublicKey(p) => p.clone(),
+			// ParameterValue::Signature(s) => s.clone(),
+			// ParameterValue::Integer(i) => i.to_string(),
+			// ParameterValue::Boolean(b) => b.to_string(),
 			_ => panic!("Cannot convert {:?} to String", self.clone()),
 		}
 	}
@@ -398,11 +415,11 @@ impl ContractParameter {
 		}
 	}
 
-	pub fn map(values: HashMap<Self, Self>) -> Self {
+	pub fn map(values: ContractParameterMap) -> Self {
 		Self::with_value(ContractParameterType::Map, ParameterValue::Map(values))
 	}
 
-	pub fn to_map(&self) -> HashMap<ContractParameter, ContractParameter> {
+	pub fn to_map(&self) -> ContractParameterMap {
 		match self.value.as_ref().unwrap() {
 			ParameterValue::Map(m) => m.clone(),
 			_ => panic!(
@@ -416,6 +433,23 @@ impl ContractParameter {
 		let mut hasher = std::collections::hash_map::DefaultHasher::new();
 		Hash::hash(&self, &mut hasher);
 		hasher.finish().to_be_bytes().to_vec()
+	}
+}
+
+#[derive(Default,Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
+struct  ContractParameterMap(#[serde(serialize_with = "serialize_map", deserialize_with = "deserialize_map")]HashMap<ContractParameter, ContractParameter>);
+
+impl ContractParameterMap{
+	pub fn new()->Self{
+		Self(HashMap::new())
+	}
+
+	pub fn from_map(map:HashMap<ContractParameter, ContractParameter>)->Self{
+		Self(map)
+	}
+
+	pub fn to_map(&mut self)->&HashMap<ContractParameter,ContractParameter>{
+		&mut self.0
 	}
 }
 
@@ -486,7 +520,7 @@ impl ParameterValue {
 		}
 	}
 
-	pub fn to_map(&self) -> HashMap<ContractParameter, ContractParameter> {
+	pub fn to_map(&self) -> ContractParameterMap {
 		match self {
 			ParameterValue::Map(m) => m.clone(),
 			_ => panic!(
@@ -511,8 +545,7 @@ mod tests {
 	use neo_crypto::keys::Secp256r1PublicKey;
 	use primitive_types::{H160, H256};
 	use rustc_serialize::hex::FromHex;
-	use serde_json::Value;
-	use std::collections::HashMap;
+	use crate::contract_parameter::ContractParameterMap;
 
 	#[test]
 	fn test_string_from_string() {
@@ -588,8 +621,8 @@ mod tests {
 
 	#[test]
 	fn test_map() {
-		let mut map = HashMap::new();
-		map.insert(ContractParameter::integer(1), ContractParameter::string("first".to_string()));
+		let mut map = ContractParameterMap::new();
+		map.0.insert(ContractParameter::integer(1), ContractParameter::string("first".to_string()));
 
 		let param = ContractParameter::map(map);
 
@@ -597,7 +630,7 @@ mod tests {
 		let map = param.value.as_ref().unwrap();
 
 		let map = map.to_map();
-		let (key, val) = map.iter().next().unwrap();
+		let (key, val) = map.0.iter().next().unwrap();
 		assert_eq!(*key, ContractParameter::integer(1));
 		assert_eq!(*val, ContractParameter::string("first".to_string()));
 	}
@@ -605,29 +638,29 @@ mod tests {
 	#[test]
 	fn test_nested_map() {
 		let inner_map = {
-			let mut map = HashMap::new();
-			map.insert(
+			let mut map = ContractParameterMap::new();
+			map.0.insert(
 				ContractParameter::string("halo".to_string()),
 				ContractParameter::integer(1234),
 			);
 			ContractParameter::map(map)
 		};
 
-		let mut map = HashMap::new();
-		map.insert(ContractParameter::integer(16), inner_map);
+		let mut map = ContractParameterMap::new();
+		map.0.insert(ContractParameter::integer(16), inner_map);
 
 		let param = ContractParameter::map(map);
 
 		let outer_map = param.value.as_ref().unwrap();
-		assert_eq!(outer_map.to_map().len(), 1);
+		assert_eq!(outer_map.to_map().0.len(), 1);
 
 		let outer_map = outer_map.to_map();
-		let inner_param = outer_map.get(&ContractParameter::integer(16)).unwrap();
+		let inner_param = outer_map.0.get(&ContractParameter::integer(16)).unwrap();
 		let inner_map = inner_param.value.as_ref().unwrap();
 
-		assert_eq!(inner_map.to_map().len(), 1);
+		assert_eq!(inner_map.to_map().0.len(), 1);
 		let inner_map = inner_map.to_map();
-		let (key, val) = inner_map.iter().next().unwrap();
+		let (key, val) = inner_map.0.iter().next().unwrap();
 		assert_eq!(*key, ContractParameter::string("halo".to_string()));
 		assert_eq!(*val, ContractParameter::integer(1234));
 	}
@@ -637,10 +670,10 @@ mod tests {
 		let array_param_1 = ContractParameter::integer(1000);
 		let array_param_2 = ContractParameter::integer(2000);
 
-		let mut inner_map = HashMap::new();
-		inner_map
+		let mut inner_map = ContractParameterMap::new();
+		inner_map.0
 			.insert(ContractParameter::integer(5), ContractParameter::string("value".to_string()));
-		inner_map.insert(
+		inner_map.0.insert(
 			ContractParameter::byte_array(vec![0x01, 0x02, 0x03]),
 			ContractParameter::integer(5),
 		);
@@ -775,8 +808,8 @@ mod tests {
 
 	#[test]
 	fn create_map_from_hashmap() {
-		let mut map = HashMap::new();
-		map.insert("key".to_owned().into(), ContractParameter::from(1));
+		let mut map = ContractParameterMap::new();
+		map.0.insert("key".to_owned().into(), ContractParameter::from(1));
 
 		let param = ContractParameter::map(map);
 
@@ -785,7 +818,7 @@ mod tests {
 		let map = param.value.as_ref().unwrap();
 
 		let map = map.to_map();
-		let (key, val) = map.iter().next().unwrap();
+		let (key, val) = map.0.iter().next().unwrap();
 		assert_eq!(key.typ, ContractParameterType::String);
 		assert_eq!(key.value.clone().unwrap().to_string(), "key");
 	}
