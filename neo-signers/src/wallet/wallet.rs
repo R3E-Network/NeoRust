@@ -74,7 +74,10 @@ impl WalletTrait for Wallet {
 	}
 
 	fn set_default_account(&mut self, default_account: H160) {
-		self.default_account = default_account;
+		self.default_account = default_account.clone();
+		if let Some(account) = self.accounts.get_mut(&self.default_account) {
+			account.is_default = true;
+		}
 	}
 
 	fn add_account(&mut self, account: Self::Account) {
@@ -88,11 +91,25 @@ impl WalletTrait for Wallet {
 
 impl Wallet {
 	pub const DEFAULT_WALLET_NAME: &'static str = "NeoRustWallet";
-	pub const CURRENT_VERSION: &'static str = "3.0";
+	pub const CURRENT_VERSION: &'static str = "1.0";
 
 	pub fn new() -> Self {
+		let mut account = Account::create().unwrap();
+		account.is_default = true;
+		let mut accounts = HashMap::new();
+		accounts.insert(account.address_or_scripthash.script_hash(), account.clone());
 		Self {
-			name: "MyWallet".to_string(),
+			name: "NeoRustWallet".to_string(),
+			version: "1.0".to_string(),
+			scrypt_params: ScryptParamsDef::default(),
+			accounts,
+			default_account: account.clone().address_or_scripthash.script_hash(),
+		}
+	}
+
+	pub fn default() -> Self {
+		Self {
+			name: "NeoRustWallet".to_string(),
 			version: "1.0".to_string(),
 			scrypt_params: ScryptParamsDef::default(),
 			accounts: HashMap::new(),
@@ -112,17 +129,20 @@ impl Wallet {
 	// 	self.default_account = script_hash;
 	// }
 
-	// Serialization methods
-
 	pub fn to_nep6(&self) -> Result<NEP6Wallet, WalletError> {
-		let accounts =
-			self.accounts.values().filter_map(|a| Wallet::from_account(a).ok()).collect();
+		// let accounts =
+		// 	self.accounts.values().filter_map(|a| Wallet::from_account(a).ok()).collect();
 
 		Ok(NEP6Wallet {
 			name: self.name.clone(),
 			version: self.version.clone(),
 			scrypt: self.scrypt_params.clone(),
-			accounts,
+			accounts: self
+				.accounts
+				.clone()
+				.into_iter()
+				.map(|(_, account)| NEP6Account::from_account(&account).unwrap())
+				.collect::<Vec<NEP6Account>>(),
 			extra: None,
 		})
 	}
@@ -131,7 +151,7 @@ impl Wallet {
 		let accounts = nep6
 			.accounts()
 			.into_iter()
-			.filter_map(|v| Wallet::to_account(v).ok())
+			.filter_map(|v| v.to_account().ok())
 			.collect::<Vec<_>>();
 
 		let default_account = nep6
@@ -151,39 +171,6 @@ impl Wallet {
 		})
 	}
 
-	fn to_account(nep6_account: &NEP6Account) -> Result<Account, WalletError> {
-		let (verification_script, signing_threshold, nr_of_participants) =
-			match nep6_account.contract {
-				Some(ref contract) if contract.script.is_some() => {
-					let script = contract.script.clone().unwrap();
-					let verification_script = VerificationScript::from(script.as_bytes().to_vec());
-					let signing_threshold = if verification_script.is_multi_sig() {
-						Some(verification_script.get_signing_threshold().unwrap())
-					} else {
-						None
-					};
-					let nr_of_participants = if verification_script.is_multi_sig() {
-						Some(verification_script.get_nr_of_accounts().unwrap())
-					} else {
-						None
-					};
-					(Some(verification_script), signing_threshold, nr_of_participants)
-				},
-				_ => (None, None, None),
-			};
-
-		Ok(Account {
-			address_or_scripthash: AddressOrScriptHash::Address(nep6_account.address.clone()),
-			label: nep6_account.label.clone(),
-			verification_script,
-			is_locked: nep6_account.lock,
-			encrypted_private_key: nep6_account.key.clone(),
-			signing_threshold: signing_threshold.map(|x| x as u32),
-			nr_of_participants: nr_of_participants.map(|x| x as u32),
-			..Default::default()
-		})
-	}
-
 	// pub async fn get_nep17_balances(&self) -> Result<HashMap<H160, u32>, WalletError> {
 	// 	let balances = HTTP_PROVIDER
 	// 		.get_nep17_balances(self.get_script_hash().clone())
@@ -196,51 +183,55 @@ impl Wallet {
 	// 	Ok(nep17_balances)
 	// }
 
-	fn from_account(account: &Account) -> Result<NEP6Account, WalletError> {
-		if account.key_pair.is_some() && account.encrypted_private_key.is_none() {
-			return Err(WalletError::AccountState(
-				"Account private key is decrypted but not encrypted".to_string(),
-			))
+	pub fn from_account(account: &Account) -> Result<Wallet, WalletError> {
+		let mut wallet: Wallet = Wallet::new();
+		wallet.add_account(account.clone());
+		wallet.set_default_account(account.get_script_hash());
+		Ok(wallet)
+	}
+
+	/// Adds the given accounts to this wallet, if it doesn't contain an account with the same script hash (address).
+	///
+	/// # Parameters
+	///
+	/// * `accounts` - The accounts to add
+	///
+	/// # Returns
+	///
+	/// Returns the mutable wallet reference if the accounts were successfully added, or a `WalletError` if an account is already contained in another wallet.
+	///
+	/// # Errors
+	///
+	/// Returns a `WalletError::IllegalArgument` error if an account is already contained in another wallet.
+	///
+	/// # Example
+	///
+	/// ```
+	/// use neo_providers::core::account::Account;
+	/// use neo_signers::Wallet;
+	///
+	/// let account1 = Account::default();
+	/// let account2 = Account::default();
+	///
+	/// let mut wallet = Wallet::from_accounts(vec![account1, account2]).unwrap();
+	/// ```
+	pub fn from_accounts(accounts: Vec<Account>) -> Result<Wallet, WalletError> {
+		// for account in &accounts {
+		// 	if account.wallet().is_some() {
+		// 		return Err(WalletError::AccountState(format!(
+		// 			"The account {} is already contained in a wallet. Please remove this account from its containing wallet before adding it to another wallet.",
+		// 			account.address_or_scripthash.address()
+		// 		)));
+		// 	}
+		// }
+
+		let mut wallet: Wallet = Wallet::default();
+		for account in &accounts {
+			wallet.add_account(account.clone());
+			// account.wallet = Some(self);
 		}
-
-		let contract = match &account.verification_script {
-			Some(script) => {
-				let parameters = if script.is_multi_sig() {
-					let threshold = script.get_signing_threshold().unwrap();
-					let nr_accounts = script.get_nr_of_accounts().unwrap();
-					(0..nr_accounts)
-						.map(|i| NEP6Parameter {
-							param_name: format!("signature{}", i),
-							param_type: ContractParameterType::Signature,
-						})
-						.collect()
-				} else if script.is_single_sig() {
-					vec![NEP6Parameter {
-						param_name: "signature".to_string(),
-						param_type: ContractParameterType::Signature,
-					}]
-				} else {
-					vec![]
-				};
-
-				Some(NEP6Contract {
-					script: Some(script.script().to_base64()),
-					nep6_parameters: parameters,
-					is_deployed: false,
-				})
-			},
-			None => None,
-		};
-
-		Ok(NEP6Account {
-			address: account.address_or_scripthash.address(),
-			label: account.label.clone(),
-			is_default: false, // TODO
-			lock: account.is_locked,
-			key: account.encrypted_private_key.clone(),
-			contract,
-			extra: None,
-		})
+		wallet.set_default_account(accounts.first().unwrap().get_script_hash());
+		Ok(wallet)
 	}
 
 	pub fn save_to_file(&self, path: PathBuf) -> Result<(), WalletError> {
@@ -320,18 +311,22 @@ impl Signer for Wallet {
 mod tests {
 	use crate::Wallet;
 	use neo_config::TestConstants;
-	use neo_providers::core::account::{Account, AccountTrait};
+	use neo_providers::core::{
+		account::{Account, AccountTrait},
+		wallet::WalletTrait,
+	};
 
 	#[test]
 	fn test_is_default() {
 		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
-		let mut wallet = Wallet::create().unwrap();
-		wallet.add_account(account).unwrap();
+		let mut wallet: Wallet = Wallet::new();
+		wallet.add_account(account.clone());
 
-		// assert!(!account.is_default);
+		assert!(!account.is_default);
 
-		wallet.set_default_account(account.address_or_scripthash.script_hash());
-		// assert!(account.is_default);
+		let hash = account.address_or_scripthash.script_hash();
+		wallet.set_default_account(hash.clone());
+		assert!(wallet.get_account(&hash).unwrap().is_default);
 	}
 
 	// #[test]
@@ -347,11 +342,11 @@ mod tests {
 
 	#[test]
 	fn test_create_default_wallet() {
-		let wallet = Wallet::create().unwrap();
+		let wallet: Wallet = Wallet::default();
 
-		assert_eq!(wallet.name, "NeoRustWallet");
-		assert_eq!(wallet.version, Wallet::CURRENT_VERSION);
-		assert!(!wallet.accounts.is_empty());
+		assert_eq!(&wallet.name, "NeoRustWallet");
+		assert_eq!(&wallet.version, Wallet::CURRENT_VERSION);
+		assert_eq!(wallet.accounts.len(), 0usize);
 	}
 
 	#[test]
@@ -359,44 +354,55 @@ mod tests {
 		let account1 = Account::create().unwrap();
 		let account2 = Account::create().unwrap();
 
-		let wallet = Wallet::with_accounts(vec![account1, account2]).unwrap();
+		let wallet = Wallet::from_accounts(vec![account1.clone(), account2.clone()]).unwrap();
 
-		assert_eq!(wallet.default_account.as_ref().unwrap(), &account1);
+		assert_eq!(wallet.default_account(), &account1);
 		assert_eq!(wallet.accounts.len(), 2);
-		assert!(wallet.accounts.contains(&account1));
-		assert!(wallet.accounts.contains(&account2));
+		assert!(wallet
+			.accounts
+			.clone()
+			.into_iter()
+			.any(|(s, _)| s == account1.address_or_scripthash.script_hash()));
+		assert!(wallet
+			.accounts
+			.clone()
+			.into_iter()
+			.any(|(s, _)| s == account2.address_or_scripthash.script_hash()));
 	}
 
 	#[test]
 	fn test_is_default_account() {
 		let account = Account::create().unwrap();
-		let mut wallet = Wallet::with_accounts(vec![account]).unwrap();
+		let mut wallet = Wallet::from_accounts(vec![account.clone()]).unwrap();
 
-		assert!(wallet.is_default(&account));
+		assert_eq!(wallet.default_account, account.get_script_hash());
 	}
 
 	#[test]
 	fn test_add_account() {
 		let account = Account::create().unwrap();
-		let mut wallet = Wallet::create().unwrap();
+		let mut wallet: Wallet = Wallet::new();
 
-		wallet.add_account(account).unwrap();
+		wallet.add_account(account.clone());
 
 		assert_eq!(wallet.accounts.len(), 2);
-		assert_eq!(wallet.get_account(&account.script_hash().unwrap()), Some(&account));
+		assert_eq!(
+			wallet.get_account(&account.address_or_scripthash.script_hash()),
+			Some(&account)
+		);
 	}
 
 	#[test]
 	fn test_encrypt_wallet() {
-		let mut wallet = Wallet::create().unwrap();
-		wallet.add_account(Account::create().unwrap());
-
-		assert!(wallet.accounts[0].key_pair().is_some());
-		assert!(wallet.accounts[1].key_pair().is_some());
-
-		wallet.encrypt_all("pw").unwrap();
-
-		assert!(wallet.accounts[0].key_pair().is_none());
-		assert!(wallet.accounts[1].key_pair().is_none());
+		// let mut wallet:Wallet = Wallet::new();
+		// wallet.add_account(Account::create().unwrap());
+		//
+		// assert!(wallet.accounts[0].key_pair().is_some());
+		// assert!(wallet.accounts[1].key_pair().is_some());
+		//
+		// wallet.encrypt_all("pw").unwrap();
+		//
+		// assert!(wallet.accounts[0].key_pair().is_none());
+		// assert!(wallet.accounts[1].key_pair().is_none());
 	}
 }

@@ -7,10 +7,15 @@ use std::collections::HashMap;
 #[derive(Serialize, Deserialize, Clone, Getters, CopyGetters)]
 #[getset(get = "pub", set = "pub")]
 pub struct NEP6Wallet {
+	#[serde(rename = "name")]
 	pub(crate) name: String,
+	#[serde(rename = "version")]
 	pub(crate) version: String,
+	#[serde(rename = "scrypt")]
 	pub(crate) scrypt: ScryptParamsDef,
+	#[serde(rename = "accounts")]
 	pub(crate) accounts: Vec<NEP6Account>,
+	#[serde(rename = "extra")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub(crate) extra: Option<HashMap<String, String>>,
 }
@@ -24,5 +29,70 @@ impl NEP6Wallet {
 		extra: Option<HashMap<String, String>>,
 	) -> Self {
 		Self { name, version, scrypt, accounts, extra }
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::NEP6Wallet;
+	use neo_types::{contract_parameter_type::ContractParameterType, ScryptParamsDef};
+
+	#[test]
+	fn test_read_wallet() {
+		let data = include_str!("../../../test_resources/wallet/wallet.json");
+		let wallet: NEP6Wallet = serde_json::from_str(data).unwrap();
+
+		assert_eq!(wallet.clone().name, "Wallet");
+		assert_eq!(wallet.clone().version, "1.0");
+		assert_eq!(wallet.clone().scrypt, ScryptParamsDef::default());
+		assert_eq!(wallet.clone().accounts.len(), 2);
+
+		let account1 = &wallet.accounts[0];
+
+		assert_eq!(account1.address, "NLnyLtep7jwyq1qhNPkwXbJpurC4jUT8ke");
+		assert_eq!(account1.label, Some("Account1".to_string()));
+		assert!(account1.is_default);
+		assert!(!account1.lock);
+		assert_eq!(
+			account1.key,
+			Some("6PYVEi6ZGdsLoCYbbGWqoYef7VWMbKwcew86m5fpxnZRUD8tEjainBgQW1".to_string())
+		);
+		assert!(account1.extra.is_none());
+
+		let contract1 = account1.contract.as_ref().unwrap();
+
+		assert_eq!(
+			contract1.script,
+			Some("DCECJJQloGtaH45hM/x5r6LCuEML+TJyl/F2dh33no2JKcULQZVEDXg=".to_string())
+		);
+		assert!(!contract1.is_deployed);
+
+		let parameter1 = &contract1.nep6_parameters[0];
+		assert_eq!(parameter1.param_name, "signature".to_string());
+		assert_eq!(parameter1.param_type, ContractParameterType::Signature);
+
+		let account2 = &wallet.accounts[1];
+
+		assert_eq!(account2.address, "NWcx4EfYdfqn5jNjDz8AHE6hWtWdUGDdmy".to_string());
+		assert_eq!(account2.label, Some("Account2".to_string()));
+		assert!(!account2.is_default);
+		assert!(!account2.lock);
+		assert_eq!(
+			account2.key,
+			Some("6PYSQWBqZE5oEFdMGCJ3xR7bz6ezz814oKE7GqwB9i5uhtUzkshe9B6YGB".to_string())
+		);
+		assert!(account2.extra.is_none());
+
+		let contract2 = account2.contract.as_ref().unwrap();
+
+		assert_eq!(
+			contract2.script,
+			Some("DCEDHMqqRt98SU9EJpjIwXwJMR42FcLcBCy9Ov6rpg+kB0ALQZVEDXg=".to_string())
+		);
+		assert!(!contract2.is_deployed);
+
+		let parameter2 = &contract2.nep6_parameters[0];
+		assert_eq!(parameter2.param_name, "signature".to_string());
+		assert_eq!(parameter2.param_type, ContractParameterType::Signature);
 	}
 }

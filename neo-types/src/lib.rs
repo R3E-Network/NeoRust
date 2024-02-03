@@ -53,8 +53,11 @@ impl ExternBase64 for String {
 // ScryptParams
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ScryptParamsDef {
+	#[serde(rename = "n")]
 	pub log_n: u8,
+	#[serde(rename = "r")]
 	pub r: u32,
+	#[serde(rename = "p")]
 	pub p: u32,
 }
 

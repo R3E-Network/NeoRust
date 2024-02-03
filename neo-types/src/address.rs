@@ -1,4 +1,7 @@
-use crate::{error::TypeError, script_hash::ScriptHash};
+use crate::{
+	error::TypeError,
+	script_hash::{ScriptHash, ScriptHashExtension},
+};
 use neo_crypto::hash::HashableForVec;
 use primitive_types::H160;
 use rand::Rng;
@@ -22,7 +25,7 @@ impl AddressExtension for String {
 	fn to_script_hash(&self) -> Result<ScriptHash, TypeError> {
 		// Base58-decode the address
 		let binding = match bs58::decode(self).into_vec() {
-			Ok(data) => H160::from_slice(data.as_slice()),
+			Ok(data) => ScriptHash::from_script(data.as_slice()),
 			Err(_) => return Err(TypeError::InvalidAddress),
 		};
 		let decoded_data = binding.as_bytes();

@@ -4,6 +4,7 @@ pub struct TestConstants {}
 impl TestConstants {
 	// pub const TEST_SCRYPT_PARAMS: Params = Params::new(7, 8, 9, 32).unwrap();
 
+	pub const TEST_RESOURCE_PATH: &'static str = "../../../test_resources/";
 	// Default Account
 	pub const DEFAULT_ACCOUNT_ADDRESS: &'static str = "NM7Aky765FG8NhhwtxjXRx7jEL1cnw7PBP";
 	pub const DEFAULT_ACCOUNT_SCRIPT_HASH: &'static str =

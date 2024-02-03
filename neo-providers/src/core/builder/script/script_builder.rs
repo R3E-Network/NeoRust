@@ -351,7 +351,7 @@ impl ScriptBuilder {
 mod tests {
 	use super::*;
 	use hex_literal::hex;
-	use neo_types::bytes::ReverseTrait;
+	use neo_types::{bytes::ReverseTrait, contract_parameter::ContractParameterMap};
 	use num_bigint::BigInt;
 	use num_traits::FromPrimitive;
 	use p256::pkcs8::der::EncodeValue;
@@ -526,14 +526,16 @@ mod tests {
 
 	#[test]
 	fn test_map_nested() {
-		let mut inner: HashMap<ContractParameter, ContractParameter> = HashMap::new();
-		inner.insert(ContractParameter::from(10), ContractParameter::from("nestedFirst"));
+		let mut inner: ContractParameterMap = ContractParameterMap::new();
+		inner
+			.0
+			.insert(ContractParameter::from(10), ContractParameter::from("nestedFirst"));
 
-		let mut outer: HashMap<ContractParameter, ContractParameter> = HashMap::new();
-		outer.insert(ContractParameter::from(1), ContractParameter::from("first"));
-		outer.insert(ContractParameter::from("nested"), ContractParameter::map(inner));
+		let mut outer: ContractParameterMap = ContractParameterMap::new();
+		outer.0.insert(ContractParameter::from(1), ContractParameter::from("first"));
+		outer.0.insert(ContractParameter::from("nested"), ContractParameter::map(inner));
 
-		let expected = ScriptBuilder::new().push_map(&outer).unwrap().to_bytes().to_hex();
+		let expected = ScriptBuilder::new().push_map(&outer.to_map()).unwrap().to_bytes().to_hex();
 
 		let expected_one = ScriptBuilder::new()
 			.push_data("first".as_bytes().to_vec())

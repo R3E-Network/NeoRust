@@ -1,5 +1,5 @@
 use coins_bip39::MnemonicError;
-use neo_providers::core::transaction::transaction_error::TransactionError;
+use neo_providers::core::{error::BuilderError, transaction::transaction_error::TransactionError};
 use p256::ecdsa;
 use thiserror::Error;
 
@@ -30,4 +30,6 @@ pub enum WalletError {
 	CryptoError(#[from] neo_crypto::error::CryptoError),
 	#[error(transparent)]
 	TransactionError(#[from] TransactionError),
+	#[error(transparent)]
+	BuilderError(#[from] BuilderError),
 }
