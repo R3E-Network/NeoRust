@@ -7,7 +7,6 @@ use sha2::{Digest, Sha256};
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::TypeError;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 

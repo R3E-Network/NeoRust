@@ -5,10 +5,7 @@ use crate::{
 };
 use primitive_types::H160;
 use serde_derive::{Deserialize, Serialize};
-use std::{
-	hash::{Hash, Hasher},
-	ops::Add,
-};
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// A type that can either be an `Address` or `Bytes`.

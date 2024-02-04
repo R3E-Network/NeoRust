@@ -89,9 +89,14 @@ pub trait AccountTrait: Sized + PartialEq + Send + Sync + Debug + Clone {
 
 	fn from_public_key(public_key: &Secp256r1PublicKey) -> Result<Self, Self::Error>;
 
-	fn create_multi_sig(
+	fn multi_sig_from_public_keys(
 		public_keys: &mut [Secp256r1PublicKey],
 		signing_threshold: u32,
+	) -> Result<Self, Self::Error>;
+	fn multi_sig_from_addr(
+		address: String,
+		signing_threshold: u8,
+		nr_of_participants: u8,
 	) -> Result<Self, Self::Error>;
 
 	fn from_address(address: &str) -> Result<Self, Self::Error>;
@@ -362,17 +367,33 @@ impl AccountTrait for Account {
 		})
 	}
 
-	fn create_multi_sig(
+	fn multi_sig_from_public_keys(
 		public_keys: &mut [Secp256r1PublicKey],
 		signing_threshold: u32,
 	) -> Result<Self, Self::Error> {
 		let script = VerificationScript::from_multi_sig(public_keys, signing_threshold as u8);
+		let addr = ScriptHash::from_script(&script.script());
 
 		Ok(Self {
 			label: Some(script.script().to_base64()),
 			verification_script: Some(script),
 			signing_threshold: Some(signing_threshold),
 			nr_of_participants: Some(public_keys.len() as u32),
+			address_or_scripthash: AddressOrScriptHash::ScriptHash(addr),
+			..Default::default()
+		})
+	}
+
+	fn multi_sig_from_addr(
+		address: String,
+		signing_threshold: u8,
+		nr_of_participants: u8,
+	) -> Result<Self, Self::Error> {
+		Ok(Self {
+			label: Option::from(address.clone()),
+			signing_threshold: Some(signing_threshold as u32),
+			nr_of_participants: Some(nr_of_participants as u32),
+			address_or_scripthash: AddressOrScriptHash::Address(address),
 			..Default::default()
 		})
 	}
@@ -414,6 +435,7 @@ mod tests {
 		utils::ToArray32,
 	};
 	use neo_types::script_hash::ScriptHashExtension;
+	use rustc_serialize::hex::FromHex;
 
 	#[test]
 	fn test_create_generic_account() {
@@ -490,7 +512,7 @@ mod tests {
 			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
 		)
 		.unwrap();
-		let account = Account::create_multi_sig(&mut vec![public_key], 1).unwrap();
+		let account = Account::multi_sig_from_public_keys(&mut vec![public_key], 1).unwrap();
 
 		assert!(account.is_multi_sig());
 		assert_eq!(
@@ -514,7 +536,8 @@ mod tests {
 	#[test]
 	fn test_encrypt_public_key() {
 		let key_pair = KeyPair::from_private_key(
-			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY)
+			&TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY
+				.from_hex()
 				.unwrap()
 				.to_array32()
 				.unwrap(),
@@ -522,6 +545,10 @@ mod tests {
 		.unwrap();
 		let mut account = Account::from_key_pair(key_pair, None, None).unwrap();
 
+		assert_eq!(
+			account.address_or_scripthash().address(),
+			TestConstants::DEFAULT_ACCOUNT_ADDRESS
+		);
 		account.encrypt_private_key(TestConstants::DEFAULT_ACCOUNT_PASSWORD).unwrap();
 
 		assert_eq!(
@@ -561,10 +588,8 @@ mod tests {
 			account.key_pair.clone().unwrap().private_key.to_vec(),
 			expected_key_pair.private_key.to_vec()
 		);
-		assert_eq!(
-			account.address_or_scripthash().address(),
-			TestConstants::DEFAULT_ACCOUNT_ADDRESS
-		);
+		let addr = account.address_or_scripthash();
+		assert_eq!(addr.address(), TestConstants::DEFAULT_ACCOUNT_ADDRESS);
 	}
 
 	#[test]
@@ -577,9 +602,7 @@ mod tests {
 		);
 		assert_eq!(account.label, Some(TestConstants::DEFAULT_ACCOUNT_ADDRESS.to_string()));
 		assert_eq!(
-			neo_types::script_hash::ScriptHashExtension::to_bs58_string(
-				&account.address_or_scripthash.script_hash()
-			),
+			&account.address_or_scripthash.script_hash().to_hex(),
 			TestConstants::DEFAULT_ACCOUNT_SCRIPT_HASH
 		);
 		// assert!(!account.is_default);
@@ -607,10 +630,9 @@ mod tests {
 		let a = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
 		assert!(!a.is_multi_sig());
 
-		let a1 = Account::create_multi_sig(
-			&mut vec![
-				Secp256r1PublicKey::from_encoded(TestConstants::COMMITTEE_ACCOUNT_ADDRESS).unwrap()
-			],
+		let a1 = Account::multi_sig_from_addr(
+			TestConstants::COMMITTEE_ACCOUNT_ADDRESS.to_string(),
+			1,
 			1,
 		)
 		.unwrap();

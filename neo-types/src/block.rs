@@ -6,7 +6,6 @@ use serde::{
 	Deserialize, Deserializer, Serialize, Serializer,
 };
 use std::{
-	fmt,
 	fmt::{Formatter, Write},
 	str::FromStr,
 };

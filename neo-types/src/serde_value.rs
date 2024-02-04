@@ -1,5 +1,3 @@
-use elliptic_curve::sec1::ToEncodedPoint;
-
 use neo_crypto::keys::Secp256r1PublicKey;
 use primitive_types::{H160, H256};
 use serde_json::Value;

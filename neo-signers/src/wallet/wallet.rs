@@ -53,8 +53,12 @@ impl WalletTrait for Wallet {
 		&self.scrypt_params
 	}
 
-	fn accounts(&self) -> &HashMap<H160, Self::Account> {
-		&self.accounts
+	fn accounts(&self) -> Vec<Self::Account> {
+		self.accounts
+			.clone()
+			.into_iter()
+			.map(|(k, v)| v.clone())
+			.collect::<Vec<Self::Account>>()
 	}
 
 	fn default_account(&self) -> &Account {
@@ -258,7 +262,7 @@ impl Wallet {
 
 	pub fn encrypt_accounts(&mut self, password: &str) {
 		for account in self.accounts.values_mut() {
-			account.encrypt_private_key(password);
+			account.encrypt_private_key(password).expect("Failed to encrypt private key");
 		}
 	}
 }
@@ -394,15 +398,15 @@ mod tests {
 
 	#[test]
 	fn test_encrypt_wallet() {
-		// let mut wallet:Wallet = Wallet::new();
-		// wallet.add_account(Account::create().unwrap());
-		//
-		// assert!(wallet.accounts[0].key_pair().is_some());
-		// assert!(wallet.accounts[1].key_pair().is_some());
-		//
-		// wallet.encrypt_all("pw").unwrap();
-		//
-		// assert!(wallet.accounts[0].key_pair().is_none());
-		// assert!(wallet.accounts[1].key_pair().is_none());
+		let mut wallet: Wallet = Wallet::new();
+		wallet.add_account(Account::create().unwrap());
+
+		assert!(wallet.accounts()[0].key_pair().is_some());
+		assert!(wallet.accounts()[1].key_pair().is_some());
+
+		wallet.encrypt_accounts("pw");
+
+		assert!(wallet.accounts()[0].key_pair().is_none());
+		assert!(wallet.accounts()[1].key_pair().is_none());
 	}
 }

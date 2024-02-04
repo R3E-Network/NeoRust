@@ -1,6 +1,6 @@
 use crate::{
 	contract_manifest::ContractManifest, contract_nef::ContractNef, deserialize_script_hash,
-	invocation_result::InvocationResult, serialize_script_hash, stack_item::StackItem, util::*,
+	invocation_result::InvocationResult, serialize_script_hash, stack_item::StackItem,
 };
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};

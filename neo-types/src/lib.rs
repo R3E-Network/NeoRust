@@ -29,8 +29,7 @@ pub mod plugin_type;
 pub mod serde_value;
 pub mod serde_with_utils;
 use crate::{
-	address::Address, interop_service::InteropService, op_code::OpCode, script_hash::ScriptHash,
-	string::StringExt,
+	interop_service::InteropService, op_code::OpCode, script_hash::ScriptHash, string::StringExt,
 };
 pub use serde_with_utils::*;
 

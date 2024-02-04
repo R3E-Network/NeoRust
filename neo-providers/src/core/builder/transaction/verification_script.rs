@@ -16,7 +16,7 @@ use p256::pkcs8::der::Encode;
 use primitive_types::H160;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, vec};
+use std::{fmt::Display, ptr::read, vec};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
 pub struct VerificationScript {
@@ -98,16 +98,26 @@ impl VerificationScript {
 			if len != 33 {
 				return false
 			}
-			reader.by_ref().skip(33);
+			reader.by_ref().read_encoded_ec_point();
 			m += 1;
+			reader.mark();
 		}
 
 		if !(m >= n && m <= BigInt::from(16)) {
 			return false
 		}
 
-		let service_bytes = &self.script[self.script.len() - 4..];
-		if service_bytes != &InteropService::SystemCryptoCheckMultiSig.hash().into_bytes() {
+		reader.reset();
+
+		if (BigInt::from(reader.read_push_int().unwrap()) != m
+			|| reader.read_u8() != OpCode::Syscall.opcode())
+		{
+			return false
+		}
+
+		let service_bytes = &reader.read_bytes(4).unwrap();
+		let hash = &InteropService::SystemCryptoCheckMultiSig.hash().from_hex().unwrap();
+		if service_bytes != hash {
 			return false
 		}
 

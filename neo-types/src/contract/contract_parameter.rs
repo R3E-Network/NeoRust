@@ -3,7 +3,6 @@ use crate::{
 	role::Role, script_hash::ScriptHashExtension, serde_value::ValueExtension, serde_with_utils::*,
 	util::ToBase64,
 };
-use base64::encode;
 use elliptic_curve::sec1::ToEncodedPoint;
 use neo_codec::encode::NeoSerializable;
 use neo_crypto::keys::Secp256r1PublicKey;
@@ -12,13 +11,8 @@ use rustc_serialize::{
 	base64::FromBase64,
 	hex::{FromHex, ToHex},
 };
-use serde::{
-	de,
-	de::{value::MapAccessDeserializer, IgnoredAny},
-	ser::SerializeMap,
-	Deserialize, Deserializer, Serialize,
-};
-use serde_json::{json, Value};
+use serde::{ser::SerializeMap, Deserialize, Deserializer, Serialize};
+use serde_json::Value;
 use sha3::Digest;
 use std::{
 	collections::HashMap,

@@ -12,7 +12,7 @@ use crate::{error::TypeError, script_hash::ScriptHash};
 use futures::AsyncWriteExt;
 use neo_crypto::hash::HashableForVec;
 use primitive_types::{H160, H256, U256};
-use tiny_keccak::{Hasher, Keccak};
+use tiny_keccak::Hasher;
 
 pub fn parse_string_u64(u64_str: &str) -> u64 {
 	if u64_str.starts_with("0x") {

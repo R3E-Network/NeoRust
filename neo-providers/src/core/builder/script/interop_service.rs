@@ -91,7 +91,7 @@ impl InteropService {
 		return if let Some(hash) = hashes.get(self.to_string().as_str()) {
 			hash.clone()
 		} else {
-			let sha = self.to_string().as_bytes().to_vec().hash256()[..4].to_vec();
+			let sha = self.to_string().as_bytes().hash256()[..4].to_vec();
 			let hash = hex::encode(sha);
 			hashes.insert(self.to_string(), hash.clone());
 			hash

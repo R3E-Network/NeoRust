@@ -45,18 +45,21 @@
 //! Proper error handling is implemented to deal with common issues like incorrect password, invalid NEP2 format,
 //! and other cryptographic errors.
 
-use crate::{public_key_to_script_hash, ProviderError};
+use crate::{
+	public_key_to_address, public_key_to_script_hash, script_hash_to_address, ProviderError,
+};
 
 extern crate openssl;
 
 use openssl::symm::{Cipher, Crypter, Mode};
+use rustc_serialize::hex::FromHex;
 
 use neo_config::NeoConstants;
 use neo_crypto::{
 	base58_helper::base58check_decode,
-	hash::HashableForVec,
+	hash::{HashableForString, HashableForVec},
 	key_pair::KeyPair,
-	keys::{PrivateKeyExtension, Secp256r1PrivateKey},
+	keys::{PrivateKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey},
 };
 use neo_types::{
 	script_hash::ScriptHashExtension,
@@ -114,7 +117,7 @@ fn decrypt_aes256_ecb(encrypted_data: &[u8], key: &[u8]) -> Result<Vec<u8>, Prov
 }
 
 pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<String, ProviderError> {
-	let private_key = pri_key.as_bytes();
+	let private_key = pri_key.from_hex().unwrap();
 
 	let key_pair = KeyPair::from_private_key(&vec_to_array32(private_key.to_vec()).unwrap())?;
 
@@ -135,7 +138,7 @@ pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<Stri
 		u8xor[i] = &private_key[i] ^ half_1[i];
 	}
 
-	let encrypted = encrypt_aes256_ecb(&u8xor.to_vec(), private_key)?;
+	let encrypted = encrypt_aes256_ecb(&u8xor.to_vec(), &private_key)?;
 
 	// # Assemble the final result
 	let mut assembled = Vec::new();
@@ -216,7 +219,9 @@ pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>
 ///
 /// Returns the first 4 bytes of the hash.
 fn address_hash_from_pubkey(pubkey: &[u8]) -> [u8; 4] {
-	let hash = pubkey.hash256();
+	let addr = public_key_to_address(&Secp256r1PublicKey::from_bytes(pubkey).unwrap());
+	let hash = addr.as_bytes();
+	let hash = hash.hash256().hash256();
 	let mut result = [0u8; 4];
 	result.copy_from_slice(&hash[..4]);
 	result

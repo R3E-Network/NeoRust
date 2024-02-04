@@ -55,6 +55,7 @@
 use crate::error::CryptoError;
 use core::fmt;
 use neo_codec::{encode::NeoSerializable, Decoder, Encoder};
+use neo_config::NeoConstants;
 use num_integer::Integer;
 use num_traits::cast::ToPrimitive;
 use p256::{
@@ -529,7 +530,7 @@ where
 
 impl PublicKeyExtension for Secp256r1PublicKey {
 	fn to_vec(&self) -> Vec<u8> {
-		self.get_encoded(false)
+		self.get_encoded(true)
 	}
 
 	fn from_slice(slice: &[u8]) -> Result<Self, CryptoError> {
@@ -548,11 +549,11 @@ impl NeoSerializable for Secp256r1PublicKey {
 	}
 
 	fn encode(&self, writer: &mut Encoder) {
-		writer.write_var_bytes(&self.to_vec());
+		writer.write_bytes(&self.to_vec());
 	}
 
 	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
-		let bytes = reader.read_var_bytes().unwrap();
+		let bytes = reader.read_bytes(NeoConstants::PUBLIC_KEY_SIZE_COMPRESSED as usize).unwrap();
 		Secp256r1PublicKey::from_bytes(&bytes).map_err(|_| CryptoError::InvalidPublicKey)
 	}
 

@@ -157,9 +157,9 @@ impl<'a> Decoder<'a> {
 	pub fn read_var_int(&mut self) -> Result<i64, CodecError> {
 		let first = self.read_u8();
 		match first {
-			0xfd => Ok(self.read_u16() as i64),
-			0xfe => Ok(self.read_u32() as i64),
-			0xff => Ok(self.read_u64() as i64),
+			0xfd => Ok(self.read_i16() as i64),
+			0xfe => Ok(self.read_i32() as i64),
+			0xff => Ok(self.read_i64() as i64),
 			_ => Ok(first as i64),
 		}
 	}

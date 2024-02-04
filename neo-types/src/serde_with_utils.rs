@@ -33,6 +33,22 @@ use serde::ser::{SerializeMap, SerializeSeq};
 
 use crate::util::encode_string_u256;
 
+pub fn serialize_boolean_expression<S>(value: &bool, serializer: S) -> Result<S::Ok, S::Error>
+where
+	S: Serializer,
+{
+	serializer.serialize_str(if *value { "true" } else { "false" })
+}
+
+pub fn deserialize_boolean_expression<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+	D: Deserializer<'de>,
+{
+	let s = String::deserialize(deserializer)?;
+	let value = s == "true";
+	Ok(value)
+}
+
 pub fn serialize_bytes<S>(item: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
 where
 	S: Serializer,
