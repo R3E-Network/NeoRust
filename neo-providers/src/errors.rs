@@ -136,7 +136,7 @@ pub trait MiddlewareError: Error + Sized + Send + Sync {
 	}
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 /// An error thrown when making a call to the provider
 pub enum ProviderError {
 	/// An internal error in the JSON RPC Client

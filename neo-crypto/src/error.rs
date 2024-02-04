@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum CryptoError {
 	#[error("Invalid passphrase: {0}")]
 	InvalidPassphrase(String),

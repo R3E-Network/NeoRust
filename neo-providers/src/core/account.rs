@@ -126,6 +126,24 @@ pub struct Account {
 	pub nr_of_participants: Option<u32>,
 }
 
+impl From<H160> for Account {
+	fn from(script_hash: H160) -> Self {
+		Self {
+			address_or_scripthash: AddressOrScriptHash::ScriptHash(script_hash),
+			..Default::default()
+		}
+	}
+}
+
+impl From<H160> for &Account {
+	fn from(script_hash: H160) -> Self {
+		&Account {
+			address_or_scripthash: AddressOrScriptHash::ScriptHash(script_hash),
+			..Default::default()
+		}
+	}
+}
+
 impl PartialEq for Account {
 	fn eq(&self, other: &Self) -> bool {
 		self.address_or_scripthash == other.address_or_scripthash

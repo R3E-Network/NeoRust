@@ -185,7 +185,112 @@ impl PartialEq for Signer {
 	}
 }
 
+impl SignerTrait for Signer {
+	fn get_type(&self) -> SignerType {
+		match self {
+			Signer::Account(account_signer) => account_signer.get_type(),
+			Signer::Contract(contract_signer) => contract_signer.get_type(),
+			Signer::Transaction(transaction_signer) => transaction_signer.get_type(),
+		}
+	}
+
+	fn get_signer_hash(&self) -> &H160 {
+		match self {
+			Signer::Account(account_signer) => account_signer.get_signer_hash(),
+			Signer::Contract(contract_signer) => contract_signer.get_signer_hash(),
+			Signer::Transaction(transaction_signer) => transaction_signer.get_signer_hash(),
+		}
+	}
+
+	fn set_signer_hash(&mut self, signer_hash: H160) {
+		match self {
+			Signer::Account(account_signer) => account_signer.set_signer_hash(signer_hash),
+			Signer::Contract(contract_signer) => contract_signer.set_signer_hash(signer_hash),
+			Signer::Transaction(transaction_signer) =>
+				transaction_signer.set_signer_hash(signer_hash),
+		}
+	}
+
+	fn get_scopes(&self) -> &Vec<WitnessScope> {
+		match self {
+			Signer::Account(account_signer) => account_signer.get_scopes(),
+			Signer::Contract(contract_signer) => contract_signer.get_scopes(),
+			Signer::Transaction(transaction_signer) => transaction_signer.get_scopes(),
+		}
+	}
+
+	fn get_scopes_mut(&mut self) -> &mut Vec<WitnessScope> {
+		match self {
+			Signer::Account(account_signer) => account_signer.get_scopes_mut(),
+			Signer::Contract(contract_signer) => contract_signer.get_scopes_mut(),
+			Signer::Transaction(transaction_signer) => transaction_signer.get_scopes_mut(),
+		}
+	}
+
+	fn set_scopes(&mut self, scopes: Vec<WitnessScope>) {
+		match self {
+			Signer::Account(account_signer) => account_signer.set_scopes(scopes),
+			Signer::Contract(contract_signer) => contract_signer.set_scopes(scopes),
+			Signer::Transaction(transaction_signer) => transaction_signer.set_scopes(scopes),
+		}
+	}
+
+	fn get_allowed_contracts(&self) -> &Vec<H160> {
+		match self {
+			Signer::Account(account_signer) => account_signer.get_allowed_contracts(),
+			Signer::Contract(contract_signer) => contract_signer.get_allowed_contracts(),
+			Signer::Transaction(transaction_signer) => transaction_signer.get_allowed_contracts(),
+		}
+	}
+
+	fn get_allowed_contracts_mut(&mut self) -> &mut Vec<H160> {
+		match self {
+			Signer::Account(account_signer) => account_signer.get_allowed_contracts_mut(),
+			Signer::Contract(contract_signer) => contract_signer.get_allowed_contracts_mut(),
+			Signer::Transaction(transaction_signer) =>
+				transaction_signer.get_allowed_contracts_mut(),
+		}
+	}
+
+	fn get_allowed_groups(&self) -> &Vec<Secp256r1PublicKey> {
+		match self {
+			Signer::Account(account_signer) => account_signer.get_allowed_groups(),
+			Signer::Contract(contract_signer) => contract_signer.get_allowed_groups(),
+			Signer::Transaction(transaction_signer) => transaction_signer.get_allowed_groups(),
+		}
+	}
+
+	fn get_allowed_groups_mut(&mut self) -> &mut Vec<Secp256r1PublicKey> {
+		match self {
+			Signer::Account(account_signer) => account_signer.get_allowed_groups_mut(),
+			Signer::Contract(contract_signer) => contract_signer.get_allowed_groups_mut(),
+			Signer::Transaction(transaction_signer) => transaction_signer.get_allowed_groups_mut(),
+		}
+	}
+
+	fn get_rules(&self) -> &Vec<WitnessRule> {
+		match self {
+			Signer::Account(account_signer) => account_signer.get_rules(),
+			Signer::Contract(contract_signer) => contract_signer.get_rules(),
+			Signer::Transaction(transaction_signer) => transaction_signer.get_rules(),
+		}
+	}
+
+	fn get_rules_mut(&mut self) -> &mut Vec<WitnessRule> {
+		match self {
+			Signer::Account(account_signer) => account_signer.get_rules_mut(),
+			Signer::Contract(contract_signer) => contract_signer.get_rules_mut(),
+			Signer::Transaction(transaction_signer) => transaction_signer.get_rules_mut(),
+		}
+	}
+}
+
 impl Signer {
+	pub fn from_bytes(data: &[u8]) -> Result<Signer, TransactionError> {
+		let mut reader = Decoder::new(data);
+		Signer::decode(&mut reader)
+	}
+
 	pub fn get_type(&self) -> SignerType {
 		match self {
 			Signer::Account(account_signer) => account_signer.get_type(),
@@ -379,5 +484,242 @@ impl NeoSerializable for Signer {
 			// Signer::Transaction(transaction_signer) => transaction_signer.to_array(),
 			_ => panic!("Unsupported signer type"),
 		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::core::{
+		account::{Account, AccountTrait},
+		error::BuilderError,
+		transaction::{
+			signers::{
+				account_signer,
+				account_signer::AccountSigner,
+				signer::{Signer, SignerTrait},
+			},
+			witness_rule::{
+				witness_action::WitnessAction, witness_condition::WitnessCondition,
+				witness_rule::WitnessRule,
+			},
+			witness_scope::WitnessScope,
+		},
+	};
+	use neo_codec::{encode::NeoSerializable, Encoder};
+	use neo_crypto::keys::Secp256r1PublicKey;
+	use neo_types::script_hash::ScriptHashExtension;
+	use primitive_types::H160;
+	use rustc_serialize::hex::FromHex;
+	use serde::Serialize;
+	use std::{io::SeekFrom::End, str::FromStr};
+
+	#[test]
+	fn test_create_signer_with_call_by_entry_scope() {
+		let account =
+			Account::from_wif("Kxt94tAAiZSgH7Yt4i25DW6jJFprZFPSqTgLr5dWmWgKDKCjXMfZ").unwrap();
+		let script_hash = H160::from_slice("d802a401".from_hex().unwrap().as_slice());
+
+		let signer = AccountSigner::called_by_entry(script_hash.into()).unwrap();
+
+		assert_eq!(signer.signer_hash, script_hash);
+		assert_eq!(signer.scopes, vec![WitnessScope::CalledByEntry]);
+		assert!(signer.allowed_contracts.is_empty());
+	}
+
+	#[test]
+	fn test_fail_depth_check() {
+		let script_hash = H160::from_hex("a94a94a942a8a8a9429a9").unwrap();
+
+		let condition = WitnessCondition::And(vec![WitnessCondition::Not(Box::new(
+			WitnessCondition::ScriptHash(script_hash),
+		))]);
+
+		let rule = WitnessRule::new(WitnessAction::Allow, condition);
+
+		let mut signer = AccountSigner::none(script_hash.into()).unwrap();
+
+		let err = signer.set_rules(vec![rule]).unwrap_err();
+
+		assert_eq!(err, BuilderError::TooManySigners("".to_string()));
+	}
+
+	#[test]
+	fn test_serialize_and_deserialize() {
+		let script_hash = H160::from_hex("a94a94a942a8a8a9429a9").unwrap();
+
+		let serialized = "9429a9a942a8a8a9429a917102d802a401c503b112\
+        02a877f3c907cc6c2b66c295d1fcc76ff8f702958ab88e4cea7ae1848047daeb8883daf5fdf5c1301dbbfe973f0a29fe75de6001010128d802a401"
+			.from_hex().unwrap();
+
+		let signer = Signer::from_bytes(&serialized).unwrap();
+
+		assert_eq!(signer.get_signer_hash(), &script_hash);
+
+		assert_eq!(
+			signer.get_scopes(),
+			&vec![
+				WitnessScope::CalledByEntry,
+				WitnessScope::CustomContracts,
+				WitnessScope::CustomGroups,
+				WitnessScope::WitnessRules,
+			]
+		);
+
+		let signer = Signer::from_bytes(&serialized).unwrap();
+
+		// Assert hash
+		assert_eq!(signer.get_signer_hash(), &script_hash);
+
+		// Assert other properties
+		assert_eq!(signer.get_allowed_contracts().len(), 2);
+
+		let contract1 = H160::from_hex("d802a401").unwrap();
+		let contract2 = H160::from_hex("c503b112").unwrap();
+		assert_eq!(signer.get_allowed_contracts(), &vec![contract1, contract2]);
+
+		assert_eq!(signer.get_allowed_groups().len(), 2);
+
+		let group1 = Secp256r1PublicKey::from_encoded(
+			"030306d3e7f18e6dd477d34ce3cfeca172a877f3c907cc6c2b66c295d1fcc76ff8f7",
+		)
+		.unwrap();
+		let group2 = Secp256r1PublicKey::from_encoded(
+			"02958ab88e4cea7ae1848047daeb8883daf5fdf5c1301dbbfe973f0a29fe75de60",
+		)
+		.unwrap();
+		assert_eq!(signer.get_allowed_groups(), &vec![group1, group2]);
+
+		assert_eq!(signer.get_rules().len(), 1);
+
+		let rule = &signer.get_rules()[0];
+		assert_eq!(rule.action, WitnessAction::Allow);
+		assert_eq!(rule.condition, WitnessCondition::CalledByContract(contract1));
+	}
+
+	#[test]
+	fn test_build_valid_signer() {
+		let script_hash1 = H160::from_str("d802a401").unwrap();
+		let script_hash2 = H160::from_str("c503b112").unwrap();
+
+		let mut signer = AccountSigner::none(script_hash1.into()).unwrap();
+		signer.set_allowed_contracts(vec![script_hash1, script_hash2]).expect("");
+
+		assert_eq!(signer.signer_hash, script_hash1);
+		assert_eq!(signer.scopes, vec![WitnessScope::CustomContracts]);
+		assert_eq!(signer.allowed_contracts, vec![script_hash1, script_hash2]);
+	}
+
+	#[test]
+	fn test_fail_building_signer_too_many_contracts() {
+		let script_hash = H160::from_hex("a94a94a942a8a8a9429a9").unwrap();
+		let contracts = (0..17).map(|_| script_hash).collect::<Vec<_>>();
+
+		let err = AccountSigner::called_by_entry(script_hash.into())
+			.unwrap()
+			.set_allowed_contracts(contracts)
+			.unwrap_err();
+
+		assert_eq!(err, BuilderError::TooManySigners("".to_string()));
+	}
+
+	#[test]
+	fn test_serialize_global_scope() {
+		let script_hash = H160::zero();
+		let mut buffer = Encoder::new();
+
+		AccountSigner::global(script_hash.into()).unwrap().encode(&mut buffer);
+
+		let expected = hex::decode("000000000000000000000000000000000000000000").unwrap();
+		assert_eq!(buffer.to_bytes(), expected);
+	}
+	#[test]
+	fn test_serialize_custom_contracts() {
+		let script_hash1 = H160::from_str("d802a401").unwrap();
+		let script_hash2 = H160::from_str("c503b112").unwrap();
+
+		let mut buffer = Encoder::new();
+
+		let mut signer = AccountSigner::none(script_hash1.into()).unwrap();
+		signer.set_allowed_contracts(vec![script_hash1, script_hash2]).unwrap();
+
+		signer.encode(&mut buffer);
+
+		let expected = hex::decode("d8024011111d802a401c503b112").unwrap();
+		assert_eq!(buffer.to_bytes(), expected);
+	}
+
+	#[test]
+	fn test_deserialize_too_many_contracts() {
+		let data = hex::decode("111118d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401").unwrap();
+
+		let err = Signer::from_bytes(&data).unwrap_err();
+
+		assert!(err.to_string().contains("too many allowed contracts"));
+	}
+
+	#[test]
+	fn test_serialize_deserialize_max_nested_rules() {
+		let script_hash = H160::zero();
+
+		let rule = WitnessRule::new(
+			WitnessAction::Allow,
+			WitnessCondition::And(vec![WitnessCondition::Boolean(true)]),
+		);
+
+		let mut buffer = Encoder::new();
+
+		let mut account_signer = AccountSigner::none(script_hash.into()).unwrap();
+		account_signer.set_rules(vec![rule]).unwrap();
+		account_signer.encode(&mut buffer);
+
+		let expected =
+			hex::decode("0000000000000000000000000000000000000000400101020102010001").unwrap();
+		assert_eq!(buffer.to_bytes(), expected);
+	}
+	#[test]
+	fn test_fail_adding_rules_to_global_scope() {
+		let script_hash = H160::zero();
+
+		let rule =
+			WitnessRule::new(WitnessAction::Allow, WitnessCondition::ScriptHash(script_hash));
+
+		let mut signer = AccountSigner::global(script_hash.into()).unwrap();
+
+		let err = signer.set_rules(vec![rule]).unwrap_err();
+
+		assert_eq!(err, BuilderError::TooManySigners("".to_string()));
+	}
+
+	#[test]
+	fn test_too_many_rules() {
+		let script_hash = H160::zero();
+
+		let rule =
+			WitnessRule::new(WitnessAction::Allow, WitnessCondition::ScriptHash(script_hash));
+
+		let mut signer = AccountSigner::none(script_hash.into()).unwrap();
+
+		for _ in 0..16 {
+			signer.set_rules(vec![rule]).unwrap();
+		}
+
+		let err = signer.set_rules(vec![rule]).unwrap_err();
+
+		assert_eq!(err, BuilderError::TooManySigners("".to_string()));
+	}
+
+	#[test]
+	fn test_signer_equals() {
+		let script_hash = H160::zero();
+
+		let signer1 = AccountSigner::global(script_hash.into()).unwrap();
+		let signer2 = AccountSigner::global(script_hash.into()).unwrap();
+
+		assert_eq!(signer1, signer2);
+
+		let signer3 = AccountSigner::called_by_entry(script_hash.into()).unwrap();
+		let signer4 = AccountSigner::called_by_entry(script_hash.into()).unwrap();
+
+		assert_eq!(signer3, signer4);
 	}
 }

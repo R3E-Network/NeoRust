@@ -3,7 +3,7 @@ use neo_codec::CodecError;
 use neo_crypto::error::CryptoError;
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum BuilderError {
 	#[error("Invalid operation")]
 	InvalidScript(String),

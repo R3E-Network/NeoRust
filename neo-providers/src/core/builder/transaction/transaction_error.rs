@@ -4,7 +4,7 @@ use neo_crypto::error::CryptoError;
 use std::error;
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub enum TransactionError {
 	#[error("Script format error: {0}")]
 	ScriptFormat(String),

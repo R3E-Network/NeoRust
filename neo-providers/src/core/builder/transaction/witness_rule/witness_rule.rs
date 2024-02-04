@@ -47,8 +47,7 @@ impl NeoSerializable for WitnessRule {
 #[cfg(test)]
 mod tests {
 	use crate::core::transaction::witness_rule::{
-		witness_condition::WitnessCondition,
-		witness_rule::WitnessRule,
+		witness_condition::WitnessCondition, witness_rule::WitnessRule,
 	};
 	use neo_codec::{encode::NeoSerializable, Encoder};
 	use neo_config::TestConstants;

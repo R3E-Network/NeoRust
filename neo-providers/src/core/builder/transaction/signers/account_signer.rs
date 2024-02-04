@@ -26,13 +26,13 @@ pub struct AccountSigner {
 		serialize_with = "serialize_script_hash",
 		deserialize_with = "deserialize_script_hash"
 	)]
-	signer_hash: H160,
-	scopes: Vec<WitnessScope>,
+	pub(crate) signer_hash: H160,
+	pub(crate) scopes: Vec<WitnessScope>,
 	#[serde(
 		serialize_with = "serialize_vec_script_hash",
 		deserialize_with = "deserialize_vec_script_hash"
 	)]
-	allowed_contracts: Vec<H160>,
+	pub(crate) allowed_contracts: Vec<H160>,
 	#[serde(
 		serialize_with = "serialize_vec_public_key",
 		deserialize_with = "deserialize_vec_public_key"
