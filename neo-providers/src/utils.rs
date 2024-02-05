@@ -5,15 +5,12 @@ use futures_util::{stream, FutureExt, StreamExt};
 use crate::core::script::script_builder::ScriptBuilder;
 use neo_config::DEFAULT_ADDRESS_VERSION;
 use neo_crypto::{
-	error::CryptoError,
 	hash::HashableForVec,
 	keys::{PrivateKeyExtension, PublicKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey},
 	utils::private_key_to_public_key,
 };
 use neo_types::script_hash::{ScriptHash, ScriptHashExtension};
 use primitive_types::{H160, U256};
-use rustc_serialize::hex::ToHex;
-use serde::Serialize;
 use std::{future::Future, pin::Pin, str::FromStr};
 
 /// A simple gas escalation policy

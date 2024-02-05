@@ -41,7 +41,6 @@ pub struct AccountSigner {
 	rules: Vec<WitnessRule>,
 	#[getset(get = "pub")]
 	pub account: Account,
-	scope: WitnessScope,
 }
 
 impl NeoSerializable for AccountSigner {
@@ -100,7 +99,6 @@ impl NeoSerializable for AccountSigner {
 			allowed_groups,
 			rules,
 			account: Account::from_address(signer_hash.to_address().as_str()).unwrap(),
-			scope: WitnessScope::None,
 		})
 	}
 
@@ -119,7 +117,6 @@ impl PartialEq for AccountSigner {
 			&& self.allowed_groups == other.allowed_groups
 			&& self.rules == other.rules
 			// && self.account == other.account
-			&& self.scope == other.scope
 	}
 }
 
@@ -192,12 +189,11 @@ impl AccountSigner {
 	fn new(account: &Account, scope: WitnessScope) -> Self {
 		Self {
 			signer_hash: account.get_script_hash().clone(),
-			scopes: vec![],
+			scopes: vec![scope],
 			allowed_contracts: vec![],
 			allowed_groups: vec![],
 			rules: vec![],
 			account: account.clone(),
-			scope,
 		}
 	}
 

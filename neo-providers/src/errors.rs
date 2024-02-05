@@ -1,6 +1,5 @@
 use neo_crypto::error::CryptoError;
 use neo_types::error::TypeError;
-use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt::Debug};
 use thiserror::Error;
 

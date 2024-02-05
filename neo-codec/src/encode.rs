@@ -20,7 +20,7 @@ impl NeoSerializable for H160 {
 		H160::len_bytes()
 	}
 	fn encode(&self, writer: &mut Encoder) {
-		writer.write_bytes(&self.as_bytes());
+		writer.write_bytes(self.as_fixed_bytes());
 	}
 
 	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error>

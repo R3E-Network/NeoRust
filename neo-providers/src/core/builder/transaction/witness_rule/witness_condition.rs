@@ -174,7 +174,7 @@ impl WitnessCondition {
 	/// Maximum number of subitems.
 	const MAX_SUBITEMS: usize = 16;
 	/// Maximum nesting depth.
-	const MAX_NESTING_DEPTH: usize = 2;
+	pub(crate) const MAX_NESTING_DEPTH: usize = 2;
 
 	/// Boolean value string.
 	const BOOLEAN_VALUE: &'static str = "Boolean";

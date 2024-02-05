@@ -1,15 +1,20 @@
 //! Helpers for creating wallets for YubiHSM2
 use super::Wallet;
 use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
+use p256::NistP256;
 
 use yubihsm::{
-	asymmetric::Algorithm::EcK256, ecdsa::Signer as YubiSigner, object, object::Label, Capability,
+	asymmetric::Algorithm::EcP256, ecdsa::Signer as YubiSigner, object, object::Label, Capability,
 	Client, Connector, Credentials, Domain,
 };
+use yubihsm::ecdsa::nistp256;
+use neo_crypto::keys::Secp256r1PublicKey;
 
-impl Wallet<YubiSigner<Secp256r1>> {
+impl Wallet<YubiSigner<NistP256>> {
 	/// Connects to a yubi key's ECDSA account at the provided id
 	pub fn connect(connector: Connector, credentials: Credentials, id: object::Id) -> Self {
+
+
 		let client = Client::open(connector, credentials, true).unwrap();
 		let signer = YubiSigner::create(client, id).unwrap();
 		signer.into()
@@ -49,8 +54,8 @@ impl Wallet<YubiSigner<Secp256r1>> {
 	}
 }
 
-impl From<YubiSigner<Secp256r1>> for Wallet<YubiSigner<Secp256r1>> {
-	fn from(signer: YubiSigner<Secp256r1>) -> Self {
+impl From<YubiSigner<NistP256>> for Wallet<YubiSigner<NistP256>> {
+	fn from(signer: YubiSigner<NistP256>) -> Self {
 		// this will never fail
 		let public_key = Secp256r1PublicKey::from_encoded_point(signer.public_key()).unwrap();
 		let public_key = public_key.to_encoded_point(/* compress = */ false);
@@ -97,7 +102,7 @@ mod tests {
 	#[tokio::test]
 	async fn new_key() {
 		let connector = yubihsm::Connector::mockhsm();
-		let wallet = Wallet::<YubiSigner<Secp256r1>>::new(
+		let wallet = Wallet::<YubiSigner<NistP256>>::new(
 			connector,
 			Credentials::default(),
 			0,

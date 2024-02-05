@@ -32,7 +32,7 @@ mod middleware;
 pub use middleware::Middleware;
 
 #[allow(deprecated)]
-pub use test_provider::{GOERLI, MAINNET, ROPSTEN, SEPOLIA};
+pub use test_provider::{TESTNET, MAINNET};
 
 lazy_static! {
 	pub static ref HTTP_PROVIDER: Provider<Http> =
@@ -53,13 +53,7 @@ pub mod test_provider {
 
 	pub static MAINNET: Lazy<TestProvider> =
 		Lazy::new(|| TestProvider::new(INFURA_KEYS, "mainnet"));
-	pub static GOERLI: Lazy<TestProvider> = Lazy::new(|| TestProvider::new(INFURA_KEYS, "goerli"));
-	pub static SEPOLIA: Lazy<TestProvider> =
-		Lazy::new(|| TestProvider::new(INFURA_KEYS, "sepolia"));
-
-	#[deprecated = "Ropsten testnet has been deprecated in favor of Goerli or Sepolia."]
-	pub static ROPSTEN: Lazy<TestProvider> =
-		Lazy::new(|| TestProvider::new(INFURA_KEYS, "ropsten"));
+	pub static TESTNET: Lazy<TestProvider> = Lazy::new(|| TestProvider::new(INFURA_KEYS, "testnet"));
 
 	#[derive(Debug)]
 	pub struct TestProvider {
