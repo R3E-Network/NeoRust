@@ -13,7 +13,7 @@ use std::fmt;
 use thiserror::Error;
 
 /// A JSON-RPC 2.0 error
-#[derive(Deserialize, Debug, Clone, Error)]
+#[derive(Deserialize, Debug, Clone, Error,PartialEq)]
 pub struct JsonRpcError {
 	/// The error code
 	pub code: i64,

@@ -66,7 +66,7 @@ mod tests {
 	#[test]
 	fn test_script_hash_condition_serialize_deserialize() {
 		let hash = TestConstants::DEFAULT_ACCOUNT_SCRIPT_HASH;
-		let condition = WitnessCondition::ScriptHash(H160::from_hex(hash.clone()).unwrap());
+		let condition = WitnessCondition::ScriptHash(H160::from_hex(hash).unwrap());
 
 		let bytes = hex::decode(format!("18{}", hash)).unwrap();
 

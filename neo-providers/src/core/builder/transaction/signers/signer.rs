@@ -519,7 +519,7 @@ mod tests {
 			Account::from_wif("Kxt94tAAiZSgH7Yt4i25DW6jJFprZFPSqTgLr5dWmWgKDKCjXMfZ").unwrap();
 		let script_hash = H160::from_slice("d802a401".from_hex().unwrap().as_slice());
 
-		let signer = AccountSigner::called_by_entry(script_hash.into()).unwrap();
+		let signer = AccountSigner::called_by_entry(&script_hash.into()).unwrap();
 
 		assert_eq!(signer.signer_hash, script_hash);
 		assert_eq!(signer.scopes, vec![WitnessScope::CalledByEntry]);
@@ -536,7 +536,7 @@ mod tests {
 
 		let rule = WitnessRule::new(WitnessAction::Allow, condition);
 
-		let mut signer = AccountSigner::none(script_hash.into()).unwrap();
+		let mut signer = AccountSigner::none(&script_hash.into()).unwrap();
 
 		let err = signer.set_rules(vec![rule]).unwrap_err();
 
@@ -601,7 +601,7 @@ mod tests {
 		let script_hash1 = H160::from_str("d802a401").unwrap();
 		let script_hash2 = H160::from_str("c503b112").unwrap();
 
-		let mut signer = AccountSigner::none(script_hash1.into()).unwrap();
+		let mut signer = AccountSigner::none(&script_hash1.into()).unwrap();
 		signer.set_allowed_contracts(vec![script_hash1, script_hash2]).expect("");
 
 		assert_eq!(signer.signer_hash, script_hash1);
@@ -614,7 +614,7 @@ mod tests {
 		let script_hash = H160::from_hex("a94a94a942a8a8a9429a9").unwrap();
 		let contracts = (0..17).map(|_| script_hash).collect::<Vec<_>>();
 
-		let err = AccountSigner::called_by_entry(script_hash.into())
+		let err = AccountSigner::called_by_entry(&script_hash.into())
 			.unwrap()
 			.set_allowed_contracts(contracts)
 			.unwrap_err();
@@ -639,7 +639,7 @@ mod tests {
 
 		let mut buffer = Encoder::new();
 
-		let mut signer = AccountSigner::none(script_hash1.into()).unwrap();
+		let mut signer = AccountSigner::none(&script_hash1.into()).unwrap();
 		signer.set_allowed_contracts(vec![script_hash1, script_hash2]).unwrap();
 
 		signer.encode(&mut buffer);
@@ -668,7 +668,7 @@ mod tests {
 
 		let mut buffer = Encoder::new();
 
-		let mut account_signer = AccountSigner::none(script_hash.into()).unwrap();
+		let mut account_signer = AccountSigner::none(&script_hash.into()).unwrap();
 		account_signer.set_rules(vec![rule]).unwrap();
 		account_signer.encode(&mut buffer);
 
@@ -697,10 +697,10 @@ mod tests {
 		let rule =
 			WitnessRule::new(WitnessAction::Allow, WitnessCondition::ScriptHash(script_hash));
 
-		let mut signer = AccountSigner::none(script_hash.into()).unwrap();
+		let mut signer = AccountSigner::none(&script_hash.into()).unwrap();
 
 		for _ in 0..16 {
-			signer.set_rules(vec![rule]).unwrap();
+			signer.set_rules(vec![rule.clone()]).unwrap();
 		}
 
 		let err = signer.set_rules(vec![rule]).unwrap_err();
@@ -717,8 +717,8 @@ mod tests {
 
 		assert_eq!(signer1, signer2);
 
-		let signer3 = AccountSigner::called_by_entry(script_hash.into()).unwrap();
-		let signer4 = AccountSigner::called_by_entry(script_hash.into()).unwrap();
+		let signer3 = AccountSigner::called_by_entry(&script_hash.into()).unwrap();
+		let signer4 = AccountSigner::called_by_entry(&script_hash.into()).unwrap();
 
 		assert_eq!(signer3, signer4);
 	}

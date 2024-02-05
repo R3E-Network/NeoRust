@@ -136,7 +136,7 @@ pub trait MiddlewareError: Error + Sized + Send + Sync {
 	}
 }
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error)]
 /// An error thrown when making a call to the provider
 pub enum ProviderError {
 	/// An internal error in the JSON RPC Client
@@ -179,6 +179,28 @@ pub enum ProviderError {
 	TypeError(#[from] TypeError),
 	#[error("Invalid password")]
 	InvalidPassword,
+}
+
+impl PartialEq for ProviderError {
+	fn eq(&self, other: &Self) -> bool {
+		match (self, other) {
+			(ProviderError::JsonRpcClientError(a), ProviderError::JsonRpcClientError(b)) => {
+				a.as_error_response() == b.as_error_response()
+			}
+			(ProviderError::SerdeJson(a), ProviderError::SerdeJson(b)) => a.to_string() == b.to_string(),
+			(ProviderError::HTTPError(a), ProviderError::HTTPError(b)) => a.status() == b.status(),
+			(ProviderError::CustomError(a), ProviderError::CustomError(b)) => a == b,
+			(ProviderError::UnsupportedRPC, ProviderError::UnsupportedRPC) => true,
+			(ProviderError::UnsupportedNodeClient, ProviderError::UnsupportedNodeClient) => true,
+			(ProviderError::SignerUnavailable, ProviderError::SignerUnavailable) => true,
+			(ProviderError::IllegalState(a), ProviderError::IllegalState(b)) => a == b,
+			(ProviderError::InvalidAddress, ProviderError::InvalidAddress) => true,
+			(ProviderError::CryptoError(a), ProviderError::CryptoError(b)) => a == b,
+			(ProviderError::TypeError(a), ProviderError::TypeError(b)) => a == b,
+			(ProviderError::InvalidPassword, ProviderError::InvalidPassword) => true,
+			_ => false,
+		}
+	}
 }
 
 impl RpcError for ProviderError {
