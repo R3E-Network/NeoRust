@@ -61,14 +61,12 @@ pub trait SignerTrait {
 		if self.get_allowed_contracts().len() + contracts.len()
 			> NeoConstants::MAX_SIGNER_SUBITEMS as usize
 		{
-			return Err(BuilderError::SignerConfiguration(
-				"Too many allowed contracts".to_string(),
-			))
+			return Err(BuilderError::SignerConfiguration("Too many allowed contracts".to_string()))
 		}
 
 		// Update state
 		if !self.get_scopes().contains(&WitnessScope::CustomContracts) {
-			if self.get_scopes().contains(&WitnessScope::None){
+			if self.get_scopes().contains(&WitnessScope::None) {
 				self.set_scopes(vec![WitnessScope::CustomContracts]);
 			} else {
 				self.get_scopes_mut().push(WitnessScope::CustomContracts);
@@ -91,9 +89,7 @@ pub trait SignerTrait {
 		if self.get_allowed_groups().len() + groups.len()
 			> NeoConstants::MAX_SIGNER_SUBITEMS as usize
 		{
-			return Err(BuilderError::SignerConfiguration(
-				"Too many allowed groups".to_string(),
-			))
+			return Err(BuilderError::SignerConfiguration("Too many allowed groups".to_string()))
 		}
 
 		if !self.get_scopes().contains(&WitnessScope::CustomGroups) {
@@ -110,13 +106,11 @@ pub trait SignerTrait {
 			if self.get_scopes().contains(&WitnessScope::Global) {
 				return Err(BuilderError::IllegalState(
 					"Cannot set rules for global scope".to_string(),
-				));
+				))
 			}
 
-			if self.get_rules().len() + rules.len() >  NeoConstants::MAX_SIGNER_SUBITEMS as usize{
-				return Err(BuilderError::IllegalState(
-					"Too many rules".to_string(),
-				));
+			if self.get_rules().len() + rules.len() > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
+				return Err(BuilderError::IllegalState("Too many rules".to_string()))
 			}
 
 			for rule in &rules {
@@ -135,18 +129,19 @@ pub trait SignerTrait {
 
 	fn check_depth(&self, condition: &WitnessCondition, depth: u8) -> Result<(), BuilderError> {
 		if depth == 0 {
-			return Err(BuilderError::IllegalState(format!("A maximum nesting depth of {} is allowed for witness conditions",
-														  WitnessCondition::MAX_NESTING_DEPTH)));// ::)
+			return Err(BuilderError::IllegalState(format!(
+				"A maximum nesting depth of {} is allowed for witness conditions",
+				WitnessCondition::MAX_NESTING_DEPTH
+			))) // ::)
 		}
 
 		match condition {
-			WitnessCondition::And(conditions) |
-			WitnessCondition::Or(conditions) => {
+			WitnessCondition::And(conditions) | WitnessCondition::Or(conditions) => {
 				for c in conditions {
 					self.check_depth(c, depth - 1)?
 				}
-			}
-			_ => ()
+			},
+			_ => (),
 		};
 
 		Ok(())
@@ -509,23 +504,25 @@ mod tests {
 			witness_scope::WitnessScope,
 		},
 	};
+	use lazy_static::lazy_static;
 	use neo_codec::{encode::NeoSerializable, Encoder};
 	use neo_crypto::keys::Secp256r1PublicKey;
 	use neo_types::script_hash::{ScriptHash, ScriptHashExtension};
 	use primitive_types::H160;
 	use rustc_serialize::hex::{FromHex, ToHex};
 	use std::ops::Deref;
-	use lazy_static::lazy_static;
 
 	// const script_hash:ScriptHash = Account::from_wif("Kzt94tAAiZSgH7Yt4i25DW6jJFprZFPSqTgLr5dWmWgKDKCjXMfZ").unwrap().get_script_hash();
 
 	lazy_static! {
 		pub static ref SCRIPT_HASH: ScriptHash = {
-        Account::from_wif("Kzt94tAAiZSgH7Yt4i25DW6jJFprZFPSqTgLr5dWmWgKDKCjXMfZ").unwrap().get_script_hash()
-    };
-		pub static ref  SCRIPT_HASH1:H160 = H160::from_script(&"d802a401".from_hex().unwrap());
-		pub static ref SCRIPT_HASH2:H160 = H160::from_script(&"c503b112".from_hex().unwrap());
-}
+			Account::from_wif("Kzt94tAAiZSgH7Yt4i25DW6jJFprZFPSqTgLr5dWmWgKDKCjXMfZ")
+				.unwrap()
+				.get_script_hash()
+		};
+		pub static ref SCRIPT_HASH1: H160 = H160::from_script(&"d802a401".from_hex().unwrap());
+		pub static ref SCRIPT_HASH2: H160 = H160::from_script(&"c503b112".from_hex().unwrap());
+	}
 
 	#[test]
 	fn test_create_signer_with_call_by_entry_scope() {
@@ -538,32 +535,28 @@ mod tests {
 
 	#[test]
 	fn test_fail_depth_check() {
-			let condition = WitnessCondition::And(vec![WitnessCondition::And(vec![
-				WitnessCondition::And(vec![WitnessCondition::Not(Box::new(
-					WitnessCondition::ScriptHash(*SCRIPT_HASH)
-				))])
-			])]);
+		let condition =
+			WitnessCondition::And(vec![WitnessCondition::And(vec![WitnessCondition::And(vec![
+				WitnessCondition::Not(Box::new(WitnessCondition::ScriptHash(*SCRIPT_HASH))),
+			])])]);
 
-			let rule = WitnessRule {
-				action: WitnessAction::Allow,
-				condition
-			};
+		let rule = WitnessRule { action: WitnessAction::Allow, condition };
 
-			let mut signer = AccountSigner::none(&SCRIPT_HASH.deref().into()).unwrap();
+		let mut signer = AccountSigner::none(&SCRIPT_HASH.deref().into()).unwrap();
 
-			let err = signer.set_rules(vec![rule])
-				.unwrap_err();
+		let err = signer.set_rules(vec![rule]).unwrap_err();
 
-			assert_eq!(
-				err.to_string(),
-				format!("Illegal state: A maximum nesting depth of {} is allowed for witness conditions",
-						WitnessCondition::MAX_NESTING_DEPTH)
-			);
-		}
+		assert_eq!(
+			err.to_string(),
+			format!(
+				"Illegal state: A maximum nesting depth of {} is allowed for witness conditions",
+				WitnessCondition::MAX_NESTING_DEPTH
+			)
+		);
+	}
 
 	#[test]
 	fn test_serialize_and_deserialize() {
-
 		let serialized = "9429a9a942a8a8a9429a917102d802a401c503b112\
         02a877f3c907cc6c2b66c295d1fcc76ff8f702958ab88e4cea7ae1848047daeb8883daf5fdf5c1301dbbfe973f0a29fe75de6001010128d802a401"
 			.from_hex().unwrap();
@@ -621,7 +614,7 @@ mod tests {
 		assert_eq!(signer.signer_hash, *SCRIPT_HASH);
 		assert_eq!(signer.scopes, vec![WitnessScope::CalledByEntry, WitnessScope::CustomContracts]);
 		assert_eq!(signer.allowed_contracts, vec![*SCRIPT_HASH1, *SCRIPT_HASH2]);
-}
+	}
 
 	#[test]
 	fn test_build_valid_signer2() {
@@ -632,10 +625,10 @@ mod tests {
 		assert_eq!(signer.scopes, vec![WitnessScope::CustomContracts]);
 		assert_eq!(signer.allowed_contracts, vec![*SCRIPT_HASH1, *SCRIPT_HASH2]);
 		assert_eq!(signer.get_allowed_groups().len(), 0);
-// XCTAssertEqual(signer.scopes, [.customContracts])
-// XCTAssertEqual(signer.allowedContracts, [contract1, contract2])
-// XCTAssert(signer.allowedGroups.isEmpty)
-}
+		// XCTAssertEqual(signer.scopes, [.customContracts])
+		// XCTAssertEqual(signer.allowedContracts, [contract1, contract2])
+		// XCTAssert(signer.allowedGroups.isEmpty)
+	}
 
 	#[test]
 	fn test_build_valid_signer3() {
@@ -645,7 +638,7 @@ mod tests {
 		assert_eq!(signer.signer_hash, *SCRIPT_HASH);
 		assert_eq!(signer.scopes, vec![WitnessScope::CustomContracts]);
 		assert_eq!(signer.allowed_contracts, vec![*SCRIPT_HASH1, *SCRIPT_HASH2]);
-}
+	}
 
 	#[test]
 	fn test_fail_building_signer_too_many_contracts() {
@@ -657,7 +650,10 @@ mod tests {
 			.set_allowed_contracts(contracts)
 			.unwrap_err();
 
-		assert_eq!(err, BuilderError::SignerConfiguration("Too many allowed contracts".to_string()));
+		assert_eq!(
+			err,
+			BuilderError::SignerConfiguration("Too many allowed contracts".to_string())
+		);
 	}
 
 	#[test]
@@ -669,7 +665,12 @@ mod tests {
 		let mut script_hash_vec = SCRIPT_HASH.deref().as_bytes().to_vec();
 		// SCRIPT_HASH.reverse();
 
-		let expected = hex::decode(format!("{}{:02x}",script_hash_vec.to_hex(), WitnessScope::Global.byte_repr())).unwrap();
+		let expected = hex::decode(format!(
+			"{}{:02x}",
+			script_hash_vec.to_hex(),
+			WitnessScope::Global.byte_repr()
+		))
+		.unwrap();
 		assert_eq!(buffer.to_bytes(), expected);
 	}
 
@@ -681,8 +682,9 @@ mod tests {
 
 		signer.encode(&mut buffer);
 
-		let expected = format!("{}{}02{}{}",
-							   SCRIPT_HASH.as_bytes().to_hex(),
+		let expected = format!(
+			"{}{}02{}{}",
+			SCRIPT_HASH.as_bytes().to_hex(),
 			WitnessScope::CustomContracts.byte_repr(),
 			SCRIPT_HASH1.as_bytes().to_hex(),
 			SCRIPT_HASH2.as_bytes().to_hex()
@@ -692,7 +694,6 @@ mod tests {
 
 	#[test]
 	fn test_deserialize_too_many_contracts() {
-
 		let data = hex::decode("111118d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401").unwrap();
 
 		let err = Signer::from_bytes(&data).unwrap_err();

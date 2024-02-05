@@ -1,7 +1,6 @@
-use neo_providers::{Http, Middleware, Provider};
-use std::convert::TryFrom;
+use neo_providers::{core::transaction::transaction::Transaction, Http, Middleware, Provider};
 use primitive_types::U256;
-use neo_providers::core::transaction::transaction::Transaction;
+use std::convert::TryFrom;
 
 #[tokio::test]
 async fn txpool() {

@@ -52,7 +52,7 @@ impl AddressOrScriptHash {
 	}
 	pub fn script_hash(&self) -> H160 {
 		match self {
-			AddressOrScriptHash::Address(a) => a.to_script_hash().unwrap(),
+			AddressOrScriptHash::Address(a) => a.address_to_script_hash().unwrap(),
 			AddressOrScriptHash::ScriptHash(s) => s.clone(),
 		}
 	}

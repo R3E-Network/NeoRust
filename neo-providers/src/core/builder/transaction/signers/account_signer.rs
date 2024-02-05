@@ -116,7 +116,7 @@ impl PartialEq for AccountSigner {
 			&& self.allowed_contracts == other.allowed_contracts
 			&& self.allowed_groups == other.allowed_groups
 			&& self.rules == other.rules
-			// && self.account == other.account
+		// && self.account == other.account
 	}
 }
 

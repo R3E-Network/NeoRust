@@ -61,7 +61,6 @@ neo-config.workspace=true
 #neo-signers.workspace = true
 primitive-types.workspace = true
 lazy_static = "1.4.0"
-log = { version = "0.4.20", features = [] }
 
 strum_macros = "0.25.2"
 strum = "0.25.0"
@@ -75,11 +74,14 @@ rustc-serialize = "0.3.24"
 derive_more = "0.99"
 scrypt = "0.11.0"
 p256 = {workspace = true}
+log = "0.4.14"
 
 aes = "0.8.3"
 ecb = "0.1.2"
 cipher = { version = "0.4.4", features = [] }
 openssl = "0.10.57"
+http = "0.2.9"
+chrono = "0.4.31"
 
 [target.'cfg(target_family = "windows")'.dependencies]
 winapi = { version = "0.3", optional = true }
@@ -99,6 +101,10 @@ web-sys = { version = "0.3", features = ["console"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
 tempfile = "3"
 
+[dev-dependencies]
+tracing-test = { version = "0.2.4", features = ["no-env-filter"] }
+env_logger = "0.11.1"
+
 [features]
 default = ["ws", "rustls"]
 
@@ -111,6 +117,3 @@ ipc = ["tokio/io-util", "futures-channel", "winapi"]
 rustls = ["tokio-tungstenite/rustls-tls-webpki-roots", "reqwest/rustls-tls"]
 openssl = ["tokio-tungstenite/native-tls", "reqwest/native-tls"]
 dev-rpc = []
-
-[dev-dependencies]
-tracing-test = { version = "0.2.4", features = ["no-env-filter"] }

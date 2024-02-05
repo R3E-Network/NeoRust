@@ -1,10 +1,12 @@
 use crate::{
 	error::TypeError,
 	script_hash::{ScriptHash, ScriptHashExtension},
+	string::StringExt,
 };
 use neo_crypto::hash::HashableForVec;
 use primitive_types::H160;
 use rand::Rng;
+use rustc_serialize::hex::FromHex;
 use serde_derive::{Deserialize, Serialize};
 
 pub type Address = String;
@@ -16,13 +18,16 @@ pub enum NameOrAddress {
 }
 
 pub trait AddressExtension {
-	fn to_script_hash(&self) -> Result<ScriptHash, TypeError>;
+	fn address_to_script_hash(&self) -> Result<ScriptHash, TypeError>;
+	fn script_to_script_hash(&self) -> Result<ScriptHash, TypeError>;
+
+	fn hex_to_script_hash(&self) -> Result<ScriptHash, TypeError>;
 
 	fn random() -> Self;
 }
 
 impl AddressExtension for String {
-	fn to_script_hash(&self) -> Result<ScriptHash, TypeError> {
+	fn address_to_script_hash(&self) -> Result<ScriptHash, TypeError> {
 		// Base58-decode the address
 		let binding = match bs58::decode(self).into_vec() {
 			Ok(data) => ScriptHash::from_script(data.as_slice()),
@@ -38,6 +43,20 @@ impl AddressExtension for String {
 		Ok(H160::from_slice(script_hash.as_slice()))
 	}
 
+	fn script_to_script_hash(&self) -> Result<ScriptHash, TypeError> {
+		self.from_hex()
+			.map(|data| ScriptHash::from_script(data.as_slice()))
+			.map_err(|_| TypeError::InvalidScript("Invalid hex string".to_string()))
+	}
+
+	fn hex_to_script_hash(&self) -> Result<ScriptHash, TypeError> {
+		if self.is_valid_hex() {
+			ScriptHash::from_hex(self.as_str()).map_err(|_| TypeError::InvalidFormat)
+		} else {
+			Err(TypeError::InvalidFormat)
+		}
+	}
+
 	fn random() -> Self {
 		let mut rng = rand::thread_rng();
 		let mut bytes = [0u8; 20];
@@ -51,6 +70,24 @@ impl AddressExtension for String {
 	}
 }
 
+impl AddressExtension for &str {
+	fn address_to_script_hash(&self) -> Result<ScriptHash, TypeError> {
+		self.to_string().address_to_script_hash()
+	}
+
+	fn script_to_script_hash(&self) -> Result<ScriptHash, TypeError> {
+		self.to_string().script_to_script_hash()
+	}
+
+	fn hex_to_script_hash(&self) -> Result<ScriptHash, TypeError> {
+		self.to_string().hex_to_script_hash()
+	}
+
+	fn random() -> Self {
+		panic!("Not implemented")
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -60,7 +97,7 @@ mod tests {
 		// Test case 1: Valid N3 address
 		let n3_address = "NTGYC16CN5QheM4ZwfhUp9JKq8bMjWtcAp";
 		let expected_script_hash_hex = "87c06be672d5600dce4a260e7b2d497112c0ac50";
-		let result = n3_address.to_string().to_script_hash().unwrap();
+		let result = n3_address.address_to_script_hash().unwrap();
 		assert_eq!(hex::encode(result), expected_script_hash_hex);
 
 		// Test case 3: Invalid N3 address

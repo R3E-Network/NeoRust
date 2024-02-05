@@ -32,7 +32,7 @@ mod middleware;
 pub use middleware::Middleware;
 
 #[allow(deprecated)]
-pub use test_provider::{TESTNET, MAINNET};
+pub use test_provider::{MAINNET, TESTNET};
 
 lazy_static! {
 	pub static ref HTTP_PROVIDER: Provider<Http> =
@@ -53,7 +53,8 @@ pub mod test_provider {
 
 	pub static MAINNET: Lazy<TestProvider> =
 		Lazy::new(|| TestProvider::new(INFURA_KEYS, "mainnet"));
-	pub static TESTNET: Lazy<TestProvider> = Lazy::new(|| TestProvider::new(INFURA_KEYS, "testnet"));
+	pub static TESTNET: Lazy<TestProvider> =
+		Lazy::new(|| TestProvider::new(INFURA_KEYS, "testnet"));
 
 	#[derive(Debug)]
 	pub struct TestProvider {

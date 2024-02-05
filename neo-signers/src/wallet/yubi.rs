@@ -3,18 +3,18 @@ use super::Wallet;
 use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
 use p256::NistP256;
 
-use yubihsm::{
-	asymmetric::Algorithm::EcP256, ecdsa::Signer as YubiSigner, object, object::Label, Capability,
-	Client, Connector, Credentials, Domain,
-};
-use yubihsm::ecdsa::nistp256;
 use neo_crypto::keys::Secp256r1PublicKey;
+use yubihsm::{
+	asymmetric::Algorithm::EcP256,
+	ecdsa::{nistp256, Signer as YubiSigner},
+	object,
+	object::Label,
+	Capability, Client, Connector, Credentials, Domain,
+};
 
 impl Wallet<YubiSigner<NistP256>> {
 	/// Connects to a yubi key's ECDSA account at the provided id
 	pub fn connect(connector: Connector, credentials: Credentials, id: object::Id) -> Self {
-
-
 		let client = Client::open(connector, credentials, true).unwrap();
 		let signer = YubiSigner::create(client, id).unwrap();
 		signer.into()

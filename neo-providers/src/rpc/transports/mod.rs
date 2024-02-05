@@ -2,7 +2,7 @@ pub(crate) mod common;
 pub use common::{Authorization, JsonRpcError, JwtAuth, JwtKey};
 
 mod http;
-pub use self::http::{ClientError as HttpClientError, Provider as Http};
+pub use self::http::{ClientError as HttpClientError, HttpProvider as Http};
 
 #[cfg(all(feature = "ipc", any(unix, windows)))]
 mod ipc;

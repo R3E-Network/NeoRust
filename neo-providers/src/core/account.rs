@@ -135,7 +135,7 @@ impl From<H160> for Account {
 	}
 }
 
-impl From<&H160> for Account{
+impl From<&H160> for Account {
 	fn from(script_hash: &H160) -> Self {
 		Self {
 			address_or_scripthash: AddressOrScriptHash::ScriptHash(script_hash.clone()),

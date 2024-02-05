@@ -183,10 +183,10 @@ pub enum ProviderError {
 impl PartialEq for ProviderError {
 	fn eq(&self, other: &Self) -> bool {
 		match (self, other) {
-			(ProviderError::JsonRpcClientError(a), ProviderError::JsonRpcClientError(b)) => {
-				a.as_error_response() == b.as_error_response()
-			}
-			(ProviderError::SerdeJson(a), ProviderError::SerdeJson(b)) => a.to_string() == b.to_string(),
+			(ProviderError::JsonRpcClientError(a), ProviderError::JsonRpcClientError(b)) =>
+				a.as_error_response() == b.as_error_response(),
+			(ProviderError::SerdeJson(a), ProviderError::SerdeJson(b)) =>
+				a.to_string() == b.to_string(),
 			(ProviderError::HTTPError(a), ProviderError::HTTPError(b)) => a.status() == b.status(),
 			(ProviderError::CustomError(a), ProviderError::CustomError(b)) => a == b,
 			(ProviderError::UnsupportedRPC, ProviderError::UnsupportedRPC) => true,

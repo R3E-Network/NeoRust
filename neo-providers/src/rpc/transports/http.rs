@@ -27,7 +27,7 @@ use url::Url;
 /// # }
 /// ```
 #[derive(Debug)]
-pub struct Provider {
+pub struct HttpProvider {
 	id: AtomicU64,
 	client: Client,
 	url: Url,
@@ -81,7 +81,7 @@ impl crate::RpcError for ClientError {
 
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-impl JsonRpcClient for Provider {
+impl JsonRpcClient for HttpProvider {
 	type Error = ClientError;
 
 	async fn fetch<T: Serialize + Send + Sync, R: DeserializeOwned>(
@@ -119,7 +119,7 @@ impl JsonRpcClient for Provider {
 	}
 }
 
-impl Provider {
+impl HttpProvider {
 	/// Initializes a new HTTP Client
 	///
 	/// # Example
@@ -188,16 +188,16 @@ impl Provider {
 	}
 }
 
-impl FromStr for Provider {
+impl FromStr for HttpProvider {
 	type Err = url::ParseError;
 
 	fn from_str(src: &str) -> Result<Self, Self::Err> {
 		let url = Url::parse(src)?;
-		Ok(Provider::new(url))
+		Ok(HttpProvider::new(url))
 	}
 }
 
-impl Clone for Provider {
+impl Clone for HttpProvider {
 	fn clone(&self) -> Self {
 		Self { id: AtomicU64::new(1), client: self.client.clone(), url: self.url.clone() }
 	}

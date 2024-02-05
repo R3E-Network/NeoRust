@@ -11,7 +11,6 @@ use futures_util::{
 	stream::{Fuse, Stream, StreamExt},
 };
 
-use log::{debug, error};
 use primitive_types::U256;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::value::RawValue;
@@ -40,31 +39,31 @@ macro_rules! if_not_wasm {
     )*}
 }
 
-if_wasm! {
-	use wasm_bindgen::prelude::*;
-	use wasm_bindgen_futures::spawn_local;
-	use ws_stream_wasm::*;
-
-	type Message = WsMessage;
-	type WsError = ws_stream_wasm::WsErr;
-	type WsStreamItem = Message;
-
-	macro_rules! error {
-		( $( $t:tt )* ) => {
-			web_sys::console::error_1(&format!( $( $t )* ).into());
-		}
-	}
-	macro_rules! warn {
-		( $( $t:tt )* ) => {
-			web_sys::console::warn_1(&format!( $( $t )* ).into());
-		}
-	}
-	macro_rules! debug {
-		( $( $t:tt )* ) => {
-			web_sys::console::log_1(&format!( $( $t )* ).into());
-		}
-	}
-}
+// if_wasm! {
+// 	use wasm_bindgen::prelude::*;
+// 	use wasm_bindgen_futures::spawn_local;
+// 	use ws_stream_wasm::*;
+//
+// 	type Message = WsMessage;
+// 	type WsError = ws_stream_wasm::WsErr;
+// 	type WsStreamItem = Message;
+//
+// 	macro_rules! error {
+// 		( $( $t:tt )* ) => {
+// 			web_sys::console::error_1(&format!( $( $t )* ).into());
+// 		}
+// 	}
+// 	macro_rules! warn {
+// 		( $( $t:tt )* ) => {
+// 			web_sys::console::warn_1(&format!( $( $t )* ).into());
+// 		}
+// 	}
+// 	macro_rules! debug {
+// 		( $( $t:tt )* ) => {
+// 			web_sys::console::log_1(&format!( $( $t )* ).into());
+// 		}
+// 	}
+// }
 
 if_not_wasm! {
 	use tokio_tungstenite::{
@@ -233,6 +232,7 @@ where
 {
 	/// Instantiates the Websocket Server
 	fn new(ws: S, requests: mpsc::UnboundedReceiver<Instruction>) -> Self {
+		env_logger::init();
 		Self {
 			// Fuse the 2 steams together, so that we can `select` them in the
 			// Stream implementation
@@ -259,12 +259,12 @@ where
 		let f = async move {
 			loop {
 				if self.is_done() {
-					debug!("work complete");
+					// debug!("work complete");
 					break
 				}
 
 				if let Err(e) = self.tick().await {
-					error!("Received a WebSocket error: {:?}", e);
+					// error!("Received a WebSocket error: {:?}", e);
 					self.close_all_subscriptions();
 					break
 				}
