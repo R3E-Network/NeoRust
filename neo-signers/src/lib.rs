@@ -9,11 +9,30 @@ pub use wallet::*;
 pub use coins_bip39;
 
 /// A wallet instantiated with a locally stored private key
-pub type LocalWallet = Wallet;
+pub type LocalWallet = Wallet<ethers_core::k256::ecdsa::SigningKey>;
 
 #[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
 /// A wallet instantiated with a YubiHSM
-pub type YubiWallet = Wallet;
+pub type YubiWallet = Wallet<yubihsm::ecdsa::Signer<ethers_core::k256::Secp256k1>>;
+
+#[cfg(all(feature = "ledger", not(target_arch = "wasm32")))]
+mod ledger;
+#[cfg(all(feature = "ledger", not(target_arch = "wasm32")))]
+pub use ledger::{
+	app::LedgerNeo as Ledger,
+	types::{DerivationType as HDPath, LedgerError},
+};
+
+#[cfg(all(feature = "trezor", not(target_arch = "wasm32")))]
+mod trezor;
+#[cfg(all(feature = "trezor", not(target_arch = "wasm32")))]
+pub use trezor::{
+	app::TrezorNeo as Trezor,
+	types::{DerivationType as TrezorHDPath, TrezorError},
+};
+
+#[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
+pub use yubihsm;
 
 mod error;
 
