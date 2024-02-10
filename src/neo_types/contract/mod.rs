@@ -1,0 +1,33 @@
+use primitive_types::H256;
+use sha2::{Digest, Sha256};
+
+mod contract_manifest;
+mod contract_method_token;
+mod contract_nef;
+mod contract_parameter;
+mod contract_parameter_type;
+mod contract_state;
+mod contract_storage_entry;
+mod invocation_result;
+mod native_contract_state;
+mod nef_file;
+mod nep17contract;
+
+pub use contract_manifest::*;
+pub use contract_method_token::*;
+pub use contract_nef::*;
+pub use contract_parameter::*;
+pub use contract_parameter_type::*;
+pub use contract_state::*;
+pub use contract_storage_entry::*;
+pub use invocation_result::*;
+pub use native_contract_state::*;
+pub use nef_file::*;
+pub use nep17contract::*;
+
+pub fn hash_message(message: &[u8]) -> H256 {
+	let mut hasher = Sha256::new();
+	hasher.update(message);
+	let result = hasher.finalize();
+	H256::from_slice(&result)
+}

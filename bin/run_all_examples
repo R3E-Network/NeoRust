@@ -8,7 +8,6 @@ ignored=(
   "examples-contracts:deploy_moonbeam"
   "examples-providers:ipc"
   "examples-wallets:ledger"
-  "examples-wallets:trezor"
   "examples-wallets:yubi"
   "examples-transactions:remove_liquidity"
 )
