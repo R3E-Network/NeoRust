@@ -589,6 +589,17 @@ impl OpCode {
 	}
 }
 
+// impl TryFrom<u8> for OpCode {
+// 	type Error = ();
+//
+// 	fn try_from(value: u8) -> Result<Self, Self::Error> {
+// 		match value {
+// 			0x00 => Ok(OpCode::PushInt8),
+// 			_ => Err(()),
+// 		}
+// 	}
+// }
+
 #[derive(Clone, Debug, Getters)]
 pub struct OperandSize {
 	#[get = "pub"]

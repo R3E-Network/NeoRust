@@ -1,6 +1,3 @@
-pub(crate) mod common;
-pub use common::{Authorization, JsonRpcError, JwtAuth, JwtKey};
-
 mod http;
 pub use self::http::{ClientError as HttpClientError, HttpProvider as Http};
 
@@ -29,5 +26,8 @@ pub mod legacy_ws;
 #[cfg(feature = "legacy-ws")]
 pub use legacy_ws::{ClientError as WsClientError, Ws};
 
+mod common;
 mod mock;
+
+pub use common::*;
 pub use mock::{MockError, MockProvider, MockResponse};

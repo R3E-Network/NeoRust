@@ -1,26 +1,5 @@
-use crate::{
-	wallet::{nep6wallet::NEP6Wallet, wallet_error::WalletError},
-	NEP6Account, NEP6Contract, NEP6Parameter, Signer,
-};
 use async_trait::async_trait;
-use neo_crypto::keys::Secp256r1Signature;
-use neo_providers::{
-	core::{
-		account::{Account, AccountTrait},
-		transaction::{
-			transaction::Transaction, verification_script::VerificationScript, witness,
-			witness::Witness,
-		},
-		wallet::WalletTrait,
-	},
-	Middleware,
-};
-use neo_types::{
-	address::{Address, AddressExtension},
-	address_or_scripthash::AddressOrScriptHash,
-	contract_parameter_type::ContractParameterType,
-	ScryptParamsDef, *,
-};
+use neo::prelude::*;
 use primitive_types::H160;
 use serde_derive::{Deserialize, Serialize};
 use std::{collections::HashMap, fs::File, io::Write, path::PathBuf, str::FromStr};
@@ -211,9 +190,8 @@ impl Wallet {
 	/// # Example
 	///
 	/// ```
-	/// use neo_providers::core::account::Account;
-	/// use neo_signers::Wallet;
 	///
+	/// use NeoRust::prelude::{Account, Wallet};
 	/// let account1 = Account::default();
 	/// let account2 = Account::default();
 	///
@@ -267,13 +245,11 @@ impl Wallet {
 	}
 }
 
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-impl Signer for Wallet {
-	type Error = WalletError;
+impl Wallet {
 	async fn sign_message<S: Send + Sync + AsRef<[u8]>>(
 		&self,
 		message: S,
-	) -> Result<Secp256r1Signature, Self::Error> {
+	) -> Result<Secp256r1Signature, WalletError> {
 		let message = message.as_ref();
 		let binding = hash_message(message);
 		let message_hash = binding.as_bytes();
@@ -287,7 +263,7 @@ impl Signer for Wallet {
 			.map_err(|e| WalletError::NoKeyPair)
 	}
 
-	async fn get_witness(&self, tx: &Transaction) -> Result<Witness, Self::Error> {
+	async fn get_witness(&self, tx: &Transaction) -> Result<Witness, WalletError> {
 		let mut tx_with_chain = tx.clone();
 		if tx_with_chain.network_magic().is_none() {
 			// in the case we don't have a network_magic, let's use the signer network magic instead
@@ -313,12 +289,7 @@ impl Signer for Wallet {
 
 #[cfg(test)]
 mod tests {
-	use crate::Wallet;
-	use neo_config::TestConstants;
-	use neo_providers::core::{
-		account::{Account, AccountTrait},
-		wallet::WalletTrait,
-	};
+	use neo::prelude::{AccountTrait, Signer::Account, TestConstants, Wallet, WalletTrait};
 
 	#[test]
 	fn test_is_default() {

@@ -1,4 +1,4 @@
-use neo_types::contract_parameter_type::ContractParameterType;
+use neo::prelude::ContractParameterType;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

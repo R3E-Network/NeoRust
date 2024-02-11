@@ -17,7 +17,6 @@ mod address_or_scripthash;
 mod block;
 mod bytes;
 mod error;
-mod log;
 mod numeric;
 mod op_code;
 mod path_or_string;
@@ -40,7 +39,7 @@ pub use block::*;
 pub use bytes::*;
 pub use error::*;
 pub use log::*;
-use neo::prelude::{HashableForVec, Secp256r1PrivateKey, Secp256r1PublicKey};
+use neo::prelude::{HashableForVec, InteropService, Secp256r1PrivateKey, Secp256r1PublicKey};
 pub use numeric::*;
 pub use op_code::*;
 pub use path_or_string::*;
@@ -105,31 +104,31 @@ impl Base64Encode for &[u8] {
 	}
 }
 
-pub fn secret_key_to_script_hash(secret_key: &Secp256r1PrivateKey) -> ScriptHash {
-	let public_key = secret_key.to_public_key();
-	public_key_to_script_hash(&public_key)
-}
+// pub fn secret_key_to_script_hash(secret_key: &Secp256r1PrivateKey) -> ScriptHash {
+// 	let public_key = secret_key.to_public_key();
+// 	public_key_to_script_hash(&public_key)
+// }
 
-pub fn public_key_to_script_hash(pubkey: &Secp256r1PublicKey) -> ScriptHash {
-	raw_public_key_to_script_hash(&pubkey.get_encoded(true)[1..])
-}
-
-pub fn raw_public_key_to_script_hash<T: AsRef<[u8]>>(pubkey: T) -> ScriptHash {
-	let pubkey = pubkey.as_ref();
-	let script = format!(
-		"{}21{}{}{}{}",
-		OpCode::PushData1.to_string(),
-		"03",
-		pubkey.to_hex(),
-		OpCode::Syscall.to_string(),
-		InteropService::SystemCryptoCheckSig.hash()
-	)
-	.from_hex()
-	.unwrap();
-	let mut script = script.sha256_ripemd160();
-	script.reverse();
-	ScriptHash::from_slice(&script)
-}
+// pub fn public_key_to_script_hash(pubkey: &Secp256r1PublicKey) -> ScriptHash {
+// 	raw_public_key_to_script_hash(&pubkey.get_encoded(true)[1..])
+// }
+//
+// pub fn raw_public_key_to_script_hash<T: AsRef<[u8]>>(pubkey: T) -> ScriptHash {
+// 	let pubkey = pubkey.as_ref();
+// 	let script = format!(
+// 		"{}21{}{}{}{}",
+// 		OpCode::PushData1.to_string(),
+// 		"03",
+// 		pubkey.to_hex(),
+// 		OpCode::Syscall.to_string(),
+// 		InteropService::SystemCryptoCheckSig.hash()
+// 	)
+// 	.from_hex()
+// 	.unwrap();
+// 	let mut script = script.sha256_ripemd160();
+// 	script.reverse();
+// 	ScriptHash::from_slice(&script)
+// }
 
 pub fn to_checksum(addr: &ScriptHash, chain_id: Option<u8>) -> String {
 	// if !addr.is_valid_address(){

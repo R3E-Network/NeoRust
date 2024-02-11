@@ -1,15 +1,8 @@
-use crate::{
-	error::ContractError, name_service::NeoNameService, traits::smart_contract::SmartContractTrait,
-};
 use async_trait::async_trait;
-use neo_providers::{JsonRpcClient, Middleware};
-use neo_types::{
-	contract_parameter::ContractParameter, nns_name::NNSName, record_type::RecordType,
-};
+use neo::prelude::*;
 use num_traits::{real::Real, ToPrimitive};
 use primitive_types::H160;
 use rust_decimal::Decimal;
-use rust_decimal_macros::dec;
 
 #[async_trait]
 pub trait TokenTrait<'a, P: JsonRpcClient>: SmartContractTrait<'a, P = P> {

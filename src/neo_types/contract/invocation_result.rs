@@ -1,4 +1,4 @@
-use neo::prelude::StackItem;
+use neo::prelude::{deserialize_script_hash, serialize_script_hash, ContractParameter, StackItem};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use std::{

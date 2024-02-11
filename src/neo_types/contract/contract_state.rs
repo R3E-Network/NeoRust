@@ -1,4 +1,7 @@
-use neo::prelude::{ContractManifest, ContractNef, InvocationResult, StackItem};
+use neo::prelude::{
+	deserialize_script_hash, serialize_script_hash, ContractManifest, ContractNef,
+	InvocationResult, StackItem,
+};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 

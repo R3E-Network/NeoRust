@@ -18,7 +18,7 @@ use url::Url;
 ///
 /// ```no_run
 /// use std::str::FromStr;
-/// use NeoRust::prelude::Http;
+/// use NeoRust::prelude::{Http, JsonRpcClient};
 ///
 /// # async fn foo() -> Result<(), Box<dyn std::error::Error>> {
 /// let provider = Http::from_str("http://localhost:8545")?;
@@ -63,7 +63,7 @@ impl From<ClientError> for ProviderError {
 }
 
 impl RpcError for ClientError {
-	fn as_error_response(&self) -> Option<&super::JsonRpcError> {
+	fn as_error_response(&self) -> Option<&JsonRpcError> {
 		if let ClientError::JsonRpcError(err) = self {
 			Some(err)
 		} else {
@@ -92,7 +92,7 @@ impl JsonRpcClient for HttpProvider {
 		let next_id = self.id.fetch_add(1, Ordering::SeqCst);
 		let payload = Request::new(next_id, method, params);
 
-		let res = self.client.post(self.url.as_ref()).json(&payload).send().await?;
+		let res = self.client.post(self.url.as_ref()).body(&payload).send().await?;
 		let body = res.bytes().await?;
 
 		let raw = match serde_json::from_slice(&body) {
@@ -151,25 +151,25 @@ impl HttpProvider {
 	///
 	/// ```
 	/// use url::Url;
-	/// use NeoRust::prelude::{Authorization, Http};
+	/// use NeoRust::prelude::Http;
 	///
 	/// let url = Url::parse("http://localhost:8545").unwrap();
-	/// let provider = Http::new_with_auth(url, Authorization::basic("admin", "good_password"));
+	/// let provider = Http::new(url);
 	/// ```
-	pub fn new_with_auth(
-		url: impl Into<Url>,
-		auth: Authorization,
-	) -> Result<Self, HttpClientError> {
-		let mut auth_value = HeaderValue::from_str(&auth.to_string())?;
-		auth_value.set_sensitive(true);
-
-		let mut headers = reqwest::header::HeaderMap::new();
-		headers.insert(reqwest::header::AUTHORIZATION, auth_value);
-
-		let client = Client::builder().default_headers(headers).build()?;
-
-		Ok(Self::new_with_client(url, client))
-	}
+	// pub fn new_with_auth(
+	// 	url: impl Into<Url>,
+	// 	auth: Authorization,
+	// ) -> Result<Self, HttpClientError> {
+	// 	let mut auth_value = HeaderValue::from_str(&auth.to_string())?;
+	// 	auth_value.set_sensitive(true);
+	//
+	// 	let mut headers = reqwest::header::HeaderMap::new();
+	// 	headers.insert(reqwest::header::AUTHORIZATION, auth_value);
+	//
+	// 	let client = Client::builder().default_headers(headers).build()?;
+	//
+	// 	Ok(Self::new_with_client(url, client))
+	// }
 
 	/// Allows to customize the provider by providing your own http client
 	///

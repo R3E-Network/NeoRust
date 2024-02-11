@@ -46,92 +46,6 @@ pub trait RpcError: Error + Debug + Send + Sync {
 	}
 }
 
-/// [`MiddlewareError`] is a companion trait to [`crate::Middleware`]. It
-/// describes error behavior that is common to all Middleware errors.
-///
-/// Like [`crate::Middleware`], it allows moving down through layered errors.
-///
-/// Like [`RpcError`] it exposes convenient accessors to useful underlying
-/// error information.
-///
-///
-/// ## Not to Devs:
-/// While this trait includes the same methods as [`RpcError`], it is not a
-/// supertrait. This is so that 3rd party developers do not need to learn and
-/// implement both traits. We provide default methods that delegate to inner
-/// middleware errors on the assumption that it will eventually reach a
-/// [`ProviderError`], which has correct behavior. This allows Middleware devs
-/// to ignore the methods' presence if they want. Middleware are already plenty
-/// complicated and we don't need to make it worse :)
-pub trait MiddlewareError: Error + Sized + Send + Sync {
-	/// The `Inner` type is the next lower middleware layer's error type.
-	type Inner: MiddlewareError;
-
-	/// Convert the next lower middleware layer's error to this layer's error
-	fn from_err(e: Self::Inner) -> Self;
-
-	/// Attempt to convert this error to the next lower middleware's error.
-	/// Conversion fails if the error is not from an inner layer (i.e. the
-	/// error originates at this middleware layer)
-	fn as_inner(&self) -> Option<&Self::Inner>;
-
-	/// Returns `true` if the underlying error stems from a lower middleware
-	/// layer
-	fn is_inner(&self) -> bool {
-		self.as_inner().is_some()
-	}
-
-	/// Access an underlying `serde_json` error (if any)
-	///
-	/// Attempts to access an underlying [`serde_json::Error`]. If the
-	/// underlying error is not a serde_json error, this function will return
-	/// `None`.
-	///
-	/// ### Implementor's Note:
-	///
-	/// When writing a custom middleware, if your middleware uses `serde_json`
-	/// we recommend a custom implementation of this method. It should first
-	/// check your Middleware's error for local `serde_json` errors, and then
-	/// delegate to inner if none is found. Failing to implement this method may
-	/// result in missed `serde_json` errors.
-	fn as_serde_error(&self) -> Option<&serde_json::Error> {
-		self.as_inner()?.as_serde_error()
-	}
-
-	/// Returns `true` if the underlying error is a serde_json (de)serialization
-	/// error. This method can be used to identify
-	fn is_serde_error(&self) -> bool {
-		self.as_serde_error().is_some()
-	}
-
-	/// Attempts to access an underlying [`ProviderError`], usually by
-	/// traversing the entire middleware stack. Access fails if the underlying
-	/// error is not a [`ProviderError`]
-	fn as_provider_error(&self) -> Option<&ProviderError> {
-		self.as_inner()?.as_provider_error()
-	}
-
-	/// Convert a [`ProviderError`] to this type, by successively wrapping it
-	/// in the error types of all lower middleware
-	fn from_provider_err(p: ProviderError) -> Self {
-		Self::from_err(Self::Inner::from_provider_err(p))
-	}
-
-	/// Access an underlying JSON-RPC error (if any)
-	///
-	/// Attempts to access an underlying [`JsonRpcError`]. If the underlying
-	/// error is not a JSON-RPC error response, this function will return
-	/// `None`.
-	fn as_error_response(&self) -> Option<&JsonRpcError> {
-		self.as_inner()?.as_error_response()
-	}
-
-	/// Returns `true` if the underlying error is a JSON-RPC error response
-	fn is_error_response(&self) -> bool {
-		self.as_error_response().is_some()
-	}
-}
-
 #[derive(Debug, Error)]
 /// An error thrown when making a call to the provider
 pub enum ProviderError {
@@ -214,28 +128,5 @@ impl RpcError for ProviderError {
 			ProviderError::SerdeJson(e) => Some(e),
 			_ => None,
 		}
-	}
-}
-
-// Do not change these implementations, they are critical to proper middleware
-// error stack behavior.
-impl MiddlewareError for ProviderError {
-	type Inner = Self;
-
-	fn as_error_response(&self) -> Option<&super::JsonRpcError> {
-		RpcError::as_error_response(self)
-	}
-
-	fn as_serde_error(&self) -> Option<&serde_json::Error> {
-		RpcError::as_serde_error(self)
-	}
-
-	fn from_err(e: Self::Inner) -> Self {
-		e
-	}
-
-	fn as_inner(&self) -> Option<&Self::Inner> {
-		// prevents infinite loops
-		None
 	}
 }

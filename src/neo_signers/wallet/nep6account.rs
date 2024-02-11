@@ -1,5 +1,8 @@
 use getset::{Getters, Setters};
-use neo::prelude::{Address, NEP6Contract};
+use neo::prelude::{
+	Account, Address, AddressOrScriptHash, Base64Encode, ContractParameterType, NEP6Contract,
+	NEP6Parameter, NeoSerializable, StringExt, VerificationScript, WalletError,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -212,10 +215,9 @@ impl PartialEq for NEP6Account {
 
 #[cfg(test)]
 mod tests {
-	use crate::{NEP6Account, NEP6Wallet};
-	use neo_config::TestConstants;
-	use neo_crypto::keys::{PrivateKeyExtension, Secp256r1PrivateKey};
-	use neo_providers::core::account::{Account, AccountTrait};
+	use neo::prelude::{
+		AccountTrait, NEP6Account, PrivateKeyExtension, Secp256r1PrivateKey, TestConstants,
+	};
 
 	#[test]
 	fn test_decrypt_with_standard_scrypt_params() {

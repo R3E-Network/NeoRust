@@ -8,7 +8,7 @@ use serde::{
 	de::{self, MapAccess, Unexpected, Visitor},
 	Deserialize, Serialize,
 };
-use serde_json::Value;
+use serde_json::{value::RawValue, Value};
 use std::fmt;
 use thiserror::Error;
 

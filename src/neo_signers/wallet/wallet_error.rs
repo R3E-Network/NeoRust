@@ -1,5 +1,4 @@
-use coins_bip39::MnemonicError;
-use neo_providers::core::{error::BuilderError, transaction::transaction_error::TransactionError};
+use neo::prelude::{BuilderError, CryptoError, TransactionError};
 use p256::ecdsa;
 use thiserror::Error;
 
@@ -23,11 +22,7 @@ pub enum WalletError {
 	#[error("Invalid key pair")]
 	SignHashError,
 	#[error(transparent)]
-	Bip32Error(#[from] coins_bip32::Bip32Error),
-	#[error(transparent)]
-	MnemonicError(#[from] MnemonicError),
-	#[error(transparent)]
-	CryptoError(#[from] neo_crypto::error::CryptoError),
+	CryptoError(#[from] CryptoError),
 	#[error(transparent)]
 	TransactionError(#[from] TransactionError),
 	#[error(transparent)]

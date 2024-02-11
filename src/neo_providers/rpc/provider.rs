@@ -1,7 +1,8 @@
+use crate::neo_providers::rpc::provider::sealed::Sealed;
 use async_trait::async_trait;
 use futures_util::lock::Mutex;
 use neo::prelude::*;
-use primitive_types::{H160, H256 as TxHash, H256, U256};
+use primitive_types::{H160, H256};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
 	collections::HashMap, convert::TryFrom, fmt::Debug, future::Future, net::Ipv4Addr,
@@ -121,10 +122,6 @@ impl<P: JsonRpcClient> Provider<P> {
 		.instrument(span)
 		.await?;
 		Ok(res)
-	}
-
-	pub fn call_raw<'a>(&'a self, tx: &'a Transaction) -> CallBuilder<'a, P> {
-		CallBuilder::new(self, tx)
 	}
 }
 
@@ -342,7 +339,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	// More smart contract methods
 
 	async fn get_unclaimed_gas(&self, hash: H160) -> Result<UnclaimedGas, ProviderError> {
-		self.request("getunclaimedgas", [utils::serialize(&hash)]).await
+		self.request("getunclaimedgas", [serialize(&hash)]).await
 	}
 
 	async fn list_plugins(&self) -> Result<Vec<Plugin>, ProviderError> {
@@ -697,7 +694,7 @@ impl Provider<crate::Ipc> {
 	}
 }
 
-impl Provider<HttpProvider> {
+impl Provider<Http> {
 	/// The Url to which requests are made
 	pub fn url(&self) -> &Url {
 		self.inner.url()
@@ -728,8 +725,8 @@ impl Provider<MockProvider> {
 	/// # Example
 	///
 	/// ```
-	/// # async fn foo() -> Result<(), Box<dyn std::error::Error>> {
-	/// use neo_providers::{Middleware, Provider};
+	/// # use NeoRust::prelude::Provider;
+	///  async fn foo() -> Result<(), Box<dyn std::error::Error>> {
 	/// // Instantiate the provider
 	/// let (provider, mock) = Provider::mocked();
 	/// // Push the mock response
@@ -761,15 +758,15 @@ impl Provider<MockProvider> {
 // 	T::from_tokens(tokens).expect("could not parse tokens as address")
 // }
 
-impl TryFrom<&str> for Provider<HttpProvider> {
+impl TryFrom<&str> for Provider<Http> {
 	type Error = ParseError;
 
 	fn try_from(src: &str) -> Result<Self, Self::Error> {
-		Ok(Provider::new(HttpProvider::new(Url::parse(src)?)))
+		Ok(Provider::new(Http::new(Url::parse(src)?)))
 	}
 }
 
-impl TryFrom<String> for Provider<HttpProvider> {
+impl TryFrom<String> for Provider<Http> {
 	type Error = ParseError;
 
 	fn try_from(src: String) -> Result<Self, Self::Error> {
@@ -777,7 +774,7 @@ impl TryFrom<String> for Provider<HttpProvider> {
 	}
 }
 
-impl<'a> TryFrom<&'a String> for Provider<HttpProvider> {
+impl<'a> TryFrom<&'a String> for Provider<Http> {
 	type Error = ParseError;
 
 	fn try_from(src: &'a String) -> Result<Self, Self::Error> {
@@ -786,12 +783,12 @@ impl<'a> TryFrom<&'a String> for Provider<HttpProvider> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl Provider<RetryClient<HttpProvider>> {
+impl Provider<RetryClient<Http>> {
 	/// Create a new [`RetryClient`] by connecting to the provided URL. Errors
 	/// if `src` is not a valid URL
 	pub fn new_client(src: &str, max_retry: u32, initial_backoff: u64) -> Result<Self, ParseError> {
 		Ok(Provider::new(RetryClient::new(
-			HttpProvider::new(Url::parse(src)?),
+			Http::new(Url::parse(src)?),
 			Box::new(HttpRateLimitRetryPolicy),
 			max_retry,
 			initial_backoff,
@@ -800,7 +797,8 @@ impl Provider<RetryClient<HttpProvider>> {
 }
 
 mod sealed {
-	use crate::{Http, Provider};
+	use neo::prelude::{Http, Provider};
+
 	/// private trait to ensure extension trait is not implement outside of this crate
 	pub trait Sealed {}
 	impl Sealed for Provider<Http> {}
@@ -817,8 +815,8 @@ mod sealed {
 /// Note that this will send an RPC to retrieve the network magic.
 ///
 /// ```no_run
-///  # use neo_providers::{Http, Provider, ProviderExt};
-///  # async fn t() {
+///  # use NeoRust::prelude::{Http, Provider, ProviderExt};
+///  async fn t() {
 /// let http_provider = Provider::<Http>::connect("https://eth.llamarpc.com").await;
 /// # }
 /// ```
@@ -827,8 +825,7 @@ mod sealed {
 ///
 /// ```no_run
 /// use std::convert::TryFrom;
-/// use neo_config::NeoNetwork;
-/// use neo_providers::{Http, Provider, ProviderExt};
+/// use NeoRust::prelude::{Http, NeoNetwork, Provider, ProviderExt};
 /// let http_provider = Provider::<Http>::try_from("https://eth.llamarpc.com").unwrap().set_network(NeoNetwork::MainNet.to_magic());
 /// ```
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
@@ -870,7 +867,7 @@ pub trait ProviderExt: Sealed {
 
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-impl ProviderExt for Provider<HttpProvider> {
+impl ProviderExt for Provider<Http> {
 	type Error = ParseError;
 
 	async fn try_connect(url: &str) -> Result<Self, Self::Error>
@@ -898,7 +895,7 @@ impl ProviderExt for Provider<HttpProvider> {
 /// # Example
 ///
 /// ```
-/// use neo_providers::is_local_endpoint;
+/// use NeoRust::prelude::is_local_endpoint;
 /// assert!(is_local_endpoint("http://localhost:8545"));
 /// assert!(is_local_endpoint("http://test.localdev.me"));
 /// assert!(is_local_endpoint("http://169.254.0.0:8545"));

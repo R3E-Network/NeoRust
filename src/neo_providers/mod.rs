@@ -1,12 +1,10 @@
 #![feature(inherent_associated_types)]
-#![doc = include_str!("../README.md")]
+#![doc = include_str!("../../README.md")]
 #![allow(clippy::type_complexity)]
 #![warn(missing_docs)]
 #![deny(unsafe_code, rustdoc::broken_intra_doc_links)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-mod core;
-pub use core::*;
 mod ext;
 mod protocol_error;
 pub use ext::*;
@@ -21,11 +19,7 @@ pub use utils::*;
 
 /// Errors
 mod errors;
-pub use errors::{MiddlewareError, ProviderError, RpcError};
-
-mod middleware;
-
-pub use middleware::Middleware;
+pub use errors::{ProviderError, RpcError};
 
 #[allow(deprecated)]
 pub use test_provider::{MAINNET, TESTNET};
@@ -40,7 +34,6 @@ lazy_static! {
 /// to prevent rate limits
 mod test_provider {
 	use super::*;
-	use crate::Http;
 	use once_cell::sync::Lazy;
 	use std::{convert::TryFrom, iter::Cycle, slice::Iter, sync::Mutex};
 

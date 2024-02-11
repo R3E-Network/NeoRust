@@ -70,7 +70,7 @@
 //! [`Provider`]: providers::Provider
 //! [`Middleware`]: providers::Middleware
 //! [`Wallet`]: signers::Wallet
-//! [`Signer`]: signers::Signer
+//! [`Signer`]: signers::SignerTrait
 //! [`ContractFactory`]: contract::ContractFactory
 //! [`Contract`]: contract::Contract
 //! [`abigen`]: contract::abigen
@@ -84,43 +84,43 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc(test(no_crate_inject, attr(deny(rust_2018_idioms), allow(dead_code, unused_variables))))]
 
+mod neo_builder;
 mod neo_codec;
 mod neo_config;
 mod neo_contract;
 mod neo_crypto;
 mod neo_error;
-mod neo_middleware;
+mod neo_protocol;
 mod neo_providers;
 mod neo_signers;
 mod neo_types;
 
 #[doc(inline)]
-pub use neo_error::NeoError;
-
+use neo_builder as builder;
 #[doc(inline)]
-pub use neo_codec as codec;
+use neo_codec as codec;
 #[doc(inline)]
-pub use neo_config as config;
+use neo_config as config;
 #[doc(inline)]
-pub use neo_contract as contract;
+use neo_contract as contract;
 #[doc(inline)]
-pub use neo_crypto as crypto;
+use neo_crypto as crypto;
 #[doc(inline)]
-pub use neo_middleware as middleware;
+use neo_protocol as protocol;
 #[doc(inline)]
-pub use neo_providers as providers;
+use neo_providers as providers;
 #[doc(inline)]
-pub use neo_signers as signers;
+use neo_signers as signers;
 #[doc(inline)]
-pub use neo_types as types;
+use neo_types as types;
 
 /// Easy imports of frequently used type definitions and traits.
 #[doc(hidden)]
 #[allow(unknown_lints, ambiguous_glob_reexports)]
 pub mod prelude {
 	pub use super::{
-		codec::*, config::*, contract::*, crypto::*, middleware::*, neo_error::*, providers::*,
-		signers::*, types::*,
+		builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
+		providers::*, signers::*, types::*,
 	};
 }
 

@@ -1,4 +1,6 @@
-use neo::prelude::{ContractParameter, ContractParameterType};
+use neo::prelude::{
+	deserialize_wildcard, serialize_wildcard, ContractParameter, ContractParameterType,
+};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
 	collections::HashMap,

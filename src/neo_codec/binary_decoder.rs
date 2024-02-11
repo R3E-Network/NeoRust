@@ -183,7 +183,7 @@ impl<'a> Decoder<'a> {
 	/// Reads a push byte slice from the byte slice.
 	pub fn read_push_bytes(&mut self) -> Result<Vec<u8>, CodecError> {
 		let opcode = self.read_u8();
-		let len = match OpCode::from(opcode) {
+		let len = match OpCode::try_from(opcode)? {
 			OpCode::PushData1 => self.read_u8() as usize,
 			OpCode::PushData2 => self.read_i16() as usize,
 			OpCode::PushData4 => self.read_i32() as usize,
@@ -201,7 +201,7 @@ impl<'a> Decoder<'a> {
 			return Ok(BigInt::from(byte as i8 - OpCode::Push0 as i8))
 		}
 
-		let count = match OpCode::from(byte) {
+		let count = match OpCode::try_from(byte)? {
 			OpCode::PushInt8 => 1,
 			OpCode::PushInt16 => 2,
 			OpCode::PushInt32 => 4,

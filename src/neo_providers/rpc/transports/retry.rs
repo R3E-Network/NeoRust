@@ -214,7 +214,7 @@ pub enum RetryClientError {
 }
 
 impl RpcError for RetryClientError {
-	fn as_error_response(&self) -> Option<&super::JsonRpcError> {
+	fn as_error_response(&self) -> Option<&JsonRpcError> {
 		if let RetryClientError::ProviderError(err) = self {
 			err.as_error_response()
 		} else {

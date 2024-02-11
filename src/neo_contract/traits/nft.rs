@@ -1,26 +1,8 @@
-use crate::{
-	error::ContractError,
-	iterator::NeoIterator,
-	nft_contract::NftContract,
-	traits::{smart_contract::SmartContractTrait, token::TokenTrait},
-};
 use async_trait::async_trait;
-use neo_providers::{
-	core::{
-		account::{Account, AccountTrait},
-		transaction::{
-			signers::account_signer::AccountSigner, transaction_builder::TransactionBuilder,
-		},
-	},
-	JsonRpcClient,
-};
-use neo_types::{
-	address::Address,
-	contract_parameter::ContractParameter,
-	nns_name::NNSName,
-	script_hash::{ScriptHash, ScriptHashExtension},
-	stack_item::StackItem,
-	Bytes,
+use neo::prelude::{
+	Account, AccountSigner, AccountTrait, Address, Bytes, ContractError, ContractParameter,
+	JsonRpcClient, NNSName, NeoIterator, NftContract, ScriptHash, ScriptHashExtension, StackItem,
+	TokenTrait, TransactionBuilder,
 };
 use primitive_types::H160;
 use std::{collections::HashMap, sync::Arc};
