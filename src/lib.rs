@@ -68,7 +68,7 @@
 //! of the existing middleware, or they are free to write on of their own.
 //!
 //! [`Provider`]: providers::Provider
-//! [`Middleware`]: providers::Middleware
+//! [`Middleware`]: providers::middleware
 //! [`Wallet`]: signers::Wallet
 //! [`Signer`]: signers::SignerTrait
 //! [`ContractFactory`]: contract::ContractFactory
@@ -92,8 +92,8 @@ mod neo_crypto;
 mod neo_error;
 mod neo_protocol;
 mod neo_providers;
-mod neo_signers;
 mod neo_types;
+mod neo_wallets;
 
 #[doc(inline)]
 use neo_builder as builder;
@@ -110,9 +110,9 @@ use neo_protocol as protocol;
 #[doc(inline)]
 use neo_providers as providers;
 #[doc(inline)]
-use neo_signers as signers;
-#[doc(inline)]
 use neo_types as types;
+#[doc(inline)]
+use neo_wallets as wallets;
 
 /// Easy imports of frequently used type definitions and traits.
 #[doc(hidden)]
@@ -120,7 +120,7 @@ use neo_types as types;
 pub mod prelude {
 	pub use super::{
 		builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
-		providers::*, signers::*, types::*,
+		providers::*, types::*, wallets::*,
 	};
 }
 

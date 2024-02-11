@@ -6,7 +6,6 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod ext;
-mod protocol_error;
 pub use ext::*;
 use lazy_static::lazy_static;
 
@@ -19,7 +18,10 @@ pub use utils::*;
 
 /// Errors
 mod errors;
+mod middleware;
+
 pub use errors::{ProviderError, RpcError};
+pub use middleware::Middleware;
 
 #[allow(deprecated)]
 pub use test_provider::{MAINNET, TESTNET};

@@ -144,10 +144,6 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self
 	}
 
-	fn default_sender(&self) -> Option<Address> {
-		self.from.clone()
-	}
-
 	//////////////////////// Neo methods////////////////////////////
 
 	fn nns_resolver(&self) -> H160 {

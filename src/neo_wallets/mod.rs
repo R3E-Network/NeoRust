@@ -3,7 +3,9 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod wallet;
+mod wallet_trait;
 pub use wallet::*;
+pub use wallet_trait::WalletTrait;
 
 /// A wallet instantiated with a locally stored private key
 pub type LocalWallet = Wallet<SigningKey>;

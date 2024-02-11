@@ -18,8 +18,7 @@
 /// ```
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use neo::prelude::{
-	public_key_to_script_hash, AccountTrait, BuilderError, Bytes, ContractParameter, JsonRpcClient,
-	Middleware, NeoConstants, NeoSerializable, Provider, ScriptHash, Signer, SignerTrait,
+	public_key_to_script_hash, AccountTrait, BuilderError, Bytes, ContractParameter, JsonRpcClient, NeoConstants, NeoSerializable, Provider, ScriptHash, Signer, SignerTrait,
 	SignerType, Transaction, TransactionAttribute, TransactionError, Witness,
 };
 use once_cell::sync::Lazy;
