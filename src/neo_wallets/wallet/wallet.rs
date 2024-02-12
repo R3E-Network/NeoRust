@@ -72,9 +72,12 @@ impl WalletTrait for Wallet {
 }
 
 impl Wallet {
+	/// The default wallet name.
 	pub const DEFAULT_WALLET_NAME: &'static str = "NeoRustWallet";
+	/// The current wallet version.
 	pub const CURRENT_VERSION: &'static str = "1.0";
 
+	/// Creates a new wallet instance with a default account.
 	pub fn new() -> Self {
 		let mut account = Account::create().unwrap();
 		account.is_default = true;
@@ -89,6 +92,7 @@ impl Wallet {
 		}
 	}
 
+	/// Creates a new wallet instance without any accounts.
 	pub fn default() -> Self {
 		Self {
 			name: "NeoRustWallet".to_string(),
@@ -99,21 +103,8 @@ impl Wallet {
 		}
 	}
 
-	// pub fn set_name(&mut self, name: &str) {
-	// 	self.name = name.to_string();
-	// }
-
-	// pub fn add_account(&mut self, account: Account) {
-	// 	self.accounts.insert(account.get_script_hash().clone(), account);
-	// }
-
-	// pub fn set_default_account(&mut self, script_hash: H160) {
-	// 	self.default_account = script_hash;
-	// }
-
+	/// Converts the wallet to a NEP6Wallet format.
 	pub fn to_nep6(&self) -> Result<NEP6Wallet, WalletError> {
-		// let accounts =
-		// 	self.accounts.values().filter_map(|a| Wallet::from_account(a).ok()).collect();
 
 		Ok(NEP6Wallet {
 			name: self.name.clone(),
@@ -129,6 +120,7 @@ impl Wallet {
 		})
 	}
 
+	/// Creates a wallet from a NEP6Wallet format.
 	pub fn from_nep6(nep6: NEP6Wallet) -> Result<Self, WalletError> {
 		let accounts = nep6
 			.accounts()
@@ -245,7 +237,35 @@ impl Wallet {
 }
 
 impl Wallet {
-	async fn sign_message<S: Send + Sync + AsRef<[u8]>>(
+	/// Signs a given message using the default account's private key.
+	///
+	/// This method computes the SHA-256 hash of the input message and then signs it
+	/// using the ECDSA Secp256r1 algorithm. It's primarily used for generating signatures
+	/// that can prove ownership of an address or for other cryptographic verifications.
+	///
+	/// # Parameters
+	///
+	/// - `message`: The message to be signed. This can be any data that implements `AsRef<[u8]>`,
+	/// allowing for flexibility in the type of data that can be signed.
+	///
+	/// # Returns
+	///
+	/// A `Result` that, on success, contains the `Secp256r1Signature` of the message. On failure,
+	/// it returns a `WalletError`, which could indicate issues like a missing key pair.
+	///
+	/// # Example
+	///
+	/// ```no_run
+	/// # use NeoRust::prelude::Wallet;
+	///  async fn example() -> Result<(), Box<dyn std::error::Error>> {
+	/// # let wallet = Wallet::new();
+	/// let message = "Hello, world!";
+	/// let signature = wallet.sign_message(message).await?;
+	/// println!("Signed message: {:?}", signature);
+	/// # Ok(())
+	/// # }
+	/// ```
+	pub async fn sign_message<S: Send + Sync + AsRef<[u8]>>(
 		&self,
 		message: S,
 	) -> Result<Secp256r1Signature, WalletError> {
@@ -262,7 +282,35 @@ impl Wallet {
 			.map_err(|e| WalletError::NoKeyPair)
 	}
 
-	async fn get_witness(&self, tx: &Transaction) -> Result<Witness, WalletError> {
+	/// Generates a witness for a transaction using the default account's key pair.
+	///
+	/// This method is used to attach a signature to a transaction, proving that the
+	/// transaction was authorized by the owner of the default account. It's an essential
+	/// step in transaction validation for blockchain systems.
+	///
+	/// # Parameters
+	///
+	/// - `tx`: A reference to the transaction that needs a witness.
+	///
+	/// # Returns
+	///
+	/// A `Result` that, on success, contains the `Witness` for the given transaction.
+	/// On failure, it returns a `WalletError`, which could be due to issues like a missing
+	/// key pair.
+	///
+	/// # Example
+	///
+	/// ```no_run
+	/// # use NeoRust::prelude::{Transaction, Wallet};
+	///  async fn example() -> Result<(), Box<dyn std::error::Error>> {
+	/// # let wallet = Wallet::new();
+	/// # let tx = Transaction::new();
+	/// let witness = wallet.get_witness(&tx).await?;
+	/// println!("Witness: {:?}", witness);
+	/// # Ok(())
+	/// # }
+	/// ```
+	pub async fn get_witness(&self, tx: &Transaction) -> Result<Witness, WalletError> {
 		let mut tx_with_chain = tx.clone();
 		if tx_with_chain.network().is_none() {
 			// in the case we don't have a network, let's use the signer network magic instead
@@ -273,15 +321,53 @@ impl Wallet {
 			.map_err(|e| WalletError::NoKeyPair)
 	}
 
+	/// Returns the address of the wallet's default account.
+	///
+	/// This method provides access to the blockchain address associated with the
+	/// wallet's default account, which is typically used as the sender address in
+	/// transactions.
+	///
+	/// # Returns
+	///
+	/// The `Address` of the wallet's default account.
 	fn address(&self) -> Address {
 		self.address()
 	}
+
+	/// Retrieves the network ID associated with the wallet.
+	///
+	/// This network ID is used for network-specific operations, such as signing
+	/// transactions with EIP-155 to prevent replay attacks across chains.
+	///
+	/// # Returns
+	///
+	/// The network ID as a `u32`.
 	fn network(&self) -> u32 {
 		todo!()
 	}
 
-	/// Sets the wallet's network, used in conjunction with EIP-155 signing
-	fn with_network_magic<T: Into<u32>>(mut self, network: T) -> Self {
+	//// Sets the network magic (ID) for the wallet.
+	///
+	/// This method configures the wallet to operate within a specific blockchain
+	/// network by setting the network magic (ID), which is essential for correctly
+	/// signing transactions.
+	///
+	/// # Parameters
+	///
+	/// - `network`: The network ID to set for the wallet.
+	///
+	/// # Returns
+	///
+	/// The modified `Wallet` instance with the new network ID set.
+	///
+	/// # Example
+	///
+	/// ```no_run
+	/// # use NeoRust::prelude::{NeoConfig, NeoNetwork, Wallet};
+	/// let mut wallet = Wallet::new();
+	/// wallet = wallet.with_network(NeoNetwork::MainNet);
+	/// ```
+	pub fn with_network<T: Into<u32>>(mut self, network: T) -> Self {
 		todo!()
 	}
 }
