@@ -10,7 +10,7 @@ use p256::pkcs8::der::Encode;
 use primitive_types::H160;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Serialize};
-use std::{vec};
+use std::vec;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
 pub struct VerificationScript {

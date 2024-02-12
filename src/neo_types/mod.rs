@@ -2,9 +2,7 @@ use base64::{engine::general_purpose, Engine};
 
 use primitive_types::H256;
 
-
 use serde_derive::{Deserialize, Serialize};
-
 
 mod contract;
 mod nns;

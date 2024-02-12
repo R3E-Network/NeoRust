@@ -1,4 +1,3 @@
-
 use neo::prelude::{
 	deserialize_map, serialize_map, Base64Encode, ContractParameterType, NNSName, NefFile,
 	NeoSerializable, Role, ScriptHashExtension, Secp256r1PublicKey, ValueExtension,

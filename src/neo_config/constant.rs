@@ -1,5 +1,3 @@
-
-
 pub struct NeoConstants {}
 impl NeoConstants {
 	// Accounts, Addresses, Keys

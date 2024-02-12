@@ -3,9 +3,7 @@ use neo::prelude::*;
 use primitive_types::H160;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use std::{
-	str::FromStr,
-};
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Getters, Setters)]
 pub struct NeoURI<'a, P: JsonRpcClient> {

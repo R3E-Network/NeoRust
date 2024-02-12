@@ -1,8 +1,8 @@
 use neo::prelude::{
 	deserialize_h256, deserialize_h256_option, deserialize_script_hash, serialize_h256,
 	serialize_h256_option, serialize_script_hash, Bytes, Decoder, Encoder, HashableForVec,
-	NameOrAddress, NeoSerializable, Signer, TransactionAttribute, TransactionError,
-	VMState, VarSizeTrait, Witness,
+	NameOrAddress, NeoSerializable, Signer, TransactionAttribute, TransactionError, VMState,
+	VarSizeTrait, Witness,
 };
 use primitive_types::{H160, H256, U256};
 use serde::{Deserialize, Serialize};

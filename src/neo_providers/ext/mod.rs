@@ -4,7 +4,6 @@ pub use admin::{NodeInfo, PeerInfo};
 
 pub mod nns;
 
-
 #[cfg(feature = "dev-rpc")]
 pub mod dev_rpc;
 #[cfg(feature = "dev-rpc")]

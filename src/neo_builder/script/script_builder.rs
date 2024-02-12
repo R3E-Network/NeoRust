@@ -3,7 +3,7 @@ use neo::prelude::{
 	BuilderError, Bytes, CallFlags, ContractParameter, Encoder, InteropService, OpCode,
 	ScriptHashExtension, *,
 };
-use num_bigint::{BigInt};
+use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
 use primitive_types::H160;
 use rustc_serialize::hex::FromHex;

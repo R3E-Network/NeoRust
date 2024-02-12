@@ -5,14 +5,10 @@
 // for encoding data into Base58 and Base64 formats. These utilities are particularly useful in blockchain development,
 // where such conversions and encodings are frequently required.
 
-
-
-
 use crate::prelude::ScriptHash;
 
 use neo::prelude::TypeError;
 use primitive_types::{H160, H256, U256};
-
 
 /// Parses a string into a `u64`, supporting both decimal and hexadecimal (prefixed with "0x") formats.
 ///

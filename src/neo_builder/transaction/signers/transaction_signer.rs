@@ -6,9 +6,7 @@ use neo::prelude::{
 };
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
-use std::{
-	hash::{Hash, Hasher},
-};
+use std::hash::{Hash, Hasher};
 
 #[derive(Default, Serialize, Deserialize, Clone, Debug)]
 pub struct TransactionSigner {

@@ -181,8 +181,7 @@ pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>
 	// private_key = xor_bytes(decrypted, derived1)
 
 	let key_pair = KeyPair::from_private_key(&pri_key)?;
-	let kp_addresshash: [u8; 4] =
-		address_hash_from_pubkey(&key_pair.public_key.get_encoded(true));
+	let kp_addresshash: [u8; 4] = address_hash_from_pubkey(&key_pair.public_key.get_encoded(true));
 
 	// # Now check that the address hashes match. If they don't, the password was wrong.
 	// kp_new = KeyPair(priv_key=private_key)

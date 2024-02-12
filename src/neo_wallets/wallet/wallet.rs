@@ -105,7 +105,6 @@ impl Wallet {
 
 	/// Converts the wallet to a NEP6Wallet format.
 	pub fn to_nep6(&self) -> Result<NEP6Wallet, WalletError> {
-
 		Ok(NEP6Wallet {
 			name: self.name.clone(),
 			version: self.version.clone(),

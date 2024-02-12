@@ -55,7 +55,6 @@
 use core::fmt;
 use neo::prelude::{CryptoError, Decoder, Encoder, NeoConstants, NeoSerializable};
 
-
 use p256::{
 	ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey},
 	elliptic_curve::{
@@ -73,7 +72,6 @@ use std::{
 	cmp::Ordering,
 	hash::{Hash, Hasher},
 };
-
 
 #[cfg_attr(feature = "substrate", serde(crate = "serde_substrate"))]
 #[derive(Debug, Clone)]

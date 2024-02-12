@@ -8,7 +8,3 @@ mod wallet;
 pub use wallet::*;
 mod wallet_error;
 pub use wallet_error::*;
-
-
-
-

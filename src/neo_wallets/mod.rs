@@ -32,7 +32,6 @@ mod error;
 pub use error::*;
 mod wallet_signer;
 
-use neo::prelude::{Account};
-
+use neo::prelude::Account;
 
 pub use wallet_signer::WalletSigner;

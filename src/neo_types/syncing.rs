@@ -66,7 +66,6 @@ impl<'de> Deserialize<'de> for SyncingStatus {
 #[serde(rename_all = "camelCase")]
 /// Struct to track progress of node syncing
 pub struct SyncProgress {
-
 	/// Current block number we've processed
 	pub current_block: U64,
 

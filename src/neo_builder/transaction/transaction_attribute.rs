@@ -80,8 +80,11 @@ impl NeoSerializable for TransactionAttribute {
 	fn size(&self) -> usize {
 		match self {
 			TransactionAttribute::HighPriority => 1,
-			TransactionAttribute::OracleResponse(OracleResponse { id: _, response_code: _, result }) =>
-				1 + 9 + result.len(),
+			TransactionAttribute::OracleResponse(OracleResponse {
+				id: _,
+				response_code: _,
+				result,
+			}) => 1 + 9 + result.len(),
 		}
 	}
 

@@ -1,6 +1,3 @@
-
-
-
 mod contract_manifest;
 mod contract_method_token;
 mod contract_nef;
