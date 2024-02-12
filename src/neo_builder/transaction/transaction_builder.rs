@@ -372,7 +372,10 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 #[cfg(test)]
 mod tests {
 	use lazy_static::lazy_static;
-	use neo::prelude::{Account, AccountSigner, AccountTrait, ContractSigner, Http, Middleware, NeoConstants, Provider, ScriptBuilder, TransactionAttribute, TransactionBuilder, Witness};
+	use neo::prelude::{
+		Account, AccountSigner, AccountTrait, ContractSigner, Http, Middleware, NeoConstants,
+		Provider, ScriptBuilder, TransactionAttribute, TransactionBuilder, Witness,
+	};
 	use openssl::rand;
 	use primitive_types::{H160, H256};
 	use std::{
