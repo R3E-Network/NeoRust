@@ -11,9 +11,4 @@ pub use wallet_error::*;
 
 use p256::ecdsa::signature::hazmat::PrehashSigner;
 
-#[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
-mod yubi;
-
 use neo::prelude::{Address, SignerTrait};
-
-use crate::crypto::Secp256r1PublicKey;

@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 
+/// `Bytes` is a wrapper around a vector of bytes (`Vec<u8>`) providing utility methods
+/// for encoding, decoding, and other common operations on byte arrays.
 #[derive(Debug, Serialize, Deserialize, AsRef, Deref, IntoIterator, Index, IndexMut)]
 struct Bytes(Vec<u8>);
 

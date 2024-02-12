@@ -3,7 +3,7 @@ use strum_macros::{Display, EnumString};
 
 #[derive(Display, EnumString, Copy, Clone, Debug, PartialEq, Eq, TryFromPrimitive)]
 #[repr(u8)]
-pub enum Role {
+pub(crate) enum Role {
 	#[strum(serialize = "StateValidator")]
 	StateValidator = 0x04,
 	#[strum(serialize = "Oracle")]

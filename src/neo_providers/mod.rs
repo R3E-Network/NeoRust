@@ -22,13 +22,16 @@ mod middleware;
 
 pub use errors::{ProviderError, RpcError};
 pub use middleware::Middleware;
+use neo::prelude::NeoConstants;
 
 #[allow(deprecated)]
 pub use test_provider::{MAINNET, TESTNET};
 
 lazy_static! {
-	pub static ref HTTP_PROVIDER: Provider<Http> =
-		Provider::<Http>::try_from(std::env::var("ENDPOINT").unwrap().as_str()).unwrap();
+	pub static ref HTTP_PROVIDER: Provider<Http> = Provider::<Http>::try_from(
+		std::env::var("ENDPOINT").unwrap_or_else(|_| NeoConstants::SEED_1.to_string())
+	)
+	.unwrap();
 }
 
 #[allow(missing_docs)]
@@ -44,6 +47,7 @@ mod test_provider {
 
 	pub static MAINNET: Lazy<TestProvider> =
 		Lazy::new(|| TestProvider::new(INFURA_KEYS, "mainnet"));
+
 	pub static TESTNET: Lazy<TestProvider> =
 		Lazy::new(|| TestProvider::new(INFURA_KEYS, "testnet"));
 
@@ -71,7 +75,7 @@ mod test_provider {
 		#[cfg(feature = "ws")]
 		pub async fn ws(&self) -> Provider<crate::Ws> {
 			let url = format!(
-				"wss://{}.infura.io/ws/v3/{}",
+				"wss://{}.infura.neo.io/ws/v3/{}",
 				self.network,
 				self.keys.lock().unwrap().next().unwrap()
 			);

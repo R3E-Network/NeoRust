@@ -9,7 +9,7 @@ pub struct Unspents {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct Balance {
+struct Balance {
 	#[serde(rename = "unspent")]
 	pub unspent_transactions: Vec<UnspentTransaction>,
 	#[serde(rename = "assethash")]

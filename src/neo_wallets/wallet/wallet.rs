@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use neo::prelude::*;
 use primitive_types::H160;
 use serde_derive::{Deserialize, Serialize};
@@ -150,7 +149,7 @@ impl Wallet {
 			version: nep6.version().clone(),
 			scrypt_params: nep6.scrypt().clone(),
 			accounts: accounts.into_iter().map(|a| (a.get_script_hash().clone(), a)).collect(),
-			default_account: default_account.to_script_hash().unwrap(),
+			default_account: default_account.address_to_script_hash().unwrap(),
 		})
 	}
 
@@ -251,8 +250,8 @@ impl Wallet {
 		message: S,
 	) -> Result<Secp256r1Signature, WalletError> {
 		let message = message.as_ref();
-		let binding = hash_message(message);
-		let message_hash = binding.as_bytes();
+		let binding = message.hash256();
+		let message_hash = binding.as_slice();
 		self.default_account()
 			.clone()
 			.key_pair()
@@ -265,9 +264,9 @@ impl Wallet {
 
 	async fn get_witness(&self, tx: &Transaction) -> Result<Witness, WalletError> {
 		let mut tx_with_chain = tx.clone();
-		if tx_with_chain.network_magic().is_none() {
-			// in the case we don't have a network_magic, let's use the signer network magic instead
-			tx_with_chain.set_network_magic(self.network_magic());
+		if tx_with_chain.network().is_none() {
+			// in the case we don't have a network, let's use the signer network magic instead
+			tx_with_chain.set_network(self.network());
 		}
 
 		Witness::create(tx.get_hash_data()?, &self.default_account().key_pair.clone().unwrap())
@@ -277,12 +276,12 @@ impl Wallet {
 	fn address(&self) -> Address {
 		self.address()
 	}
-	fn network_magic(&self) -> u32 {
+	fn network(&self) -> u32 {
 		todo!()
 	}
 
-	/// Sets the wallet's network_magic, used in conjunction with EIP-155 signing
-	fn with_network_magic<T: Into<u32>>(mut self, network_magic: T) -> Self {
+	/// Sets the wallet's network, used in conjunction with EIP-155 signing
+	fn with_network_magic<T: Into<u32>>(mut self, network: T) -> Self {
 		todo!()
 	}
 }

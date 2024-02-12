@@ -4,7 +4,7 @@ use futures::FutureExt;
 use neo::prelude::{
 	deserialize_script_hash, deserialize_script_hash_option, serialize_script_hash,
 	serialize_script_hash_option, AddressOrScriptHash, ContractError, ContractParameter,
-	JsonRpcClient, NNSName, NeoIterator, NonFungibleTokenTrait, Provider, ScriptHash,
+	JsonRpcClient, Middleware, NNSName, NeoIterator, NonFungibleTokenTrait, Provider, ScriptHash,
 	SmartContractTrait, StackItem, TokenTrait, TransactionBuilder,
 };
 use primitive_types::H160;

@@ -24,10 +24,3 @@ pub use invocation_result::*;
 pub use native_contract_state::*;
 pub use nef_file::*;
 pub use nep17contract::*;
-
-pub fn hash_message(message: &[u8]) -> H256 {
-	let mut hasher = Sha256::new();
-	hasher.update(message);
-	let result = hasher.finalize();
-	H256::from_slice(&result)
-}

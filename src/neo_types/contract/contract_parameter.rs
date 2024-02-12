@@ -1,7 +1,7 @@
 use elliptic_curve::sec1::ToEncodedPoint;
 use neo::prelude::{
 	deserialize_map, serialize_map, Base64Encode, ContractParameterType, NNSName, NefFile,
-	NeoSerializable, Role, Secp256r1PublicKey, ValueExtension,
+	NeoSerializable, Role, ScriptHashExtension, Secp256r1PublicKey, ValueExtension,
 };
 use primitive_types::{H160, H256};
 use rustc_serialize::{

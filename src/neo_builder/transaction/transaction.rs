@@ -65,7 +65,7 @@ pub struct Transaction {
 	pub vm_state: Option<VMState>,
 
 	#[serde(rename = "network")]
-	pub network_magic: Option<u32>,
+	pub network: Option<u32>,
 }
 
 impl Transaction {
@@ -79,12 +79,12 @@ impl Transaction {
 		Transaction { ..Default::default() }
 	}
 
-	pub fn network_magic(&self) -> Option<u32> {
-		self.network_magic
+	pub fn network(&self) -> Option<u32> {
+		self.network
 	}
 
-	pub fn set_network_magic(&mut self, network_magic: u32) {
-		self.network_magic = Some(network_magic);
+	pub fn set_network(&mut self, network: u32) {
+		self.network = Some(network);
 	}
 
 	pub fn add_witness(&mut self, witness: Witness) {
@@ -92,13 +92,13 @@ impl Transaction {
 	}
 
 	pub fn get_hash_data(&self) -> Result<Bytes, TransactionError> {
-		if self.network_magic().is_none() {
+		if self.network().is_none() {
 			panic!("Transaction network magic is not set");
 		}
 		let mut encoder = Encoder::new();
 		self.serialize_without_witnesses(&mut encoder);
 		let mut data = encoder.to_bytes().hash256();
-		data.splice(0..0, self.network_magic.unwrap().to_be_bytes());
+		data.splice(0..0, self.network.unwrap().to_be_bytes());
 
 		Ok(data)
 	}
@@ -180,7 +180,7 @@ impl NeoSerializable for Transaction {
 			confirmations: None,
 			block_time: None,
 			vm_state: None,
-			network_magic: None,
+			network: None,
 		})
 	}
 

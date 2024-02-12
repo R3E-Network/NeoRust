@@ -57,7 +57,7 @@ pub struct Provider<P> {
 	nns: Option<Address>,
 	interval: Option<Duration>,
 	from: Option<Address>,
-	_node_client: Arc<Mutex<Option<NodeClient>>>,
+	_node_client: Arc<Mutex<Option<NeoVersion>>>,
 }
 
 impl<P> AsRef<P> for Provider<P> {
@@ -81,18 +81,14 @@ impl<P: JsonRpcClient> Provider<P> {
 
 	/// Returns the type of node we're connected to, while also caching the value for use
 	/// in other node-specific API calls, such as the get_block_receipts call.
-	pub async fn node_client(&self) -> Result<NodeClient, ProviderError> {
+	pub async fn node_client(&self) -> Result<NeoVersion, ProviderError> {
 		let mut node_client = self._node_client.lock().await;
 
-		if let Some(node_client) = *node_client {
-			Ok(node_client)
+		if let Some(ref node_client) = *node_client {
+			Ok(node_client.clone())
 		} else {
-			let client_version = self.client_version().await?;
-			let client_version = match client_version.parse::<NodeClient>() {
-				Ok(res) => res,
-				Err(_) => return Err(ProviderError::UnsupportedNodeClient),
-			};
-			*node_client = Some(client_version);
+			let client_version = self.get_version().await?;
+			*node_client = Some(client_version.clone());
 			Ok(client_version)
 		}
 	}
@@ -813,7 +809,7 @@ mod sealed {
 /// ```no_run
 ///  # use NeoRust::prelude::{Http, Provider, ProviderExt};
 ///  async fn t() {
-/// let http_provider = Provider::<Http>::connect("https://eth.llamarpc.com").await;
+/// let http_provider = Provider::<Http>::connect("https://seed1.neo.org:10333").await;
 /// # }
 /// ```
 ///
@@ -822,7 +818,7 @@ mod sealed {
 /// ```no_run
 /// use std::convert::TryFrom;
 /// use NeoRust::prelude::{Http, NeoNetwork, Provider, ProviderExt};
-/// let http_provider = Provider::<Http>::try_from("https://eth.llamarpc.com").unwrap().set_network(NeoNetwork::MainNet.to_magic());
+/// let http_provider = Provider::<Http>::try_from("https://seed1.neo.org:10333").unwrap().set_network(NeoNetwork::MainNet.to_magic());
 /// ```
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
@@ -871,8 +867,8 @@ impl ProviderExt for Provider<Http> {
 		Self: Sized,
 	{
 		let mut provider = Provider::try_from(url)?;
-		let Some(chain) = provider.get_net_version().await.ok() else { panic!("") };
-		provider.set_network(u32::from_str(&chain).unwrap());
+		let Some(network) = provider.get_version().await.ok() else { panic!("") };
+		provider.set_network(network.protocol.unwrap().network);
 
 		Ok(provider)
 	}

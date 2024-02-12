@@ -1,4 +1,6 @@
-use neo::prelude::{Decoder, Encoder, NeoSerializable, Secp256r1PublicKey, TransactionError};
+use neo::prelude::{
+	Decoder, Encoder, NeoSerializable, ScriptHashExtension, Secp256r1PublicKey, TransactionError,
+};
 use primitive_types::H160;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};

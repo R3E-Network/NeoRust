@@ -1,4 +1,8 @@
-use neo::prelude::{CryptoError, JsonRpcError, TypeError};
+use crate::prelude::Middleware;
+use neo::{
+	prelude::{CryptoError, JsonRpcError, TypeError},
+	providers::middleware::MiddlewareError,
+};
 use std::{error::Error, fmt::Debug};
 use thiserror::Error;
 
@@ -128,5 +132,26 @@ impl RpcError for ProviderError {
 			ProviderError::SerdeJson(e) => Some(e),
 			_ => None,
 		}
+	}
+}
+
+impl MiddlewareError for ProviderError {
+	type Inner = Self;
+
+	fn from_err(e: Self::Inner) -> Self {
+		e
+	}
+
+	fn as_inner(&self) -> Option<&Self::Inner> {
+		// prevents infinite loops
+		None
+	}
+
+	fn as_serde_error(&self) -> Option<&serde_json::Error> {
+		RpcError::as_serde_error(self)
+	}
+
+	fn as_error_response(&self) -> Option<&super::JsonRpcError> {
+		RpcError::as_error_response(self)
 	}
 }

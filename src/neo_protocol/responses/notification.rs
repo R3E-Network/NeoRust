@@ -3,7 +3,7 @@ use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
 pub struct LogNotification {
 	#[serde(deserialize_with = "deserialize_script_hash")]
 	#[serde(serialize_with = "serialize_script_hash")]

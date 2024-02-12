@@ -1,3 +1,7 @@
+// This module demonstrates extensions for blockchain address manipulation, focusing on converting between addresses, script hashes,
+// and handling various formats like Base58 and hexadecimal strings. It leverages cryptographic functions, serialization, and
+// deserialization to work with blockchain-specific data types.
+
 use neo::{
 	neo_crypto::HashableForVec,
 	prelude::{ScriptHash, ScriptHashExtension, StringExt, TypeError},
@@ -15,12 +19,58 @@ pub enum NameOrAddress {
 	Address(Address),
 }
 
+// Implementations below provide concrete behavior for the `AddressExtension` trait,
+// applicable to `String` and `&str` types.
 pub trait AddressExtension {
+	/// Converts a Base58-encoded address (common in many blockchain systems) to a `ScriptHash`.
+	///
+	/// # Examples
+	///
+	/// Basic usage:
+	///
+	/// ```
+	/// use NeoRust::prelude::AddressExtension;
+	/// let address = "someBase58EncodedAddress";
+	/// let script_hash = address.address_to_script_hash().unwrap();
+	/// ```
 	fn address_to_script_hash(&self) -> Result<ScriptHash, TypeError>;
+
+	/// Decodes a hex-encoded script into a `ScriptHash`, demonstrating error handling for invalid hex strings.
+	///
+	/// # Examples
+	///
+	/// Basic usage:
+	///
+	/// ```
+	/// use NeoRust::prelude::AddressExtension;
+	/// let script = "abcdef1234567890";
+	/// let script_hash = script.script_to_script_hash().unwrap();
+	/// ```
 	fn script_to_script_hash(&self) -> Result<ScriptHash, TypeError>;
 
+	/// Validates a hex string and converts it to a `ScriptHash`, showcasing error handling for non-hex strings.
+	///
+	/// # Examples
+	///
+	/// Basic usage:
+	///
+	/// ```
+	/// use NeoRust::prelude::AddressExtension;
+	/// let hex_string = "abcdef1234567890";
+	/// let script_hash = hex_string.hex_to_script_hash().unwrap();
+	/// ```
 	fn hex_to_script_hash(&self) -> Result<ScriptHash, TypeError>;
 
+	/// Generates a random address using cryptographic-safe random number generation, ideal for creating new wallet addresses.
+	///
+	/// # Examples
+	///
+	/// Basic usage:
+	///
+	/// ```
+	/// use NeoRust::prelude::AddressExtension;
+	/// let random_address = String::random();
+	/// ```
 	fn random() -> Self;
 }
 
@@ -36,7 +86,7 @@ impl AddressExtension for String {
 		// Extract the data payload
 		let data_payload = decoded_data[1..decoded_data.len() - 4].to_vec();
 
-		let script_hash = data_payload.sha256_ripemd160(); //  ripemd160.finalize();
+		let script_hash = data_payload.sha256_ripemd160();
 
 		Ok(H160::from_slice(script_hash.as_slice()))
 	}

@@ -6,37 +6,73 @@ use neo::prelude::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Represents an account in the NEP-6 format.
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, Setters)]
 pub struct NEP6Account {
+	/// The address of the account.
 	#[getset(get = "pub", set = "pub")]
 	#[serde(rename = "address")]
 	pub address: Address,
 
+	/// An optional label for the account.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[serde(rename = "label")]
 	pub label: Option<String>,
 
+	/// Indicates whether the account is set as default.
 	#[serde(default)]
 	#[serde(rename = "isDefault")]
 	pub is_default: bool,
 
+	/// Indicates whether the account is locked.
 	#[serde(rename = "lock")]
 	pub lock: bool,
 
+	/// An optional private key associated with the account.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[serde(rename = "key")]
 	pub key: Option<String>,
 
+	/// An optional NEP-6 contract associated with the account.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[serde(rename = "contract")]
 	pub contract: Option<NEP6Contract>,
 
+	/// An optional additional data associated with the account.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[serde(rename = "extra")]
 	pub extra: Option<HashMap<String, String>>,
 }
 
 impl NEP6Account {
+	/// Creates a new NEP-6 account with the given parameters.
+	///
+	/// # Arguments
+	///
+	/// * `address` - The address of the account.
+	/// * `label` - An optional label for the account.
+	/// * `is_default` - Indicates whether the account is set as default.
+	/// * `lock` - Indicates whether the account is locked.
+	/// * `key` - An optional private key associated with the account.
+	/// * `contract` - An optional NEP-6 contract associated with the account.
+	/// * `extra` - An optional additional data associated with the account.
+	///
+	/// # Example
+	///
+	/// ```
+	/// use std::collections::HashMap;
+	/// use NeoRust::prelude::{Address, NEP6Account, NEP6Contract};
+	///
+	/// let address = Address::from("example_address");
+	/// let label = Some("My Account".to_string());
+	/// let is_default = true;
+	/// let lock = false;
+	/// let key = Some("example_private_key".to_string());
+	/// let contract = Some(NEP6Contract::new());
+	/// let extra = Some(HashMap::new());
+	///
+	/// let account = NEP6Account::new(address, label, is_default, lock, key, contract, extra);
+	/// ```
 	pub fn new(
 		address: Address,
 		label: Option<String>,
@@ -49,6 +85,24 @@ impl NEP6Account {
 		Self { address, label, is_default, lock, key, contract, extra }
 	}
 
+	/// Converts an `Account` into a `NEP6Account`.
+	///
+	/// # Arguments
+	///
+	/// * `account` - The account to convert.
+	///
+	/// # Errors
+	///
+	/// Returns a `WalletError` if there is an issue converting the account.
+	///
+	/// # Example
+	///
+	/// ```
+	/// use NeoRust::prelude::{Account, NEP6Account};
+	///
+	/// let account = Account::default();
+	/// let nep6_account = NEP6Account::from_account(&account);
+	/// ```
 	pub fn from_account(account: &Account) -> Result<NEP6Account, WalletError> {
 		if account.key_pair.is_some() && account.encrypted_private_key.is_none() {
 			return Err(WalletError::AccountState(
@@ -94,53 +148,19 @@ impl NEP6Account {
 		})
 	}
 
-	// fn from_account(account: &Account) -> Result<NEP6Account, WalletError> {
-	// 	if account.key_pair.is_some() && account.encrypted_private_key.is_none() {
-	// 		return Err(WalletError::AccountState(
-	// 			"Account private key is decrypted but not encrypted".to_string(),
-	// 		))
-	// 	}
-	//
-	// 	let contract = match &account.verification_script {
-	// 		Some(script) => {
-	// 			let parameters = if script.is_multi_sig() {
-	// 				let threshold = script.get_signing_threshold().unwrap();
-	// 				let nr_accounts = script.get_nr_of_accounts().unwrap();
-	// 				(0..nr_accounts)
-	// 					.map(|i| NEP6Parameter {
-	// 						param_name: format!("signature{}", i),
-	// 						param_type: ContractParameterType::Signature,
-	// 					})
-	// 					.collect()
-	// 			} else if script.is_single_sig() {
-	// 				vec![NEP6Parameter {
-	// 					param_name: "signature".to_string(),
-	// 					param_type: ContractParameterType::Signature,
-	// 				}]
-	// 			} else {
-	// 				vec![]
-	// 			};
-	//
-	// 			Some(NEP6Contract {
-	// 				script: Some(script.script().to_base64()),
-	// 				nep6_parameters: parameters,
-	// 				is_deployed: false,
-	// 			})
-	// 		},
-	// 		None => None,
-	// 	};
-	//
-	// 	Ok(NEP6Account {
-	// 		address: account.address_or_scripthash.address(),
-	// 		label: account.label.clone(),
-	// 		is_default: false, // TODO
-	// 		lock: account.is_locked,
-	// 		key: account.encrypted_private_key.clone(),
-	// 		contract,
-	// 		extra: None,
-	// 	})
-	// }
-
+	/// Converts a `NEP6Account` into an `Account`.
+	///
+	/// # Errors
+	///
+	/// Returns a `WalletError` if there is an issue converting the account.
+	///
+	/// # Example
+	///
+	/// ```
+	/// use NeoRust::prelude::NEP6Account;
+	/// let nep6_account = NEP6Account::default();
+	/// let account = nep6_account.to_account();
+	/// ```
 	pub fn to_account(&self) -> Result<Account, WalletError> {
 		let mut verification_script: Option<VerificationScript> = None;
 		let mut signing_threshold: Option<u8> = None;
@@ -172,42 +192,21 @@ impl NEP6Account {
 			..Default::default()
 		})
 	}
-
-	// fn to_account(nep6_account: &NEP6Account) -> Result<Account, WalletError> {
-	// 	let (verification_script, signing_threshold, nr_of_participants) =
-	// 		match nep6_account.contract {
-	// 			Some(ref contract) if contract.script.is_some() => {
-	// 				let script = contract.script.clone().unwrap();
-	// 				let verification_script = VerificationScript::from(script.as_bytes().to_vec());
-	// 				let signing_threshold = if verification_script.is_multi_sig() {
-	// 					Some(verification_script.get_signing_threshold().unwrap())
-	// 				} else {
-	// 					None
-	// 				};
-	// 				let nr_of_participants = if verification_script.is_multi_sig() {
-	// 					Some(verification_script.get_nr_of_accounts().unwrap())
-	// 				} else {
-	// 					None
-	// 				};
-	// 				(Some(verification_script), signing_threshold, nr_of_participants)
-	// 			},
-	// 			_ => (None, None, None),
-	// 		};
-	//
-	// 	Ok(Account {
-	// 		address_or_scripthash: AddressOrScriptHash::Address(nep6_account.address.clone()),
-	// 		label: nep6_account.label.clone(),
-	// 		verification_script,
-	// 		is_locked: nep6_account.lock,
-	// 		encrypted_private_key: nep6_account.key.clone(),
-	// 		signing_threshold: signing_threshold.map(|x| x as u32),
-	// 		nr_of_participants: nr_of_participants.map(|x| x as u32),
-	// 		..Default::default()
-	// 	})
-	// }
 }
 
 impl PartialEq for NEP6Account {
+	/// Checks if two `NEP6Account` instances are equal based on their addresses.
+	///
+	/// # Example
+	///
+	/// ```
+	///
+	/// use NeoRust::prelude::NEP6Account;
+	///
+	/// let account1 = NEP6Account::default();
+	/// let account2 = NEP6Account::default();
+	/// assert_eq!(account1, account2);
+	/// ```
 	fn eq(&self, other: &Self) -> bool {
 		self.address == other.address
 	}

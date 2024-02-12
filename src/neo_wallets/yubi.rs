@@ -3,13 +3,13 @@ use super::Wallet;
 use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
 use p256::NistP256;
 
-use neo::prelude::Secp256r1PublicKey;
+use neo::prelude::{Secp256r1PublicKey, WalletSigner};
 use yubihsm::{
-	ecdsa::Signer as YubiSigner, object, object::Label, Capability, Client, Connector, Credentials,
-	Domain,
+	asymmetric::Algorithm::EcP256, ecdsa::Signer as YubiSigner, object, object::Label, Capability,
+	Client, Connector, Credentials, Domain,
 };
 
-impl Wallet<YubiSigner<NistP256>> {
+impl WalletSigner<YubiSigner<NistP256>> {
 	/// Connects to a yubi key's ECDSA account at the provided id
 	pub fn connect(connector: Connector, credentials: Credentials, id: object::Id) -> Self {
 		let client = Client::open(connector, credentials, true).unwrap();
@@ -27,7 +27,7 @@ impl Wallet<YubiSigner<NistP256>> {
 	) -> Self {
 		let client = Client::open(connector, credentials, true).unwrap();
 		let id = client
-			.generate_asymmetric_key(id, label, domain, Capability::SIGN_ECDSA, EcK256)
+			.generate_asymmetric_key(id, label, domain, Capability::SIGN_ECDSA, EcP256)
 			.unwrap();
 		let signer = YubiSigner::create(client, id).unwrap();
 		signer.into()
@@ -44,7 +44,7 @@ impl Wallet<YubiSigner<NistP256>> {
 	) -> Self {
 		let client = Client::open(connector, credentials, true).unwrap();
 		let id = client
-			.put_asymmetric_key(id, label, domain, Capability::SIGN_ECDSA, EcK256, key)
+			.put_asymmetric_key(id, label, domain, Capability::SIGN_ECDSA, EcP256, key)
 			.unwrap();
 		let signer = YubiSigner::create(client, id).unwrap();
 		signer.into()
@@ -55,13 +55,8 @@ impl From<YubiSigner<NistP256>> for Wallet<YubiSigner<NistP256>> {
 	fn from(signer: YubiSigner<NistP256>) -> Self {
 		// this will never fail
 		let public_key = Secp256r1PublicKey::from_encoded_point(signer.public_key()).unwrap();
-		let public_key = public_key.to_encoded_point(/* compress = */ false);
-		let public_key = public_key.as_bytes();
-		debug_assert_eq!(public_key[0], 0x04);
-		let hash = keccak256(&public_key[1..]);
-		let address = Address::from_slice(&hash[12..]);
 
-		Self { signer, address, network_magic: 1 }
+		Self { signer, address }
 	}
 }
 
@@ -69,7 +64,7 @@ impl From<YubiSigner<NistP256>> for Wallet<YubiSigner<NistP256>> {
 #[cfg(not(target_arch = "wasm32"))]
 mod tests {
 	use super::*;
-	use crate::Signer;
+	use neo::prelude::Address;
 	use std::str::FromStr;
 
 	#[tokio::test]

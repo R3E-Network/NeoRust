@@ -2,6 +2,7 @@ use neo::prelude::*;
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
 use serde_derive::{Deserialize, Serialize};
+use signature::{hazmat::PrehashSigner, Error};
 use std::{
 	fmt::Debug,
 	hash::{Hash, Hasher},
@@ -423,19 +424,18 @@ impl AccountTrait for Account {
 	}
 }
 
+impl PrehashSigner<Secp256r1Signature> for Account {
+	fn sign_prehash(&self, prehash: &[u8]) -> Result<Secp256r1Signature, Error> {
+		todo!()
+	}
+}
+
 #[cfg(test)]
 mod tests {
-	use crate::core::{
-		account::{Account, AccountTrait},
-		transaction::verification_script::VerificationScript,
+	use neo::prelude::{
+		Account, AccountTrait, KeyPair, PrivateKeyExtension, ScriptHashExtension,
+		Secp256r1PublicKey, TestConstants, ToArray32, VerificationScript,
 	};
-	use neo_config::{NeoConstants, TestConstants};
-	use neo_crypto::{
-		key_pair::KeyPair,
-		keys::{PrivateKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey},
-		utils::ToArray32,
-	};
-	use neo_types::script_hash::ScriptHashExtension;
 	use rustc_serialize::hex::FromHex;
 
 	#[test]

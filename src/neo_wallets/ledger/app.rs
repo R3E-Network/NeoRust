@@ -6,8 +6,7 @@ use coins_ledger::{
 use futures_executor::block_on;
 use futures_util::lock::Mutex;
 
-use neo_crypto::keys::Secp256r1Signature;
-use neo_types::address::Address;
+use neo::prelude::{Address, Secp256r1Signature, Transaction};
 use primitive_types::U256;
 use std::convert::TryFrom;
 use thiserror::Error;
@@ -21,7 +20,7 @@ use super::types::*;
 pub struct LedgerNeo {
 	transport: Mutex<Ledger>,
 	derivation: DerivationType,
-	pub(crate) chain_id: u64,
+	pub(crate) network: u64,
 	pub(crate) address: Address,
 }
 
@@ -29,8 +28,8 @@ impl std::fmt::Display for LedgerNeo {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		write!(
 			f,
-			"LedgerApp. Key at index {} with address {:?} on chain_id {}",
-			self.derivation, self.address, self.chain_id
+			"LedgerApp. Key at index {} with address {:?} on network {}",
+			self.derivation, self.address, self.network
 		)
 	}
 }
@@ -40,18 +39,18 @@ impl LedgerNeo {
 	///
 	///
 	/// ```
-	/// # use neo_signers::{HDPath, Ledger};
+	/// use NeoRust::prelude::{HDPath, Ledger};
 	///  async fn foo() -> Result<(), Box<dyn std::error::Error>> {
 	///
 	/// let ledger = Ledger::new(HDPath::LedgerLive(0), 1).await?;
 	/// # Ok(())
 	/// # }
 	/// ```
-	pub async fn new(derivation: DerivationType, chain_id: u64) -> Result<Self, LedgerError> {
+	pub async fn new(derivation: DerivationType, network: u64) -> Result<Self, LedgerError> {
 		let transport = Ledger::init().await?;
 		let address = Self::get_address_with_path_transport(&transport, &derivation).await?;
 
-		Ok(Self { transport: Mutex::new(transport), derivation, chain_id, address })
+		Ok(Self { transport: Mutex::new(transport), derivation, network, address })
 	}
 
 	/// Consume self and drop the ledger mutex
@@ -127,35 +126,15 @@ impl LedgerNeo {
 	}
 
 	/// Signs a Neo transaction (requires confirmation on the ledger)
-	pub async fn sign_tx(&self, tx: &TypedTransaction) -> Result<Secp256r1Signature, LedgerError> {
-		let mut tx_with_chain = tx.clone();
-		if tx_with_chain.chain_id().is_none() {
-			// in the case we don't have a chain_id, let's use the signer chain id instead
-			tx_with_chain.set_chain_id(self.chain_id);
-		}
-		let mut payload = Self::path_to_bytes(&self.derivation);
-		payload.extend_from_slice(tx_with_chain.rlp().as_ref());
-
-		let mut signature = self.sign_payload(INS::SIGN, &payload).await?;
-
-		// modify `v` value of signature to match EIP-155 for chains with large chain ID
-		// The logic is derived from Ledger's library
-		// https://github.com/LedgerHQ/ledgerjs/blob/e78aac4327e78301b82ba58d63a72476ecb842fc/packages/hw-app-eth/src/Eth.ts#L300
-		let eip155_chain_id = self.chain_id * 2 + 35;
-		if eip155_chain_id + 1 > 255 {
-			let one_byte_chain_id = eip155_chain_id % 256;
-			let ecc_parity = if signature.v > one_byte_chain_id {
-				signature.v - one_byte_chain_id
-			} else {
-				one_byte_chain_id - signature.v
-			};
-		}
-
+	pub async fn sign_tx(&self, tx: &Transaction) -> Result<Secp256r1Signature, LedgerError> {
 		Ok(signature)
 	}
 
 	/// Signs an ethereum personal message
-	pub async fn sign_message<S: AsRef<[u8]>>(&self, message: S) -> Result<Signature, LedgerError> {
+	pub async fn sign_message<S: AsRef<[u8]>>(
+		&self,
+		message: S,
+	) -> Result<Secp256r1Signature, LedgerError> {
 		let message = message.as_ref();
 
 		let mut payload = Self::path_to_bytes(&self.derivation);
@@ -166,7 +145,6 @@ impl LedgerNeo {
 	}
 
 	#[tracing::instrument(err, skip_all, fields(command = %command, payload = hex::encode(payload)))]
-	// Helper function for signing either transaction data, personal messages or EIP712 derived
 	// structs
 	pub async fn sign_payload(
 		&self,
@@ -252,9 +230,8 @@ impl LedgerNeo {
 #[cfg(all(test, feature = "ledger"))]
 mod tests {
 	use super::*;
-	use crate::Signer;
-	use neo_providers::core::responses::neo_send_raw_transaction::RawTransaction;
-	use neo_types::error::TypeError::Transaction;
+	use neo::prelude::RawTransaction;
+	use signature::{digest::Mac, Signer};
 	use std::str::FromStr;
 
 	#[tokio::test]

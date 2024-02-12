@@ -1,6 +1,4 @@
 #![allow(clippy::upper_case_acronyms)]
-//! Helpers for interacting with the Neo Ledger App
-//! [Official Docs](https://github.com/LedgerHQ/app-ethereum/blob/master/doc/ethapp.asc)
 use std::fmt;
 use thiserror::Error;
 
@@ -44,11 +42,8 @@ pub enum LedgerError {
 	#[error(transparent)]
 	/// Error when converting a semver requirement
 	SemVerError(#[from] semver::Error),
-	/// Error type from Eip712Error message
-	#[error("error encoding eip712 struct: {0:?}")]
-	Eip712Error(String),
 	/// Error when signing EIP712 struct with not compatible Ledger ETH app
-	#[error("Ledger ethereum app requires at least version: {0:?}")]
+	#[error("Ledger neo app requires at least version: {0:?}")]
 	UnsupportedAppVersion(String),
 	/// Got a response, but it didn't contain as much data as expected
 	#[error("Cannot deserialize ledger response, insufficient bytes. Got {got} expected at least {at_least}")]
@@ -68,7 +63,6 @@ pub enum INS {
 	SIGN = 0x04,
 	GET_APP_CONFIGURATION = 0x06,
 	SIGN_PERSONAL_MESSAGE = 0x08,
-	SIGN_ETH_EIP_712 = 0x0C,
 }
 
 impl std::fmt::Display for INS {
@@ -78,7 +72,6 @@ impl std::fmt::Display for INS {
 			INS::SIGN => write!(f, "SIGN"),
 			INS::GET_APP_CONFIGURATION => write!(f, "GET_APP_CONFIGURATION"),
 			INS::SIGN_PERSONAL_MESSAGE => write!(f, "SIGN_PERSONAL_MESSAGE"),
-			INS::SIGN_ETH_EIP_712 => write!(f, "SIGN_ETH_EIP_712"),
 		}
 	}
 }

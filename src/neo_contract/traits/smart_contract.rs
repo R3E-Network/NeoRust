@@ -206,10 +206,11 @@ pub trait SmartContractTrait<'a>: Send + Sync {
 		contract_name: &str,
 	) -> Result<H160, ContractError> {
 		let mut script = ScriptBuilder::new();
-		script.op_code(&[OpCode::Abort]);
-		script.push_data(sender.to_vec()).unwrap();
-		script.push_integer(BigInt::from(nef_checksum)).unwrap();
-		script.push_data(contract_name.as_bytes().to_vec()).unwrap();
+		script
+			.op_code(&[OpCode::Abort])
+			.push_data(sender.to_vec())
+			.push_integer(BigInt::from(nef_checksum))
+			.push_data(contract_name.as_bytes().to_vec());
 
 		Ok(H160::from_slice(&script.to_bytes()))
 	}

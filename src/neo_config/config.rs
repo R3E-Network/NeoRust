@@ -37,7 +37,7 @@ pub const MAX_VALID_UNTIL_BLOCK_INCREMENT_BASE: u64 = 86_400_000;
 
 #[derive(Clone, Debug)]
 pub struct NeoConfig {
-	pub network_magic: Option<u32>,
+	pub network: Option<u32>,
 	pub block_interval: u32,
 	pub max_valid_until_block_increment: u32,
 	pub polling_interval: u32,
@@ -48,7 +48,7 @@ pub struct NeoConfig {
 
 impl Hash for NeoConfig {
 	fn hash<H: Hasher>(&self, state: &mut H) {
-		self.network_magic.hash(state);
+		self.network.hash(state);
 		self.block_interval.hash(state);
 		self.max_valid_until_block_increment.hash(state);
 		self.polling_interval.hash(state);
@@ -60,7 +60,7 @@ impl Hash for NeoConfig {
 impl Default for NeoConfig {
 	fn default() -> Self {
 		NeoConfig {
-			network_magic: None,
+			network: None,
 			block_interval: DEFAULT_BLOCK_TIME as u32,
 			max_valid_until_block_increment: (MAX_VALID_UNTIL_BLOCK_INCREMENT_BASE
 				/ DEFAULT_BLOCK_TIME) as u32,
@@ -81,7 +81,7 @@ impl Default for NeoConfig {
 impl NeoConfig {
 	// constructor
 	pub fn new(
-		network_magic: Option<u32>,
+		network: Option<u32>,
 		block_interval: u32,
 		max_valid_until_block_increment: u32,
 		polling_interval: u32,
@@ -90,7 +90,7 @@ impl NeoConfig {
 		nns_resolver: [u8; 20],
 	) -> Self {
 		NeoConfig {
-			network_magic,
+			network,
 			block_interval,
 			max_valid_until_block_increment,
 			polling_interval,
@@ -109,12 +109,12 @@ impl NeoConfig {
 		self.executor = executor;
 	}
 
-	pub fn set_network_magic(&mut self, magic: u32) -> Result<(), &'static str> {
+	pub fn set_network(&mut self, magic: u32) -> Result<(), &'static str> {
 		if &magic > &0xFFFFFFFFu32 {
 			return Err("Network magic must fit in 32 bits")
 		}
 
-		self.network_magic = Some(magic);
+		self.network = Some(magic);
 		Ok(())
 	}
 

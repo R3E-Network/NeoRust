@@ -17,10 +17,7 @@
 ///           .get_unsigned_tx();
 /// ```
 use getset::{CopyGetters, Getters, MutGetters, Setters};
-use neo::prelude::{
-	public_key_to_script_hash, AccountTrait, BuilderError, Bytes, ContractParameter, JsonRpcClient, NeoConstants, NeoSerializable, Provider, ScriptHash, Signer, SignerTrait,
-	SignerType, Transaction, TransactionAttribute, TransactionError, Witness,
-};
+use neo::prelude::*;
 use once_cell::sync::Lazy;
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;

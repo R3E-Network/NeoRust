@@ -3,23 +3,53 @@ use neo::prelude::{NEP6Account, ScryptParamsDef};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Represents a NEP-6 wallet.
 #[derive(Serialize, Deserialize, Clone, Getters, CopyGetters)]
 #[getset(get = "pub", set = "pub")]
 pub struct NEP6Wallet {
+	/// The name of the wallet.
 	#[serde(rename = "name")]
 	pub(crate) name: String,
+	/// The version of the wallet.
 	#[serde(rename = "version")]
 	pub(crate) version: String,
+	/// The scrypt parameters used for encryption.
 	#[serde(rename = "scrypt")]
 	pub(crate) scrypt: ScryptParamsDef,
+	/// The accounts associated with the wallet.
 	#[serde(rename = "accounts")]
 	pub(crate) accounts: Vec<NEP6Account>,
+	/// Additional data associated with the wallet.
 	#[serde(rename = "extra")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub(crate) extra: Option<HashMap<String, String>>,
 }
 
 impl NEP6Wallet {
+	/// Creates a new NEP-6 wallet with the given parameters.
+	///
+	/// # Arguments
+	///
+	/// * `name` - The name of the wallet.
+	/// * `version` - The version of the wallet.
+	/// * `scrypt` - The scrypt parameters used for encryption.
+	/// * `accounts` - The accounts associated with the wallet.
+	/// * `extra` - Additional data associated with the wallet.
+	///
+	/// # Example
+	///
+	/// ```
+	/// use std::collections::HashMap;
+	/// use NeoRust::prelude::{NEP6Wallet, ScryptParamsDef};
+	///
+	/// let name = "MyWallet".to_string();
+	/// let version = "1.0".to_string();
+	/// let scrypt = ScryptParamsDef::default();
+	/// let accounts = vec![];
+	/// let extra = Some(HashMap::new());
+	///
+	/// let wallet = NEP6Wallet::new(name, version, scrypt, accounts, extra);
+	/// ```
 	pub fn new(
 		name: String,
 		version: String,

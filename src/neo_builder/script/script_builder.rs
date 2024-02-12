@@ -105,7 +105,7 @@ impl ScriptBuilder {
 	///
 	/// ```
 	/// use num_bigint::BigInt;
-	/// use neo_providers::core::script::script_builder::ScriptBuilder;
+	/// use NeoRust::prelude::ScriptBuilder;
 	///
 	/// let mut builder = ScriptBuilder::new();
 	/// builder.push_int(&BigInt::from(15))?;
@@ -340,10 +340,8 @@ impl ScriptBuilder {
 mod tests {
 	use super::*;
 	use hex_literal::hex;
-	use neo_types::{bytes::ReverseTrait, contract_parameter::ContractParameterMap};
 	use num_bigint::BigInt;
 	use num_traits::FromPrimitive;
-	use p256::pkcs8::der::EncodeValue;
 	use rustc_serialize::hex::{FromHex, ToHex};
 	use std::vec;
 
