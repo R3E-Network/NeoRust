@@ -55,11 +55,15 @@ impl StringExt for String {
 
 	fn var_size(&self) -> usize {
 		let bytes = self.as_bytes();
-		match bytes.len() {
-			0..=0xFD => 1,
-			0xFD..=0xFFFF => 3,
-			0xFFFF..=0xFFFFFFFF => 5,
-			_ => 9,
+		let len = bytes.len();
+		if len < 0xFD {
+			1
+		} else if len <= 0xFFFF {
+			3
+		} else if len <= 0xFFFFFFFF {
+			5
+		} else {
+			9
 		}
 	}
 
