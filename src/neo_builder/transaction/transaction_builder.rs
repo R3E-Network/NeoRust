@@ -876,13 +876,13 @@ mod tests {
 	async fn test_get_application_log_tx_not_sent() {
 		// Mock RPC calls
 
-		let script = ScriptBuilder::default()
-			.contract_call(H160::default(), "transfer", vec![])
+		let script = ScriptBuilder::new()
+			.contract_call(&H160::default(), "transfer", vec![])
 			.to_array();
 
 		let tx = TransactionBuilder::default()
-			.script(&script)
-			.signers(vec![AccountSigner::called_by_entry(Account::default())])
+			.set_script(&script)
+			.set_signers(vec![AccountSigner::called_by_entry(&Account::default())])
 			.sign()
 			.await
 			.unwrap();
