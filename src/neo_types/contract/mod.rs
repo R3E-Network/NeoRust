@@ -1,5 +1,5 @@
-use primitive_types::H256;
-use sha2::{Digest, Sha256};
+
+
 
 mod contract_manifest;
 mod contract_method_token;

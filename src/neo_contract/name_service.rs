@@ -240,7 +240,7 @@ impl<'a, P: JsonRpcClient> TokenTrait<'a, P> for NeoNameService<'a, P> {
 		todo!()
 	}
 
-	fn set_total_supply(&mut self, total_supply: u64) {
+	fn set_total_supply(&mut self, _total_supply: u64) {
 		todo!()
 	}
 
@@ -248,7 +248,7 @@ impl<'a, P: JsonRpcClient> TokenTrait<'a, P> for NeoNameService<'a, P> {
 		Some(0)
 	}
 
-	fn set_decimals(&mut self, decimals: u8) {
+	fn set_decimals(&mut self, _decimals: u8) {
 		panic!("Cannot set decimals for NNS")
 	}
 
@@ -256,7 +256,7 @@ impl<'a, P: JsonRpcClient> TokenTrait<'a, P> for NeoNameService<'a, P> {
 		Some("NNS".to_string())
 	}
 
-	fn set_symbol(&mut self, symbol: String) {
+	fn set_symbol(&mut self, _symbol: String) {
 		panic!("Cannot set symbol for NNS")
 	}
 
@@ -285,7 +285,7 @@ impl<'a, P: JsonRpcClient> TokenTrait<'a, P> for NeoNameService<'a, P> {
 impl<'a, P: JsonRpcClient> SmartContractTrait<'a> for NeoNameService<'a, P> {
 	type P = P;
 
-	fn set_name(&mut self, name: String) {}
+	fn set_name(&mut self, _name: String) {}
 
 	fn script_hash(&self) -> H160 {
 		self.script_hash

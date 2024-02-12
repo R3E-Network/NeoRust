@@ -1,5 +1,5 @@
 use neo::prelude::*;
-use serde::{ser::SerializeTuple, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Clone)]
 pub struct WitnessRule {

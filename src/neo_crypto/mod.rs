@@ -14,7 +14,7 @@ pub use keys::*;
 pub use utils::*;
 pub use wif::*;
 
-pub fn add(left: usize, right: usize) -> usize {
+pub(crate) fn add(left: usize, right: usize) -> usize {
 	left + right
 }
 

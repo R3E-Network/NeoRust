@@ -12,7 +12,7 @@ pub trait ToBytesPadded {
 
 impl ToBytesPadded for BigInt {
 	fn to_bytes_padded(&self, length: usize) -> Vec<u8> {
-		let mut bytes = self.to_signed_bytes_be();
+		let bytes = self.to_signed_bytes_be();
 		if bytes.len() < length {
 			let mut padded = vec![0u8; length];
 			padded[length - bytes.len()..].copy_from_slice(&bytes);

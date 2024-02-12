@@ -1,4 +1,4 @@
-use elliptic_curve::sec1::ToEncodedPoint;
+
 use neo::prelude::{
 	deserialize_map, serialize_map, Base64Encode, ContractParameterType, NNSName, NefFile,
 	NeoSerializable, Role, ScriptHashExtension, Secp256r1PublicKey, ValueExtension,
@@ -8,13 +8,12 @@ use rustc_serialize::{
 	base64::FromBase64,
 	hex::{FromHex, ToHex},
 };
-use serde::{ser::SerializeMap, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha3::Digest;
 use std::{
 	collections::HashMap,
 	hash::{Hash, Hasher},
-	str::FromStr,
 };
 use strum_macros::{Display, EnumString};
 

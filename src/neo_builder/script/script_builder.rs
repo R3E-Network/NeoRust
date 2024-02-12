@@ -3,8 +3,8 @@ use neo::prelude::{
 	BuilderError, Bytes, CallFlags, ContractParameter, Encoder, InteropService, OpCode,
 	ScriptHashExtension, *,
 };
-use num_bigint::{BigInt, Sign};
-use num_traits::{Signed, ToBytes, ToPrimitive};
+use num_bigint::{BigInt};
+use num_traits::{Signed, ToPrimitive};
 use primitive_types::H160;
 use rustc_serialize::hex::FromHex;
 use std::collections::HashMap;
@@ -117,7 +117,7 @@ impl ScriptBuilder {
 					.as_slice(),
 			);
 		} else {
-			let mut bytes = i.to_signed_bytes_le();
+			let bytes = i.to_signed_bytes_le();
 			let len = bytes.len();
 
 			// bytes.reverse();

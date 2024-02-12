@@ -6,7 +6,7 @@ pub use config::*;
 pub use constant::*;
 pub use test_properties::*;
 
-pub fn add(left: usize, right: usize) -> usize {
+pub(crate) fn add(left: usize, right: usize) -> usize {
 	left + right
 }
 

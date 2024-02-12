@@ -245,7 +245,7 @@ impl<'a> Decoder<'a> {
 	) -> Result<Vec<T>, CodecError> {
 		let len = self.read_var_int().unwrap();
 		let mut bytes_read = 0;
-		let mut offset = self.pointer;
+		let offset = self.pointer;
 		let mut list = Vec::with_capacity(len as usize);
 		while bytes_read < len {
 			T::decode(self)

@@ -32,7 +32,7 @@ mod error;
 pub use error::*;
 mod wallet_signer;
 
-use neo::prelude::{Account, Address, Transaction};
-use p256::NistP256;
-use std::error::Error;
+use neo::prelude::{Account};
+
+
 pub use wallet_signer::WalletSigner;

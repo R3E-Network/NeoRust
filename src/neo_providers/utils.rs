@@ -50,7 +50,7 @@ pub fn script_hash_from_script(script: &[u8]) -> ScriptHash {
 	arr.copy_from_slice(&hash);
 	let a = H160::from_slice(&arr);
 	let b = a.clone().to_hex();
-	let c = H160::from_str(&b).unwrap();
+	let _c = H160::from_str(&b).unwrap();
 	a
 }
 
@@ -62,7 +62,7 @@ pub fn public_key_to_address(public_key: &Secp256r1PublicKey) -> String {
 
 /// Convert a public key to a script hash.
 pub fn public_key_to_script_hash(public_key: &Secp256r1PublicKey) -> ScriptHash {
-	let mut script = ScriptBuilder::build_verification_script(public_key);
+	let script = ScriptBuilder::build_verification_script(public_key);
 	script_hash_from_script(&script)
 }
 
@@ -84,7 +84,7 @@ pub fn script_hash_to_address(script_hash: &ScriptHash) -> String {
 	let mut script = script_hash.0.clone();
 	script.reverse();
 	data.extend_from_slice(&script);
-	let mut sha = &data.hash256().hash256();
+	let sha = &data.hash256().hash256();
 	data.extend_from_slice(&sha[..4]);
 	bs58::encode(data).into_string()
 }
@@ -95,10 +95,10 @@ pub fn address_to_script_hash(address: &str) -> Result<ScriptHash, ProviderError
 		Ok(bytes) => bytes,
 		Err(_) => return Err(ProviderError::InvalidAddress),
 	};
-	let salt = bytes[0];
+	let _salt = bytes[0];
 	let hash = &bytes[1..21];
 	let checksum = &bytes[21..25];
-	let mut sha = &bytes[..21].hash256().hash256();
+	let sha = &bytes[..21].hash256().hash256();
 	let check = &sha[..4];
 	if checksum != check {
 		return Err(ProviderError::InvalidAddress)

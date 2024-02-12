@@ -13,13 +13,13 @@ pub trait SmartContractTrait<'a>: Send + Sync {
 	async fn name(&self) -> String {
 		self.get_manifest().await.name.clone().unwrap()
 	}
-	fn set_name(&mut self, name: String) {
+	fn set_name(&mut self, _name: String) {
 		panic!("Cannot set name for NNS")
 	}
 
 	fn script_hash(&self) -> H160;
 
-	fn set_script_hash(&mut self, script_hash: H160) {
+	fn set_script_hash(&mut self, _script_hash: H160) {
 		panic!("Cannot set script hash for NNS")
 	}
 
@@ -159,7 +159,7 @@ pub trait SmartContractTrait<'a>: Send + Sync {
 		self.throw_if_fault_state(&output).unwrap();
 
 		let item = &output.stack[0];
-		let StackItem::InteropInterface { id, interface } = item else { panic!("") };
+		let StackItem::InteropInterface { id, interface: _ } = item else { panic!("") };
 
 		let session_id = output
 			.session_id
@@ -173,7 +173,7 @@ pub trait SmartContractTrait<'a>: Send + Sync {
 		&self,
 		function: &str,
 		params: Vec<ContractParameter>,
-		max_items: usize,
+		_max_items: usize,
 		mapper: impl Fn(StackItem) -> U + Send,
 	) -> Result<Vec<U>, ContractError> {
 		let script = ScriptBuilder::build_contract_call_and_unwrap_iterator(

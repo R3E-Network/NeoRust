@@ -31,7 +31,7 @@ impl<'de> Deserialize<'de> for SyncingStatus {
 	{
 		#[derive(Debug, Serialize, Deserialize)]
 		#[serde(untagged)]
-		pub enum SyncingStatusIntermediate {
+		pub(crate) enum SyncingStatusIntermediate {
 			/// When client is synced to the highest block, neo_syncing with return string "false"
 			IsFalse(bool),
 			/// When client is still syncing past blocks we get IsSyncing information.

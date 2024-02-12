@@ -1,5 +1,5 @@
 use getset::{Getters, Setters};
-use hex_literal::hex;
+
 use neo::prelude::{
 	var_size, BuilderError, Bytes, Decoder, Encoder, InteropService, NeoSerializable, OpCode,
 	ScriptBuilder, Secp256r1PublicKey, Secp256r1Signature,
@@ -10,7 +10,7 @@ use p256::pkcs8::der::Encode;
 use primitive_types::H160;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, ptr::read, vec};
+use std::{vec};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
 pub struct VerificationScript {
@@ -103,8 +103,8 @@ impl VerificationScript {
 
 		reader.reset();
 
-		if (BigInt::from(reader.read_push_int().unwrap()) != m
-			|| reader.read_u8() != OpCode::Syscall.opcode())
+		if BigInt::from(reader.read_push_int().unwrap()) != m
+			|| reader.read_u8() != OpCode::Syscall.opcode()
 		{
 			return false
 		}

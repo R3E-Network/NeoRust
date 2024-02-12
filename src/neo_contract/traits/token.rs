@@ -40,7 +40,7 @@ pub trait TokenTrait<'a, P: JsonRpcClient>: SmartContractTrait<'a, P = P> {
 		}
 
 		let decimals =
-			self.call_function_returning_int(Self::DECIMALS.clone(), vec![]).await.unwrap() as u8;
+			self.call_function_returning_int(Self::DECIMALS, vec![]).await.unwrap() as u8;
 
 		self.set_decimals(decimals);
 		Ok(decimals)

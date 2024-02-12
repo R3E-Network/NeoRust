@@ -106,7 +106,7 @@ impl InvocationScript {
 	/// The constructed invocation script
 	pub fn from_signature(signature: Secp256r1Signature) -> Self {
 		let mut script = ScriptBuilder::new();
-		let mut signature_bytes = signature.to_bytes();
+		let signature_bytes = signature.to_bytes();
 		script.push_data(signature_bytes.to_vec());
 		Self { script: script.to_bytes() }
 	}
@@ -141,7 +141,7 @@ impl InvocationScript {
 	pub fn from_signatures(signatures: &[Secp256r1Signature]) -> Self {
 		let mut builder = ScriptBuilder::new();
 		for signature in signatures {
-			let mut signature_bytes = signature.to_bytes();
+			let signature_bytes = signature.to_bytes();
 			builder.push_data(signature_bytes.to_vec());
 		}
 		Self { script: builder.to_bytes() }

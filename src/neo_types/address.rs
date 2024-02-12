@@ -112,7 +112,7 @@ impl AddressExtension for String {
 		let script_hash = bytes.sha256_ripemd160();
 		let mut data = vec![0x17];
 		data.extend_from_slice(&script_hash);
-		let mut sha = &data.hash256().hash256();
+		let sha = &data.hash256().hash256();
 		data.extend_from_slice(&sha[..4]);
 		bs58::encode(data).into_string()
 	}

@@ -8,7 +8,6 @@ use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use std::{
 	hash::{Hash, Hasher},
-	str::FromStr,
 };
 
 #[derive(Default, Serialize, Deserialize, Clone, Debug)]

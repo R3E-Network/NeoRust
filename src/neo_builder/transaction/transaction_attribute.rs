@@ -1,7 +1,7 @@
 use crate::prelude::Base64Encode;
 use neo::prelude::{Decoder, Encoder, NeoSerializable, TransactionError};
 use rustc_serialize::base64::FromBase64;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::hash::Hasher;
 
 use super::oracle_response_code::OracleResponseCode;
@@ -18,9 +18,9 @@ pub enum TransactionAttribute {
 
 #[derive(Serialize, Deserialize, PartialEq, Hash, Debug, Clone)]
 struct OracleResponse {
-	pub id: u32,
-	pub response_code: OracleResponseCode,
-	pub result: String,
+	pub(crate) id: u32,
+	pub(crate) response_code: OracleResponseCode,
+	pub(crate) result: String,
 }
 
 impl TransactionAttribute {
@@ -80,7 +80,7 @@ impl NeoSerializable for TransactionAttribute {
 	fn size(&self) -> usize {
 		match self {
 			TransactionAttribute::HighPriority => 1,
-			TransactionAttribute::OracleResponse(OracleResponse { id, response_code, result }) =>
+			TransactionAttribute::OracleResponse(OracleResponse { id: _, response_code: _, result }) =>
 				1 + 9 + result.len(),
 		}
 	}

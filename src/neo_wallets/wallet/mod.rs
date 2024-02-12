@@ -9,6 +9,6 @@ pub use wallet::*;
 mod wallet_error;
 pub use wallet_error::*;
 
-use p256::ecdsa::signature::hazmat::PrehashSigner;
 
-use neo::prelude::{Address, SignerTrait};
+
+

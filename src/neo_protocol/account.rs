@@ -266,7 +266,7 @@ impl AccountTrait for Account {
 		label: Option<String>,
 		verification_script: Option<VerificationScript>,
 		is_locked: bool,
-		is_default: bool,
+		_is_default: bool,
 		encrypted_private_key: Option<String>,
 		signing_threshold: Option<u32>,
 		nr_of_participants: Option<u32>,
@@ -425,7 +425,7 @@ impl AccountTrait for Account {
 }
 
 impl PrehashSigner<Secp256r1Signature> for Account {
-	fn sign_prehash(&self, prehash: &[u8]) -> Result<Secp256r1Signature, Error> {
+	fn sign_prehash(&self, _prehash: &[u8]) -> Result<Secp256r1Signature, Error> {
 		todo!()
 	}
 }

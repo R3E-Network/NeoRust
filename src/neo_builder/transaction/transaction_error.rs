@@ -1,5 +1,5 @@
 use neo::prelude::{CodecError, CryptoError, ProviderError};
-use std::error;
+
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]

@@ -21,7 +21,7 @@ use std::{collections::HashMap, error::Error, fmt::Debug};
 /// [`ProviderError`], which has correct behavior. This allows Middleware devs
 /// to ignore the methods' presence if they want. Middleware are already plenty
 /// complicated and we don't need to make it worse :)
-pub trait MiddlewareError: Error + Sized + Send + Sync {
+pub(crate) trait MiddlewareError: Error + Sized + Send + Sync {
 	/// The `Inner` type is the next lower middleware layer's error type.
 	type Inner: MiddlewareError;
 

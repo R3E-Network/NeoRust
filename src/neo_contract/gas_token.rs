@@ -60,7 +60,7 @@ impl<'a, P: JsonRpcClient> TokenTrait<'a, P> for GasToken<'a, P> {
 		self.symbol = Option::from(symbol);
 	}
 
-	async fn resolve_nns_text_record(&self, name: &NNSName) -> Result<H160, ContractError> {
+	async fn resolve_nns_text_record(&self, _name: &NNSName) -> Result<H160, ContractError> {
 		todo!()
 	}
 }

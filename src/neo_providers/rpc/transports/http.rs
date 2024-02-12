@@ -1,9 +1,9 @@
 // Code adapted from: https://github.com/althea-net/guac_rs/tree/master/web3/src/jsonrpc
 
-use super::common::{Authorization, JsonRpcError, Request, Response};
+use super::common::{JsonRpcError, Request, Response};
 use async_trait::async_trait;
 use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
-use reqwest::{header, header::HeaderValue, Client, Error as ReqwestError};
+use reqwest::{header, Client, Error as ReqwestError};
 use serde::{de::DeserializeOwned, Serialize};
 use std::{
 	str::FromStr,
@@ -205,7 +205,7 @@ impl Clone for HttpProvider {
 
 #[derive(Error, Debug)]
 /// Error thrown when dealing with Http clients
-pub enum HttpClientError {
+pub(crate) enum HttpClientError {
 	/// Thrown if unable to build headers for client
 	#[error(transparent)]
 	InvalidHeader(#[from] header::InvalidHeaderValue),

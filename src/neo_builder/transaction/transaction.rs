@@ -1,7 +1,7 @@
 use neo::prelude::{
 	deserialize_h256, deserialize_h256_option, deserialize_script_hash, serialize_h256,
 	serialize_h256_option, serialize_script_hash, Bytes, Decoder, Encoder, HashableForVec,
-	NameOrAddress, NeoSerializable, Signer, SignerTrait, TransactionAttribute, TransactionError,
+	NameOrAddress, NeoSerializable, Signer, TransactionAttribute, TransactionError,
 	VMState, VarSizeTrait, Witness,
 };
 use primitive_types::{H160, H256, U256};
@@ -75,7 +75,7 @@ impl Transaction {
 	}
 
 	/// Convenience function for sending a new payment transaction to the receiver.
-	pub fn pay<K: Into<NameOrAddress>, V: Into<U256>>(to: K, value: V) -> Self {
+	pub fn pay<K: Into<NameOrAddress>, V: Into<U256>>(_to: K, _value: V) -> Self {
 		Transaction { ..Default::default() }
 	}
 
@@ -159,7 +159,7 @@ impl NeoSerializable for Transaction {
 		let script = reader.read_var_bytes().unwrap().to_vec();
 
 		let mut witnesses = vec![];
-		if (reader.available() > 0) {
+		if reader.available() > 0 {
 			witnesses.append(&mut reader.read_serializable_list::<Witness>().unwrap());
 		}
 

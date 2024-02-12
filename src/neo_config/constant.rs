@@ -1,4 +1,4 @@
-use scrypt::Params;
+
 
 pub struct NeoConstants {}
 impl NeoConstants {

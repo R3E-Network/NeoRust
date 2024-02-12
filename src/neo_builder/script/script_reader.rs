@@ -1,6 +1,6 @@
 use neo::prelude::{BuilderError, Bytes, Decoder, InteropService, OpCode, OperandSize};
 use rustc_serialize::hex::ToHex;
-use std::hash::Hash;
+
 use tokio::io::AsyncReadExt;
 
 pub struct ScriptReader;

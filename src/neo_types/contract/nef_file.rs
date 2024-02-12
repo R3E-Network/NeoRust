@@ -3,7 +3,7 @@ use neo::prelude::{
 	StackItem, TypeError,
 };
 use primitive_types::H160;
-use serde::{Deserializer, Serializer};
+
 use std::hash::Hasher;
 use tokio::io::AsyncReadExt;
 

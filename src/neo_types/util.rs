@@ -4,18 +4,15 @@
 // converting between different data representations (e.g., bytes to strings, H256 to U256), and implementing traits
 // for encoding data into Base58 and Base64 formats. These utilities are particularly useful in blockchain development,
 // where such conversions and encodings are frequently required.
-use blake2::digest::Update;
 
-use rand::{
-	seq::{IteratorRandom, SliceRandom},
-	SeedableRng,
-};
+
+
 
 use crate::prelude::ScriptHash;
-use futures::AsyncWriteExt;
+
 use neo::prelude::TypeError;
 use primitive_types::{H160, H256, U256};
-use tiny_keccak::Hasher;
+
 
 /// Parses a string into a `u64`, supporting both decimal and hexadecimal (prefixed with "0x") formats.
 ///

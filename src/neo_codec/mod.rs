@@ -8,7 +8,7 @@ pub use binary_encoder::*;
 pub use encode::*;
 pub use error::*;
 
-pub fn add(left: usize, right: usize) -> usize {
+pub(crate) fn add(left: usize, right: usize) -> usize {
 	left + right
 }
 

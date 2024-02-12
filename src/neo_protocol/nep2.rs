@@ -43,7 +43,7 @@
 //! Proper error handling is implemented to deal with common issues like incorrect password, invalid NEP2 format,
 //! and other cryptographic errors.
 
-extern crate openssl;
+use openssl;
 
 use neo::prelude::{
 	base58check_decode, public_key_to_address, vec_to_array32, HashableForVec, KeyPair,
@@ -107,7 +107,7 @@ pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<Stri
 
 	let key_pair = KeyPair::from_private_key(&vec_to_array32(private_key.to_vec()).unwrap())?;
 
-	let mut addresshash: [u8; 4] = address_hash_from_pubkey(&key_pair.public_key.get_encoded(true));
+	let addresshash: [u8; 4] = address_hash_from_pubkey(&key_pair.public_key.get_encoded(true));
 
 	let mut result = vec![0u8; NeoConstants::SCRYPT_DK_LEN];
 	let params =
@@ -117,7 +117,7 @@ pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<Stri
 	scrypt(passphrase.as_bytes(), addresshash.to_vec().as_slice(), &params, &mut result).unwrap();
 
 	let half_1 = &result[0..32];
-	let half_2 = &result[32..64];
+	let _half_2 = &result[32..64];
 	let mut u8xor = [0u8; 32];
 
 	for i in 0..32 {
@@ -146,7 +146,7 @@ pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>
 	}
 	let decoded_key: [u8; 39] = base58check_decode(nep2).unwrap().try_into().unwrap();
 
-	let mut address_hash: &[u8] = &decoded_key[3..7];
+	let address_hash: &[u8] = &decoded_key[3..7];
 	let encrypted: &[u8] = &decoded_key[7..39];
 
 	// pwd_normalized = bytes(unicodedata.normalize('NFC', passphrase), 'utf-8')
@@ -181,7 +181,7 @@ pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>
 	// private_key = xor_bytes(decrypted, derived1)
 
 	let key_pair = KeyPair::from_private_key(&pri_key)?;
-	let mut kp_addresshash: [u8; 4] =
+	let kp_addresshash: [u8; 4] =
 		address_hash_from_pubkey(&key_pair.public_key.get_encoded(true));
 
 	// # Now check that the address hashes match. If they don't, the password was wrong.

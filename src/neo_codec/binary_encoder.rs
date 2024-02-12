@@ -1,6 +1,6 @@
 use crate::prelude::CodecError;
 use neo::prelude::NeoSerializable;
-use num_bigint::ToBigInt;
+
 /// A binary encoder that can write various primitive types and serializable objects to a byte vector.
 ///
 /// # Examples
@@ -66,7 +66,7 @@ impl Encoder {
 	}
 
 	fn write_var_int(&mut self, v: i64) {
-		if (v < 0) {
+		if v < 0 {
 			panic!("Negative value not allowed")
 		}
 		if v < 0xfd {

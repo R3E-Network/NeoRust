@@ -1,7 +1,7 @@
 use neo::prelude::*;
 use primitive_types::H160;
 use serde_derive::{Deserialize, Serialize};
-use std::{collections::HashMap, fs::File, io::Write, path::PathBuf, str::FromStr};
+use std::{collections::HashMap, fs::File, io::Write, path::PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wallet {
@@ -35,7 +35,7 @@ impl WalletTrait for Wallet {
 		self.accounts
 			.clone()
 			.into_iter()
-			.map(|(k, v)| v.clone())
+			.map(|(_k, v)| v.clone())
 			.collect::<Vec<Self::Account>>()
 	}
 
@@ -279,7 +279,7 @@ impl Wallet {
 			.unwrap()
 			.private_key()
 			.sign_tx(message_hash)
-			.map_err(|e| WalletError::NoKeyPair)
+			.map_err(|_e| WalletError::NoKeyPair)
 	}
 
 	/// Generates a witness for a transaction using the default account's key pair.
@@ -318,7 +318,7 @@ impl Wallet {
 		}
 
 		Witness::create(tx.get_hash_data()?, &self.default_account().key_pair.clone().unwrap())
-			.map_err(|e| WalletError::NoKeyPair)
+			.map_err(|_e| WalletError::NoKeyPair)
 	}
 
 	/// Returns the address of the wallet's default account.
@@ -367,7 +367,7 @@ impl Wallet {
 	/// let mut wallet = Wallet::new();
 	/// wallet = wallet.with_network(NeoNetwork::MainNet);
 	/// ```
-	pub fn with_network<T: Into<u32>>(mut self, network: T) -> Self {
+	pub fn with_network<T: Into<u32>>(self, _network: T) -> Self {
 		todo!()
 	}
 }

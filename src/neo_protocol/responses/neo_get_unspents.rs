@@ -11,14 +11,14 @@ pub struct Unspents {
 #[derive(Serialize, Deserialize, Clone)]
 struct Balance {
 	#[serde(rename = "unspent")]
-	pub unspent_transactions: Vec<UnspentTransaction>,
+	pub(crate) unspent_transactions: Vec<UnspentTransaction>,
 	#[serde(rename = "assethash")]
-	pub asset_hash: String,
+	pub(crate) asset_hash: String,
 	#[serde(rename = "asset")]
-	pub asset_name: String,
+	pub(crate) asset_name: String,
 	#[serde(rename = "asset_symbol")]
-	pub asset_symbol: String,
-	pub amount: f64,
+	pub(crate) asset_symbol: String,
+	pub(crate) amount: f64,
 }
 
 impl Eq for Balance {}

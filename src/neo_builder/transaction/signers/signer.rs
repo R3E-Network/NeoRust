@@ -136,7 +136,7 @@ pub trait SignerTrait {
 		Ok(())
 	}
 
-	fn validate_subitems(&self, count: usize, name: &str) -> Result<(), BuilderError> {
+	fn validate_subitems(&self, count: usize, _name: &str) -> Result<(), BuilderError> {
 		if count > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
 			return Err(BuilderError::TooManySigners("".to_string()))
 		}
@@ -351,9 +351,9 @@ impl Into<AccountSigner> for Signer {
 impl Into<TransactionSigner> for Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::Account(account_signer) =>
+			Signer::Account(_account_signer) =>
 				panic!("Cannot convert AccountSigner into TransactionSigner"),
-			Signer::Contract(contract_signer) =>
+			Signer::Contract(_contract_signer) =>
 				panic!("Cannot convert ContractSigner into AccountSigner"),
 			Signer::Transaction(transaction_signer) => transaction_signer,
 		}
@@ -363,9 +363,9 @@ impl Into<TransactionSigner> for Signer {
 impl Into<TransactionSigner> for &Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::Account(account_signer) =>
+			Signer::Account(_account_signer) =>
 				panic!("Cannot convert AccountSigner into TransactionSigner"),
-			Signer::Contract(contract_signer) =>
+			Signer::Contract(_contract_signer) =>
 				panic!("Cannot convert ContractSigner into AccountSigner"),
 			Signer::Transaction(transaction_signer) => transaction_signer.clone(),
 		}
@@ -375,9 +375,9 @@ impl Into<TransactionSigner> for &Signer {
 impl Into<TransactionSigner> for &mut Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::Account(account_signer) =>
+			Signer::Account(_account_signer) =>
 				panic!("Cannot convert AccountSigner into TransactionSigner"),
-			Signer::Contract(contract_signer) =>
+			Signer::Contract(_contract_signer) =>
 				panic!("Cannot convert ContractSigner into AccountSigner"),
 			Signer::Transaction(transaction_signer) => transaction_signer.clone(),
 		}
@@ -388,9 +388,9 @@ impl Into<AccountSigner> for &mut Signer {
 	fn into(self) -> AccountSigner {
 		match self {
 			Signer::Account(account_signer) => account_signer.clone(),
-			Signer::Contract(contract_signer) =>
+			Signer::Contract(_contract_signer) =>
 				panic!("Cannot convert ContractSigner into AccountSigner"),
-			Signer::Transaction(transaction_signer) =>
+			Signer::Transaction(_transaction_signer) =>
 				panic!("Cannot convert TransactionSigner into AccountSigner"),
 		}
 	}
@@ -399,10 +399,10 @@ impl Into<AccountSigner> for &mut Signer {
 impl Into<ContractSigner> for &mut Signer {
 	fn into(self) -> ContractSigner {
 		match self {
-			Signer::Account(account_signer) =>
+			Signer::Account(_account_signer) =>
 				panic!("Cannot convert AccountSigner into ContractSigner"),
 			Signer::Contract(contract_signer) => contract_signer.clone(),
-			Signer::Transaction(transaction_signer) =>
+			Signer::Transaction(_transaction_signer) =>
 				panic!("Cannot convert TransactionSigner into ContractSigner"),
 		}
 	}
@@ -411,10 +411,10 @@ impl Into<ContractSigner> for &mut Signer {
 impl Into<ContractSigner> for Signer {
 	fn into(self) -> ContractSigner {
 		match self {
-			Signer::Account(account_signer) =>
+			Signer::Account(_account_signer) =>
 				panic!("Cannot convert AccountSigner into ContractSigner"),
 			Signer::Contract(contract_signer) => contract_signer,
-			Signer::Transaction(transaction_signer) =>
+			Signer::Transaction(_transaction_signer) =>
 				panic!("Cannot convert TransactionSigner into ContractSigner"),
 		}
 	}

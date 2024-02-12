@@ -54,8 +54,8 @@
 
 use core::fmt;
 use neo::prelude::{CryptoError, Decoder, Encoder, NeoConstants, NeoSerializable};
-use num_integer::Integer;
-use num_traits::cast::ToPrimitive;
+
+
 use p256::{
 	ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey},
 	elliptic_curve::{
@@ -68,12 +68,12 @@ use primitive_types::U256;
 use rand_core::OsRng;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use signature::{Keypair, SignerMut, Verifier};
+use signature::{SignerMut, Verifier};
 use std::{
 	cmp::Ordering,
 	hash::{Hash, Hasher},
 };
-use typenum::Unsigned;
+
 
 #[cfg_attr(feature = "substrate", serde(crate = "serde_substrate"))]
 #[derive(Debug, Clone)]

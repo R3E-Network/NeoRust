@@ -17,7 +17,7 @@ pub fn public_keys_to_scripthash(
 	public_keys: &mut [Secp256r1PublicKey],
 	threshold: usize,
 ) -> ScriptHash {
-	let mut script = ScriptBuilder::build_multi_sig_script(public_keys, threshold as u8).unwrap();
+	let script = ScriptBuilder::build_multi_sig_script(public_keys, threshold as u8).unwrap();
 	// Self::from_script(&script)
 	ScriptHash::from_slice(&script)
 }

@@ -1,4 +1,4 @@
-use primitive_types::{H256, U256};
+use primitive_types::{H256};
 use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, SocketAddr};
 

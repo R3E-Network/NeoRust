@@ -21,7 +21,7 @@ use neo::prelude::*;
 use once_cell::sync::Lazy;
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
-use serde::Serialize;
+
 use std::{
 	collections::HashSet,
 	fmt::Debug,
@@ -204,7 +204,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 			return Err(TransactionError::NoScript)
 		}
 
-		let mut tx = Transaction::new();
+		let tx = Transaction::new();
 		// 	self.version,
 		// 	self.nonce,
 		// 	self.valid_until_block.unwrap(),

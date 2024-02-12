@@ -13,7 +13,7 @@ pub(crate) enum Role {
 }
 
 impl Role {
-	pub fn byte_repr(self) -> u8 {
+	pub(crate) fn byte_repr(self) -> u8 {
 		self as u8
 	}
 }

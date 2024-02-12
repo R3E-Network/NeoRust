@@ -82,10 +82,10 @@ impl ScriptHashExtension for H160 {
 			Err(_) => return Err(TypeError::InvalidAddress),
 		};
 
-		let salt = bytes[0];
+		let _salt = bytes[0];
 		let hash = &bytes[1..21];
 		let checksum = &bytes[21..25];
-		let mut sha = &bytes[..21].hash256().hash256();
+		let sha = &bytes[..21].hash256().hash256();
 		let check = &sha[..4];
 		if checksum != check {
 			return Err(TypeError::InvalidAddress)
@@ -102,7 +102,7 @@ impl ScriptHashExtension for H160 {
 		let mut script = self.0.clone();
 		script.reverse();
 		data.extend_from_slice(&script);
-		let mut sha = &data.hash256().hash256();
+		let sha = &data.hash256().hash256();
 		data.extend_from_slice(&sha[..4]);
 		bs58::encode(data).into_string()
 	}

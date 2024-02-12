@@ -4,8 +4,6 @@ use primitive_types::H160;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use std::{
-	borrow::{Borrow, BorrowMut},
-	error::Error,
 	str::FromStr,
 };
 
@@ -68,7 +66,7 @@ impl<'a, P: JsonRpcClient> NeoURI<'a, P> {
 
 				match kv[0] {
 					"asset" if neo_uri.token().is_none() => {
-						&neo_uri.set_token(H160::from_str(kv[1].clone()).ok());
+						&neo_uri.set_token(H160::from_str(kv[1]).ok());
 					},
 					"amount" if neo_uri.amount.is_none() => {
 						neo_uri.amount = Some(kv[1].parse().unwrap());
@@ -120,7 +118,7 @@ impl<'a, P: JsonRpcClient> NeoURI<'a, P> {
 			.ok_or(ContractError::InvalidStateError("Token not set".to_string()))
 			.unwrap();
 
-		let mut token = &mut FungibleTokenContract::new(&token_hash, self.provider);
+		let token = &mut FungibleTokenContract::new(&token_hash, self.provider);
 
 		// Validate amount precision
 		let amount_scale = (amount as f64).log10().floor() as u32 + 1; //amount.scale() as u8; //.scale();
