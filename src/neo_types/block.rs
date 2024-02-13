@@ -1,15 +1,17 @@
+use std::{
+    fmt::{Formatter, Write},
+    str::FromStr,
+};
+
 use ethereum_types::U64;
-use neo::prelude::*;
 use primitive_types::H256;
 use serde::{
-	de::{MapAccess, Visitor},
-	ser::SerializeStruct,
-	Deserialize, Deserializer, Serialize, Serializer,
+    de::{MapAccess, Visitor},
+    Deserialize,
+    Deserializer, ser::SerializeStruct, Serialize, Serializer,
 };
-use std::{
-	fmt::{Formatter, Write},
-	str::FromStr,
-};
+
+use neo::prelude::*;
 
 pub trait TXTrait {
 	fn hash(&self) -> H256;

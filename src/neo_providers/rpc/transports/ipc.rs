@@ -1,34 +1,38 @@
-use super::common::Params;
+use std::{
+    cell::RefCell,
+    convert::Infallible,
+    hash::BuildHasherDefault,
+    io,
+    path::Path,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
+    thread,
+};
+
 use async_trait::async_trait;
 use bytes::{Buf, BytesMut};
 use futures_channel::mpsc;
 use futures_util::stream::StreamExt;
-use hashers::fx_hash::FxHasher64;
-
 use primitive_types::U256;
 use serde::{de::DeserializeOwned, Serialize};
-use serde_json::{value::RawValue, Deserializer};
-use std::{
-	cell::RefCell,
-	convert::Infallible,
-	hash::BuildHasherDefault,
-	io,
-	path::Path,
-	sync::{
-		atomic::{AtomicU64, Ordering},
-		Arc,
-	},
-	thread,
-};
+use serde_json::{Deserializer, value::RawValue};
 use thiserror::Error;
 use tokio::{
-	io::{AsyncReadExt, AsyncWriteExt, BufReader},
-	runtime,
-	sync::oneshot::{self, error::RecvError},
+    io::{AsyncReadExt, AsyncWriteExt, BufReader},
+    runtime,
+    sync::oneshot::{self, error::RecvError},
 };
 
-use super::common::{JsonRpcError, Request, Response};
+use hashers::fx_hash::FxHasher64;
+
 use crate::{errors::ProviderError, JsonRpcClient, PubsubClient};
+
+use super::common::{JsonRpcError, Request, Response};
+use super::common::Params;
+
+use self::imp::*;
 
 type FxHashMap<K, V> = std::collections::HashMap<K, V, BuildHasherDefault<FxHasher64>>;
 
@@ -37,31 +41,29 @@ type Subscription = mpsc::UnboundedSender<Box<RawValue>>;
 
 #[cfg(unix)]
 #[doc(hidden)]
-mod imp {
-	pub(super) use tokio::net::{
-		unix::{ReadHalf, WriteHalf},
-		UnixStream as Stream,
-	};
-}
+mod imp {}
 
 #[cfg(windows)]
 #[doc(hidden)]
 mod imp {
-	use super::*;
-	use std::{
-		ops::{Deref, DerefMut},
-		pin::Pin,
-		task::{Context, Poll},
-		time::Duration,
-	};
-	use tokio::{
-		io::{AsyncRead, AsyncWrite, ReadBuf},
-		net::windows::named_pipe::{ClientOptions, NamedPipeClient},
-		time::sleep,
-	};
-	use winapi::shared::winerror;
+    use std::{
+        ops::{Deref, DerefMut},
+        pin::Pin,
+        task::{Context, Poll},
+        time::Duration,
+    };
 
-	/// Wrapper around [NamedPipeClient] to have the same methods as a UnixStream.
+    use tokio::{
+        io::{AsyncRead, AsyncWrite, ReadBuf},
+        net::windows::named_pipe::{ClientOptions, NamedPipeClient},
+        time::sleep,
+    };
+
+    use winapi::shared::winerror;
+
+    use super::*;
+
+    /// Wrapper around [NamedPipeClient] to have the same methods as a UnixStream.
 	///
 	/// Should not be exported.
 	#[repr(transparent)]
@@ -192,8 +194,6 @@ mod imp {
 		}
 	}
 }
-
-use self::imp::*;
 
 #[cfg_attr(unix, doc = "A JSON-RPC Client over Unix IPC.")]
 #[cfg_attr(windows, doc = "A JSON-RPC Client over named pipes.")]
@@ -510,12 +510,13 @@ impl crate::RpcError for IpcError {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
-	use neo_types::{block::Block, TxHash};
-	use std::time::Duration;
-	use tempfile::NamedTempFile;
+    use std::time::Duration;
 
-	async fn connect() -> (Ipc, GethInstance) {
+    use tempfile::NamedTempFile;
+
+    use neo_types::{block::Block, TxHash};
+
+    async fn connect() -> (Ipc, GethInstance) {
 		let temp_file = NamedTempFile::new().unwrap();
 		let path = temp_file.into_temp_path().to_path_buf();
 		let geth = Geth::new().block_time(1u64).ipc_path(&path).spawn();

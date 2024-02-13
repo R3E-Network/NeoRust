@@ -1,7 +1,9 @@
-use neo::prelude::StackItem;
+use std::hash::{Hash, Hasher};
+
 use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize};
-use std::hash::{Hash, Hasher};
+
+use neo::prelude::StackItem;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RecordState {

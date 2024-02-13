@@ -1,7 +1,9 @@
-use neo::prelude::*;
+use std::{collections::HashMap, fs::File, io::Write, path::PathBuf};
+
 use primitive_types::H160;
 use serde_derive::{Deserialize, Serialize};
-use std::{collections::HashMap, fs::File, io::Write, path::PathBuf};
+
+use neo::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wallet {
@@ -73,7 +75,7 @@ impl WalletTrait for Wallet {
 
 impl Wallet {
 	/// The default wallet name.
-	pub const DEFAULT_WALLET_NAME: &'static str = "NeoRustWallet";
+	pub const DEFAULT_WALLET_NAME: &'static str = "neo-rsWallet";
 	/// The current wallet version.
 	pub const CURRENT_VERSION: &'static str = "1.0";
 
@@ -84,7 +86,7 @@ impl Wallet {
 		let mut accounts = HashMap::new();
 		accounts.insert(account.address_or_scripthash.script_hash(), account.clone());
 		Self {
-			name: "NeoRustWallet".to_string(),
+			name: "neo-rsWallet".to_string(),
 			version: "1.0".to_string(),
 			scrypt_params: ScryptParamsDef::default(),
 			accounts,
@@ -95,7 +97,7 @@ impl Wallet {
 	/// Creates a new wallet instance without any accounts.
 	pub fn default() -> Self {
 		Self {
-			name: "NeoRustWallet".to_string(),
+			name: "neo-rsWallet".to_string(),
 			version: "1.0".to_string(),
 			scrypt_params: ScryptParamsDef::default(),
 			accounts: HashMap::new(),
@@ -181,7 +183,7 @@ impl Wallet {
 	///
 	/// ```
 	///
-	/// use NeoRust::prelude::{Account, Wallet};
+	/// use neo_rs::prelude::{Account, Wallet};
 	/// let account1 = Account::default();
 	/// let account2 = Account::default();
 	///
@@ -255,7 +257,7 @@ impl Wallet {
 	/// # Example
 	///
 	/// ```no_run
-	/// # use NeoRust::prelude::Wallet;
+	/// # use neo_rs::prelude::Wallet;
 	///  async fn example() -> Result<(), Box<dyn std::error::Error>> {
 	/// # let wallet = Wallet::new();
 	/// let message = "Hello, world!";
@@ -300,7 +302,7 @@ impl Wallet {
 	/// # Example
 	///
 	/// ```no_run
-	/// # use NeoRust::prelude::{Transaction, Wallet};
+	/// # use neo_rs::prelude::{Transaction, Wallet};
 	///  async fn example() -> Result<(), Box<dyn std::error::Error>> {
 	/// # let wallet = Wallet::new();
 	/// # let tx = Transaction::new();
@@ -362,7 +364,7 @@ impl Wallet {
 	/// # Example
 	///
 	/// ```no_run
-	/// # use NeoRust::prelude::{NeoConfig, NeoNetwork, Wallet};
+	/// # use neo_rs::prelude::{NeoConfig, NeoNetwork, Wallet};
 	/// let mut wallet = Wallet::new();
 	/// wallet = wallet.with_network(NeoNetwork::MainNet);
 	/// ```
@@ -373,9 +375,9 @@ impl Wallet {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::{AccountTrait, Signer::Account, TestConstants, Wallet, WalletTrait};
+    use neo::prelude::{AccountTrait, Signer::Account, TestConstants, Wallet, WalletTrait};
 
-	#[test]
+    #[test]
 	fn test_is_default() {
 		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
 		let mut wallet: Wallet = Wallet::new();
@@ -403,7 +405,7 @@ mod tests {
 	fn test_create_default_wallet() {
 		let wallet: Wallet = Wallet::default();
 
-		assert_eq!(&wallet.name, "NeoRustWallet");
+		assert_eq!(&wallet.name, "neo-rsWallet");
 		assert_eq!(&wallet.version, Wallet::CURRENT_VERSION);
 		assert_eq!(wallet.accounts.len(), 0usize);
 	}

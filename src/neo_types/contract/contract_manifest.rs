@@ -1,10 +1,12 @@
-use neo::prelude::{
-	deserialize_wildcard, serialize_wildcard, ContractParameter, ContractParameterType,
-};
-use serde::{Deserialize, Serialize};
 use std::{
-	collections::HashMap,
-	hash::{Hash, Hasher},
+    collections::HashMap,
+    hash::{Hash, Hasher},
+};
+
+use serde::{Deserialize, Serialize};
+
+use neo::prelude::{
+    ContractParameter, ContractParameterType, deserialize_wildcard, serialize_wildcard,
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

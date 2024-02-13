@@ -1,10 +1,9 @@
 use futures_channel::{mpsc, oneshot};
-use futures_util::{select, sink::SinkExt, stream::StreamExt, FutureExt};
-
+use futures_util::{FutureExt, select, sink::SinkExt, stream::StreamExt};
 use serde_json::value::RawValue;
+use tracing::{error, trace};
 
 use super::{types::*, WsClientError};
-use tracing::{error, trace};
 
 /// `BackendDriver` drives a specific `WsBackend`. It can be used to issue
 /// requests, receive responses, see errors, and shut down the backend.

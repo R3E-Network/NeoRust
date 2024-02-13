@@ -3,12 +3,10 @@ use std::ops::BitXor;
 use bs58::encode as bs58_encode;
 use derive_more::{AsRef, Deref, Index, IndexMut, IntoIterator};
 use hex::encode as hex_encode;
-use sha2::{Digest, Sha256};
-
-use serde::{Deserialize, Serialize};
-
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 /// `Bytes` is a wrapper around a vector of bytes (`Vec<u8>`) providing utility methods
 /// for encoding, decoding, and other common operations on byte arrays.

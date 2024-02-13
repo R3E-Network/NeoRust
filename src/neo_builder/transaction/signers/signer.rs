@@ -1,11 +1,13 @@
-use neo::prelude::{
-	AccountSigner, BuilderError, ContractSigner, Decoder, Encoder, NeoConstants, NeoSerializable,
-	Secp256r1PublicKey, TransactionError, TransactionSigner, WitnessCondition, WitnessRule,
-	WitnessScope,
-};
+use std::hash::{Hash, Hasher};
+
 use primitive_types::H160;
 use serde::{Deserialize, Serialize, Serializer};
-use std::hash::{Hash, Hasher};
+
+use neo::prelude::{
+    AccountSigner, BuilderError, ContractSigner, Decoder, Encoder, NeoConstants, NeoSerializable,
+    Secp256r1PublicKey, TransactionError, TransactionSigner, WitnessCondition, WitnessRule,
+    WitnessScope,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SignerType {
@@ -478,17 +480,19 @@ impl NeoSerializable for Signer {
 
 #[cfg(test)]
 mod tests {
-	use lazy_static::lazy_static;
-	use neo::prelude::{
-		Account, AccountSigner, AccountTrait, BuilderError, Encoder, NeoSerializable, ScriptHash,
-		ScriptHashExtension, Secp256r1PublicKey, SignerTrait, WitnessAction, WitnessCondition,
-		WitnessRule, WitnessScope,
-	};
-	use primitive_types::H160;
-	use rustc_serialize::hex::{FromHex, ToHex};
-	use std::ops::Deref;
+    use std::ops::Deref;
 
-	// const script_hash:ScriptHash = Account::from_wif("Kzt94tAAiZSgH7Yt4i25DW6jJFprZFPSqTgLr5dWmWgKDKCjXMfZ").unwrap().get_script_hash();
+    use lazy_static::lazy_static;
+    use primitive_types::H160;
+    use rustc_serialize::hex::{FromHex, ToHex};
+
+    use neo::prelude::{
+        Account, AccountSigner, AccountTrait, BuilderError, Encoder, NeoSerializable, ScriptHash,
+        ScriptHashExtension, Secp256r1PublicKey, SignerTrait, WitnessAction, WitnessCondition,
+        WitnessRule, WitnessScope,
+    };
+
+// const script_hash:ScriptHash = Account::from_wif("Kzt94tAAiZSgH7Yt4i25DW6jJFprZFPSqTgLr5dWmWgKDKCjXMfZ").unwrap().get_script_hash();
 
 	lazy_static! {
 		pub static ref SCRIPT_HASH: ScriptHash = {

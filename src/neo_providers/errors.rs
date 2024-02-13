@@ -1,10 +1,13 @@
-use crate::prelude::Middleware;
-use neo::{
-	prelude::{CryptoError, JsonRpcError, TypeError},
-	providers::middleware::MiddlewareError,
-};
 use std::{error::Error, fmt::Debug};
+
 use thiserror::Error;
+
+use neo::{
+    prelude::{CryptoError, JsonRpcError, TypeError},
+    providers::middleware::MiddlewareError,
+};
+
+use crate::prelude::Middleware;
 
 /// An `RpcError` is an abstraction over error types returned by a
 /// [`crate::JsonRpcClient`].

@@ -1,6 +1,7 @@
 use hex::FromHexError;
-use neo::prelude::{BuilderError, CryptoError, TypeError, WalletError};
 use thiserror::Error;
+
+use neo::prelude::{BuilderError, CryptoError, TypeError, WalletError};
 
 /// Represents errors that can occur within the signing process.
 ///
@@ -32,7 +33,7 @@ use thiserror::Error;
 /// like this:
 ///
 /// ```
-/// use NeoRust::prelude::SignerError;
+/// use neo_rs::prelude::SignerError;
 ///  async fn sign_data(data: &[u8]) -> Result<(), SignerError> {
 ///     // Example function body
 ///     Ok(())

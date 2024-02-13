@@ -1,8 +1,9 @@
 use async_trait::async_trait;
-use neo::prelude::*;
 use num_traits::{real::Real, ToPrimitive};
 use primitive_types::H160;
 use rust_decimal::Decimal;
+
+use neo::prelude::*;
 
 #[async_trait]
 pub trait TokenTrait<'a, P: JsonRpcClient>: SmartContractTrait<'a, P = P> {

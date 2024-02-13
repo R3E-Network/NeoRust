@@ -1,9 +1,9 @@
 use crypto::{
-	digest::Digest,
-	hmac::Hmac,
-	mac::Mac,
-	ripemd160::Ripemd160,
-	sha2::{Sha256, Sha512},
+    digest::Digest,
+    hmac::Hmac,
+    mac::Mac,
+    ripemd160::Ripemd160,
+    sha2::{Sha256, Sha512},
 };
 use rustc_serialize::hex::FromHex;
 
@@ -127,9 +127,9 @@ impl HashableForString for String {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+    use super::*;
 
-	#[test]
+    #[test]
 	fn test_hash256_for_bytes() {
 		let data = b"hello world";
 		let expected = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9";

@@ -1,5 +1,7 @@
 #![allow(clippy::upper_case_acronyms)]
+
 use std::fmt;
+
 use thiserror::Error;
 
 #[derive(Clone, Debug)]

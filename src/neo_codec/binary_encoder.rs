@@ -1,5 +1,4 @@
-use crate::prelude::CodecError;
-use neo::prelude::NeoSerializable;
+use std::hash::Hasher;
 
 /// A binary encoder that can write various primitive types and serializable objects to a byte vector.
 ///
@@ -7,7 +6,7 @@ use neo::prelude::NeoSerializable;
 ///
 /// ```
 ///
-/// use NeoRust::prelude::Encoder;
+/// use neo_rs::prelude::Encoder;
 /// let mut encoder = Encoder::new();
 /// encoder.write_u8(0x12);
 /// encoder.write_i32(-123456);
@@ -17,7 +16,10 @@ use neo::prelude::NeoSerializable;
 /// ```
 use serde::Serialize;
 use serde_derive::Deserialize;
-use std::hash::Hasher;
+
+use neo::prelude::NeoSerializable;
+
+use crate::prelude::CodecError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Encoder {
@@ -150,9 +152,9 @@ impl Hasher for Encoder {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::Encoder;
+    use neo::prelude::Encoder;
 
-	#[test]
+    #[test]
 	fn test_write_u32() {
 		let mut writer = Encoder::new();
 

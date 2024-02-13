@@ -1,10 +1,12 @@
 // This module demonstrates the flexibility in handling blockchain addresses and script hashes, leveraging Rust's type system
 // and trait implementations to provide a seamless interface for converting and working with these two fundamental types.
 
-use neo::prelude::{Address, AddressExtension, Bytes, ScriptHashExtension};
+use std::hash::{Hash, Hasher};
+
 use primitive_types::H160;
 use serde_derive::{Deserialize, Serialize};
-use std::hash::{Hash, Hasher};
+
+use neo::prelude::{Address, AddressExtension, Bytes, ScriptHashExtension};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// An enum that can represent either a blockchain `Address` or a `ScriptHash`,
@@ -24,7 +26,7 @@ impl Hash for AddressOrScriptHash {
 	///
 	/// ```
 	/// use std::collections::HashSet;
-	/// use NeoRust::prelude::AddressOrScriptHash;
+	/// use neo_rs::prelude::AddressOrScriptHash;
 	/// let mut set = HashSet::new();
 	/// set.insert(AddressOrScriptHash::Address("myAddress".into()));
 	/// ```
@@ -48,7 +50,7 @@ impl From<Address> for AddressOrScriptHash {
 	/// # Examples
 	///
 	/// ```
-	/// use NeoRust::prelude::AddressOrScriptHash;
+	/// use neo_rs::prelude::AddressOrScriptHash;
 	/// let from_address = AddressOrScriptHash::from("myAddress".into());
 	/// assert!(matches!(from_address, AddressOrScriptHash::Address(_)));
 	/// ```
@@ -63,7 +65,7 @@ impl From<Bytes> for AddressOrScriptHash {
 	/// # Examples
 	///
 	/// ```
-	/// use NeoRust::prelude::{AddressOrScriptHash, Bytes};
+	/// use neo_rs::prelude::{AddressOrScriptHash, Bytes};
 	/// let bytes: Bytes = vec![0xdeu8, 0xadu8, 0xbeu8, 0xefu8];
 	/// let from_bytes = AddressOrScriptHash::from(bytes);
 	/// assert!(matches!(from_bytes, AddressOrScriptHash::ScriptHash(_)));
@@ -80,7 +82,7 @@ impl AddressOrScriptHash {
 	///
 	/// ```
 	/// use primitive_types::H160;
-	/// use NeoRust::prelude::AddressOrScriptHash;
+	/// use neo_rs::prelude::AddressOrScriptHash;
 	/// let script_hash = AddressOrScriptHash::ScriptHash(H160::repeat_byte(0x01));
 	/// let address = script_hash.address();
 	/// assert_eq!(address, "convertedAddressFromScriptHash");
@@ -98,7 +100,7 @@ impl AddressOrScriptHash {
 	///
 	/// ```
 	/// use primitive_types::H160;
-	/// use NeoRust::prelude::AddressOrScriptHash;
+	/// use neo_rs::prelude::AddressOrScriptHash;
 	/// let address = AddressOrScriptHash::Address("myAddress".into());
 	/// let script_hash = address.script_hash();
 	/// assert_eq!(script_hash, H160::repeat_byte(0x02)); // Assuming `to_address` converts an address into a specific script hash

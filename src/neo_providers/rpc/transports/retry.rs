@@ -1,18 +1,21 @@
 //! A [JsonRpcClient] implementation that retries requests filtered by [RetryPolicy]
 //! with an exponential backoff.
 
-use super::{common::JsonRpcError, http::ClientError};
+use std::{
+    fmt::Debug,
+    sync::atomic::{AtomicU32, Ordering},
+    time::Duration,
+};
+
 use async_trait::async_trait;
-use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
 use reqwest::StatusCode;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::{
-	fmt::Debug,
-	sync::atomic::{AtomicU32, Ordering},
-	time::Duration,
-};
 use thiserror::Error;
 use tracing::trace;
+
+use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
+
+use super::{common::JsonRpcError, http::ClientError};
 
 /// [RetryPolicy] defines logic for which [JsonRpcClient::Error] instances should
 /// the client retry the request and try to recover from.
@@ -34,7 +37,7 @@ pub trait RetryPolicy<E>: Send + Sync + Debug {
 /// # Example
 ///
 /// ```
-/// #  use NeoRust::prelude::{Http, HttpRateLimitRetryPolicy, RetryClientBuilder};
+/// #  use neo_rs::prelude::{Http, HttpRateLimitRetryPolicy, RetryClientBuilder};
 ///  async fn demo() {
 /// use std::time::Duration;
 /// use url::Url;
@@ -78,7 +81,7 @@ where
 	///
 	/// ```
 	///
-	/// # use NeoRust::prelude::{Http, HttpRateLimitRetryPolicy, RetryClient};
+	/// # use neo_rs::prelude::{Http, HttpRateLimitRetryPolicy, RetryClient};
 	///  async fn demo() {
 	/// use std::time::Duration;
 	/// use url::Url;
@@ -484,8 +487,9 @@ fn maybe_connectivity(err: &ProviderError) -> bool {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
-	// assumed average cost of a request
+    use super::*;
+
+    // assumed average cost of a request
 	const AVG_COST: u64 = 17u64;
 	const COMPUTE_UNITS: u64 = 330u64;
 

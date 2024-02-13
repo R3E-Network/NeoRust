@@ -7,7 +7,7 @@ title = "Neo.rs: The neo Library for Rust"
 description = "A book on all things neo-rs"
 
 [output.html]
-git-repository-url = "https://github.com/gakonst/neo-rs"
+git-repository-url = "https://github.com/R3E-Network/neo-rs"
 default-theme = "ayu"
 no-section-label = true
 

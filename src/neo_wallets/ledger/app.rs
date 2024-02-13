@@ -1,15 +1,17 @@
 #![allow(unused)]
+
+use std::convert::TryFrom;
+
 use coins_ledger::{
-	common::{APDUAnswer, APDUCommand, APDUData},
-	transports::{Ledger, LedgerAsync},
+    common::{APDUAnswer, APDUCommand, APDUData},
+    transports::{Ledger, LedgerAsync},
 };
 use futures_executor::block_on;
 use futures_util::lock::Mutex;
+use primitive_types::U256;
+use thiserror::Error;
 
 use neo::prelude::{Address, Secp256r1Signature, Transaction};
-use primitive_types::U256;
-use std::convert::TryFrom;
-use thiserror::Error;
 
 use super::types::*;
 
@@ -39,7 +41,7 @@ impl LedgerNeo {
 	///
 	///
 	/// ```
-	/// use NeoRust::prelude::{HDPath, Ledger};
+	/// use neo_rs::prelude::{HDPath, Ledger};
 	///  async fn foo() -> Result<(), Box<dyn std::error::Error>> {
 	///
 	/// let ledger = Ledger::new(HDPath::LedgerLive(0), 1).await?;
@@ -229,12 +231,13 @@ impl LedgerNeo {
 
 #[cfg(all(test, feature = "ledger"))]
 mod tests {
-	use super::*;
-	use neo::prelude::RawTransaction;
-	use signature::{digest::Mac, Signer};
-	use std::str::FromStr;
+    use signature::digest::Mac;
 
-	#[tokio::test]
+    use neo::prelude::RawTransaction;
+
+    use super::*;
+
+    #[tokio::test]
 	#[ignore]
 	// Replace this with your ETH addresses.
 	async fn test_get_address() {

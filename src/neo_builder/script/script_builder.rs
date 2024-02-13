@@ -1,14 +1,16 @@
+use std::collections::HashMap;
+
 use getset::{Getters, Setters};
-use neo::prelude::{
-	BuilderError, Bytes, CallFlags, ContractParameter, Encoder, InteropService, OpCode,
-	ScriptHashExtension, *,
-};
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
 use primitive_types::H160;
 use rustc_serialize::hex::FromHex;
-use std::collections::HashMap;
 use tokio::io::AsyncWriteExt;
+
+use neo::prelude::{
+    *, BuilderError, Bytes, CallFlags, ContractParameter, Encoder, InteropService,
+    OpCode, ScriptHashExtension,
+};
 
 #[derive(Debug, PartialEq, Eq, Hash, Getters, Setters)]
 pub struct ScriptBuilder {
@@ -105,7 +107,7 @@ impl ScriptBuilder {
 	///
 	/// ```
 	/// use num_bigint::BigInt;
-	/// use NeoRust::prelude::ScriptBuilder;
+	/// use neo_rs::prelude::ScriptBuilder;
 	///
 	/// let mut builder = ScriptBuilder::new();
 	/// builder.push_int(&BigInt::from(15))?;
@@ -158,7 +160,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```
-	/// use NeoRust::prelude::{OpCode, ScriptBuilder};
+	/// use neo_rs::prelude::{OpCode, ScriptBuilder};
 	/// let mut builder = ScriptBuilder::new();
 	/// builder.push_opcode_bytes(OpCode::PushData1, vec![0x01]);
 	/// ```
@@ -338,14 +340,16 @@ impl ScriptBuilder {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
-	use hex_literal::hex;
-	use num_bigint::BigInt;
-	use num_traits::FromPrimitive;
-	use rustc_serialize::hex::{FromHex, ToHex};
-	use std::vec;
+    use std::vec;
 
-	#[test]
+    use hex_literal::hex;
+    use num_bigint::BigInt;
+    use num_traits::FromPrimitive;
+    use rustc_serialize::hex::{FromHex, ToHex};
+
+    use super::*;
+
+    #[test]
 	fn test_push_empty_array() {
 		let mut builder = ScriptBuilder::new();
 		builder.push_array(&[]).unwrap();

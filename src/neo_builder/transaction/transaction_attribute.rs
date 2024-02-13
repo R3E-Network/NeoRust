@@ -1,8 +1,11 @@
-use crate::prelude::Base64Encode;
-use neo::prelude::{Decoder, Encoder, NeoSerializable, TransactionError};
+use std::hash::Hasher;
+
 use rustc_serialize::base64::FromBase64;
 use serde::{Deserialize, Serialize};
-use std::hash::Hasher;
+
+use neo::prelude::{Decoder, Encoder, NeoSerializable, TransactionError};
+
+use crate::prelude::Base64Encode;
 
 use super::oracle_response_code::OracleResponseCode;
 

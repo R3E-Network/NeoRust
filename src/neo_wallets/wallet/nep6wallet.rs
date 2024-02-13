@@ -1,7 +1,9 @@
-use getset::{CopyGetters, Getters};
-use neo::prelude::{NEP6Account, ScryptParamsDef};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use getset::{CopyGetters, Getters};
+use serde::{Deserialize, Serialize};
+
+use neo::prelude::{NEP6Account, ScryptParamsDef};
 
 /// Represents a NEP-6 wallet.
 #[derive(Serialize, Deserialize, Clone, Getters, CopyGetters)]
@@ -40,7 +42,7 @@ impl NEP6Wallet {
 	///
 	/// ```
 	/// use std::collections::HashMap;
-	/// use NeoRust::prelude::{NEP6Wallet, ScryptParamsDef};
+	/// use neo_rs::prelude::{NEP6Wallet, ScryptParamsDef};
 	///
 	/// let name = "MyWallet".to_string();
 	/// let version = "1.0".to_string();
@@ -63,9 +65,9 @@ impl NEP6Wallet {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::{ContractParameterType, NEP6Wallet, ScryptParamsDef};
+    use neo::prelude::{ContractParameterType, NEP6Wallet, ScryptParamsDef};
 
-	#[test]
+    #[test]
 	fn test_read_wallet() {
 		let data = include_str!("../../../test_resources/wallet/wallet.json");
 		let wallet: NEP6Wallet = serde_json::from_str(data).unwrap();

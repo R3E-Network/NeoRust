@@ -134,9 +134,9 @@ pub struct SyncProgress {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+    use super::*;
 
-	// <https://github.com/gakonst/neo-rs/issues/1623>
+    // <https://github.com/gakonst/neo-rs/issues/1623>
 	#[test]
 	fn deserialize_sync_geth() {
 		let s = r#"{

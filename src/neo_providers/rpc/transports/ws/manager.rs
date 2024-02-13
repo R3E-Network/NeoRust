@@ -1,22 +1,25 @@
-#[cfg(not(target_arch = "wasm32"))]
-use super::WebSocketConfig;
-use super::{
-	backend::{BackendDriver, WsBackend},
-	ActiveSub, ConnectionDetails, InFlight, Instruction, Notification, PubSubItem, Response, SubId,
-	WsClient, WsClientError,
+use std::{
+    collections::{BTreeMap, HashMap},
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering}, Mutex,
+    },
 };
-use crate::JsonRpcError;
+
 use futures_channel::{mpsc, oneshot};
 use futures_util::{select_biased, StreamExt};
 use primitive_types::U256;
-use serde_json::value::{to_raw_value, RawValue};
-use std::{
-	collections::{BTreeMap, HashMap},
-	sync::{
-		atomic::{AtomicU64, Ordering},
-		Arc, Mutex,
-	},
+use serde_json::value::{RawValue, to_raw_value};
+
+use crate::JsonRpcError;
+
+use super::{
+    ActiveSub,
+    backend::{BackendDriver, WsBackend}, ConnectionDetails, InFlight, Instruction, Notification, PubSubItem, Response, SubId,
+    WsClient, WsClientError,
 };
+#[cfg(not(target_arch = "wasm32"))]
+use super::WebSocketConfig;
 
 pub type SharedChannelMap = Arc<Mutex<HashMap<U256, mpsc::UnboundedReceiver<Box<RawValue>>>>>;
 

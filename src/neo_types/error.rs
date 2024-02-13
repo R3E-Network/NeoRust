@@ -1,5 +1,6 @@
-use neo::prelude::CodecError;
 use thiserror::Error;
+
+use neo::prelude::CodecError;
 
 #[derive(Error, Debug, PartialEq, Eq, Hash, Clone)]
 pub enum TypeError {
@@ -25,8 +26,8 @@ pub enum TypeError {
 	InvalidScript(String),
 	#[error("Invalid format")]
 	InvalidFormat,
-	#[error("NeoRust not initialized")]
-	NeoRustNotInitialized,
+	#[error("neo-rs not initialized")]
+	neo-rsNotInitialized,
 	// #[error("Contract error: {0}")]
 	// ContractError(#[from] ContractError),
 	#[error("Unexpected returned type: {0}")]

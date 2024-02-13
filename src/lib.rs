@@ -8,11 +8,11 @@
 //! when you want to quickly bootstrap a new project.
 //!
 //! ```rust
-//! use NeoRust::prelude::*;
+//! use neo_rs::prelude::*;
 //! ```
 //!
 //! Examples on how you can use the types imported by the prelude can be found in the
-//! [`examples` directory of the repository](https://github.com/gakonst/neo-rs/tree/master/examples)
+//! [`examples` directory of the repository](https://github.com/R3E-Network/neo-rs/tree/master/examples)
 //! and in the `tests/` directories of each crate.
 //!
 //! ## Modules
@@ -28,7 +28,7 @@
 //! To simplify your imports, consider using the re-exported modules described in the next
 //! subsection.
 //!
-//! ### `utils`, `types`, `abi`
+//! ### `utils`, `types`
 //!
 //! These are re-exports of the [`utils`], [`types`] and [`abi`] modules from the [`core`] crate.
 //!
@@ -84,16 +84,10 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc(test(no_crate_inject, attr(deny(rust_2018_idioms), allow(dead_code, unused_variables))))]
 
-mod neo_builder;
-mod neo_codec;
-mod neo_config;
-mod neo_contract;
-mod neo_crypto;
-mod neo_error;
-mod neo_protocol;
-mod neo_providers;
-mod neo_types;
-mod neo_wallets;
+// For macro expansions only, not public API.
+#[doc(hidden)]
+#[allow(unused_extern_crates)]
+extern crate self as neo;
 
 #[doc(inline)]
 use neo_builder as builder;
@@ -114,6 +108,17 @@ use neo_types as types;
 #[doc(inline)]
 use neo_wallets as wallets;
 
+mod neo_builder;
+mod neo_codec;
+mod neo_config;
+mod neo_contract;
+mod neo_crypto;
+mod neo_error;
+mod neo_protocol;
+mod neo_providers;
+mod neo_types;
+mod neo_wallets;
+
 /// Easy imports of frequently used type definitions and traits.
 #[doc(hidden)]
 #[allow(unknown_lints, ambiguous_glob_reexports)]
@@ -124,7 +129,3 @@ pub mod prelude {
 	};
 }
 
-// For macro expansions only, not public API.
-#[doc(hidden)]
-#[allow(unused_extern_crates)]
-extern crate self as neo;

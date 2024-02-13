@@ -1,6 +1,7 @@
-use neo::prelude::{BuilderError, CryptoError, TransactionError};
 use p256::ecdsa;
 use thiserror::Error;
+
+use neo::prelude::{BuilderError, CryptoError, TransactionError};
 
 /// Errors that may occur within wallet operations.
 ///
@@ -29,7 +30,7 @@ use thiserror::Error;
 /// Handling a `WalletError` might look like this:
 ///
 /// ```
-/// # use NeoRust::prelude::WalletError;
+/// # use neo_rs::prelude::WalletError;
 /// # fn main() -> Result<(), WalletError> {
 /// let result = some_wallet_operation();
 ///     match result {

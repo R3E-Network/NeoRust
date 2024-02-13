@@ -1,14 +1,32 @@
-use base64::{engine::general_purpose, Engine};
-
+use base64::{Engine, engine::general_purpose};
+pub use log::*;
 use primitive_types::H256;
-
 use serde_derive::{Deserialize, Serialize};
+
+pub use address::*;
+pub use address_or_scripthash::*;
+pub use block::*;
+pub use bytes::*;
+pub use contract::*;
+pub use error::*;
+pub use nns::*;
+pub use numeric::*;
+pub use op_code::*;
+pub use path_or_string::*;
+pub use plugin_type::*;
+pub use script_hash::*;
+pub use serde_value::*;
+pub use serde_with_utils::*;
+pub use stack_item::*;
+pub use string::*;
+pub use syncing::*;
+pub use tx_pool::*;
+pub use url_session::*;
+pub use util::*;
+pub use vm_state::*;
 
 mod contract;
 mod nns;
-
-pub use contract::*;
-pub use nns::*;
 
 mod address;
 mod address_or_scripthash;
@@ -29,28 +47,6 @@ mod tx_pool;
 mod url_session;
 mod util;
 mod vm_state;
-
-pub use address::*;
-pub use address_or_scripthash::*;
-pub use block::*;
-pub use bytes::*;
-pub use error::*;
-pub use log::*;
-
-pub use numeric::*;
-pub use op_code::*;
-pub use path_or_string::*;
-pub use plugin_type::*;
-pub use script_hash::*;
-pub use serde_value::*;
-pub use serde_with_utils::*;
-pub use stack_item::*;
-pub use string::*;
-pub use syncing::*;
-pub use tx_pool::*;
-pub use url_session::*;
-pub use util::*;
-pub use vm_state::*;
 
 pub type Byte = u8;
 pub type Bytes = Vec<u8>;
@@ -152,11 +148,12 @@ pub fn to_checksum(addr: &ScriptHash, chain_id: Option<u8>) -> String {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
-	use hex;
-	use rustc_serialize::base64::FromBase64;
+    use hex;
+    use rustc_serialize::base64::FromBase64;
 
-	#[test]
+    use super::*;
+
+    #[test]
 	fn test_base64_encode_bytes() {
 		let input = hex::decode("150c14242dbf5e2f6ac2568b59b7822278d571b75f17be0c14242dbf5e2f6ac2568b59b7822278d571b75f17be13c00c087472616e736665720c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b5238").unwrap();
 		let expected = "FQwUJC2/Xi9qwlaLWbeCInjVcbdfF74MFCQtv14vasJWi1m3giJ41XG3Xxe+E8AMCHRyYW5zZmVyDBSJdyDYzXb08Aq/o3wO3YicII/em0FifVtSOA==";

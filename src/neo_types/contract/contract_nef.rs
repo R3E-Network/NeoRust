@@ -1,6 +1,7 @@
-use neo::prelude::ContractMethodToken;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
+
+use neo::prelude::ContractMethodToken;
 
 #[derive(Serialize, Deserialize, Hash, Clone, Debug)]
 #[serde_as]

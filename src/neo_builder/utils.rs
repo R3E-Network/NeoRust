@@ -1,5 +1,6 @@
-use neo::prelude::*;
 use serde_json::Value;
+
+use neo::prelude::*;
 
 // pub type ScriptHash = H160;
 

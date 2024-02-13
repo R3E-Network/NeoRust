@@ -1,6 +1,7 @@
 use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
+
 #[derive(
 	Display,
 	EnumString,

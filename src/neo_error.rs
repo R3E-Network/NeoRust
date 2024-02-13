@@ -25,8 +25,8 @@ pub enum NeoError {
 	InvalidScript(String),
 	#[error("Invalid format")]
 	InvalidFormat,
-	#[error("NeoRust not initialized")]
-	NeoRustNotInitialized,
+	#[error("neo-rs not initialized")]
+	NeoNotInitialized,
 	#[error("Contract error: {0}")]
 	ContractError(#[from] ContractError),
 	#[error("Wallet error: {0}")]

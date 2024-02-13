@@ -97,9 +97,9 @@ fn to_milliseconds(datetime: chrono::DateTime<chrono::Utc>) -> i64 {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+    use super::*;
 
-	#[test]
+    #[test]
 	fn test_to_bytes_padded() {
 		let n = BigInt::from(1234);
 		let bytes = n.to_bytes_padded(8);

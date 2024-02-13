@@ -1,5 +1,6 @@
-use neo::prelude::{ContractManifest, ContractNef};
 use serde::{Deserialize, Serialize};
+
+use neo::prelude::{ContractManifest, ContractNef};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NativeContractState {

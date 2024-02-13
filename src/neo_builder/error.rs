@@ -1,5 +1,6 @@
-use neo::prelude::{CodecError, CryptoError, ProviderError, TransactionError};
 use thiserror::Error;
+
+use neo::prelude::{CodecError, CryptoError, ProviderError, TransactionError};
 
 #[derive(Debug, Error, PartialEq)]
 pub enum BuilderError {

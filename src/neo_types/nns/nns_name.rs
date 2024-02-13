@@ -1,7 +1,8 @@
 use derive_more::Display;
 use getset::{Getters, Setters};
-use neo::prelude::TypeError;
 use serde::{Deserialize, Serialize};
+
+use neo::prelude::TypeError;
 
 #[derive(Debug, Clone, Display, PartialEq, Eq, Serialize, Deserialize, Getters, Setters)]
 pub struct NNSName {

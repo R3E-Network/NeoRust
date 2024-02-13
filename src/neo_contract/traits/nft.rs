@@ -1,11 +1,13 @@
-use async_trait::async_trait;
-use neo::prelude::{
-	Account, AccountSigner, AccountTrait, Address, Bytes, ContractError, ContractParameter,
-	JsonRpcClient, NNSName, NeoIterator, NftContract, ScriptHash, ScriptHashExtension, StackItem,
-	TokenTrait, TransactionBuilder,
-};
-use primitive_types::H160;
 use std::{collections::HashMap, sync::Arc};
+
+use async_trait::async_trait;
+use primitive_types::H160;
+
+use neo::prelude::{
+    Account, AccountSigner, AccountTrait, Address, Bytes, ContractError, ContractParameter,
+    JsonRpcClient, NeoIterator, NftContract, NNSName, ScriptHash, ScriptHashExtension, StackItem,
+    TokenTrait, TransactionBuilder,
+};
 
 #[async_trait]
 pub trait NonFungibleTokenTrait<'a, P: JsonRpcClient>: TokenTrait<'a, P> + Send {

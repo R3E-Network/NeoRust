@@ -1,6 +1,7 @@
-use neo::prelude::{Bytes, Secp256r1PublicKey};
 use primitive_types::{H160, H256};
 use serde_json::Value;
+
+use neo::prelude::{Bytes, Secp256r1PublicKey};
 
 pub trait ValueExtension {
 	fn to_value(&self) -> Value;

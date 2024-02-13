@@ -1,13 +1,15 @@
-use async_trait::async_trait;
-use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
-use serde::{de::DeserializeOwned, Serialize};
-use serde_json::Value;
 use std::{
 	borrow::Borrow,
 	collections::VecDeque,
 	sync::{Arc, Mutex},
 };
+
+use async_trait::async_trait;
+use serde::{de::DeserializeOwned, Serialize};
+use serde_json::Value;
 use thiserror::Error;
+
+use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
 
 /// Helper type that can be used to pass through the `params` value.
 /// This is necessary because the wrapper provider is supposed to skip the `params` if it's of
@@ -159,8 +161,9 @@ impl From<MockError> for ProviderError {
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]
 mod tests {
-	use super::*;
 	use neo::prelude::{JsonRpcError, Provider};
+
+	use super::*;
 
 	#[tokio::test]
 	async fn pushes_request_and_response() {

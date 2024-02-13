@@ -1,12 +1,14 @@
-use lazy_static::lazy_static;
-use neo::prelude::HashableForVec;
 use std::{
-	collections::HashMap,
-	hash::Hash,
-	sync::{Arc, Mutex},
+    collections::HashMap,
+    hash::Hash,
+    sync::{Arc, Mutex},
 };
+
+use lazy_static::lazy_static;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString};
+
+use neo::prelude::HashableForVec;
 
 lazy_static! {
 	static ref INTEROP_SERVICE_HASHES: Arc<Mutex<HashMap<String, String>>> =

@@ -1,16 +1,19 @@
 // Code adapted from: https://github.com/althea-net/guac_rs/tree/master/web3/src/jsonrpc
 
-use super::common::{JsonRpcError, Request, Response};
-use async_trait::async_trait;
-use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
-use reqwest::{header, Client, Error as ReqwestError};
-use serde::{de::DeserializeOwned, Serialize};
 use std::{
-	str::FromStr,
-	sync::atomic::{AtomicU64, Ordering},
+    str::FromStr,
+    sync::atomic::{AtomicU64, Ordering},
 };
+
+use async_trait::async_trait;
+use reqwest::{Client, Error as ReqwestError, header};
+use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use url::Url;
+
+use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
+
+use super::common::{JsonRpcError, Request, Response};
 
 /// A low-level JSON-RPC Client over HTTP.
 ///
@@ -18,11 +21,14 @@ use url::Url;
 ///
 /// ```no_run
 /// use std::str::FromStr;
-/// use NeoRust::prelude::{Http, JsonRpcClient};
+/// use primitive_types::H256;
+/// use neo_rs::prelude::{Http, JsonRpcClient, Middleware, NeoConstants, Provider};
 ///
 /// # async fn foo() -> Result<(), Box<dyn std::error::Error>> {
-/// let provider = Http::from_str("http://localhost:8545")?;
-/// let block_number: u64 = provider.fetch("neo_blockNumber", ()).await?;
+/// let provider = Provider::<Http>::try_from(
+///     NeoConstants::SEED_1
+/// ).expect("could not instantiate HTTP Provider");
+/// let block_number = provider.get_block(H256::zero(), false).await?;
 /// # Ok(())
 /// # }
 /// ```
@@ -126,7 +132,7 @@ impl HttpProvider {
 	///
 	/// ```
 	/// use url::Url;
-	/// use NeoRust::prelude::Http;
+	/// use neo_rs::prelude::Http;
 	///
 	/// let url = Url::parse("http://localhost:8545").unwrap();
 	/// let provider = Http::new(url);
@@ -151,7 +157,7 @@ impl HttpProvider {
 	///
 	/// ```
 	/// use url::Url;
-	/// use NeoRust::prelude::Http;
+	/// use neo_rs::prelude::Http;
 	///
 	/// let url = Url::parse("http://localhost:8545").unwrap();
 	/// let provider = Http::new(url);
@@ -177,7 +183,7 @@ impl HttpProvider {
 	///
 	/// ```
 	/// use url::Url;
-	/// use NeoRust::prelude::Http;
+	/// use neo_rs::prelude::Http;
 	///
 	/// let url = Url::parse("http://localhost:8545").unwrap();
 	/// let client = reqwest::Client::builder().build().unwrap();

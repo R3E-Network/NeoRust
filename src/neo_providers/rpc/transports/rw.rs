@@ -2,9 +2,10 @@
 //! and uses a dedicated client for read and the other for write operations
 
 use async_trait::async_trait;
-use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
 use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
+
+use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
 
 /// A client containing two clients.
 ///
@@ -29,7 +30,7 @@ impl<Read, Write> RwClient<Read, Write> {
 	///
 	/// ```no_run
 	/// use url::Url;
-	/// use NeoRust::prelude::Http;
+	/// use neo_rs::prelude::Http;
 	/// async fn t(){
 	/// let http = Http::new(Url::parse("http://localhost:8545").unwrap());
 	/// let ws = Ws::connect("ws://localhost:8545").await.unwrap();

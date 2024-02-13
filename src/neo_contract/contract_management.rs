@@ -4,6 +4,7 @@ use neo::prelude::*;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
+/// A struct representing contract management functionalities
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContractManagement<'a, P: JsonRpcClient> {
 	#[serde(deserialize_with = "deserialize_script_hash")]
@@ -120,7 +121,6 @@ impl<'a, P: JsonRpcClient> ContractManagement<'a, P> {
 	}
 }
 
-// Other types and helpers
 #[async_trait]
 impl<'a, P: JsonRpcClient> SmartContractTrait<'a> for ContractManagement<'a, P> {
 	type P = P;

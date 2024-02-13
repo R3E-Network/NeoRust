@@ -1,11 +1,13 @@
+use std::fmt;
+
 use ethereum_types::Address;
-use neo::{
-	crypto::Secp256r1Signature,
-	prelude::{Transaction, WalletError},
-};
 use primitive_types::H256;
 use signature::hazmat::PrehashSigner;
-use std::fmt;
+
+use neo::{
+    crypto::Secp256r1Signature,
+    prelude::{Transaction, WalletError},
+};
 
 /// An Ethereum private-public key pair which can be used for signing messages.
 ///
@@ -20,7 +22,7 @@ use std::fmt;
 /// ```
 ///
 /// # use rand::thread_rng;
-/// use NeoRust::prelude::LocalSigner;
+/// use neo_rs::prelude::LocalSigner;
 ///  async fn foo() -> Result<(), Box<dyn std::error::Error>> {
 /// let wallet = LocalSigner::new(&mut thread_rng());
 ///

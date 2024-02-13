@@ -1,10 +1,12 @@
-use getset::{Getters, Setters};
-use neo::prelude::{
-	Account, Address, AddressOrScriptHash, Base64Encode, ContractParameterType, NEP6Contract,
-	NEP6Parameter, NeoSerializable, StringExt, VerificationScript, WalletError,
-};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use getset::{Getters, Setters};
+use serde::{Deserialize, Serialize};
+
+use neo::prelude::{
+    Account, Address, AddressOrScriptHash, Base64Encode, ContractParameterType, NeoSerializable,
+    NEP6Contract, NEP6Parameter, StringExt, VerificationScript, WalletError,
+};
 
 /// Represents an account in the NEP-6 format.
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, Setters)]
@@ -61,7 +63,7 @@ impl NEP6Account {
 	///
 	/// ```
 	/// use std::collections::HashMap;
-	/// use NeoRust::prelude::{Address, NEP6Account, NEP6Contract};
+	/// use neo_rs::prelude::{Address, NEP6Account, NEP6Contract};
 	///
 	/// let address = Address::from("example_address");
 	/// let label = Some("My Account".to_string());
@@ -98,7 +100,7 @@ impl NEP6Account {
 	/// # Example
 	///
 	/// ```
-	/// use NeoRust::prelude::{Account, NEP6Account};
+	/// use neo_rs::prelude::{Account, NEP6Account};
 	///
 	/// let account = Account::default();
 	/// let nep6_account = NEP6Account::from_account(&account);
@@ -157,7 +159,7 @@ impl NEP6Account {
 	/// # Example
 	///
 	/// ```
-	/// use NeoRust::prelude::NEP6Account;
+	/// use neo_rs::prelude::NEP6Account;
 	/// let nep6_account = NEP6Account::default();
 	/// let account = nep6_account.to_account();
 	/// ```
@@ -201,7 +203,7 @@ impl PartialEq for NEP6Account {
 	///
 	/// ```
 	///
-	/// use NeoRust::prelude::NEP6Account;
+	/// use neo_rs::prelude::NEP6Account;
 	///
 	/// let account1 = NEP6Account::default();
 	/// let account2 = NEP6Account::default();
@@ -214,11 +216,11 @@ impl PartialEq for NEP6Account {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::{
-		AccountTrait, NEP6Account, PrivateKeyExtension, Secp256r1PrivateKey, TestConstants,
-	};
+    use neo::prelude::{
+        AccountTrait, NEP6Account, PrivateKeyExtension, Secp256r1PrivateKey, TestConstants,
+    };
 
-	#[test]
+    #[test]
 	fn test_decrypt_with_standard_scrypt_params() {
 		let private_key = Secp256r1PrivateKey::from_bytes(
 			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY).unwrap(),

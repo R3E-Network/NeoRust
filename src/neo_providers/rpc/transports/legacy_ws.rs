@@ -1,29 +1,29 @@
-use crate::{
-	errors::ProviderError,
-	rpc::transports::common::{JsonRpcError, Params, Request, Response},
-	JsonRpcClient, PubsubClient,
+use std::{
+    collections::{btree_map::Entry, BTreeMap},
+    fmt::{self, Debug},
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 
 use async_trait::async_trait;
 use futures_channel::{mpsc, oneshot};
 use futures_util::{
-	sink::{Sink, SinkExt},
-	stream::{Fuse, Stream, StreamExt},
+    sink::{Sink, SinkExt},
+    stream::{Fuse, Stream, StreamExt},
 };
-
 use primitive_types::U256;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::value::RawValue;
-use std::{
-	collections::{btree_map::Entry, BTreeMap},
-	fmt::{self, Debug},
-	sync::{
-		atomic::{AtomicU64, Ordering},
-		Arc,
-	},
-};
 use thiserror::Error;
 use tracing::trace;
+
+use crate::{
+    errors::ProviderError,
+    JsonRpcClient,
+    PubsubClient, rpc::transports::common::{JsonRpcError, Params, Request, Response},
+};
 
 macro_rules! if_wasm {
     ($($item:item)*) => {$(
@@ -524,10 +524,9 @@ impl From<ClientError> for ProviderError {
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
-	use super::*;
-	use neo_types::block::Block;
+    use neo_types::block::Block;
 
-	#[tokio::test]
+    #[tokio::test]
 	async fn request() {
 		let anvil = Anvil::new().block_time(1u64).spawn();
 		let ws = Ws::connect(anvil.ws_endpoint()).await.unwrap();

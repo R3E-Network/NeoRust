@@ -1,5 +1,6 @@
-use neo::prelude::*;
 use sha2::{Digest, Sha256};
+
+use neo::prelude::*;
 
 /// Converts a WIF (Wallet Import Format) string into a `Secp256r1PrivateKey`.
 ///
@@ -58,11 +59,11 @@ pub fn wif_from_private_key(private_key: &Secp256r1PrivateKey) -> String {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::{
-		private_key_from_wif, wif_from_private_key, PrivateKeyExtension, Secp256r1PrivateKey,
-	};
+    use neo::prelude::{
+        private_key_from_wif, PrivateKeyExtension, Secp256r1PrivateKey, wif_from_private_key,
+    };
 
-	#[test]
+    #[test]
 	fn test_valid_wif_to_private_key() {
 		let wif = "L25kgAQJXNHnhc7Sx9bomxxwVSMsZdkaNQ3m2VfHrnLzKWMLP13A";
 		let expected_key =

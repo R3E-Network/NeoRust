@@ -1,11 +1,12 @@
-use neo::prelude::{
-	Bytes, CodecError, ContractParameter, Decoder, Encoder, HashableForVec, NeoSerializable,
-	StackItem, TypeError,
-};
-use primitive_types::H160;
-
 use std::hash::Hasher;
+
+use primitive_types::H160;
 use tokio::io::AsyncReadExt;
+
+use neo::prelude::{
+    Bytes, CodecError, ContractParameter, Decoder, Encoder, HashableForVec, NeoSerializable,
+    StackItem, TypeError,
+};
 
 /*
 ┌───────────────────────────────────────────────────────────────────────┐

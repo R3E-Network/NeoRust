@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/neoRust.iml" filepath="$PROJECT_DIR$/.idea/neoRust.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/neo-rs.iml" filepath="$PROJECT_DIR$/.idea/neo-rs.iml" />
     </modules>
   </component>
 </project>

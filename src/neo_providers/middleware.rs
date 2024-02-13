@@ -1,8 +1,10 @@
+use std::{collections::HashMap, error::Error, fmt::Debug};
+
 use async_trait::async_trait;
 use auto_impl::auto_impl;
-use neo::prelude::{JsonRpcError, *};
 use primitive_types::{H160, H256};
-use std::{collections::HashMap, error::Error, fmt::Debug};
+
+use neo::prelude::{*, JsonRpcError};
 
 /// [`MiddlewareError`] is a companion trait to [`crate::Middleware`]. It
 /// describes error behavior that is common to all Middleware errors.

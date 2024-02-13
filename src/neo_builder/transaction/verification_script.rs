@@ -1,16 +1,17 @@
-use getset::{Getters, Setters};
+use std::vec;
 
-use neo::prelude::{
-	var_size, BuilderError, Bytes, Decoder, Encoder, InteropService, NeoSerializable, OpCode,
-	ScriptBuilder, Secp256r1PublicKey, Secp256r1Signature,
-};
+use getset::{Getters, Setters};
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Zero};
 use p256::pkcs8::der::Encode;
 use primitive_types::H160;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Serialize};
-use std::vec;
+
+use neo::prelude::{
+    BuilderError, Bytes, Decoder, Encoder, InteropService, NeoSerializable, OpCode, ScriptBuilder,
+    Secp256r1PublicKey, Secp256r1Signature, var_size,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
 pub struct VerificationScript {
@@ -224,11 +225,13 @@ impl NeoSerializable for VerificationScript {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
-	use neo_config::NeoConstants;
-	use rustc_serialize::hex::FromHex;
+    use rustc_serialize::hex::FromHex;
 
-	#[test]
+    use neo_config::NeoConstants;
+
+    use super::*;
+
+    #[test]
 	fn test_from_public_key() {
 		let key =
 			hex!("035fdb1d1f06759547020891ae97c729327853aeb1256b6fe0473bc2e9fa42ff50").to_vec();

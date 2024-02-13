@@ -1,10 +1,12 @@
-use neo::prelude::{deserialize_script_hash, serialize_script_hash, ContractParameter, StackItem};
+use std::{
+    collections::HashMap,
+    hash::{Hash, Hasher},
+};
+
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
-use std::{
-	collections::HashMap,
-	hash::{Hash, Hasher},
-};
+
+use neo::prelude::{ContractParameter, deserialize_script_hash, serialize_script_hash, StackItem};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct InvocationResult {

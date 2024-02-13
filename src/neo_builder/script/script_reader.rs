@@ -1,7 +1,7 @@
-use neo::prelude::{BuilderError, Bytes, Decoder, InteropService, OpCode, OperandSize};
 use rustc_serialize::hex::ToHex;
-
 use tokio::io::AsyncReadExt;
+
+use neo::prelude::{BuilderError, Bytes, Decoder, InteropService, OpCode, OperandSize};
 
 pub struct ScriptReader;
 
@@ -50,8 +50,11 @@ impl ScriptReader {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
-	use rustc_serialize::hex::FromHex; // Adjust this to import your ScriptReader and other necessary items.
+    use rustc_serialize::hex::FromHex;
+
+    use super::*;
+
+// Adjust this to import your ScriptReader and other necessary items.
 
 	#[test]
 	fn test_convert_to_op_code_string() {

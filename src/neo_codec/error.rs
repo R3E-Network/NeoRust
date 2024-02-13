@@ -1,7 +1,9 @@
-use neo::prelude::OpCode;
-use num_enum::TryFromPrimitiveError;
 use std::hash::{Hash, Hasher};
+
+use num_enum::TryFromPrimitiveError;
 use thiserror::Error;
+
+use neo::prelude::OpCode;
 
 #[derive(Error, Debug, PartialEq, Eq, Clone)]
 pub enum CodecError {

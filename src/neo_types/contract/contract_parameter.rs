@@ -1,20 +1,22 @@
-use neo::prelude::{
-	deserialize_map, serialize_map, Base64Encode, ContractParameterType, NNSName, NefFile,
-	NeoSerializable, Role, ScriptHashExtension, Secp256r1PublicKey, ValueExtension,
+use std::{
+    collections::HashMap,
+    hash::{Hash, Hasher},
 };
+
 use primitive_types::{H160, H256};
 use rustc_serialize::{
-	base64::FromBase64,
-	hex::{FromHex, ToHex},
+    base64::FromBase64,
+    hex::{FromHex, ToHex},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha3::Digest;
-use std::{
-	collections::HashMap,
-	hash::{Hash, Hasher},
-};
 use strum_macros::{Display, EnumString};
+
+use neo::prelude::{
+    Base64Encode, ContractParameterType, deserialize_map, NefFile, NeoSerializable, NNSName,
+    Role, ScriptHashExtension, Secp256r1PublicKey, serialize_map, ValueExtension,
+};
 
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Clone)]
 pub struct ContractParameter {
@@ -531,13 +533,14 @@ impl ParameterValue {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::{
-		ContractParameter, ContractParameterMap, ContractParameterType, Secp256r1PublicKey,
-	};
-	use primitive_types::{H160, H256};
-	use rustc_serialize::hex::FromHex;
+    use primitive_types::{H160, H256};
+    use rustc_serialize::hex::FromHex;
 
-	#[test]
+    use neo::prelude::{
+        ContractParameter, ContractParameterMap, ContractParameterType, Secp256r1PublicKey,
+    };
+
+    #[test]
 	fn test_string_from_string() {
 		let param = ContractParameter::string("value".to_string());
 		// assert_param(&param, "value", ContractParameterType::String);

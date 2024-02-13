@@ -1,11 +1,13 @@
+use std::{collections::BTreeMap, fmt, str::FromStr};
+
 use ethereum_types::U64;
-use neo::prelude::Address;
 use primitive_types::U256;
 use serde::{
-	de::{self, Deserializer, Visitor},
-	Deserialize, Serialize,
+    de::{self, Deserializer, Visitor},
+    Deserialize, Serialize,
 };
-use std::{collections::BTreeMap, fmt, str::FromStr};
+
+use neo::prelude::Address;
 
 /// Transaction summary as found in the Txpool Inspection property.
 #[derive(Debug, Clone, PartialEq, Eq)]

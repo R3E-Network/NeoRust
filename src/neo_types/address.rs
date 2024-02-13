@@ -2,14 +2,15 @@
 // and handling various formats like Base58 and hexadecimal strings. It leverages cryptographic functions, serialization, and
 // deserialization to work with blockchain-specific data types.
 
-use neo::{
-	neo_crypto::HashableForVec,
-	prelude::{ScriptHash, ScriptHashExtension, StringExt, TypeError},
-};
 use primitive_types::H160;
 use rand::Rng;
 use rustc_serialize::hex::FromHex;
 use serde_derive::{Deserialize, Serialize};
+
+use neo::{
+    neo_crypto::HashableForVec,
+    prelude::{ScriptHash, ScriptHashExtension, StringExt, TypeError},
+};
 
 pub type Address = String;
 
@@ -29,7 +30,7 @@ pub trait AddressExtension {
 	/// Basic usage:
 	///
 	/// ```
-	/// use NeoRust::prelude::AddressExtension;
+	/// use neo_rs::prelude::AddressExtension;
 	/// let address = "someBase58EncodedAddress";
 	/// let script_hash = address.address_to_script_hash().unwrap();
 	/// ```
@@ -42,7 +43,7 @@ pub trait AddressExtension {
 	/// Basic usage:
 	///
 	/// ```
-	/// use NeoRust::prelude::AddressExtension;
+	/// use neo_rs::prelude::AddressExtension;
 	/// let script = "abcdef1234567890";
 	/// let script_hash = script.script_to_script_hash().unwrap();
 	/// ```
@@ -55,7 +56,7 @@ pub trait AddressExtension {
 	/// Basic usage:
 	///
 	/// ```
-	/// use NeoRust::prelude::AddressExtension;
+	/// use neo_rs::prelude::AddressExtension;
 	/// let hex_string = "abcdef1234567890";
 	/// let script_hash = hex_string.hex_to_script_hash().unwrap();
 	/// ```
@@ -68,7 +69,7 @@ pub trait AddressExtension {
 	/// Basic usage:
 	///
 	/// ```
-	/// use NeoRust::prelude::AddressExtension;
+	/// use neo_rs::prelude::AddressExtension;
 	/// let random_address = String::random();
 	/// ```
 	fn random() -> Self;
@@ -138,9 +139,9 @@ impl AddressExtension for &str {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+    use super::*;
 
-	#[test]
+    #[test]
 	fn test_address_to_script_hash() {
 		// Test case 1: Valid N3 address
 		let n3_address = "NTGYC16CN5QheM4ZwfhUp9JKq8bMjWtcAp";

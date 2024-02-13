@@ -4,7 +4,7 @@
 ///
 /// ```
 ///
-/// use NeoRust::prelude::Decoder;
+/// use neo_rs::prelude::Decoder;
 /// let data = [0x01, 0x02, 0x03, 0x04];
 /// let mut decoder = Decoder::new(&data);
 ///
@@ -18,10 +18,11 @@
 /// assert_eq!(decoder.read_i64(), 0x0807060504030201);
 /// ```
 use getset::{Getters, Setters};
-use neo::prelude::{CodecError, NeoSerializable, OpCode};
 use num_bigint::{BigInt, Sign};
 use serde::Deserialize;
 use serde_derive::Serialize;
+
+use neo::prelude::{CodecError, NeoSerializable, OpCode};
 
 /// A binary decoder that can read various types of data from a byte slice.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize, Getters, Setters)]
@@ -287,10 +288,11 @@ impl<'a> Decoder<'a> {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::Decoder;
-	use num_bigint::BigInt;
+    use num_bigint::BigInt;
 
-	#[test]
+    use neo::prelude::Decoder;
+
+    #[test]
 	fn test_read_push_data_bytes() {
 		let prefix_count_map = [
 			(hex::decode("0c01").unwrap(), 1),

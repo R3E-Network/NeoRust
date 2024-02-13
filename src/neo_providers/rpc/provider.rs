@@ -1,16 +1,19 @@
-use crate::neo_providers::rpc::provider::sealed::Sealed;
-use async_trait::async_trait;
-use futures_util::lock::Mutex;
-use neo::prelude::*;
-use primitive_types::{H160, H256};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
 	collections::HashMap, convert::TryFrom, fmt::Debug, future::Future, net::Ipv4Addr,
 	str::FromStr, sync::Arc, time::Duration,
 };
+
+use async_trait::async_trait;
+use futures_util::lock::Mutex;
+use primitive_types::{H160, H256};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tracing::trace;
 use tracing_futures::Instrument;
 use url::{Host, ParseError, Url};
+
+use neo::prelude::*;
+
+use crate::neo_providers::rpc::provider::sealed::Sealed;
 
 /// Node Clients
 #[derive(Copy, Clone)]
@@ -38,7 +41,7 @@ impl FromStr for NodeClient {
 /// # Example
 ///
 /// ```no_run
-///  use NeoRust::prelude::{Http, Middleware, NeoConstants, Provider};
+///  use neo_rs::prelude::{Http, Middleware, NeoConstants, Provider};
 ///  async fn foo() -> Result<(), Box<dyn std::error::Error>> {
 /// use std::convert::TryFrom;
 ///
@@ -159,14 +162,24 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	}
 
 	// Blockchain methods
+	/// Gets the hash of the latest block in the blockchain.
+	/// - Returns: The request object
 	async fn get_best_block_hash(&self) -> Result<H256, ProviderError> {
 		self.request("getbestblockhash", ()).await
 	}
 
+	/// Gets the block hash of the corresponding block based on the specified block index.
+	/// - Parameter blockIndex: The block index
+	/// - Returns: The request object
 	async fn get_block_hash(&self, block_index: u32) -> Result<H256, ProviderError> {
 		self.request("getblockhash", [block_index.to_value()].to_vec()).await
 	}
 
+	/// Gets the corresponding block information according to the specified block hash.
+	/// - Parameters:
+	///   - blockHash: The block hash
+	///   - returnFullTransactionObjects: Whether to get block information with all transaction objects or just the block header
+	/// - Returns: The request object
 	async fn get_block(&self, block_hash: H256, full_tx: bool) -> Result<NeoBlock, ProviderError> {
 		return Ok(if full_tx {
 			self.request("getblock", [block_hash.to_value(), 1.to_value()].to_vec()).await?
@@ -175,64 +188,91 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		})
 	}
 
+	/// Gets the corresponding block information for the specified block hash.
+	/// - Parameter blockHash: The block hash
+	/// - Returns: The request object
 	async fn get_raw_block(&self, block_hash: H256) -> Result<String, ProviderError> {
 		self.request("getblock", [block_hash.to_value(), 0.to_value()]).await
 	}
 
 	// Node methods
-
+	/// Gets the block header count of the blockchain.
+	/// - Returns: The request object
 	async fn get_block_header_count(&self) -> Result<u32, ProviderError> {
 		self.request("getblockheadercount", ()).await
 	}
 
+	/// Gets the block count of the blockchain.
+	/// - Returns: The request object
 	async fn get_block_count(&self) -> Result<u32, ProviderError> {
 		self.request("getblockcount", ()).await
 	}
 
+	/// Gets the corresponding block header information according to the specified block hash.
+	/// - Parameter blockHash: The block hash
+	/// - Returns: The request object
 	async fn get_block_header(&self, block_hash: H256) -> Result<NeoBlock, ProviderError> {
 		self.request("getblockheader", vec![block_hash.to_value(), 1.to_value()]).await
 	}
 
+	/// Gets the corresponding block header information according to the specified index.
+	/// - Parameter blockIndex: The block index
+	/// - Returns: The request object
 	async fn get_block_header_by_index(&self, index: u32) -> Result<NeoBlock, ProviderError> {
 		self.request("getblockheader", vec![index.to_value(), 1.to_value()]).await
 	}
 
-	// Smart contract methods
-
+	/// Gets the corresponding block header information according to the specified block hash.
+	/// - Parameter blockHash: The block hash
+	/// - Returns: The request object
 	async fn get_raw_block_header(&self, block_hash: H256) -> Result<String, ProviderError> {
 		self.request("getblockheader", vec![block_hash.to_value(), 0.to_value()]).await
 	}
 
+	/// Gets the corresponding block header information according to the specified index.
+	/// - Parameter blockIndex: The block index
+	/// - Returns: The request object
 	async fn get_raw_block_header_by_index(&self, index: u32) -> Result<String, ProviderError> {
 		self.request("getblockheader", vec![index.to_value(), 0.to_value()]).await
 	}
 
-	// Utility methods
-
+	/// Gets the native contracts list, which includes the basic information of native contracts and the contract descriptive file `manifest.json`.
+	/// - Returns: The request object
 	async fn get_native_contracts(&self) -> Result<Vec<NativeContractState>, ProviderError> {
 		self.request("getnativecontracts", ()).await
 	}
 
-	// Wallet methods
-
+	/// Gets the contract information.
+	/// - Parameter contractHash: The contract script hash
+	/// - Returns: The request object
 	async fn get_contract_state(&self, hash: H160) -> Result<ContractState, ProviderError> {
 		self.request("getcontractstate", vec![hash.to_value()]).await
 	}
 
+	/// Gets the native contract information by its name.
+	///
+	/// This RPC only works for native contracts.
+	/// - Parameter contractName: The name of the native contract
+	/// - Returns: The request object
 	async fn get_native_contract_state(&self, name: &str) -> Result<ContractState, ProviderError> {
 		self.request("getcontractstate", vec![name.to_value()]).await
 	}
 
+	/// Gets a list of unconfirmed or confirmed transactions in memory.
+	/// - Returns: The request object
 	async fn get_mem_pool(&self) -> Result<MemPoolDetails, ProviderError> {
 		self.request("getrawmempool", vec![1.to_value()]).await
 	}
 
+	/// Gets a list of confirmed transactions in memory.
+	/// - Returns: The request object
 	async fn get_raw_mem_pool(&self) -> Result<Vec<H256>, ProviderError> {
 		self.request("getrawmempool", ()).await
 	}
 
-	// Application logs
-
+	/// Gets the corresponding transaction information based on the specified transaction hash.
+	/// - Parameter txHash: The transaction hash
+	/// - Returns: The request object
 	async fn get_transaction(
 		&self,
 		hash: H256,
@@ -240,54 +280,84 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self.request("getrawtransaction", vec![hash.to_value(), 1.to_value()]).await
 	}
 
-	// State service
-
+	/// Gets the corresponding transaction information based on the specified transaction hash.
+	/// - Parameter txHash: The transaction hash
+	/// - Returns: The request object
 	async fn get_raw_transaction(&self, tx_hash: H256) -> Result<RawTransaction, ProviderError> {
 		self.request("getrawtransaction", vec![tx_hash.to_value(), 0.to_value()]).await
 	}
 
+	/// Gets the stored value according to the contract hash and the key.
+	/// - Parameters:
+	///   - contractHash: The contract hash
+	///   - keyHexString: The key to look up in storage as a hexadecimal string
+	/// - Returns: The request object
 	async fn get_storage(&self, contract_hash: H160, key: &str) -> Result<String, ProviderError> {
 		let params = [contract_hash.to_value(), key.to_value()];
 		self.request("getstorage", params.to_vec()).await
 	}
-	// Blockchain methods
 
+	/// Gets the transaction height with the specified transaction hash.
+	/// - Parameter txHash: The transaction hash
+	/// - Returns: The request object
 	async fn get_transaction_height(&self, tx_hash: H256) -> Result<u32, ProviderError> {
 		let params = [tx_hash.to_value()];
 		self.request("gettransactionheight", params.to_vec()).await
 	}
 
+	/// Gets the validators of the next block.
+	/// - Returns: The request object
 	async fn get_next_block_validators(&self) -> Result<Vec<Validator>, ProviderError> {
 		self.request("getnextblockvalidators", ()).await
 	}
 
+	/// Gets the public key list of current Neo committee members.
+	/// - Returns: The request object
 	async fn get_committee(&self) -> Result<Vec<String>, ProviderError> {
 		self.request("getcommittee", ()).await
 	}
 
+	/// Gets the current number of connections for the node.
+	/// - Returns: The request object
 	async fn get_connection_count(&self) -> Result<u32, ProviderError> {
 		self.request("getconnectioncount", ()).await
 	}
 
+	/// Gets a list of nodes that the node is currently connected or disconnected from.
+	/// - Returns: The request object
 	async fn get_peers(&self) -> Result<Peers, ProviderError> {
 		self.request("getpeers", ()).await
 	}
 
-	// Smart contract methods
-
+	/// Gets the version information of the node.
+	/// - Returns: The request object
 	async fn get_version(&self) -> Result<NeoVersion, ProviderError> {
 		self.request("getversion", ()).await
 	}
 
+	/// Broadcasts a transaction over the NEO network.
+	/// - Parameter rawTransactionHex: The raw transaction in hexadecimal
+	/// - Returns: The request object
 	async fn send_raw_transaction(&self, hex: String) -> Result<RawTransaction, ProviderError> {
 		self.request("sendrawtransaction", vec![hex.to_value()]).await
 	}
-	// More node methods
 
+	/// Broadcasts a new block over the NEO network.
+	/// - Parameter serializedBlockAsHex: The block in hexadecimal
+	/// - Returns: The request object
 	async fn submit_block(&self, hex: String) -> Result<bool, ProviderError> {
 		self.request("submitblock", vec![hex.to_value()]).await
 	}
 
+	// MARK: SmartContract Methods
+
+	/// Invokes the function with `functionName` of the smart contract with the specified contract hash.
+	/// - Parameters:
+	///   - contractHash: The contract hash to invoke
+	///   - functionName: The function to invoke
+	///   - contractParams: The parameters of the function
+	///   - signers: The signers
+	/// - Returns: The request object
 	async fn invoke_function(
 		&self,
 		contract_hash: &H160,
@@ -318,6 +388,11 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		}
 	}
 
+	/// Invokes a script.
+	/// - Parameters:
+	///   - scriptHex: The script to invoke
+	///   - signers: The signers
+	/// - Returns: The request object
 	async fn invoke_script(
 		&self,
 		hex: String,
@@ -328,62 +403,96 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self.request("invokescript", [hex.to_value(), signers.to_value()]).await
 	}
 
-	// More smart contract methods
-
+	/// Gets the unclaimed GAS of the account with the specified script hash.
+	/// - Parameter scriptHash: The account's script hash
+	/// - Returns: The request object
 	async fn get_unclaimed_gas(&self, hash: H160) -> Result<UnclaimedGas, ProviderError> {
 		self.request("getunclaimedgas", [serialize(&hash)]).await
 	}
 
+	/// Gets a list of plugins loaded by the node.
+	/// - Returns: The request object
 	async fn list_plugins(&self) -> Result<Vec<Plugin>, ProviderError> {
 		self.request("listplugins", ()).await
 	}
 
-	// More utility methods
-
+	/// Verifies whether the address is a valid NEO address.
+	/// - Parameter address: The address to verify
+	/// - Returns: The request object
 	async fn validate_address(&self, address: &str) -> Result<ValidateAddress, ProviderError> {
 		self.request("validateaddress", vec![address.to_value()]).await
 	}
 
-	// More wallet methods
-
+	/// Closes the current wallet.
+	/// - Returns: The request object
 	async fn close_wallet(&self) -> Result<bool, ProviderError> {
 		self.request("closewallet", ()).await
 	}
 
+	/// Exports the private key of the specified script hash.
+	/// - Parameter scriptHash: The account's script hash
+	/// - Returns: The request object
 	async fn dump_priv_key(&self, script_hash: H160) -> Result<String, ProviderError> {
 		let params = [script_hash.to_value()].to_vec();
 		self.request("dumpprivkey", params).await
 	}
 
+	/// Gets the wallet balance of the corresponding token.
+	/// - Parameter tokenHash: The token hash
+	/// - Returns: The request object
 	async fn get_wallet_balance(&self, token_hash: H160) -> Result<Balance, ProviderError> {
 		self.request("getwalletbalance", vec![token_hash.to_value()]).await
 	}
 
+	/// Creates a new address.
+	/// - Returns: The request object
 	async fn get_new_address(&self) -> Result<String, ProviderError> {
 		self.request("getnewaddress", ()).await
 	}
 
+	/// Gets the amount of unclaimed GAS in the wallet.
+	/// - Returns: The request object
 	async fn get_wallet_unclaimed_gas(&self) -> Result<String, ProviderError> {
 		self.request("getwalletunclaimedgas", ()).await
 	}
 
+	/// Imports a private key to the wallet.
+	/// - Parameter privateKeyInWIF: The private key in WIF-format
+	/// - Returns: The request object
 	async fn import_priv_key(&self, priv_key: String) -> Result<NeoAddress, ProviderError> {
 		let params = [priv_key.to_value()].to_vec();
 		self.request("importprivkey", params).await
 	}
 
+	/// Calculates the network fee for the specified transaction.
+	/// - Parameter transactionHex: The transaction in hexadecimal
+	/// - Returns: The request object
 	async fn calculate_network_fee(&self, hex: String) -> Result<u64, ProviderError> {
 		self.request("calculatenetworkfee", vec![hex.to_value()]).await
 	}
 
+	/// Lists all the addresses in the current wallet.
+	/// - Returns: The request object
 	async fn list_address(&self) -> Result<Vec<NeoAddress>, ProviderError> {
 		self.request("listaddress", ()).await
 	}
 
+	/// Opens the specified wallet.
+	/// - Parameters:
+	///   - walletPath: The wallet file path
+	///   - password: The password for the wallet
+	/// - Returns: The request object
 	async fn open_wallet(&self, path: String, password: String) -> Result<bool, ProviderError> {
 		self.request("openwallet", vec![path.to_value(), password.to_value()]).await
 	}
 
+	/// Transfers an amount of a token from an account to another account.
+	/// - Parameters:
+	///   - tokenHash: The token hash of the NEP-17 contract
+	///   - from: The transferring account's script hash
+	///   - to: The recipient
+	///   - amount: The transfer amount in token fractions
+	/// - Returns: The request object
 	async fn send_from(
 		&self,
 		token_hash: H160,
@@ -396,8 +505,11 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self.request("sendfrom", params).await
 	}
 
-	// Transaction methods
-
+	/// Initiates multiple transfers to multiple accounts from one specific account in a transaction.
+	/// - Parameters:
+	///   - from: The transferring account's script hash
+	///   - txSendTokens: a list of ``TransactionSendToken`` objects, that each contains the token hash, the recipient and the transfer amount.
+	/// - Returns: The request object
 	async fn send_many(
 		&self,
 		from: Option<H160>,
@@ -407,6 +519,12 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self.request("sendmany", params).await
 	}
 
+	/// Transfers an amount of a token to another account.
+	/// - Parameters:
+	///   - tokenHash: The token hash of the NEP-17 contract
+	///   - to: The recipient
+	///   - amount: The transfer amount in token fractions
+	/// - Returns: The request object
 	async fn send_to_address(
 		&self,
 		token_hash: H160,
@@ -417,14 +535,31 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self.request("sendtoaddress", params).await
 	}
 
+	async fn send_to_address_send_token(
+		&self,
+		send_token: &TransactionSendToken,
+	) -> Result<Transaction, ProviderError> {
+		let params = [send_token.to_value()].to_vec();
+		self.request("sendtoaddress", params).await
+	}
+
+	/// Gets the application logs of the specified transaction hash.
+	/// - Parameter txHash: The transaction hash
+	/// - Returns: The request object
 	async fn get_application_log(&self, tx_hash: H256) -> Result<ApplicationLog, ProviderError> {
 		self.request("getapplicationlog", vec![tx_hash.to_value()]).await
 	}
 
+	/// Gets the balance of all NEP-17 token assets in the specified script hash.
+	/// - Parameter scriptHash: The account's script hash
+	/// - Returns: The request object
 	async fn get_nep17_balances(&self, script_hash: H160) -> Result<Nep17Balances, ProviderError> {
 		self.request("getnep17balances", [script_hash.to_value()].to_vec()).await
 	}
 
+	/// Gets all the NEP-17 transaction information occurred in the specified script hash.
+	/// - Parameter scriptHash: The account's script hash
+	/// - Returns: The request object
 	async fn get_nep17_transfers(
 		&self,
 		script_hash: H160,
@@ -433,8 +568,11 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self.request("getnep17transfers", params).await
 	}
 
-	// NEP-17 methods
-
+	/// Gets all the NEP17 transaction information occurred in the specified script hash since the specified time.
+	/// - Parameters:
+	///   - scriptHash: The account's script hash
+	///   - from: The timestamp transactions occurred since
+	/// - Returns: The request object
 	async fn get_nep17_transfers_from(
 		&self,
 		script_hash: H160,
@@ -445,6 +583,12 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 			.await
 	}
 
+	/// Gets all the NEP17 transaction information occurred in the specified script hash in the specified time range.
+	/// - Parameters:
+	///   - scriptHash: The account's script hash
+	///   - from: The start timestamp
+	///   - to: The end timestamp
+	/// - Returns: The request object
 	async fn get_nep17_transfers_range(
 		&self,
 		script_hash: H160,
@@ -455,13 +599,17 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self.request("getnep17transfers", params).await
 	}
 
+	/// Gets all NEP-11 balances of the specified account.
+	/// - Parameter scriptHash: The account's script hash
+	/// - Returns: The request object
 	async fn get_nep11_balances(&self, script_hash: H160) -> Result<Nep11Balances, ProviderError> {
 		let params = [script_hash.to_value()].to_vec();
 		self.request("getnep11balances", params).await
 	}
 
-	// NEP-11 methods
-
+	/// Gets all NEP-11 transaction of the given account.
+	/// - Parameter scriptHash: The account's script hash
+	/// - Returns: The request object
 	async fn get_nep11_transfers(
 		&self,
 		script_hash: H160,
@@ -470,6 +618,11 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self.request("getnep11transfers", params).await
 	}
 
+	/// Gets all NEP-11 transaction of the given account since the given time.
+	/// - Parameters:
+	///   - scriptHash: The account's script hash
+	///   - from: The date from when to report transactions
+	/// - Returns: The request object
 	async fn get_nep11_transfers_from(
 		&self,
 		script_hash: H160,
@@ -479,6 +632,12 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self.request("getnep11transfers", params).await
 	}
 
+	/// Gets all NEP-11 transactions of the given account in the time span between `from` and `to`.
+	/// - Parameters:
+	///   - scriptHash: The account's script hash
+	///   - from: The start timestamp
+	///   - to: The end timestamp
+	/// - Returns: The request object
 	async fn get_nep11_transfers_range(
 		&self,
 		script_hash: H160,
@@ -489,6 +648,17 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self.request("getnep11transfers", params).await
 	}
 
+	/// Gets the properties of the token with `tokenId` from the NEP-11 contract with `scriptHash`.
+	///
+	/// The properties are a mapping from the property name string to the value string.
+	/// The value is plain text if the key is one of the properties defined in the NEP-11 standard.
+	/// Otherwise, the value is a Base64-encoded byte array.
+	///
+	/// To receive custom property values that consist of nested types (e.g., Maps or Arrays) use ``invokeFunction(_:_:_:)``  to directly invoke the method `properties` of the NEP-11 smart contract.
+	/// - Parameters:
+	///   - scriptHash: The account's script hash
+	///   - tokenId: The ID of the token as a hexadecimal string
+	/// - Returns: The request object
 	async fn get_nep11_properties(
 		&self,
 		script_hash: H160,
@@ -498,13 +668,20 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self.request("getnep11properties", params).await
 	}
 
+	/// Gets the state root by the block height.
+	/// - Parameter blockIndex: The block index
+	/// - Returns: The request object
 	async fn get_state_root(&self, block_index: u32) -> Result<StateRoot, ProviderError> {
 		let params = [block_index.to_value()].to_vec();
 		self.request("getstateroot", params).await
 	}
 
-	// State service methods
-
+	/// Gets the proof based on the root hash, the contract hash and the storage key.
+	/// - Parameters:
+	///   - rootHash: The root hash
+	///   - contractHash: The contract hash
+	///   - storageKeyHex: The storage key
+	/// - Returns: The request object
 	async fn get_proof(
 		&self,
 		root_hash: H256,
@@ -518,15 +695,28 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		.await
 	}
 
+	/// Verifies the proof data and gets the value of the storage corresponding to the key.
+	/// - Parameters:
+	///   - rootHash: The root hash
+	///   - proofDataHex: The proof data of the state root
+	/// - Returns: The request object
 	async fn verify_proof(&self, root_hash: H256, proof: &str) -> Result<bool, ProviderError> {
 		let params = [root_hash.to_value(), proof.to_value()].to_vec();
 		self.request("verifyproof", params).await
 	}
 
+	/// Gets the state root height.
+	/// - Returns: The request object
 	async fn get_state_height(&self) -> Result<StateHeight, ProviderError> {
 		self.request("getstateheight", ()).await
 	}
 
+	/// Gets the state.
+	/// - Parameters:
+	///   - rootHash: The root hash
+	///   - contractHash: The contract hash
+	///   - keyHex: The storage key
+	/// - Returns: The request object
 	async fn get_state(
 		&self,
 		root_hash: H256,
@@ -540,6 +730,16 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		.await
 	}
 
+	/// Gets a list of states that match the provided key prefix.
+	///
+	/// Includes proofs of the first and last entry.
+	/// - Parameters:
+	///   - rootHash: The root hash
+	///   - contractHash: The contact hash
+	///   - keyPrefixHex: The key prefix
+	///   - startKeyHex: The start key
+	///   - countFindResultItems: The number of results. An upper limit is defined in the Neo core
+	/// - Returns: The request object
 	async fn find_states(
 		&self,
 		root_hash: H256,
@@ -572,16 +772,25 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self.request("getblock", vec![index.to_value(), 0.to_value()]).await
 	}
 
+	/// Invokes the function with `functionName` of the smart contract with the specified contract hash.
+	///
+	/// Includes diagnostics from the invocation.
+	/// - Parameters:
+	///   - contractHash: The contract hash to invoke
+	///   - functionName: The function to invoke
+	///   - contractParams: The parameters of the function
+	///   - signers: The signers
+	/// - Returns: The request object
 	async fn invoke_function_diagnostics(
 		&self,
 		contract_hash: H160,
-		name: String,
+		function_name: String,
 		params: Vec<ContractParameter>,
 		signers: Vec<Signer>,
 	) -> Result<InvocationResult, ProviderError> {
 		let params = vec![
 			contract_hash.to_value(),
-			name.to_value(),
+			function_name.to_value(),
 			serde_json::to_string(&params).unwrap().to_value(),
 			serde_json::to_string(&signers).unwrap().to_value(),
 			true.to_value(),
@@ -589,6 +798,13 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self.request("invokefunction", params).await
 	}
 
+	/// Invokes a script.
+	///
+	/// Includes diagnostics from the invocation.
+	/// - Parameters:
+	///   - scriptHex: The script to invoke
+	///   - signers: The signers
+	/// - Returns: The request object
 	async fn invoke_script_diagnostics(
 		&self,
 		hex: String,
@@ -598,6 +814,14 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self.request("invokescript", params).await
 	}
 
+	/// Returns the results from an iterator.
+	///
+	/// The results are limited to `count` items. If `count` is greater than `MaxIteratorResultItems` in the Neo Node's configuration file, this request fails.
+	/// - Parameters:
+	///   - sessionId: The session id
+	///   - iteratorId: The iterator id
+	///   - count: The maximal number of stack items returned
+	/// - Returns: The request object
 	async fn traverse_iterator(
 		&self,
 		session_id: String,
@@ -623,26 +847,6 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 			vec![hash.to_value(), params.to_value(), signers.to_value()],
 		)
 		.await
-	}
-
-	async fn get_raw_mempool(&self) -> Result<MemPoolDetails, ProviderError> {
-		self.request("getrawmempool", ()).await
-	}
-
-	async fn import_private_key(&self, wif: String) -> Result<NeoAddress, ProviderError> {
-		self.request("importprivkey", vec![wif.to_value()]).await
-	}
-
-	async fn get_block_header_hash(&self, hash: H256) -> Result<NeoBlock, ProviderError> {
-		self.request("getblockheader", vec![hash.to_value(), 1.to_value()]).await
-	}
-
-	async fn send_to_address_send_token(
-		&self,
-		send_token: &TransactionSendToken,
-	) -> Result<Transaction, ProviderError> {
-		let params = [send_token.to_value()].to_vec();
-		self.request("sendtoaddress", params).await
 	}
 
 	async fn send_from_send_token(
@@ -717,7 +921,7 @@ impl Provider<MockProvider> {
 	/// # Example
 	///
 	/// ```
-	/// # use NeoRust::prelude::Provider;
+	/// # use neo_rs::prelude::Provider;
 	///  async fn foo() -> Result<(), Box<dyn std::error::Error>> {
 	/// // Instantiate the provider
 	/// let (provider, mock) = Provider::mocked();
@@ -807,7 +1011,7 @@ mod sealed {
 /// Note that this will send an RPC to retrieve the network magic.
 ///
 /// ```no_run
-///  # use NeoRust::prelude::{Http, Provider, ProviderExt};
+///  # use neo_rs::prelude::{Http, Provider, ProviderExt};
 ///  async fn t() {
 /// let http_provider = Provider::<Http>::connect("https://seed1.neo.org:10333").await;
 /// # }
@@ -817,7 +1021,7 @@ mod sealed {
 ///
 /// ```no_run
 /// use std::convert::TryFrom;
-/// use NeoRust::prelude::{Http, NeoNetwork, Provider, ProviderExt};
+/// use neo_rs::prelude::{Http, NeoNetwork, Provider, ProviderExt};
 /// let http_provider = Provider::<Http>::try_from("https://seed1.neo.org:10333").unwrap().set_network(NeoNetwork::MainNet.to_magic());
 /// ```
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
@@ -874,10 +1078,7 @@ impl ProviderExt for Provider<Http> {
 	}
 
 	fn set_network(&mut self, network: u32) -> &mut Self {
-		// if let Some(blocktime) = chain {
-		// use half of the block time
 		self.set_interval(Duration::from_millis(network as u64 / 2));
-		// }
 		self
 	}
 }
@@ -887,7 +1088,7 @@ impl ProviderExt for Provider<Http> {
 /// # Example
 ///
 /// ```
-/// use NeoRust::prelude::is_local_endpoint;
+/// use neo_rs::prelude::is_local_endpoint;
 /// assert!(is_local_endpoint("http://localhost:8545"));
 /// assert!(is_local_endpoint("http://test.localdev.me"));
 /// assert!(is_local_endpoint("http://169.254.0.0:8545"));
@@ -901,14 +1102,14 @@ impl ProviderExt for Provider<Http> {
 pub fn is_local_endpoint(endpoint: &str) -> bool {
 	if let Ok(url) = Url::parse(endpoint) {
 		if let Some(host) = url.host() {
-			match host {
+			return match host {
 				Host::Domain(domain) =>
-					return domain.contains("localhost") || domain.contains("localdev.me"),
+					domain.contains("localhost") || domain.contains("localdev.me"),
 				Host::Ipv4(ipv4) =>
-					return ipv4 == Ipv4Addr::LOCALHOST
+					ipv4 == Ipv4Addr::LOCALHOST
 						|| ipv4.is_link_local() || ipv4.is_loopback()
 						|| ipv4.is_private(),
-				Host::Ipv6(ipv6) => return ipv6.is_loopback(),
+				Host::Ipv6(ipv6) => ipv6.is_loopback(),
 			}
 		}
 	}

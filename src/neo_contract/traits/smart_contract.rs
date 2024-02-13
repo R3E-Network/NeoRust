@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
-use neo::prelude::*;
 use num_bigint::BigInt;
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
-use std::sync::Arc;
+
+use neo::prelude::*;
 
 #[async_trait]
 pub trait SmartContractTrait<'a>: Send + Sync {

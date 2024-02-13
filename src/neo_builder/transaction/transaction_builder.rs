@@ -1,3 +1,11 @@
+use std::{
+    collections::HashSet,
+    fmt::Debug,
+    hash::{Hash, Hasher},
+    iter::Iterator,
+    str::FromStr,
+};
+
 /// This module contains the implementation of the `TransactionBuilder` struct, which is used to build and configure transactions.
 ///
 /// The `TransactionBuilder` struct has various fields that can be set using its methods. Once the fields are set, the `get_unsigned_tx` method can be called to obtain an unsigned transaction.
@@ -8,7 +16,7 @@
 ///
 /// ```
 ///
-/// use NeoRust::prelude::TransactionBuilder;
+/// use neo_rs::prelude::TransactionBuilder;
 /// let mut tx_builder = TransactionBuilder::new();
 /// tx_builder.version(0)
 ///           .nonce(1)
@@ -17,18 +25,11 @@
 ///           .get_unsigned_tx();
 /// ```
 use getset::{CopyGetters, Getters, MutGetters, Setters};
-use neo::prelude::*;
 use once_cell::sync::Lazy;
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
 
-use std::{
-	collections::HashSet,
-	fmt::Debug,
-	hash::{Hash, Hasher},
-	iter::Iterator,
-	str::FromStr,
-};
+use neo::prelude::*;
 
 #[derive(Getters, Setters, MutGetters, CopyGetters, Default)]
 pub struct TransactionBuilder<P: JsonRpcClient + 'static> {
@@ -371,23 +372,25 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 
 #[cfg(test)]
 mod tests {
-	use lazy_static::lazy_static;
-	use neo::prelude::{
-		Account, AccountSigner, AccountTrait, ContractSigner, Http, Middleware, NeoConstants,
-		Provider, ScriptBuilder, TransactionAttribute, TransactionBuilder, Witness,
-	};
-	use openssl::rand;
-	use primitive_types::{H160, H256};
-	use std::{
-		ops::Deref,
-		str::FromStr,
-		sync::{
-			atomic::{AtomicBool, Ordering},
-			Arc,
-		},
-	};
+    use std::{
+        ops::Deref,
+        str::FromStr,
+        sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        },
+    };
 
-	lazy_static! {
+    use lazy_static::lazy_static;
+    use openssl::rand;
+    use primitive_types::{H160, H256};
+
+    use neo::prelude::{
+        Account, AccountSigner, AccountTrait, ContractSigner, Http, Middleware, NeoConstants,
+        Provider, ScriptBuilder, TransactionAttribute, TransactionBuilder, Witness,
+    };
+
+    lazy_static! {
 		pub static ref ACCOUNT1: Account = Account::from_private_key(
 			"e6e919577dd7b8e97805151c05ae07ff4f752654d6d8797597aca989c02c4cb3"
 		);

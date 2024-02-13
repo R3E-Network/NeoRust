@@ -1,12 +1,14 @@
-use neo::prelude::{
-	deserialize_h256, deserialize_h256_option, deserialize_script_hash, serialize_h256,
-	serialize_h256_option, serialize_script_hash, Bytes, Decoder, Encoder, HashableForVec,
-	NameOrAddress, NeoSerializable, Signer, TransactionAttribute, TransactionError, VMState,
-	VarSizeTrait, Witness,
-};
+use std::hash::{Hash, Hasher};
+
 use primitive_types::{H160, H256, U256};
 use serde::{Deserialize, Serialize};
-use std::hash::{Hash, Hasher};
+
+use neo::prelude::{
+    Bytes, Decoder, deserialize_h256, deserialize_h256_option,
+    deserialize_script_hash, Encoder, HashableForVec, NameOrAddress, NeoSerializable, serialize_h256,
+    serialize_h256_option, serialize_script_hash, Signer, TransactionAttribute, TransactionError, VarSizeTrait,
+    VMState, Witness,
+};
 
 #[derive(Default, Serialize, Deserialize, Hash, Debug, Clone)]
 pub struct Transaction {

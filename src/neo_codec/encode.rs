@@ -1,6 +1,8 @@
-use neo::prelude::{CodecError, Decoder, Encoder, NeoConstants};
-use primitive_types::{H160, H256};
 use std::fmt::Debug;
+
+use primitive_types::{H160, H256};
+
+use neo::prelude::{CodecError, Decoder, Encoder, NeoConstants};
 
 pub trait NeoSerializable {
 	type Error: Send + Sync + Debug;

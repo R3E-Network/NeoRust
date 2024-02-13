@@ -1,5 +1,6 @@
-use neo::prelude::ContractParameterType;
 use serde::{Deserialize, Serialize};
+
+use neo::prelude::ContractParameterType;
 
 /// Represents a NEP-6 contract.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -35,7 +36,7 @@ impl PartialEq for NEP6Contract {
 	/// # Example
 	///
 	/// ```
-	/// use NeoRust::prelude::NEP6Contract;
+	/// use neo_rs::prelude::NEP6Contract;
 	///
 	/// let contract1 = NEP6Contract::default();
 	/// let contract2 = NEP6Contract::default();

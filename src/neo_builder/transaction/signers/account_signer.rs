@@ -1,15 +1,18 @@
-use crate::prelude::Secp256r1PublicKey;
+use std::hash::{Hash, Hasher};
+
 use getset::{Getters, Setters};
-use neo::prelude::{
-	deserialize_script_hash, deserialize_vec_public_key, deserialize_vec_script_hash,
-	serialize_script_hash, serialize_vec_public_key, serialize_vec_script_hash, Account,
-	AccountTrait, Decoder, Encoder, NeoConstants, NeoSerializable, PublicKeyExtension,
-	ScriptHashExtension, SignerTrait, SignerType, TransactionError, VarSizeTrait, WitnessRule,
-	WitnessScope,
-};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
-use std::hash::{Hash, Hasher};
+
+use neo::prelude::{
+    Account, AccountTrait, Decoder,
+    deserialize_script_hash, deserialize_vec_public_key, deserialize_vec_script_hash, Encoder,
+    NeoConstants, NeoSerializable, PublicKeyExtension, ScriptHashExtension, serialize_script_hash, serialize_vec_public_key,
+    serialize_vec_script_hash, SignerTrait, SignerType, TransactionError, VarSizeTrait, WitnessRule,
+    WitnessScope,
+};
+
+use crate::prelude::Secp256r1PublicKey;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Getters, Setters)]
 pub struct AccountSigner {

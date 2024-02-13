@@ -1,11 +1,13 @@
-use neo::prelude::{Address, ScriptHashExtension, Secp256r1PublicKey};
+use std::collections::HashMap;
+
 /// This module defines the `StackItem` enum and `MapEntry` struct, which are used to represent items on the Neo virtual machine stack.
 /// `StackItem` is a recursive enum that can represent any type of value that can be stored on the stack, including arrays, maps, and custom types.
 /// `MapEntry` is a simple struct that represents a key-value pair in a `StackItem::Map`.
 /// The `StackItem` enum also provides several utility methods for converting between different types and formats.
 use primitive_types::{H160, H256};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+
+use neo::prelude::{Address, ScriptHashExtension, Secp256r1PublicKey};
 
 /// The `StackItem` enum represents an item on the Neo virtual machine stack.
 #[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize, Deserialize)]

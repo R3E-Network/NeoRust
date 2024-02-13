@@ -1,6 +1,7 @@
-use neo::prelude::{deserialize_script_hash, serialize_script_hash, ScriptHash};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
+
+use neo::prelude::{deserialize_script_hash, ScriptHash, serialize_script_hash};
 
 #[derive(Serialize, Deserialize, Debug, Hash, Clone)]
 pub struct ContractMethodToken {

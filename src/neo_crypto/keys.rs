@@ -33,7 +33,7 @@
 //!
 //! ```
 //! use rand_core::OsRng;
-//! use NeoRust::prelude::Secp256r1PrivateKey;
+//! use neo_rs::prelude::Secp256r1PrivateKey;
 //!
 //! // Generate a new private key
 //! let private_key = Secp256r1PrivateKey::random(&mut OsRng);
@@ -53,25 +53,26 @@
 //! in real-world applications.
 
 use core::fmt;
-use neo::prelude::{CryptoError, Decoder, Encoder, NeoConstants, NeoSerializable};
+use std::{
+    cmp::Ordering,
+    hash::{Hash, Hasher},
+};
 
 use p256::{
-	ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey},
-	elliptic_curve::{
-		sec1::{FromEncodedPoint, ToEncodedPoint},
-		Field,
-	},
-	EncodedPoint, FieldBytes, PublicKey, SecretKey,
+    ecdsa::{Signature, signature::Signer, SigningKey, VerifyingKey},
+    elliptic_curve::{
+        Field,
+        sec1::{FromEncodedPoint, ToEncodedPoint},
+    },
+    EncodedPoint, FieldBytes, PublicKey, SecretKey,
 };
 use primitive_types::U256;
 use rand_core::OsRng;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use signature::{SignerMut, Verifier};
-use std::{
-	cmp::Ordering,
-	hash::{Hash, Hasher},
-};
+
+use neo::prelude::{CryptoError, Decoder, Encoder, NeoConstants, NeoSerializable};
 
 #[cfg_attr(feature = "substrate", serde(crate = "serde_substrate"))]
 #[derive(Debug, Clone)]
@@ -560,12 +561,13 @@ impl NeoSerializable for Secp256r1PublicKey {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::{
-		HashableForVec, Secp256r1PrivateKey, Secp256r1PublicKey, Secp256r1Signature, ToArray32,
-	};
-	use rustc_serialize::hex::{FromHex, ToHex};
+    use rustc_serialize::hex::{FromHex, ToHex};
 
-	const ENCODED_POINT: &str =
+    use neo::prelude::{
+        HashableForVec, Secp256r1PrivateKey, Secp256r1PublicKey, Secp256r1Signature, ToArray32,
+    };
+
+    const ENCODED_POINT: &str =
 		"03b4af8d061b6b320cce6c63bc4ec7894dce107bfc5f5ef5c68a93b4ad1e136816";
 
 	#[test]

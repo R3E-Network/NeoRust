@@ -1,10 +1,11 @@
 use hex::FromHexError;
-use neo::prelude::{
-	public_key_to_script_hash, HashableForVec, Secp256r1PublicKey, TypeError,
-	DEFAULT_ADDRESS_VERSION,
-};
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
+
+use neo::prelude::{
+    DEFAULT_ADDRESS_VERSION, HashableForVec, public_key_to_script_hash, Secp256r1PublicKey,
+    TypeError,
+};
 
 pub type ScriptHash = H160;
 
@@ -138,15 +139,17 @@ impl ScriptHashExtension for H160 {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+    use std::str::FromStr;
 
-	use neo::prelude::{
-		Encoder, HashableForString, InteropService, NeoSerializable, OpCode, TestConstants,
-	};
-	use rustc_serialize::hex::{FromHex, ToHex};
-	use std::str::FromStr;
+    use rustc_serialize::hex::{FromHex, ToHex};
 
-	#[test]
+    use neo::prelude::{
+        Encoder, HashableForString, InteropService, NeoSerializable, OpCode, TestConstants,
+    };
+
+    use super::*;
+
+    #[test]
 	fn test_from_valid_hash() {
 		assert_eq!(
 			H160::from_hex("23ba2703c53263e8d6e522dc32203339dcd8eee9")

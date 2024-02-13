@@ -5,27 +5,24 @@
 #![deny(unsafe_code, rustdoc::broken_intra_doc_links)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-mod ext;
-pub use ext::*;
 use lazy_static::lazy_static;
 
-mod rpc;
+pub use errors::{ProviderError, RpcError};
+pub use ext::*;
+pub use middleware::Middleware;
+use neo::prelude::NeoConstants;
 pub use rpc::*;
-
-/// Crate utilities and type aliases
-mod utils;
+#[allow(deprecated)]
+pub use test_provider::{MAINNET, TESTNET};
 pub use utils::*;
 
+mod ext;
+mod rpc;
+/// Crate utilities and type aliases
+mod utils;
 /// Errors
 mod errors;
 mod middleware;
-
-pub use errors::{ProviderError, RpcError};
-pub use middleware::Middleware;
-use neo::prelude::NeoConstants;
-
-#[allow(deprecated)]
-pub use test_provider::{MAINNET, TESTNET};
 
 lazy_static! {
 	pub static ref HTTP_PROVIDER: Provider<Http> = Provider::<Http>::try_from(
@@ -38,11 +35,13 @@ lazy_static! {
 /// Pre-instantiated Infura HTTP clients which rotate through multiple API keys
 /// to prevent rate limits
 mod test_provider {
-	use super::*;
-	use once_cell::sync::Lazy;
-	use std::{convert::TryFrom, iter::Cycle, slice::Iter, sync::Mutex};
+    use std::{convert::TryFrom, iter::Cycle, slice::Iter, sync::Mutex};
 
-	// List of infura keys to rotate through so we don't get rate limited
+    use once_cell::sync::Lazy;
+
+    use super::*;
+
+    // List of infura keys to rotate through so we don't get rate limited
 	const INFURA_KEYS: &[&str] = &["15e8aaed6f894d63a0f6a0206c006cdd"];
 
 	pub static MAINNET: Lazy<TestProvider> =
