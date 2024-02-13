@@ -27,7 +27,7 @@ pub enum TypeError {
 	#[error("Invalid format")]
 	InvalidFormat,
 	#[error("neo-rs not initialized")]
-	neo-rsNotInitialized,
+	NeoNotInitialized,
 	// #[error("Contract error: {0}")]
 	// ContractError(#[from] ContractError),
 	#[error("Unexpected returned type: {0}")]
