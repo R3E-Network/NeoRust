@@ -9,8 +9,8 @@ use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
-    BuilderError, Bytes, Decoder, Encoder, InteropService, NeoSerializable, OpCode, ScriptBuilder,
-    Secp256r1PublicKey, Secp256r1Signature, var_size,
+	var_size, BuilderError, Bytes, Decoder, Encoder, InteropService, NeoSerializable, OpCode,
+	ScriptBuilder, Secp256r1PublicKey, Secp256r1Signature,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
@@ -225,22 +225,19 @@ impl NeoSerializable for VerificationScript {
 
 #[cfg(test)]
 mod tests {
-    use rustc_serialize::hex::FromHex;
+	use super::*;
+	use hex_literal::hex;
+	use rustc_serialize::hex::FromHex;
 
-    use neo_config::NeoConstants;
-
-    use super::*;
-
-    #[test]
+	#[test]
 	fn test_from_public_key() {
-		let key =
-			hex!("035fdb1d1f06759547020891ae97c729327853aeb1256b6fe0473bc2e9fa42ff50").to_vec();
-		let pubkey = Secp256r1PublicKey::from(key.clone());
+		let key = "035fdb1d1f06759547020891ae97c729327853aeb1256b6fe0473bc2e9fa42ff50";
+		let pubkey = Secp256r1PublicKey::from_encoded(key.clone()).unwrap();
 		let script = VerificationScript::from_public_key(&pubkey);
 		let expected = format!(
 			"{}21{}{}{}",
 			OpCode::PushData1.to_string(),
-			key.to_hex(),
+			key,
 			OpCode::Syscall.to_string(),
 			InteropService::SystemCryptoCheckSig.hash()
 		)
@@ -288,16 +285,15 @@ mod tests {
 
 	#[test]
 	fn test_serialize_deserialize() {
-		let key =
-			hex!("035fdb1d1f06759547020891ae97c729327853aeb1256b6fe0473bc2e9fa42ff50").to_vec();
-		let pubkey = Secp256r1PublicKey::from(key.clone());
+		let key = "035fdb1d1f06759547020891ae97c729327853aeb1256b6fe0473bc2e9fa42ff50";
+		let pubkey = Secp256r1PublicKey::from_encoded(key.clone()).unwrap();
 
 		let script = VerificationScript::from_public_key(&pubkey);
 
 		let expected = format!(
 			"{}21{}{}{}",
 			OpCode::PushData1.to_string(),
-			key.to_hex(),
+			key,
 			OpCode::Syscall.to_string(),
 			InteropService::SystemCryptoCheckSig.hash()
 		);

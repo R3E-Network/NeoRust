@@ -48,7 +48,7 @@ pub trait SmartContractTrait<'a>: Send + Sync {
 		}
 
 		let script = ScriptBuilder::new()
-			.contract_call(&self.script_hash(), function, params.as_slice(), CallFlags::None)
+			.contract_call(&self.script_hash(), function, params.as_slice(), Some(CallFlags::None))
 			.unwrap()
 			.to_bytes();
 

@@ -1,12 +1,12 @@
 use std::{future::Future, pin::Pin, str::FromStr};
 
 use futures_timer::Delay;
-use futures_util::{FutureExt, stream, StreamExt};
+use futures_util::{stream, FutureExt, StreamExt};
 use primitive_types::{H160, U256};
 
 use neo::prelude::{
-    DEFAULT_ADDRESS_VERSION, HashableForVec, private_key_to_public_key, ProviderError, ScriptBuilder,
-    ScriptHash, ScriptHashExtension, Secp256r1PrivateKey, Secp256r1PublicKey,
+	private_key_to_public_key, HashableForVec, ProviderError, ScriptBuilder, ScriptHash,
+	ScriptHashExtension, Secp256r1PrivateKey, Secp256r1PublicKey, DEFAULT_ADDRESS_VERSION,
 };
 
 /// A simple gas escalation policy

@@ -2,11 +2,11 @@ use std::hash::{Hash, Hasher};
 
 use primitive_types::H160;
 use rustc_serialize::hex::{FromHex, ToHex};
-use serde::{Deserialize, Deserializer, ser::SerializeStruct, Serialize, Serializer};
+use serde::{ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
 use neo::prelude::{
-    Decoder, Encoder, NeoSerializable, ScriptHashExtension, Secp256r1PublicKey, TransactionError,
+	Decoder, Encoder, NeoSerializable, ScriptHashExtension, Secp256r1PublicKey, TransactionError,
 };
 
 /// Enum representing the different types of witness conditions that can be used in a smart contract.

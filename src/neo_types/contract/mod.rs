@@ -21,4 +21,3 @@ mod invocation_result;
 mod native_contract_state;
 mod nef_file;
 mod nep17contract;
-

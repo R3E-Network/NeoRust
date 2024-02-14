@@ -1,12 +1,13 @@
 // Code adapted from: https://github.com/althea-net/guac_rs/tree/master/web3/src/jsonrpc
 
 use std::{
-    str::FromStr,
-    sync::atomic::{AtomicU64, Ordering},
+	str::FromStr,
+	sync::atomic::{AtomicU64, Ordering},
 };
 
 use async_trait::async_trait;
-use reqwest::{Client, Error as ReqwestError, header};
+use neo::config::NeoConstants;
+use reqwest::{header, Client, Error as ReqwestError};
 use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use url::Url;
@@ -122,6 +123,13 @@ impl JsonRpcClient for HttpProvider {
 			.map_err(|err| ClientError::SerdeJson { err, text: raw.to_string() })?;
 
 		Ok(res)
+	}
+}
+
+impl Default for HttpProvider {
+	/// Default HTTP Provider from SEED_1
+	fn default() -> Self {
+		Self::new(Url::parse(NeoConstants::SEED_1).unwrap())
 	}
 }
 

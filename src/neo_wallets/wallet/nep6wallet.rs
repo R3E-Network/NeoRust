@@ -65,9 +65,9 @@ impl NEP6Wallet {
 
 #[cfg(test)]
 mod tests {
-    use neo::prelude::{ContractParameterType, NEP6Wallet, ScryptParamsDef};
+	use neo::prelude::{ContractParameterType, NEP6Wallet, ScryptParamsDef};
 
-    #[test]
+	#[test]
 	fn test_read_wallet() {
 		let data = include_str!("../../../test_resources/wallet/wallet.json");
 		let wallet: NEP6Wallet = serde_json::from_str(data).unwrap();

@@ -8,8 +8,8 @@ use rustc_serialize::hex::FromHex;
 use tokio::io::AsyncWriteExt;
 
 use neo::prelude::{
-    *, BuilderError, Bytes, CallFlags, ContractParameter, Encoder, InteropService,
-    OpCode, ScriptHashExtension,
+	BuilderError, Bytes, CallFlags, ContractParameter, Encoder, InteropService, OpCode,
+	ScriptHashExtension, *,
 };
 
 #[derive(Debug, PartialEq, Eq, Hash, Getters, Setters)]
@@ -40,7 +40,7 @@ impl ScriptBuilder {
 		hash160: &H160,
 		method: &str,
 		params: &[ContractParameter],
-		call_flags: CallFlags,
+		call_flags: Option<CallFlags>,
 	) -> Result<&mut Self, BuilderError> {
 		if params.is_empty() {
 			self.op_code(&[OpCode::NewArray]);
@@ -49,7 +49,10 @@ impl ScriptBuilder {
 		}
 
 		Ok(self
-			.push_integer(BigInt::from(call_flags.value()))
+			.push_integer(BigInt::from(match call_flags {
+				Some(flags) => flags.value(),
+				None => CallFlags::All.value(),
+			}))
 			.push_data(method.as_bytes().to_vec())
 			.push_data(hash160.to_vec())
 			.sys_call(InteropService::SystemContractCall))
@@ -236,8 +239,6 @@ impl ScriptBuilder {
 		Ok(self.push_integer(BigInt::from(map.len())).op_code(&[OpCode::PackMap]))
 	}
 
-	// Additional helper methods
-
 	pub fn pack(&mut self) -> &mut Self {
 		self.op_code(&[OpCode::Pack])
 	}
@@ -280,12 +281,13 @@ impl ScriptBuilder {
 			.push_data(name.as_bytes().to_vec());
 		Ok(sb.to_bytes())
 	}
+
 	pub fn build_contract_call_and_unwrap_iterator(
 		contract_hash: &H160,
 		method: &str,
 		params: &[ContractParameter],
 		max_items: u32,
-		call_flags: CallFlags,
+		call_flags: Option<CallFlags>,
 	) -> Result<Bytes, BuilderError> {
 		let mut sb = Self::new();
 		sb.push_integer(BigInt::from(max_items));
@@ -340,16 +342,16 @@ impl ScriptBuilder {
 
 #[cfg(test)]
 mod tests {
-    use std::vec;
+	use std::vec;
 
-    use hex_literal::hex;
-    use num_bigint::BigInt;
-    use num_traits::FromPrimitive;
-    use rustc_serialize::hex::{FromHex, ToHex};
+	use hex_literal::hex;
+	use num_bigint::BigInt;
+	use num_traits::FromPrimitive;
+	use rustc_serialize::hex::{FromHex, ToHex};
 
-    use super::*;
+	use super::*;
 
-    #[test]
+	#[test]
 	fn test_push_empty_array() {
 		let mut builder = ScriptBuilder::new();
 		builder.push_array(&[]).unwrap();

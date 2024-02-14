@@ -54,17 +54,17 @@
 
 use core::fmt;
 use std::{
-    cmp::Ordering,
-    hash::{Hash, Hasher},
+	cmp::Ordering,
+	hash::{Hash, Hasher},
 };
 
 use p256::{
-    ecdsa::{Signature, signature::Signer, SigningKey, VerifyingKey},
-    elliptic_curve::{
-        Field,
-        sec1::{FromEncodedPoint, ToEncodedPoint},
-    },
-    EncodedPoint, FieldBytes, PublicKey, SecretKey,
+	ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey},
+	elliptic_curve::{
+		sec1::{FromEncodedPoint, ToEncodedPoint},
+		Field,
+	},
+	EncodedPoint, FieldBytes, PublicKey, SecretKey,
 };
 use primitive_types::U256;
 use rand_core::OsRng;
@@ -561,13 +561,13 @@ impl NeoSerializable for Secp256r1PublicKey {
 
 #[cfg(test)]
 mod tests {
-    use rustc_serialize::hex::{FromHex, ToHex};
+	use rustc_serialize::hex::{FromHex, ToHex};
 
-    use neo::prelude::{
-        HashableForVec, Secp256r1PrivateKey, Secp256r1PublicKey, Secp256r1Signature, ToArray32,
-    };
+	use neo::prelude::{
+		HashableForVec, Secp256r1PrivateKey, Secp256r1PublicKey, Secp256r1Signature, ToArray32,
+	};
 
-    const ENCODED_POINT: &str =
+	const ENCODED_POINT: &str =
 		"03b4af8d061b6b320cce6c63bc4ec7894dce107bfc5f5ef5c68a93b4ad1e136816";
 
 	#[test]

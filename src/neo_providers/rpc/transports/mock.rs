@@ -161,6 +161,7 @@ impl From<MockError> for ProviderError {
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]
 mod tests {
+	use crate::{config::NeoNetwork, neo_providers::middleware::Middleware};
 	use neo::prelude::{JsonRpcError, Provider};
 
 	use super::*;
@@ -222,7 +223,7 @@ mod tests {
 		let (provider, mock) = Provider::mocked();
 
 		mock.push(12).unwrap();
-		let block = provider.get_block_number().await.unwrap();
-		assert_eq!(block, 12);
+		let version = provider.get_version().await.unwrap();
+		assert_eq!(version.protocol.unwrap().network, NeoNetwork::TestNet.to_magic());
 	}
 }

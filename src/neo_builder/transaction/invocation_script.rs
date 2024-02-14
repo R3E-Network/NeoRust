@@ -4,8 +4,8 @@ use getset::{Getters, Setters};
 use serde_derive::{Deserialize, Serialize};
 
 use neo::prelude::{
-    BuilderError, Decoder, Encoder, KeyPair, NeoSerializable, OpCode, ScriptBuilder, Secp256r1Signature,
-    var_size,
+	var_size, BuilderError, Decoder, Encoder, KeyPair, NeoSerializable, OpCode, ScriptBuilder,
+	Secp256r1Signature,
 };
 
 // #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
@@ -193,11 +193,11 @@ impl NeoSerializable for InvocationScript {
 
 #[cfg(test)]
 mod tests {
-    use rustc_serialize::hex::{FromHex, ToHex};
+	use rustc_serialize::hex::{FromHex, ToHex};
 
-    use super::*;
+	use super::*;
 
-    #[test]
+	#[test]
 	fn test_from_message_and_key_pair() {
 		let message = vec![0u8; 10];
 		let key_pair = KeyPair::new_random();

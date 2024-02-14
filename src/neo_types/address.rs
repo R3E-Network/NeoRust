@@ -8,8 +8,8 @@ use rustc_serialize::hex::FromHex;
 use serde_derive::{Deserialize, Serialize};
 
 use neo::{
-    neo_crypto::HashableForVec,
-    prelude::{ScriptHash, ScriptHashExtension, StringExt, TypeError},
+	neo_crypto::HashableForVec,
+	prelude::{ScriptHash, ScriptHashExtension, StringExt, TypeError},
 };
 
 pub type Address = String;
@@ -139,9 +139,9 @@ impl AddressExtension for &str {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+	use super::*;
 
-    #[test]
+	#[test]
 	fn test_address_to_script_hash() {
 		// Test case 1: Valid N3 address
 		let n3_address = "NTGYC16CN5QheM4ZwfhUp9JKq8bMjWtcAp";
@@ -151,7 +151,7 @@ mod tests {
 
 		// Test case 3: Invalid N3 address
 		let n3_address = "Invalid_Address";
-		let result = n3_address.to_string().to_script_hash();
+		let result = n3_address.to_string().address_to_script_hash();
 		assert!(result.is_err());
 	}
 }

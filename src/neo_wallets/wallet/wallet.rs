@@ -375,9 +375,9 @@ impl Wallet {
 
 #[cfg(test)]
 mod tests {
-    use neo::prelude::{AccountTrait, Signer::Account, TestConstants, Wallet, WalletTrait};
+	use neo::prelude::{Account, AccountTrait, TestConstants, Wallet, WalletTrait};
 
-    #[test]
+	#[test]
 	fn test_is_default() {
 		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
 		let mut wallet: Wallet = Wallet::new();

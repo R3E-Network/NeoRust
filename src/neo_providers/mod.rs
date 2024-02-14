@@ -9,20 +9,20 @@ use lazy_static::lazy_static;
 
 pub use errors::{ProviderError, RpcError};
 pub use ext::*;
-pub use middleware::Middleware;
 use neo::prelude::NeoConstants;
 pub use rpc::*;
 #[allow(deprecated)]
 pub use test_provider::{MAINNET, TESTNET};
 pub use utils::*;
 
+/// Errors
+mod errors;
 mod ext;
+mod middleware;
+pub use middleware::*;
 mod rpc;
 /// Crate utilities and type aliases
 mod utils;
-/// Errors
-mod errors;
-mod middleware;
 
 lazy_static! {
 	pub static ref HTTP_PROVIDER: Provider<Http> = Provider::<Http>::try_from(
@@ -35,13 +35,13 @@ lazy_static! {
 /// Pre-instantiated Infura HTTP clients which rotate through multiple API keys
 /// to prevent rate limits
 mod test_provider {
-    use std::{convert::TryFrom, iter::Cycle, slice::Iter, sync::Mutex};
+	use std::{convert::TryFrom, iter::Cycle, slice::Iter, sync::Mutex};
 
-    use once_cell::sync::Lazy;
+	use once_cell::sync::Lazy;
 
-    use super::*;
+	use super::*;
 
-    // List of infura keys to rotate through so we don't get rate limited
+	// List of infura keys to rotate through so we don't get rate limited
 	const INFURA_KEYS: &[&str] = &["15e8aaed6f894d63a0f6a0206c006cdd"];
 
 	pub static MAINNET: Lazy<TestProvider> =

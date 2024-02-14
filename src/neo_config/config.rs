@@ -1,6 +1,6 @@
 use std::{
-    hash::{Hash, Hasher},
-    sync::{Arc, Mutex},
+	hash::{Hash, Hasher},
+	sync::{Arc, Mutex},
 };
 
 use primitive_types::H160;

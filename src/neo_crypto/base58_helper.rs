@@ -82,9 +82,9 @@ pub fn calculate_checksum(input: &[u8]) -> [u8; 4] {
 
 #[cfg(test)]
 mod base58_tests {
-    use super::*;
+	use super::*;
 
-    // Define tuples of arbitrary strings that are mapped to valid Base58 encodings
+	// Define tuples of arbitrary strings that are mapped to valid Base58 encodings
 	static VALID_STRING_DECODED_TO_ENCODED: &[(&str, &str)] = &[
 		("", ""),
 		(" ", "Z"),

@@ -1,7 +1,7 @@
 use rustc_serialize::hex::ToHex;
 
 use neo::prelude::{
-    CryptoError, PrivateKeyExtension, PublicKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey,
+	CryptoError, PrivateKeyExtension, PublicKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey,
 };
 
 /// Convert a private key to a public key.

@@ -7,4 +7,3 @@ mod fungible_token;
 mod nft;
 mod smart_contract;
 mod token;
-

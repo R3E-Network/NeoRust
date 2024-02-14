@@ -1,14 +1,14 @@
 use std::{
-    cell::RefCell,
-    convert::Infallible,
-    hash::BuildHasherDefault,
-    io,
-    path::Path,
-    sync::{
-        Arc,
-        atomic::{AtomicU64, Ordering},
-    },
-    thread,
+	cell::RefCell,
+	convert::Infallible,
+	hash::BuildHasherDefault,
+	io,
+	path::Path,
+	sync::{
+		atomic::{AtomicU64, Ordering},
+		Arc,
+	},
+	thread,
 };
 
 use async_trait::async_trait;
@@ -17,20 +17,19 @@ use futures_channel::mpsc;
 use futures_util::stream::StreamExt;
 use primitive_types::U256;
 use serde::{de::DeserializeOwned, Serialize};
-use serde_json::{Deserializer, value::RawValue};
+use serde_json::{value::RawValue, Deserializer};
 use thiserror::Error;
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt, BufReader},
-    runtime,
-    sync::oneshot::{self, error::RecvError},
+	io::{AsyncReadExt, AsyncWriteExt, BufReader},
+	runtime,
+	sync::oneshot::{self, error::RecvError},
 };
 
 use hashers::fx_hash::FxHasher64;
 
 use crate::{errors::ProviderError, JsonRpcClient, PubsubClient};
 
-use super::common::{JsonRpcError, Request, Response};
-use super::common::Params;
+use super::common::{JsonRpcError, Params, Request, Response};
 
 use self::imp::*;
 
@@ -46,24 +45,24 @@ mod imp {}
 #[cfg(windows)]
 #[doc(hidden)]
 mod imp {
-    use std::{
-        ops::{Deref, DerefMut},
-        pin::Pin,
-        task::{Context, Poll},
-        time::Duration,
-    };
+	use std::{
+		ops::{Deref, DerefMut},
+		pin::Pin,
+		task::{Context, Poll},
+		time::Duration,
+	};
 
-    use tokio::{
-        io::{AsyncRead, AsyncWrite, ReadBuf},
-        net::windows::named_pipe::{ClientOptions, NamedPipeClient},
-        time::sleep,
-    };
+	use tokio::{
+		io::{AsyncRead, AsyncWrite, ReadBuf},
+		net::windows::named_pipe::{ClientOptions, NamedPipeClient},
+		time::sleep,
+	};
 
-    use winapi::shared::winerror;
+	use winapi::shared::winerror;
 
-    use super::*;
+	use super::*;
 
-    /// Wrapper around [NamedPipeClient] to have the same methods as a UnixStream.
+	/// Wrapper around [NamedPipeClient] to have the same methods as a UnixStream.
 	///
 	/// Should not be exported.
 	#[repr(transparent)]
@@ -510,13 +509,13 @@ impl crate::RpcError for IpcError {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+	use std::time::Duration;
 
-    use tempfile::NamedTempFile;
+	use tempfile::NamedTempFile;
 
-    use neo_types::{block::Block, TxHash};
+	use neo_types::{block::Block, TxHash};
 
-    async fn connect() -> (Ipc, GethInstance) {
+	async fn connect() -> (Ipc, GethInstance) {
 		let temp_file = NamedTempFile::new().unwrap();
 		let path = temp_file.into_temp_path().to_path_buf();
 		let geth = Geth::new().block_time(1u64).ipc_path(&path).spawn();

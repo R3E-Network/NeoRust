@@ -1,9 +1,9 @@
 use std::{
-    collections::HashSet,
-    fmt::Debug,
-    hash::{Hash, Hasher},
-    iter::Iterator,
-    str::FromStr,
+	collections::HashSet,
+	fmt::Debug,
+	hash::{Hash, Hasher},
+	iter::Iterator,
+	str::FromStr,
 };
 
 /// This module contains the implementation of the `TransactionBuilder` struct, which is used to build and configure transactions.
@@ -138,8 +138,23 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 		}
 	}
 
-	// Configuration
+	pub fn with_provider(provider: &'static Provider<P>) -> Self {
+		Self {
+			provider: Some(provider),
+			version: 0,
+			nonce: 0,
+			valid_until_block: None,
+			signers: Vec::new(),
+			additional_network_fee: 0,
+			additional_system_fee: 0,
+			attributes: Vec::new(),
+			script: None,
+			fee_consumer: None,
+			fee_error: None,
+		}
+	}
 
+	// Configuration
 	pub fn version(&mut self, version: u8) -> &mut Self {
 		self.version = version;
 		self
@@ -174,7 +189,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 	}
 
 	// Get unsigned transaction
-	pub async fn get_unsigned_tx(&mut self) -> Result<Transaction, TransactionError> {
+	pub async fn get_unsigned_tx(&mut self) -> Result<Transaction<P>, TransactionError> {
 		// Validate configuration
 		if self.signers.is_empty() {
 			return Err(TransactionError::NoSigners)
@@ -205,21 +220,9 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 			return Err(TransactionError::NoScript)
 		}
 
-		let tx = Transaction::new();
-		// 	self.version,
-		// 	self.nonce,
-		// 	self.valid_until_block.unwrap(),
-		// 	self.clone().signers,
-		// 	0,
-		// 	0,
-		// 	self.clone().attributes,
-		// 	self.clone().script.unwrap(),
-		// 	vec![],
-		// );
-
 		// Get fees
-		let system_fee = 0; //self.get_system_fee().await.unwrap();
-		let network_fee = 0; //self.get_network_fee(&tx).await.unwrap();
+		let system_fee = self.get_system_fee().await.unwrap();
+		let network_fee = self.get_network_fee(&tx).await.unwrap();
 
 		// Check sender balance if needed
 		if let Some(fee_consumer) = &self.fee_consumer {
@@ -229,10 +232,20 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 			}
 		}
 
-		// tx.set_network_fee(network_fee as i64);
-		// tx.set_system_fee(system_fee as i64);
-		// Build transaction
-		Ok(tx)
+		Ok(Transaction {
+			provider: None,
+			version: self.version,
+			nonce: self.nonce,
+			valid_until_block: self.valid_until_block.unwrap(),
+			size: 0,
+			sys_fee: 0,
+			net_fee: 0,
+			signers: self.signers.clone(),
+			attributes: self.attributes.clone(),
+			script: self.script.clone().unwrap(), // We've already checked for None case above
+			witnesses: vec![],
+			block_time: None,
+		})
 	}
 
 	// async fn get_system_fee(&self) -> Result<u64, TransactionError> {
@@ -248,7 +261,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 	// 	Ok(u64::from_str(response.gas_consumed.as_str()).unwrap()) // example
 	// }
 
-	async fn get_network_fee(&mut self, tx: &Transaction) -> Result<u64, TransactionError> {
+	async fn get_network_fee(&mut self, tx: &Transaction<P>) -> Result<u64, TransactionError> {
 		let fee = self.provider.unwrap().calculate_network_fee(tx.to_array().to_hex()).await?;
 		Ok(fee)
 	}
@@ -284,9 +297,10 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 	}
 
 	// Sign transaction
-	pub async fn sign(&mut self) -> Result<Transaction, BuilderError> {
-		let mut transaction = self.get_unsigned_tx().await.unwrap();
-		let tx_bytes = transaction.get_hash_data()?;
+	pub async fn sign(&mut self) -> Result<&mut Self, BuilderError> {
+		let mut transaction =
+			self.get_unsigned_tx().await.unwrap().with_provider(self.provider.unwrap());
+		let tx_bytes = transaction.get_hash_data().await?;
 
 		let mut witnesses_to_add = Vec::new();
 
@@ -372,25 +386,26 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        ops::Deref,
-        str::FromStr,
-        sync::{
-            Arc,
-            atomic::{AtomicBool, Ordering},
-        },
-    };
+	use std::{
+		ops::Deref,
+		str::FromStr,
+		sync::{
+			atomic::{AtomicBool, Ordering},
+			Arc,
+		},
+	};
 
-    use lazy_static::lazy_static;
-    use openssl::rand;
-    use primitive_types::{H160, H256};
+	use lazy_static::lazy_static;
+	use openssl::rand;
+	use primitive_types::{H160, H256};
 
-    use neo::prelude::{
-        Account, AccountSigner, AccountTrait, ContractSigner, Http, Middleware, NeoConstants,
-        Provider, ScriptBuilder, TransactionAttribute, TransactionBuilder, Witness,
-    };
+	use neo::prelude::{
+		Account, AccountSigner, AccountTrait, ContractSigner, Http, Middleware, NeoConstants,
+		Provider, ScriptBuilder, TransactionAttribute, TransactionBuilder, Witness,
+	};
+	use rand::random;
 
-    lazy_static! {
+	lazy_static! {
 		pub static ref ACCOUNT1: Account = Account::from_private_key(
 			"e6e919577dd7b8e97805151c05ae07ff4f752654d6d8797597aca989c02c4cb3"
 		);
@@ -398,44 +413,48 @@ mod tests {
 			"b4b2b579cac270125259f08a5f414e9235817e7637b9a66cfeb3b77d90c8e7f9"
 		);
 		pub static ref TEST_PROVIDER: Provider<Http> =
-			Provider::<Http>::try_from("http://localhost".to_string()).unwrap();
+			Provider::<Http>::try_from(NeoConstants::SEED_1).unwrap();
 	}
 
 	#[tokio::test]
 	async fn test_build_transaction_with_correct_nonce() {
 		let mut nonce = rand::random::<u32>();
 
-		let mut tx = TransactionBuilder::default()
+		let mut tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
 			.valid_until_block(1)
 			.unwrap()
 			.set_script(vec![1, 2, 3])
 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
 			.nonce(nonce)
 			.unwrap()
-			.get_unsigned_transaction()
+			.get_unsigned_tx()
 			.await
 			.unwrap();
 
 		assert_eq!(tx.nonce(), nonce);
 
 		nonce = 0;
-		tx = TransactionBuilder::default()
+		tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
 			.valid_until_block(1)
-			.script(vec![1, 2, 3])
-			.signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref())])
+			.unwrap()
+			.set_script(vec![1, 2, 3])
+			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).into()])
 			.nonce(nonce)
-			.get_unsigned_transaction()
+			.unwrap()
+			.get_unsigned_tx()
 			.await
 			.unwrap();
 		assert_eq!(tx.nonce(), nonce);
 
 		nonce = u32::MAX;
-		tx = TransactionBuilder::default()
+		tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
 			.valid_until_block(1)
-			.script(vec![1, 2, 3])
-			.signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref())])
+			.unwrap()
+			.set_script(vec![1, 2, 3])
+			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).into()])
 			.nonce(nonce)
-			.get_unsigned_transaction()
+			.unwrap()
+			.get_unsigned_tx()
 			.await
 			.unwrap();
 		assert_eq!(tx.nonce(), nonce);
@@ -443,18 +462,18 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_invoke_script() {
-		let script = ScriptBuilder::default()
+		let script = ScriptBuilder::new()
 			.contract_call(
 				H160::from_str("86d58778c8d29e03182f38369f0d97782d303cc0").unwrap(),
 				"symbol",
 				vec![],
+				None,
 			)
-			.to_array()
-			.no_prefix_hex()
-			.into_bytes();
+			.unwrap()
+			.to_bytes();
 
-		let result = TransactionBuilder::new(TEST_PROVIDER.deref())
-			.script(&script)
+		let result = TransactionBuilder::new()
+			.set_script(&script)
 			.call_invoke_script()
 			.await
 			.unwrap()
@@ -463,9 +482,14 @@ mod tests {
 
 		assert_eq!(result.stack()[0].as_str().unwrap(), "NEO");
 	}
+
 	#[tokio::test]
 	async fn test_build_without_setting_script() {
-		let err = TransactionBuilder::default().get_unsigned_transaction().await.err().unwrap();
+		let err = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+			.get_unsigned_tx()
+			.await
+			.err()
+			.unwrap();
 
 		assert_eq!(err.to_string(), "Cannot build a transaction without a script");
 	}
@@ -474,13 +498,14 @@ mod tests {
 	async fn test_sign_transaction_with_additional_signers() {
 		let script = vec![0x01, 0x02, 0x03];
 
-		let tx = TransactionBuilder::default()
-			.script(&script)
-			.signers(vec![
-				AccountSigner::called_by_entry(ACCOUNT1.deref()),
-				AccountSigner::called_by_entry(ACCOUNT2.deref()),
+		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+			.set_script(&script)
+			.set_signers(vec![
+				AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(),
+				AccountSigner::called_by_entry(ACCOUNT2.deref()).unwrap().into(),
 			])
 			.valid_until_block(1000)
+			.unwrap()
 			.sign()
 			.await
 			.unwrap();
@@ -497,685 +522,686 @@ mod tests {
 		assert!(signers.contains(&ACCOUNT2.deref().key_pair.unwrap().public_key()));
 	}
 
-	#[tokio::test]
-	async fn test_send_invoke_function() {
-		let script = ScriptBuilder::default()
-			.contract_call(
-				H160::from_str("f46719e2d16bf50cddcef9d4bbfece901f73cbb6").unwrap(),
-				"transfer",
-				vec![
-					ACCOUNT1.to_array(),
-					recipient.to_array(),
-					2_000_000u32.to_array(),
-					None::to_array(),
-				],
-			)
-			.to_array();
-
-		let tx = TransactionBuilder::default()
-			.script(&script)
-			.signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref())])
-			.sign()
-			.await
-			.unwrap();
-
-		tx.send().await.unwrap();
-	}
-
-	#[tokio::test]
-	async fn test_transfer_neo_from_normal_account() {
-		let expected_verification_script = ACCOUNT1.deref().verification_script().unwrap();
-
-		let script = ScriptBuilder::default()
-			.contract_call(
-				H160::from_str("f46719e2d16bf50cddcef9d4bbfece901f73cbb6").unwrap(),
-				"transfer",
-				vec![ACCOUNT1.to_array(), recipient.to_array(), 5u32.to_array(), None::to_array()],
-			)
-			.to_array();
-
-		let tx = TransactionBuilder::default()
-			.script(&script)
-			.signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref())])
-			.valid_until_block(100)
-			.sign()
-			.await
-			.unwrap();
-
-		assert_eq!(tx.script(), script);
-		assert_eq!(tx.witnesses().len(), 1);
-		assert_eq!(tx.witnesses()[0].verification_script(), expected_verification_script);
-	}
-
-	#[tokio::test]
-	async fn test_tracking_transaction_should_return_correct_block() {
-		// Mock network calls
-
-		let script = ScriptBuilder::default()
-			.contract_call(
-				H160::from_str("f46719e2d16bf50cddcef9d4bbfece901f73cbb6").unwrap(),
-				"transfer",
-				vec![ACCOUNT1.to_array(), recipient.to_array(), 5u32.to_array(), None::to_array()],
-			)
-			.to_array();
-
-		let tx = TransactionBuilder::default()
-			.script(&script)
-			.nonce(0)
-			.signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref())])
-			.sign()
-			.await
-			.unwrap();
-
-		tx.send().await.unwrap();
-
-		let block_num = tx.track().await.unwrap();
-
-		assert_eq!(block_num, 1002);
-	}
-	#[tokio::test]
-	async fn test_get_application_log() {
-		// Mock network calls
-
-		let script = ScriptBuilder::default()
-			.contract_call(
-				H160::from_str("f46719e2d16bf50cddcef9d4bbfece901f73cbb6").unwrap(),
-				"transfer",
-				vec![ACCOUNT1.to_array(), ACCOUNT1.to_array(), 1u32.to_array(), None::to_array()],
-			)
-			.to_array();
-
-		let tx = TransactionBuilder::default()
-			.script(&script)
-			.signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref())])
-			.sign()
-			.await
-			.unwrap();
-
-		tx.send().await.unwrap();
-
-		let log = tx.get_application_log().await.unwrap();
-
-		assert_eq!(
-			log.transaction_id,
-			H256::from_str("eb52f99ae5cf923d8905bdd91c4160e2207d20c0cb42f8062f31c6743770e4d1")
-				.unwrap()
-		);
-	}
-
-	#[tokio::test]
-	async fn test_build_with_invalid_script() {
-		let script = vec![
-			0x0c, 0x0e, 0x4f, 0x72, 0x61, 0x63, 0x6c, 0x65, 0x43, 0x6f, 0x6e, 0x74, 0x72, 0x61,
-			0x63, 0x74, 0x41, 0x1a, 0xf7, 0x7b, 0x67,
-		];
-
-		let builder = TransactionBuilder::default()
-			.script(&script)
-			.signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref())]);
-
-		let err = builder.get_unsigned_transaction().await.err().unwrap();
-
-		assert!(err.to_string().contains("Instruction out of bounds"));
-	}
-
-	#[tokio::test]
-	async fn test_invoke_script_vm_faults() {
-		let script = vec![0x0c, 0x00, 0x12, 0x0c, 0x14, 0x93, 0xad, 0x15, 0x72];
-
-		let builder = TransactionBuilder::default()
-			.script(&script)
-			.signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref())]);
-
-		let err = builder.get_unsigned_transaction().await.err().unwrap();
-
-		assert_eq!(err.to_string(),
-				   "The vm exited due to the following exception: Value was either too large or too small for an Int32.");
-	}
-
-	#[tokio::test]
-	async fn test_get_unsigned_transaction() {
-		let script = vec![0x01, 0x02, 0x03];
-
-		let tx = TransactionBuilder::default()
-			.script(&script)
-			.signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref())])
-			.get_unsigned_transaction()
-			.await
-			.unwrap();
-
-		assert_eq!(tx.version(), 0);
-		assert_eq!(tx.signers().len(), 1);
-		assert!(tx.witnesses().is_empty());
-	}
-
-	#[tokio::test]
-	async fn test_additional_network_fee() {
-		let script = vec![0x01, 0x02, 0x03];
-
-		let base_tx = TransactionBuilder::default()
-			.script(&script)
-			.get_unsigned_transaction()
-			.await
-			.unwrap();
-
-		let base_network_fee = base_tx.network_fee();
-
-		let tx = TransactionBuilder::default()
-			.script(&script)
-			.additional_network_fee(2000)
-			.get_unsigned_transaction()
-			.await
-			.unwrap();
-
-		assert_eq!(tx.network_fee(), base_network_fee + 2000);
-	}
-
-	#[tokio::test]
-	async fn test_fail_adding_more_than_max_attributes_to_tx() {
-		let one_too_many = NeoConstants::MAX_TRANSACTION_ATTRIBUTES + 1;
-		let attributes = vec![TransactionAttribute::HighPriority; one_too_many as usize];
-
-		let error = TransactionBuilder::default().attributes(&attributes).await.err().unwrap();
-
-		assert_eq!(
-			error.to_string(),
-			format!(
-				"A transaction cannot have more than {} attributes",
-				NeoConstants::MAX_TRANSACTION_ATTRIBUTES
-			)
-		);
-	}
-
-	#[tokio::test]
-	async fn test_fail_adding_more_than_max_attributes_to_tx_with_signers() {
-		let mut builder = TransactionBuilder::default();
-		builder.set_signers(vec![
-			AccountSigner::called_by_entry(&Account::default()).unwrap().into(),
-			AccountSigner::called_by_entry(&Account::default()).unwrap().into(),
-			AccountSigner::called_by_entry(&Account::default()).unwrap().into(),
-		]);
-
-		let attributes = vec![
-			TransactionAttribute::HighPriority;
-			(NeoConstants::MAX_TRANSACTION_ATTRIBUTES - 3) as usize
-		];
-
-		let error = builder.attributes(&attributes).await.err().unwrap();
-
-		assert!(error.to_string().contains("A transaction cannot have more than"));
-	}
-
-	#[tokio::test]
-	async fn test_automatic_setting_of_valid_until_block_variable() {
-		let tx = TransactionBuilder::default()
-			.script(vec![1, 2, 3])
-			.signers(vec![AccountSigner::none(&Account::default())])
-			.get_unsigned_transaction()
-			.await
-			.unwrap();
-
-		assert_eq!(tx.valid_until_block(), 1000); // Assuming default is 1000
-	}
-
-	#[tokio::test]
-	async fn test_extend_script() {
-		let script1 = ScriptBuilder::default()
-			.contract_call(H160::default(), "method1", vec![])
-			.to_array();
-
-		let script2 = ScriptBuilder::default()
-			.contract_call(H160::default(), "method2", vec![])
-			.to_array();
-
-		let mut builder = TransactionBuilder::default().script(&script1);
-
-		assert_eq!(builder.script(), &script1);
-
-		builder.extend_script(&script2);
-
-		assert_eq!(builder.script(), &[&script1[..], &script2[..]].concat());
-	}
-
-	#[tokio::test]
-	async fn test_invoking_with_params_should_produce_correct_request() {
-		// Mock RPC call
-
-		let result = TEST_PROVIDER
-			.deref()
-			.invoke_function(
-				&H160::default(),
-				"transfer".to_string(),
-				vec![ACCOUNT1.to_array(), recipient.to_array(), 5u32.to_array(), None::to_array()],
-				vec![],
-			)
-			.await
-			.unwrap();
-
-		// Assert request params
-	}
-
-	#[tokio::test]
-	async fn test_do_if_sender_cannot_cover_fees() {
-		// Mock RPC calls
-
-		let tested = Arc::new(AtomicBool::new(false));
-
-		let script = vec![0x01];
-
-		TransactionBuilder::default()
-			.script(&script)
-			.signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref())])
-			.valid_until_block(100)
-			.do_if_sender_cannot_cover_fees(|fee, balance| {
-				assert_eq!(fee, 1_000_000);
-				assert_eq!(balance, 100_000);
-				tested.store(true, Ordering::SeqCst);
-			})
-			.await
-			.unwrap();
-
-		assert!(tested.load(Ordering::SeqCst));
-	}
-
-	#[tokio::test]
-	async fn test_throw_if_sender_cannot_cover_fees() {
-		// Mock RPC calls
-
-		let script = vec![0x01];
-
-		let builder = TransactionBuilder::default()
-			.script(&script)
-			.signers(vec![AccountSigner::called_by_entry(account1.clone())])
-			.valid_until_block(100);
-
-		let error = builder
-			.throw_if_sender_cannot_cover_fees(neo_swift::Error::illegal_state("test error"))
-			.await
-			.err()
-			.unwrap();
-
-		assert_eq!(error.to_string(), "test error");
-	}
-
-	#[tokio::test]
-	async fn test_sign_transaction_with_contract_witness() {
-		let contract_hash = H160::default();
-		let invocation_script = vec![0x01, 0x02, 0x03];
-
-		let tx = TransactionBuilder::default()
-			.script(vec![0x01])
-			.signers(vec![
-				AccountSigner::called_by_entry(&Account::default()),
-				ContractSigner::global(contract_hash, invocation_script),
-			])
-			.valid_until_block(1000)
-			.sign()
-			.await
-			.unwrap();
-
-		assert!(tx.witnesses().contains(&Witness::new(invocation_script, vec![])));
-	}
-
-	#[tokio::test]
-	async fn test_set_first_signer() {
-		let account1 = Account::default();
-		let account2 = Account::default();
-
-		let mut builder = TransactionBuilder::default().script(vec![]).signers(vec![
-			AccountSigner::global(account1.clone()),
-			AccountSigner::called_by_entry(account2.clone()),
-		]);
-
-		builder.first_signer(account2.script_hash());
-		assert_eq!(builder.signers()[0].script_hash(), account2.script_hash());
-
-		builder.first_signer(account1.script_hash());
-		assert_eq!(builder.signers()[0].script_hash(), account1.script_hash());
-	}
-
-	#[tokio::test]
-	async fn test_transmission_on_fault() {
-		// Mock RPC call with VM fault
-
-		neo_swift::allow_transmission_on_fault();
-		assert!(neo_swift::allows_transmission_on_fault());
-
-		let script = vec![0x01]; // Faulting script
-
-		let account = Account::default();
-		let builder = TransactionBuilder::default()
-			.script(&script)
-			.signers(vec![AccountSigner::none(account)]);
-
-		let result = builder.call_invoke_script().await.unwrap();
-		assert!(result.has_state_fault());
-
-		let gas_consumed = result.gas_consumed() as u64;
-		let tx = builder.get_unsigned_transaction().await.unwrap();
-
-		assert_eq!(tx.system_fee(), gas_consumed);
-
-		TEST_PROVIDER.deref().prevent_transmission_on_fault();
-		assert!(!neo_swift::allows_transmission_on_fault());
-	}
-
-	#[tokio::test]
-	async fn test_prevent_transmission_on_fault() {
-		assert!(!neo_swift::allows_transmission_on_fault());
-
-		let script = vec![0x01]; // Faulting script
-
-		let builder = TransactionBuilder::default()
-			.script(&script)
-			.signers(vec![AccountSigner::none(&Account::default())]);
-
-		let result = builder.get_unsigned_transaction().await.err().unwrap();
-
-		assert!(result.to_string().contains("The vm exited due to"));
-	}
-
-	#[tokio::test]
-	async fn test_get_application_log_tx_not_sent() {
-		// Mock RPC calls
-
-		let script = ScriptBuilder::new()
-			.contract_call(&H160::default(), "transfer", vec![])
-			.to_array();
-
-		let tx = TransactionBuilder::default()
-			.set_script(&script)
-			.set_signers(vec![AccountSigner::called_by_entry(&Account::default())])
-			.sign()
-			.await
-			.unwrap();
-
-		let result = tx.get_application_log().await;
-
-		assert!(result.is_err());
-		assert_eq!(
-			result.err().unwrap().to_string(),
-			"Cannot get the application log before transaction has been sent."
-		);
-	}
-
-	#[tokio::test]
-	async fn test_get_application_log_not_existing() {
-		// Mock sending transaction and then mock RPC call returning null
-
-		let script = ScriptBuilder::default()
-			.contract_call(H160::default(), "transfer", vec![])
-			.to_array();
-
-		let tx = TransactionBuilder::default()
-			.script(&script)
-			.signers(vec![AccountSigner::called_by_entry(Account::default())])
-			.sign()
-			.await
-			.unwrap();
-
-		tx.send().await.unwrap();
-
-		let result = tx.get_application_log().await;
-
-		assert!(result.is_err());
-	}
-
-	#[tokio::test]
-	async fn test_version() {
-		let tx = TransactionBuilder::default()
-			.version(1)
-			.script(vec![])
-			.get_unsigned_transaction()
-			.await
-			.unwrap();
-
-		assert_eq!(tx.version(), 1);
-	}
-
-	#[tokio::test]
-	async fn test_build_transaction_with_invalid_block_number() {
-		let result = TransactionBuilder::default()
-			.valid_until_block(u32::MAX)
-			.script(vec![])
-			.signers(vec![AccountSigner::called_by_entry(Account::default())])
-			.get_unsigned_transaction()
-			.await;
-
-		assert!(result.is_err());
-		assert!(result
-			.err()
-			.unwrap()
-			.to_string()
-			.contains("valid until block number cannot exceed"));
-	}
-
-	#[tokio::test]
-	async fn test_fail_signing_with_account_without_ec_key_pair() {
-		let account = Account::from_verification_script(vec![0x01]);
-
-		let builder = TransactionBuilder::default()
-			.script(vec![])
-			.signers(vec![AccountSigner::none(account)]);
-
-		let result = builder.sign().await;
-
-		assert!(result.is_err());
-		assert!(result
-			.err()
-			.unwrap()
-			.to_string()
-			.contains("does not have keys available to sign the transaction"));
-	}
-
-	#[tokio::test]
-	async fn test_tracking_transaction_tx_not_sent() {
-		let tx = TransactionBuilder::default()
-			.script(vec![])
-			.signers(vec![AccountSigner::called_by_entry(&Account::default())])
-			.sign()
-			.await
-			.unwrap();
-
-		let result = tx.track().await;
-
-		assert!(result.is_err());
-		assert_eq!(
-			result.err().unwrap().to_string(),
-			"Cannot subscribe before transaction has been sent."
-		);
-	}
-
-	#[tokio::test]
-	async fn test_fail_sending_transaction_because_it_doesnt_contain_the_right_number_of_witnesses()
-	{
-		let tx = TransactionBuilder::default()
-			.script(vec![])
-			.signers(vec![AccountSigner::called_by_entry(&Account::default())])
-			.get_unsigned_transaction()
-			.await
-			.unwrap();
-
-		let result = tx.send().await;
-
-		assert!(result.is_err());
-		assert!(result
-			.err()
-			.unwrap()
-			.to_string()
-			.contains("does not have the same number of signers and witnesses"));
-	}
-
-	#[tokio::test]
-	async fn test_fail_automatically_signing_with_multi_sig_account_signer() {
-		let multi_sig_account = Account::create_multi_sig(vec![], 1);
-
-		let builder = TransactionBuilder::default()
-			.script(vec![])
-			.signers(vec![AccountSigner::none(multi_sig_account)]);
-
-		let result = builder.sign().await;
-
-		assert!(result.is_err());
-		assert!(result
-			.err()
-			.unwrap()
-			.to_string()
-			.contains("Transactions with multi-sig signers cannot be signed automatically"));
-	}
-
-	#[tokio::test]
-	async fn test_fail_with_no_signing_account() {
-		let contract_account = Account::from_script_hash(H160::default());
-
-		let builder = TransactionBuilder::default()
-			.script(vec![])
-			.signers(vec![ContractSigner::called_by_entry(contract_account)]);
-
-		let result = builder.sign().await;
-
-		assert!(result.is_err());
-		assert!(result
-			.err()
-			.unwrap()
-			.to_string()
-			.contains("requires at least one signing account"));
-	}
-
-	#[tokio::test]
-	async fn test_nonce() {
-		let account = Account::default();
-
-		let mut tx = TransactionBuilder::default()
-			.nonce(123)
-			.signers(vec![AccountSigner::called_by_entry(account.clone())])
-			.get_unsigned_transaction()
-			.await
-			.unwrap();
-
-		assert_eq!(tx.nonce(), 123);
-
-		tx = TransactionBuilder::default()
-			.nonce(u32::MAX)
-			.signers(vec![AccountSigner::called_by_entry(account)])
-			.get_unsigned_transaction()
-			.await
-			.unwrap();
-
-		assert_eq!(tx.nonce(), u32::MAX);
-	}
-
-	#[tokio::test]
-	async fn test_automatically_set_nonce() {
-		// Mock RPC call to get account nonce
-
-		let tx = TransactionBuilder::default()
-			.signers(vec![AccountSigner::called_by_entry(Account::default())])
-			.get_unsigned_transaction()
-			.await
-			.unwrap();
-
-		assert!(tx.nonce() > 0 && tx.nonce() < u32::MAX);
-	}
-
-	#[tokio::test]
-	async fn test_additional_system_fee() {
-		let base_tx = TransactionBuilder::default().get_unsigned_transaction().await.unwrap();
-
-		let base_fee = base_tx.system_fee();
-
-		let tx = TransactionBuilder::default()
-			.additional_system_fee(12345)
-			.get_unsigned_transaction()
-			.await
-			.unwrap();
-
-		assert_eq!(tx.system_fee(), base_fee + 12345);
-	}
-
-	#[tokio::test]
-	async fn test_fail_building_transaction_with_incorrect_nonce() {
-		let builder = TransactionBuilder::default();
-
-		let result = builder.nonce(u32::MAX + 1);
-
-		assert!(result.is_err());
-		assert!(result
-			.err()
-			.unwrap()
-			.to_string()
-			.contains("nonce must be less than or equal to u32::MAX"));
-
-		let result = builder.nonce(u32::MAX + 2);
-
-		assert!(result.is_err());
-		assert!(result
-			.err()
-			.unwrap()
-			.to_string()
-			.contains("nonce must be less than or equal to u32::MAX"));
-
-		let result = builder.nonce(-1);
-
-		assert!(result.is_err());
-		assert!(result
-			.err()
-			.unwrap()
-			.to_string()
-			.contains("nonce must be greater than or equal to 0"));
-	}
-
-	#[tokio::test]
-	async fn test_override_signer() {
-		let account1 = Account::default();
-		let account2 = Account::default();
-
-		let mut builder = TransactionBuilder::default();
-
-		builder.set_signers(vec![AccountSigner::global(account1.clone()).unwrap()]);
-
-		assert_eq!(builder.signers()[0].script_hash(), account1.script_hash());
-
-		builder.set_signers(vec![AccountSigner::global(account2.clone())]);
-
-		assert_eq!(builder.signers()[0].script_hash(), account2.script_hash());
-	}
-
-	#[tokio::test]
-	async fn test_update_no_signed_transaction_attr_after_siging() {
-		let mut tx = TransactionBuilder::default()
-			.script(vec![])
-			.signers(vec![AccountSigner::called_by_entry(Account::default())])
-			.sign()
-			.await
-			.unwrap();
-
-		assert!(tx.no_signed_transaction());
-
-		let result = tx.no_signed_transaction(true);
-		assert!(result.is_err());
-		assert!(result
-			.err()
-			.unwrap()
-			.to_string()
-			.contains("no_signed_transaction attribute can only be set before signing"));
-
-		let result = tx.valid_until_block(500);
-		assert!(result.is_err());
-		assert!(result
-			.err()
-			.unwrap()
-			.to_string()
-			.contains("Cannot update transaction attributes after signing"));
-	}
-
-	#[tokio::test]
-	#[should_panic]
-	async fn test_build_with_no_signers() {
-		TransactionBuilder::default()
-			.script(vec![])
-			.get_unsigned_transaction()
-			.await
-			.unwrap();
-	}
+	// 	#[tokio::test]
+	// 	async fn test_send_invoke_function() {
+	// 		let script = ScriptBuilder::new()
+	// 			.contract_call(
+	// 				H160::from_str("f46719e2d16bf50cddcef9d4bbfece901f73cbb6").unwrap(),
+	// 				"transfer",
+	// 				vec![
+	// 					ACCOUNT1.into(),
+	// 					2_000_000u32.into(),
+	// 					None.into(),
+	// 				],
+	// 				None,
+	// 			)
+	// 			.to_array();
+	//
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
+	// 			.sign()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		tx.send().await.unwrap();
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_transfer_neo_from_normal_account() {
+	// 		let expected_verification_script = ACCOUNT1.deref().verification_script().unwrap();
+	//
+	// 		let script = ScriptBuilder::new()
+	// 			.contract_call(
+	// 				H160::from_str("f46719e2d16bf50cddcef9d4bbfece901f73cbb6").unwrap(),
+	// 				"transfer",
+	// 				vec![ACCOUNT1.to_array(), recipient.to_array(), 5u32.to_array(), None::to_array()],
+	// 				None,
+	// 			).unwrap()
+	// 			.to_bytes();
+	//
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
+	// 			.valid_until_block(100)
+	// 			.unwrap()
+	// 			.sign()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		assert_eq!(tx.get_script(), script);
+	// 		assert_eq!(tx.witnesses().len(), 1);
+	// 		assert_eq!(tx.witnesses()[0].verification_script(), expected_verification_script);
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_tracking_transaction_should_return_correct_block() {
+	// 		// Mock network calls
+	//
+	// 		let script = ScriptBuilder::new()
+	// 			.contract_call(
+	// 				H160::from_str("f46719e2d16bf50cddcef9d4bbfece901f73cbb6").unwrap(),
+	// 				"transfer",
+	// 				vec![ACCOUNT1.to_array(), recipient.to_array(), 5u32.to_array(), None::to_array()],
+	// 				None,
+	// 			)
+	// 			.unwrap()
+	// 			.to_bytes();
+	//
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.nonce(0)
+	// 			.unwrap()
+	// 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref())])
+	// 			.sign()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		tx.send().await.unwrap();
+	//
+	// 		let block_num = tx.track().await.unwrap();
+	//
+	// 		assert_eq!(block_num, 1002);
+	// 	}
+	// 	#[tokio::test]
+	// 	async fn test_get_application_log() {
+	// 		// Mock network calls
+	//
+	// 		let script = ScriptBuilder::new()
+	// 			.contract_call(
+	// 				H160::from_str("f46719e2d16bf50cddcef9d4bbfece901f73cbb6").unwrap(),
+	// 				"transfer",
+	// 				vec![ACCOUNT1.to_array(), ACCOUNT1.to_array(), 1u32.to_array(), None::to_array()],
+	// 				None,
+	// 			)
+	// 			.unwrap()
+	// 			.to_bytes();
+	//
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
+	// 			.sign()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		tx.send().await.unwrap();
+	//
+	// 		let log = tx.get_application_log().await.unwrap();
+	//
+	// 		assert_eq!(
+	// 			log.transaction_id,
+	// 			H256::from_str("eb52f99ae5cf923d8905bdd91c4160e2207d20c0cb42f8062f31c6743770e4d1")
+	// 				.unwrap()
+	// 		);
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_build_with_invalid_script() {
+	// 		let script = vec![
+	// 			0x0c, 0x0e, 0x4f, 0x72, 0x61, 0x63, 0x6c, 0x65, 0x43, 0x6f, 0x6e, 0x74, 0x72, 0x61,
+	// 			0x63, 0x74, 0x41, 0x1a, 0xf7, 0x7b, 0x67,
+	// 		];
+	//
+	// 		let builder = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()]);
+	//
+	// 		let err = builder.get_unsigned_tx().await.err().unwrap();
+	//
+	// 		assert!(err.to_string().contains("Instruction out of bounds"));
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_invoke_script_vm_faults() {
+	// 		let script = vec![0x0c, 0x00, 0x12, 0x0c, 0x14, 0x93, 0xad, 0x15, 0x72];
+	//
+	// 		let builder = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()]);
+	//
+	// 		let err = builder.get_unsigned_tx().await.err().unwrap();
+	//
+	// 		assert_eq!(err.to_string(),
+	// 				   "The vm exited due to the following exception: Value was either too large or too small for an Int32.");
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_get_unsigned_tx() {
+	// 		let script = vec![0x01, 0x02, 0x03];
+	//
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref())])
+	// 			.get_unsigned_tx()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		assert_eq!(tx.version(), 0);
+	// 		assert_eq!(tx.signers().len(), 1);
+	// 		assert!(tx.witnesses().is_empty());
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_additional_network_fee() {
+	// 		let script = vec![0x01, 0x02, 0x03];
+	//
+	// 		let base_tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.get_unsigned_tx()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		let base_network_fee = base_tx.network_fee();
+	//
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.additional_network_fee(2000)
+	// 			.get_unsigned_tx()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		assert_eq!(tx.network_fee(), base_network_fee + 2000);
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_fail_adding_more_than_max_attributes_to_tx() {
+	// 		let one_too_many = NeoConstants::MAX_TRANSACTION_ATTRIBUTES + 1;
+	// 		let attributes = vec![TransactionAttribute::HighPriority; one_too_many as usize];
+	//
+	// 		let error = TransactionBuilder::with_provider(TEST_PROVIDER.deref()).attributes(&attributes).await.err().unwrap();
+	//
+	// 		assert_eq!(
+	// 			error.to_string(),
+	// 			format!(
+	// 				"A transaction cannot have more than {} attributes",
+	// 				NeoConstants::MAX_TRANSACTION_ATTRIBUTES
+	// 			)
+	// 		);
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_fail_adding_more_than_max_attributes_to_tx_with_signers() {
+	// 		let mut builder = TransactionBuilder::with_provider(TEST_PROVIDER.deref());
+	// 		builder.set_signers(vec![
+	// 			AccountSigner::called_by_entry(&Account::default()).unwrap().into(),
+	// 			AccountSigner::called_by_entry(&Account::default()).unwrap().into(),
+	// 			AccountSigner::called_by_entry(&Account::default()).unwrap().into(),
+	// 		]);
+	//
+	// 		let attributes = vec![
+	// 			TransactionAttribute::HighPriority;
+	// 			(NeoConstants::MAX_TRANSACTION_ATTRIBUTES - 3) as usize
+	// 		];
+	//
+	// 		let error = builder.attributes(&attributes).await.err().unwrap();
+	//
+	// 		assert!(error.to_string().contains("A transaction cannot have more than"));
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_automatic_setting_of_valid_until_block_variable() {
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.script(vec![1, 2, 3])
+	// 			.set_signers(vec![AccountSigner::none(&Account::default())])
+	// 			.get_unsigned_tx()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		assert_eq!(tx.valid_until_block(), 1000); // Assuming default is 1000
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_extend_script() {
+	// 		let script1 = ScriptBuilder::new()
+	// 			.contract_call(H160::default(), "method1", vec![])
+	// 			.to_array();
+	//
+	// 		let script2 = ScriptBuilder::new()
+	// 			.contract_call(H160::default(), "method2", vec![])
+	// 			.to_array();
+	//
+	// 		let mut builder = TransactionBuilder::with_provider(TEST_PROVIDER.deref()).script(&script1);
+	//
+	// 		assert_eq!(builder.script(), &script1);
+	//
+	// 		builder.extend_script(&script2);
+	//
+	// 		assert_eq!(builder.script(), &[&script1[..], &script2[..]].concat());
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_invoking_with_params_should_produce_correct_request() {
+	// 		// Mock RPC call
+	//
+	// 		let result = TEST_PROVIDER
+	// 			.deref()
+	// 			.invoke_function(
+	// 				&H160::default(),
+	// 				"transfer".to_string(),
+	// 				vec![ACCOUNT1.to_array(), recipient.to_array(), 5u32.to_array(), None::to_array()],
+	// 				None,
+	// 			)
+	// 			.await
+	// 			.unwrap();
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_do_if_sender_cannot_cover_fees() {
+	// 		// Mock RPC calls
+	//
+	// 		let tested = Arc::new(AtomicBool::new(false));
+	//
+	// 		let script = vec![0x01];
+	//
+	// 		TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).into()])
+	// 			.valid_until_block(100)
+	// 			.do_if_sender_cannot_cover_fees(|fee, balance| {
+	// 				assert_eq!(fee, 1_000_000);
+	// 				assert_eq!(balance, 100_000);
+	// 				tested.store(true, Ordering::SeqCst);
+	// 			})
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		assert!(tested.load(Ordering::SeqCst));
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_throw_if_sender_cannot_cover_fees() {
+	// 		// Mock RPC calls
+	//
+	// 		let script = vec![0x01];
+	//
+	// 		let builder = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.set_signers(vec![AccountSigner::called_by_entry(account1.clone()).unwrap().into()])
+	// 			.valid_until_block(100);
+	//
+	// 		let error = builder
+	// 			.throw_if_sender_cannot_cover_fees(neo_swift::Error::illegal_state("test error"))
+	// 			.await
+	// 			.err()
+	// 			.unwrap();
+	//
+	// 		assert_eq!(error.to_string(), "test error");
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_sign_transaction_with_contract_witness() {
+	// 		let contract_hash = H160::default();
+	// 		let invocation_script = vec![0x01, 0x02, 0x03];
+	//
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(vec![0x01])
+	// 			.set_signers(vec![
+	// 				AccountSigner::called_by_entry(&Account::default()).unwrap().into(),
+	// 				ContractSigner::global(contract_hash, invocation_script).into(),
+	// 			])
+	// 			.valid_until_block(1000)
+	// 			.unwrap()
+	// 			.sign()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		assert!(tx.witnesses().contains(&Witness::from_scripts(invocation_script, vec![])));
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_set_first_signer() {
+	// 		let account1 = Account::default();
+	// 		let account2 = Account::default();
+	//
+	// 		let mut builder = TransactionBuilder::with_provider(TEST_PROVIDER.deref()).set_script(vec![]).set_signers(vec![
+	// 			AccountSigner::global(account1.clone()).unwrap().into(),
+	// 			AccountSigner::called_by_entry(account2.clone()).unwrap().into(),
+	// 		]);
+	//
+	// 		builder.first_signer(account2.address_or_scripthash().script_hash());
+	// 		assert_eq!(builder.signers()[0].get_signer_hash(), account2.address_or_scripthash().script_hash());
+	//
+	// 		builder.first_signer(account1.address_or_scripthash().script_hash());
+	// 		assert_eq!(builder.signers()[0].get_signer_hash(), account1.get_script_hash());
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_transmission_on_fault() {
+	// 		// Mock RPC call with VM fault
+	//
+	// 		neo_swift::allow_transmission_on_fault();
+	// 		assert!(neo_swift::allows_transmission_on_fault());
+	//
+	// 		let script = vec![0x01]; // Faulting script
+	//
+	// 		let account = Account::default();
+	// 		let builder = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.set_signers(vec![AccountSigner::none(account).unwrap().into()]);
+	//
+	// 		let result = builder.call_invoke_script().await.unwrap();
+	// 		assert!(result.has_state_fault());
+	//
+	// 		let gas_consumed = result.gas_consumed() as u64;
+	// 		let tx = builder.get_unsigned_tx().await.unwrap();
+	//
+	// 		assert_eq!(tx.system_fee(), gas_consumed);
+	//
+	// 		TEST_PROVIDER.deref().prevent_transmission_on_fault();
+	// 		assert!(!neo_swift::allows_transmission_on_fault());
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_prevent_transmission_on_fault() {
+	// 		assert!(!neo_swift::allows_transmission_on_fault());
+	//
+	// 		let script = vec![0x01]; // Faulting script
+	//
+	// 		let builder = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.set_signers(vec![AccountSigner::none(&Account::default()).unwrap().into()]);
+	//
+	// 		let result = builder.get_unsigned_tx().await.err().unwrap();
+	//
+	// 		assert!(result.to_string().contains("The vm exited due to"));
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_get_application_log_tx_not_sent() {
+	// 		// Mock RPC calls
+	//
+	// 		let script = ScriptBuilder::new()
+	// 			.contract_call(&H160::default(), "transfer", vec![])
+	// 			.unwrap()
+	// 			.to_bytes();
+	//
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.set_signers(vec![AccountSigner::called_by_entry(&Account::default()).unwrap().into()])
+	// 			.sign()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		let result = tx.get_application_log().await;
+	//
+	// 		assert!(result.is_err());
+	// 		assert_eq!(
+	// 			result.err().unwrap().to_string(),
+	// 			"Cannot get the application log before transaction has been sent."
+	// 		);
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_get_application_log_not_existing() {
+	// 		// Mock sending transaction and then mock RPC call returning null
+	//
+	// 		let script = ScriptBuilder::new()
+	// 			.contract_call(H160::default(), "transfer", vec![])
+	// 			.unwrap()
+	// 			.to_bytes();
+	//
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(&script)
+	// 			.set_signers(vec![AccountSigner::called_by_entry(Account::default()).unwrap().into()])
+	// 			.sign()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		tx.send().await.unwrap();
+	//
+	// 		let result = tx.get_application_log().await;
+	//
+	// 		assert!(result.is_err());
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_version() {
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(vec![])
+	// 			.get_unsigned_tx()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		assert_eq!(tx.version(), 1);
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_build_transaction_with_invalid_block_number() {
+	// 		let result = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.valid_until_block(u32::MAX)
+	// 			.set_script(vec![])
+	// 			.set_signers(vec![AccountSigner::called_by_entry(Account::default()).unwrap().into()])
+	// 			.get_unsigned_tx()
+	// 			.await;
+	//
+	// 		assert!(result.is_err());
+	// 		assert!(result
+	// 			.err()
+	// 			.unwrap()
+	// 			.to_string()
+	// 			.contains("valid until block number cannot exceed"));
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_fail_signing_with_account_without_ec_key_pair() {
+	// 		let account = Account::from_verification_script(vec![0x01]);
+	//
+	// 		let builder = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(vec![])
+	// 			.set_signers(vec![AccountSigner::none(account).unwrap().into()]);
+	//
+	// 		let result = builder.sign().await;
+	//
+	// 		assert!(result.is_err());
+	// 		assert!(result
+	// 			.err()
+	// 			.unwrap()
+	// 			.to_string()
+	// 			.contains("does not have keys available to sign the transaction"));
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_tracking_transaction_tx_not_sent() {
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(vec![])
+	// 			.set_signers(vec![AccountSigner::called_by_entry(&Account::default()).unwrap().into()])
+	// 			.sign()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		let result = tx.track().await;
+	//
+	// 		assert!(result.is_err());
+	// 		assert_eq!(
+	// 			result.err().unwrap().to_string(),
+	// 			"Cannot subscribe before transaction has been sent."
+	// 		);
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_fail_sending_transaction_because_it_doesnt_contain_the_right_number_of_witnesses()
+	// 	{
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(vec![])
+	// 			.set_signers(vec![AccountSigner::called_by_entry(&Account::default()).unwrap().into()])
+	// 			.get_unsigned_tx()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		let result = tx.send().await;
+	//
+	// 		assert!(result.is_err());
+	// 		assert!(result
+	// 			.err()
+	// 			.unwrap()
+	// 			.to_string()
+	// 			.contains("does not have the same number of signers and witnesses"));
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_fail_automatically_signing_with_multi_sig_account_signer() {
+	// 		let multi_sig_account = Account::create_multi_sig(vec![], 1);
+	//
+	// 		let builder = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(vec![])
+	// 			.set_signers(vec![AccountSigner::none(multi_sig_account).unwrap().into()]);
+	//
+	// 		let result = builder.sign().await;
+	//
+	// 		assert!(result.is_err());
+	// 		assert!(result
+	// 			.err()
+	// 			.unwrap()
+	// 			.to_string()
+	// 			.contains("Transactions with multi-sig signers cannot be signed automatically"));
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_fail_with_no_signing_account() {
+	// 		let contract_account = Account::from_script_hash(H160::default());
+	//
+	// 		let builder = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(vec![])
+	// 			.set_signers(vec![ContractSigner::called_by_entry(contract_account, vec![])]);
+	//
+	// 		let result = builder.sign().await;
+	//
+	// 		assert!(result.is_err());
+	// 		assert!(result
+	// 			.err()
+	// 			.unwrap()
+	// 			.to_string()
+	// 			.contains("requires at least one signing account"));
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_nonce() {
+	// 		let account = Account::default();
+	//
+	// 		let mut tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.nonce(123)
+	// 			.unwrap()
+	// 			.set_signers(vec![AccountSigner::called_by_entry(account.clone()).unwrap().into()])
+	// 			.get_unsigned_tx()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		assert_eq!(tx.nonce(), 123);
+	//
+	// 		tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.nonce(u32::MAX)
+	// 			.unwrap()
+	// 			.set_signers(vec![AccountSigner::called_by_entry(account).unwrap().into()])
+	// 			.get_unsigned_tx()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		assert_eq!(tx.nonce(), u32::MAX);
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_automatically_set_nonce() {
+	// 		// Mock RPC call to get account nonce
+	//
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_signers(vec![AccountSigner::called_by_entry(Account::default()).unwrap().into()])
+	// 			.get_unsigned_tx()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		assert!(tx.nonce() > 0 && tx.nonce() < u32::MAX);
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_additional_system_fee() {
+	// 		let base_tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref()).get_unsigned_tx().await.unwrap();
+	//
+	// 		let base_fee = base_tx.sys_fee;
+	//
+	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref());
+	// 			tx.additional_system_fee = 12345;
+	// 			tx.get_unsigned_tx()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		assert_eq!(tx.sys_fee, base_fee + 12345);
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_fail_building_transaction_with_incorrect_nonce() {
+	// 		let builder = TransactionBuilder::with_provider(TEST_PROVIDER.deref());
+	//
+	// 		let result = builder.nonce(u32::MAX + 1);
+	//
+	// 		assert!(result.is_err());
+	// 		assert!(result
+	// 			.err()
+	// 			.unwrap()
+	// 			.to_string()
+	// 			.contains("nonce must be less than or equal to u32::MAX"));
+	//
+	// 		let result = builder.nonce(u32::MAX + 2);
+	//
+	// 		assert!(result.is_err());
+	// 		assert!(result
+	// 			.err()
+	// 			.unwrap()
+	// 			.to_string()
+	// 			.contains("nonce must be less than or equal to u32::MAX"));
+	//
+	// 		let result = builder.nonce(-1);
+	//
+	// 		assert!(result.is_err());
+	// 		assert!(result
+	// 			.err()
+	// 			.unwrap()
+	// 			.to_string()
+	// 			.contains("nonce must be greater than or equal to 0"));
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_override_signer() {
+	// 		let account1 = Account::default();
+	// 		let account2 = Account::default();
+	//
+	// 		let mut builder = TransactionBuilder::with_provider(TEST_PROVIDER.deref());
+	//
+	// 		builder.set_signers(vec![AccountSigner::global(account1.clone()).unwrap().into()]);
+	//
+	// 		assert_eq!(builder.signers()[0].get_signer_hash(), account1.script_hash());
+	//
+	// 		builder.set_signers(vec![AccountSigner::global(account2.clone()).unwrap().into()]);
+	//
+	// 		assert_eq!(builder.signers()[0].get_signer_hash(), account2.address_or_scripthash().script_hash());
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	async fn test_update_no_signed_transaction_attr_after_siging() {
+	// 		let mut tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+	// 			.set_script(vec![])
+	// 			.set_signers(vec![AccountSigner::called_by_entry(&Account::default()).unwrap().into()])
+	// 			.sign()
+	// 			.await
+	// 			.unwrap();
+	//
+	// 		assert!(tx.no_signed_transaction());
+	//
+	// 		let result = tx.no_signed_transaction(true);
+	// 		assert!(result.is_err());
+	// 		assert!(result
+	// 			.err()
+	// 			.unwrap()
+	// 			.to_string()
+	// 			.contains("no_signed_transaction attribute can only be set before signing"));
+	// 	}
+	//
+	// 	#[tokio::test]
+	// 	#[should_panic]
+	// 	async fn test_build_with_no_signers() {
+	// 		TransactionBuilder::<Http>::default()
+	// 			.set_script(vec![])
+	// 			.get_unsigned_tx()
+	// 			.await
+	// 			.unwrap();
+	// 	}
 }

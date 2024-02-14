@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
-    BuilderError, Bytes, ContractParameter, Decoder, Encoder, InvocationScript, KeyPair,
-    NeoSerializable, ScriptBuilder, Secp256r1PublicKey, Secp256r1Signature, VerificationScript,
+	BuilderError, Bytes, ContractParameter, Decoder, Encoder, InvocationScript, KeyPair,
+	NeoSerializable, ScriptBuilder, Secp256r1PublicKey, Secp256r1Signature, VerificationScript,
 };
 
 #[derive(Hash, Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]

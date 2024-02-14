@@ -1,7 +1,7 @@
 use std::{
-    collections::HashMap,
-    hash::Hash,
-    sync::{Arc, Mutex},
+	collections::HashMap,
+	hash::Hash,
+	sync::{Arc, Mutex},
 };
 
 use lazy_static::lazy_static;

@@ -27,4 +27,3 @@ mod verification_script;
 mod witness;
 mod witness_rule;
 mod witness_scope;
-

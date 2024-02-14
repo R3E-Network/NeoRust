@@ -5,8 +5,8 @@ use primitive_types::H256;
 use signature::hazmat::PrehashSigner;
 
 use neo::{
-    crypto::Secp256r1Signature,
-    prelude::{Transaction, WalletError},
+	crypto::Secp256r1Signature,
+	prelude::{Transaction, WalletError},
 };
 
 /// An Ethereum private-public key pair which can be used for signing messages.

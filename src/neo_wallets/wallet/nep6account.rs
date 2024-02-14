@@ -4,8 +4,8 @@ use getset::{Getters, Setters};
 use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
-    Account, Address, AddressOrScriptHash, Base64Encode, ContractParameterType, NeoSerializable,
-    NEP6Contract, NEP6Parameter, StringExt, VerificationScript, WalletError,
+	Account, Address, AddressOrScriptHash, Base64Encode, ContractParameterType, NEP6Contract,
+	NEP6Parameter, NeoSerializable, StringExt, VerificationScript, WalletError,
 };
 
 /// Represents an account in the NEP-6 format.
@@ -216,11 +216,11 @@ impl PartialEq for NEP6Account {
 
 #[cfg(test)]
 mod tests {
-    use neo::prelude::{
-        AccountTrait, NEP6Account, PrivateKeyExtension, Secp256r1PrivateKey, TestConstants,
-    };
+	use neo::prelude::{
+		AccountTrait, NEP6Account, PrivateKeyExtension, Secp256r1PrivateKey, TestConstants,
+	};
 
-    #[test]
+	#[test]
 	fn test_decrypt_with_standard_scrypt_params() {
 		let private_key = Secp256r1PrivateKey::from_bytes(
 			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY).unwrap(),
@@ -261,6 +261,5 @@ mod tests {
 			account.address_or_scripthash().address(),
 			TestConstants::DEFAULT_ACCOUNT_ADDRESS
 		);
-		// ...
 	}
 }

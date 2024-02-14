@@ -17,13 +17,12 @@ mod ipc;
 // mod quorum;
 // pub use quorum::{JsonRpcClientWrapper, Quorum, QuorumError, QuorumProvider, WeightedProvider};
 
-mod rw;
-mod retry;
-#[cfg(all(feature = "ws", not(feature = "legacy-ws")))]
-mod ws;
+mod common;
 /// archival websocket
 #[cfg(feature = "legacy-ws")]
 pub mod legacy_ws;
-mod common;
 mod mock;
-
+mod retry;
+mod rw;
+#[cfg(all(feature = "ws", not(feature = "legacy-ws")))]
+mod ws;

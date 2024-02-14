@@ -143,6 +143,15 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		self
 	}
 
+	async fn network(&self) -> u32 {
+		if self.config().network == None {
+			let network = self.inner().get_version().await?.protocol?.network;
+			network
+		} else {
+			self.config().network
+		}
+	}
+
 	//////////////////////// Neo methods////////////////////////////
 
 	fn nns_resolver(&self) -> H160 {
@@ -499,7 +508,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		from: Address,
 		to: Address,
 		amount: u32,
-	) -> Result<Transaction, ProviderError> {
+	) -> Result<Transaction<Self::Provider>, ProviderError> {
 		let params =
 			[token_hash.to_value(), from.to_value(), to.to_value(), amount.to_value()].to_vec();
 		self.request("sendfrom", params).await
@@ -514,7 +523,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		&self,
 		from: Option<H160>,
 		send_tokens: Vec<TransactionSendToken>,
-	) -> Result<Transaction, ProviderError> {
+	) -> Result<Transaction<Self::Provider>, ProviderError> {
 		let params = [from.unwrap().to_value(), send_tokens.to_value()].to_vec();
 		self.request("sendmany", params).await
 	}
@@ -530,7 +539,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		token_hash: H160,
 		to: Address,
 		amount: u32,
-	) -> Result<Transaction, ProviderError> {
+	) -> Result<Transaction<Self::Provider>, ProviderError> {
 		let params = [token_hash.to_value(), to.to_value(), amount.to_value()].to_vec();
 		self.request("sendtoaddress", params).await
 	}
@@ -853,7 +862,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		&self,
 		send_token: &TransactionSendToken,
 		from: Address,
-	) -> Result<Transaction, ProviderError> {
+	) -> Result<Transaction<Self::Provider>, ProviderError> {
 		let params = [from.to_value(), vec![send_token.to_value()].into()].to_vec();
 		self.request("sendmany", params).await
 	}

@@ -152,9 +152,9 @@ impl Hasher for Encoder {
 
 #[cfg(test)]
 mod tests {
-    use neo::prelude::Encoder;
+	use neo::prelude::Encoder;
 
-    #[test]
+	#[test]
 	fn test_write_u32() {
 		let mut writer = Encoder::new();
 

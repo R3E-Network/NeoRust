@@ -50,11 +50,11 @@ impl ScriptReader {
 
 #[cfg(test)]
 mod tests {
-    use rustc_serialize::hex::FromHex;
+	use rustc_serialize::hex::FromHex;
 
-    use super::*;
+	use super::*;
 
-// Adjust this to import your ScriptReader and other necessary items.
+	// Adjust this to import your ScriptReader and other necessary items.
 
 	#[test]
 	fn test_convert_to_op_code_string() {

@@ -3,8 +3,8 @@ use std::{error::Error, fmt::Debug};
 use thiserror::Error;
 
 use neo::{
-    prelude::{CryptoError, JsonRpcError, TypeError},
-    providers::middleware::MiddlewareError,
+	prelude::{CryptoError, JsonRpcError, TypeError},
+	providers::middleware::MiddlewareError,
 };
 
 use crate::prelude::Middleware;

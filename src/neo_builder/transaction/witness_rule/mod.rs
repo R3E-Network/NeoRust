@@ -5,4 +5,3 @@ pub use witness_rule::*;
 mod witness_action;
 mod witness_condition;
 mod witness_rule;
-

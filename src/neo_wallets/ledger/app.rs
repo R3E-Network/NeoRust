@@ -3,8 +3,8 @@
 use std::convert::TryFrom;
 
 use coins_ledger::{
-    common::{APDUAnswer, APDUCommand, APDUData},
-    transports::{Ledger, LedgerAsync},
+	common::{APDUAnswer, APDUCommand, APDUData},
+	transports::{Ledger, LedgerAsync},
 };
 use futures_executor::block_on;
 use futures_util::lock::Mutex;
@@ -231,13 +231,13 @@ impl LedgerNeo {
 
 #[cfg(all(test, feature = "ledger"))]
 mod tests {
-    use signature::digest::Mac;
+	use signature::digest::Mac;
 
-    use neo::prelude::RawTransaction;
+	use neo::prelude::RawTransaction;
 
-    use super::*;
+	use super::*;
 
-    #[tokio::test]
+	#[tokio::test]
 	#[ignore]
 	// Replace this with your ETH addresses.
 	async fn test_get_address() {

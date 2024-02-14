@@ -1,5 +1,5 @@
 use futures_channel::{mpsc, oneshot};
-use futures_util::{FutureExt, select, sink::SinkExt, stream::StreamExt};
+use futures_util::{select, sink::SinkExt, stream::StreamExt, FutureExt};
 use serde_json::value::RawValue;
 use tracing::{error, trace};
 

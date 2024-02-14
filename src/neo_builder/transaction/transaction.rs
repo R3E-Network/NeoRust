@@ -1,17 +1,30 @@
-use std::hash::{Hash, Hasher};
-
-use primitive_types::{H160, H256, U256};
-use serde::{Deserialize, Serialize};
-
-use neo::prelude::{
-    Bytes, Decoder, deserialize_h256, deserialize_h256_option,
-    deserialize_script_hash, Encoder, HashableForVec, NameOrAddress, NeoSerializable, serialize_h256,
-    serialize_h256_option, serialize_script_hash, Signer, TransactionAttribute, TransactionError, VarSizeTrait,
-    VMState, Witness,
+use futures_util::TryFutureExt;
+use getset::{CopyGetters, Getters, MutGetters, Setters};
+use std::{
+	error::Error,
+	hash::{Hash, Hasher},
 };
 
-#[derive(Default, Serialize, Deserialize, Hash, Debug, Clone)]
-pub struct Transaction {
+use neo::config::NeoConstants;
+use primitive_types::{H160, H256, U256};
+use rustc_serialize::hex::ToHex;
+use serde::{Deserialize, Serialize};
+
+use crate::neo_providers::{JsonRpcClient, Provider};
+use neo::prelude::{
+	deserialize_h256, deserialize_h256_option, deserialize_script_hash, serialize_h256,
+	serialize_h256_option, serialize_script_hash, Bytes, Decoder, Encoder, HashableForVec,
+	Middleware, NameOrAddress, NeoSerializable, RawTransaction, Signer, TransactionAttribute,
+	TransactionError, VMState, VarSizeTrait, Witness,
+};
+
+#[derive(
+	Default, Serialize, Deserialize, Getters, Setters, MutGetters, CopyGetters, Hash, Debug, Clone,
+)]
+pub struct Transaction<P: JsonRpcClient + 'static> {
+	#[serde(skip)]
+	pub(crate) provider: Option<&'static Provider<P>>,
+
 	#[serde(rename = "version")]
 	pub version: u8,
 
@@ -21,27 +34,17 @@ pub struct Transaction {
 	#[serde(rename = "validuntilblock")]
 	pub valid_until_block: i32,
 
-	#[serde(rename = "hash")]
-	#[serde(serialize_with = "serialize_h256")]
-	#[serde(deserialize_with = "deserialize_h256")]
-	pub hash: H256,
+	#[serde(rename = "signers")]
+	pub signers: Vec<Signer>,
 
 	#[serde(rename = "size")]
 	pub size: i32,
-
-	#[serde(rename = "sender")]
-	#[serde(deserialize_with = "deserialize_script_hash")]
-	#[serde(serialize_with = "serialize_script_hash")]
-	pub sender: H160,
 
 	#[serde(rename = "sysfee")]
 	pub sys_fee: i64,
 
 	#[serde(rename = "netfee")]
 	pub net_fee: i64,
-
-	#[serde(rename = "signers")]
-	pub signers: Vec<Signer>,
 
 	#[serde(rename = "attributes")]
 	pub attributes: Vec<TransactionAttribute>,
@@ -52,28 +55,19 @@ pub struct Transaction {
 	#[serde(rename = "witnesses")]
 	pub witnesses: Vec<Witness>,
 
-	#[serde(rename = "blockhash")]
-	#[serde(serialize_with = "serialize_h256_option")]
-	#[serde(deserialize_with = "deserialize_h256_option")]
-	pub block_hash: Option<H256>,
-
-	#[serde(rename = "confirmations")]
-	pub confirmations: Option<i32>,
-
 	#[serde(rename = "blocktime")]
 	pub block_time: Option<i32>,
-
-	#[serde(rename = "vmstate")]
-	pub vm_state: Option<VMState>,
-
-	#[serde(rename = "network")]
-	pub network: Option<u32>,
 }
 
-impl Transaction {
+impl<P: JsonRpcClient + 'static> Transaction<P> {
 	const HEADER_SIZE: usize = 25;
 	pub fn new() -> Self {
 		Self::default()
+	}
+
+	pub fn with_provider(&mut self, provider: &'static Provider<P>) -> &mut Self {
+		self.provider = Some(provider);
+		self
 	}
 
 	/// Convenience function for sending a new payment transaction to the receiver.
@@ -81,26 +75,18 @@ impl Transaction {
 		Transaction { ..Default::default() }
 	}
 
-	pub fn network(&self) -> Option<u32> {
-		self.network
-	}
-
-	pub fn set_network(&mut self, network: u32) {
-		self.network = Some(network);
-	}
-
 	pub fn add_witness(&mut self, witness: Witness) {
 		self.witnesses.push(witness);
 	}
 
-	pub fn get_hash_data(&self) -> Result<Bytes, TransactionError> {
-		if self.network().is_none() {
+	pub async fn get_hash_data(&self) -> Result<Bytes, TransactionError> {
+		if self.provider.is_none() {
 			panic!("Transaction network magic is not set");
 		}
 		let mut encoder = Encoder::new();
 		self.serialize_without_witnesses(&mut encoder);
 		let mut data = encoder.to_bytes().hash256();
-		data.splice(0..0, self.network.unwrap().to_be_bytes());
+		data.splice(0..0, self.provider.unwrap().network().await);
 
 		Ok(data)
 	}
@@ -117,15 +103,32 @@ impl Transaction {
 	}
 }
 
-impl Eq for Transaction {}
+// #[async_trait]
+impl<P: JsonRpcClient + 'static> Transaction<P> {
+	pub(crate) async fn send(&self) -> Result<RawTransaction, TransactionError> {
+		if self.signers.len() != self.witnesses.len() {
+			return Err(TransactionError::TransactionConfiguration("The transaction does not have the same number of signers and witnesses. For every signer there has to be one witness, even if that witness is empty.".to_string()));
+		}
+		if self.size > NeoConstants::MAX_TRANSACTION_SIZE {
+			return Err(TransactionError::TransactionConfiguration(format!("The transaction exceeds the maximum transaction size. The maximum size is {} bytes while the transaction has size {}.", NeoConstants::MAX_TRANSACTION_SIZE, self.size)));
+		}
 
-impl PartialEq for Transaction {
-	fn eq(&self, other: &Self) -> bool {
-		self.hash == other.hash
+		let hex = self.to_array().to_hex();
+		let block_count_when_sent = self.provider.unwrap().get_block_count().await?;
+		let result = self.provider.unwrap().send_raw_transaction(hex).await?;
+		Ok(result)
 	}
 }
 
-impl NeoSerializable for Transaction {
+impl<P: JsonRpcClient + 'static> Eq for Transaction<P> {}
+
+impl<P: JsonRpcClient + 'static> PartialEq for Transaction<P> {
+	fn eq(&self, other: &Self) -> bool {
+		self.to_array() == other.to_array()
+	}
+}
+
+impl<P: JsonRpcClient + 'static> NeoSerializable for Transaction<P> {
 	type Error = TransactionError;
 
 	fn size(&self) -> usize {
@@ -166,23 +169,18 @@ impl NeoSerializable for Transaction {
 		}
 
 		Ok(Self {
+			provider: None,
 			version,
 			nonce: nonce as i32,
 			valid_until_block: valid_until_block as i32,
-			hash: Default::default(),
 			size: 0,
-			sender: Default::default(),
 			sys_fee: system_fee,
 			net_fee: network_fee,
 			signers,
 			attributes,
 			script,
 			witnesses,
-			block_hash: None,
-			confirmations: None,
 			block_time: None,
-			vm_state: None,
-			network: None,
 		})
 	}
 

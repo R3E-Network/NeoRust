@@ -2,21 +2,23 @@
 #![allow(dead_code)]
 
 use std::{
-    collections::{HashMap, HashSet},
-    convert::TryInto,
+	collections::{HashMap, HashSet},
+	convert::TryInto,
 };
 
 use elliptic_curve::sec1::ToEncodedPoint;
 use hex;
 use primitive_types::{H160, H256, U256};
 use reqwest::Url;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde::ser::{SerializeMap, SerializeSeq};
+use serde::{
+	ser::{SerializeMap, SerializeSeq},
+	Deserialize, Deserializer, Serialize, Serializer,
+};
 
 use neo::prelude::{
-    Address, AddressOrScriptHash, ContractParameter, encode_string_h160, encode_string_h256,
-    encode_string_u256, parse_address, parse_string_h256, parse_string_u256, parse_string_u64,
-    ScriptHash, Secp256r1PrivateKey, Secp256r1PublicKey,
+	encode_string_h160, encode_string_h256, encode_string_u256, parse_address, parse_string_h256,
+	parse_string_u256, parse_string_u64, Address, AddressOrScriptHash, ContractParameter,
+	ScriptHash, Secp256r1PrivateKey, Secp256r1PublicKey,
 };
 #[cfg(feature = "substrate")]
 use serde_big_array_substrate::big_array;
@@ -790,9 +792,9 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::*;
+	use super::*;
 
-    #[derive(Clone, Default, Debug, Serialize, Deserialize)]
+	#[derive(Clone, Default, Debug, Serialize, Deserialize)]
 	struct TestStruct {
 		#[serde(serialize_with = "serialize_hashset_u256")]
 		#[serde(deserialize_with = "deserialize_hashset_u256")]

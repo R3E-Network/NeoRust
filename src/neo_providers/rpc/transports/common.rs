@@ -2,14 +2,14 @@
 
 use std::fmt;
 
-use base64::{Engine, engine::general_purpose};
-use jsonwebtoken::{Algorithm, encode, EncodingKey, errors::Error, get_current_timestamp, Header};
+use base64::{engine::general_purpose, Engine};
+use jsonwebtoken::{encode, errors::Error, get_current_timestamp, Algorithm, EncodingKey, Header};
 use primitive_types::U256;
 use serde::{
-    de::{self, MapAccess, Unexpected, Visitor},
-    Deserialize, Serialize,
+	de::{self, MapAccess, Unexpected, Visitor},
+	Deserialize, Serialize,
 };
-use serde_json::{Value, value::RawValue};
+use serde_json::{value::RawValue, Value};
 use thiserror::Error;
 
 use neo::prelude::Bytes;
@@ -371,9 +371,9 @@ pub struct Claims {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+	use super::*;
 
-    #[test]
+	#[test]
 	fn deser_response() {
 		let _ =
 			serde_json::from_str::<Response<'_>>(r#"{"jsonrpc":"2.0","result":19}"#).unwrap_err();

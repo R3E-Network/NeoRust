@@ -9,7 +9,7 @@
 use rand::rngs::OsRng;
 
 use neo::prelude::{
-    CryptoError, PublicKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey, wif_from_private_key,
+	wif_from_private_key, CryptoError, PublicKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey,
 };
 
 /// Represents an Elliptic Curve Key Pair containing both a private and a public key.
@@ -109,11 +109,11 @@ impl KeyPair {
 
 #[cfg(test)]
 mod tests {
-    use rustc_serialize::hex::FromHex;
+	use rustc_serialize::hex::FromHex;
 
-    use neo::prelude::KeyPair;
+	use neo::prelude::KeyPair;
 
-    #[test]
+	#[test]
 	fn test_public_key_wif() {
 		let private_key = "c7134d6fd8e73d819e82755c64c93788d8db0961929e025a53363c4cc02a6962"
 			.from_hex()

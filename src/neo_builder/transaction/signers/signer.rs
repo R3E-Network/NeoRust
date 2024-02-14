@@ -4,9 +4,9 @@ use primitive_types::H160;
 use serde::{Deserialize, Serialize, Serializer};
 
 use neo::prelude::{
-    AccountSigner, BuilderError, ContractSigner, Decoder, Encoder, NeoConstants, NeoSerializable,
-    Secp256r1PublicKey, TransactionError, TransactionSigner, WitnessCondition, WitnessRule,
-    WitnessScope,
+	AccountSigner, BuilderError, ContractSigner, Decoder, Encoder, NeoConstants, NeoSerializable,
+	Secp256r1PublicKey, TransactionError, TransactionSigner, WitnessCondition, WitnessRule,
+	WitnessScope,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -480,19 +480,20 @@ impl NeoSerializable for Signer {
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Deref;
+	use std::ops::Deref;
 
-    use lazy_static::lazy_static;
-    use primitive_types::H160;
-    use rustc_serialize::hex::{FromHex, ToHex};
+	use lazy_static::lazy_static;
+	use neo::builder::Signer;
+	use primitive_types::H160;
+	use rustc_serialize::hex::{FromHex, ToHex};
 
-    use neo::prelude::{
-        Account, AccountSigner, AccountTrait, BuilderError, Encoder, NeoSerializable, ScriptHash,
-        ScriptHashExtension, Secp256r1PublicKey, SignerTrait, WitnessAction, WitnessCondition,
-        WitnessRule, WitnessScope,
-    };
+	use neo::prelude::{
+		Account, AccountSigner, AccountTrait, BuilderError, Encoder, NeoSerializable, ScriptHash,
+		ScriptHashExtension, Secp256r1PublicKey, SignerTrait, WitnessAction, WitnessCondition,
+		WitnessRule, WitnessScope,
+	};
 
-// const script_hash:ScriptHash = Account::from_wif("Kzt94tAAiZSgH7Yt4i25DW6jJFprZFPSqTgLr5dWmWgKDKCjXMfZ").unwrap().get_script_hash();
+	// const script_hash:ScriptHash = Account::from_wif("Kzt94tAAiZSgH7Yt4i25DW6jJFprZFPSqTgLr5dWmWgKDKCjXMfZ").unwrap().get_script_hash();
 
 	lazy_static! {
 		pub static ref SCRIPT_HASH: ScriptHash = {
@@ -541,7 +542,7 @@ mod tests {
         02a877f3c907cc6c2b66c295d1fcc76ff8f702958ab88e4cea7ae1848047daeb8883daf5fdf5c1301dbbfe973f0a29fe75de6001010128d802a401"
 			.from_hex().unwrap();
 
-		let signer = SignerTrait::from_bytes(&serialized).unwrap();
+		let signer = Signer::from_bytes(&serialized).unwrap();
 
 		assert_eq!(signer.get_signer_hash(), SCRIPT_HASH.deref());
 
@@ -555,7 +556,7 @@ mod tests {
 			]
 		);
 
-		let signer = SignerTrait::from_bytes(&serialized).unwrap();
+		let signer = Signer::from_bytes(&serialized).unwrap();
 
 		// Assert hash
 		assert_eq!(signer.get_signer_hash(), SCRIPT_HASH.deref());
@@ -676,7 +677,7 @@ mod tests {
 	fn test_deserialize_too_many_contracts() {
 		let data = hex::decode("111118d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401").unwrap();
 
-		let err = SignerTrait::from_bytes(&data).unwrap_err();
+		let err = Signer::from_bytes(&data).unwrap_err();
 
 		assert!(err.to_string().contains("too many allowed contracts"));
 	}

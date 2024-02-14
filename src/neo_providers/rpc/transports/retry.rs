@@ -2,9 +2,9 @@
 //! with an exponential backoff.
 
 use std::{
-    fmt::Debug,
-    sync::atomic::{AtomicU32, Ordering},
-    time::Duration,
+	fmt::Debug,
+	sync::atomic::{AtomicU32, Ordering},
+	time::Duration,
 };
 
 use async_trait::async_trait;
@@ -487,9 +487,9 @@ fn maybe_connectivity(err: &ProviderError) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+	use super::*;
 
-    // assumed average cost of a request
+	// assumed average cost of a request
 	const AVG_COST: u64 = 17u64;
 	const COMPUTE_UNITS: u64 = 330u64;
 

@@ -2,8 +2,8 @@
 use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
 use p256::NistP256;
 use yubihsm::{
-    asymmetric::Algorithm::EcP256, Capability, Client, Connector, Credentials,
-    Domain, ecdsa::Signer as YubiSigner, object, object::Label,
+	asymmetric::Algorithm::EcP256, ecdsa::Signer as YubiSigner, object, object::Label, Capability,
+	Client, Connector, Credentials, Domain,
 };
 
 use neo::prelude::{Secp256r1PublicKey, WalletSigner};
@@ -64,13 +64,13 @@ impl From<YubiSigner<NistP256>> for Wallet<YubiSigner<NistP256>> {
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]
 mod tests {
-    use std::str::FromStr;
+	use std::str::FromStr;
 
-    use neo::prelude::Address;
+	use neo::prelude::Address;
 
-    use super::*;
+	use super::*;
 
-    #[tokio::test]
+	#[tokio::test]
 	async fn from_key() {
 		let key = hex::decode("2d8c44dc2dd2f0bea410e342885379192381e82d855b1b112f9b55544f1e0900")
 			.unwrap();

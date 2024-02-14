@@ -42,11 +42,11 @@ impl NeoSerializable for WitnessRule {
 
 #[cfg(test)]
 mod tests {
-    use primitive_types::H160;
+	use primitive_types::H160;
 
-    use neo::prelude::*;
+	use neo::prelude::*;
 
-    #[test]
+	#[test]
 	fn test_decode_boolean_condition() {
 		let json = r#"{"action": "Allow","condition": {"type": "Boolean","expression": "false"}}"#;
 		let rule: WitnessRule = serde_json::from_str(json).unwrap();

@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 //! # neo-rs
 //!
 //! A complete neo Rust library.
@@ -128,4 +130,3 @@ pub mod prelude {
 		providers::*, types::*, wallets::*,
 	};
 }
-

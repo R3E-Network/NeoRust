@@ -288,11 +288,11 @@ impl<'a> Decoder<'a> {
 
 #[cfg(test)]
 mod tests {
-    use num_bigint::BigInt;
+	use num_bigint::BigInt;
 
-    use neo::prelude::Decoder;
+	use neo::prelude::Decoder;
 
-    #[test]
+	#[test]
 	fn test_read_push_data_bytes() {
 		let prefix_count_map = [
 			(hex::decode("0c01").unwrap(), 1),
