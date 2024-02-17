@@ -1,0 +1,36 @@
+{
+  "name": "Rust SGX Dev",
+
+  // Use latest Rust image
+  "image": "rust:latest",
+
+  // Install needed tools and deps
+  "runArgs": [
+    "--cap-add=SYS_PTRACE",
+    "--security-opt", "seccomp=unconfined"
+  ],
+  "postCreateCommand": "apt-get update && apt-get install -y libssl-dev gcc git make wget",
+
+  // Install Baidu SDK
+  "postCreateCommand": "git clone https://github.com/baidu/rust-sgx-sdk.git",
+
+  // Set SDK environment variable
+  "containerEnv": {
+    "RUST_SGX_SDK": "/rust-sgx-sdk"
+  },
+
+  // VSCode extensions
+  "extensions": [
+    "rust-lang.rust"
+  ],
+
+  // Build enclave app
+  "postCreateCommand": "make -C ../sample/rust-enclave install",
+
+  // Open app folder rather than home
+  "workspaceFolder": "/workspace",
+
+  // Use bash
+  "overrideCommand": false,
+  "containerUser": "vscode"
+}
