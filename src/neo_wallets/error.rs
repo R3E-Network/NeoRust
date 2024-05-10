@@ -33,7 +33,7 @@ use neo::prelude::{BuilderError, CryptoError, TypeError, WalletError};
 /// like this:
 ///
 /// ```
-/// use neo_rs::prelude::SignerError;
+/// use NeoRust::prelude::SignerError;
 ///  async fn sign_data(data: &[u8]) -> Result<(), SignerError> {
 ///     // Example function body
 ///     Ok(())

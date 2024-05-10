@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use eyre::Result;
 
-use neo_rs::prelude::*;
+use NeoRust::prelude::*;
 #[tokio::main]
 async fn main() -> Result<()> {
     let anvil = Anvil::new().spawn();

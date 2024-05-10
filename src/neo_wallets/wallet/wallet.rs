@@ -183,7 +183,7 @@ impl Wallet {
 	///
 	/// ```
 	///
-	/// use neo_rs::prelude::{Account, Wallet};
+	/// use NeoRust::prelude::{Account, Wallet};
 	/// let account1 = Account::default();
 	/// let account2 = Account::default();
 	///
@@ -257,7 +257,7 @@ impl Wallet {
 	/// # Example
 	///
 	/// ```no_run
-	/// # use neo_rs::prelude::Wallet;
+	/// # use NeoRust::prelude::Wallet;
 	///  async fn example() -> Result<(), Box<dyn std::error::Error>> {
 	/// # let wallet = Wallet::new();
 	/// let message = "Hello, world!";
@@ -302,7 +302,7 @@ impl Wallet {
 	/// # Example
 	///
 	/// ```no_run
-	/// # use neo_rs::prelude::{Transaction, Wallet};
+	/// # use NeoRust::prelude::{Transaction, Wallet};
 	///  async fn example() -> Result<(), Box<dyn std::error::Error>> {
 	/// # let wallet = Wallet::new();
 	/// # let tx = Transaction::new();
@@ -315,11 +315,14 @@ impl Wallet {
 		let mut tx_with_chain = tx.clone();
 		if tx_with_chain.network().is_none() {
 			// in the case we don't have a network, let's use the signer network magic instead
-			tx_with_chain.set_network(self.network());
+			tx_with_chain.set_network(Some(self.network()));
 		}
 
-		Witness::create(tx.get_hash_data()?, &self.default_account().key_pair.clone().unwrap())
-			.map_err(|_e| WalletError::NoKeyPair)
+		Witness::create(
+			tx.get_hash_data().await?,
+			&self.default_account().key_pair.clone().unwrap(),
+		)
+		.map_err(|_e| WalletError::NoKeyPair)
 	}
 
 	/// Returns the address of the wallet's default account.
@@ -364,11 +367,11 @@ impl Wallet {
 	/// # Example
 	///
 	/// ```no_run
-	/// # use neo_rs::prelude::{NeoConfig, NeoNetwork, Wallet};
+	/// # use NeoRust::prelude::{NeoConfig, NeoNetwork, Wallet};
 	/// let mut wallet = Wallet::new();
-	/// wallet = wallet.with_network(NeoNetwork::MainNet);
+	/// wallet = wallet.with_network(NeoNetwork::MainNet.to_magic());
 	/// ```
-	pub fn with_network<T: Into<u32>>(self, _network: T) -> Self {
+	pub fn with_network(self, _network: u32) -> Self {
 		todo!()
 	}
 }

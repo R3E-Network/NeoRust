@@ -3,7 +3,7 @@
 
 use url::Url;
 
-use neo_rs::prelude::*;
+use NeoRust::prelude::*;
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     let anvil = Anvil::new().spawn();

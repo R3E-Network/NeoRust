@@ -7,7 +7,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use url::Url;
 
-use neo_rs::prelude::*;
+use NeoRust::prelude::*;
 /// First we must create an error type, and implement [`From`] for
 /// [`ProviderError`].
 ///

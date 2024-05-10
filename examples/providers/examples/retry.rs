@@ -11,7 +11,7 @@ use std::time::Duration;
 use primitive_types::H256;
 use reqwest::Url;
 
-use neo_rs::prelude::*;
+use NeoRust::prelude::*;
 const RPC_URL: &str = NeoConstants::SEED_1;
 
 #[tokio::main]

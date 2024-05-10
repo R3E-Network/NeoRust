@@ -1,6 +1,6 @@
 extern crate neo -rs;
 
-use neo_rs::prelude::*;
+use NeoRust::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

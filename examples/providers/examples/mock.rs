@@ -9,7 +9,7 @@
 //! In these examples we use the common Arrange, Act, Assert (AAA) test approach.
 //! It is a useful pattern for well-structured, understandable and maintainable tests.
 
-use neo_rs::prelude::*;
+use NeoRust::prelude::*;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {

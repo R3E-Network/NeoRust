@@ -6,7 +6,7 @@ use std::hash::Hasher;
 ///
 /// ```
 ///
-/// use neo_rs::prelude::Encoder;
+/// use NeoRust::prelude::Encoder;
 /// let mut encoder = Encoder::new();
 /// encoder.write_u8(0x12);
 /// encoder.write_i32(-123456);

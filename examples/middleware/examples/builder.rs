@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use neo_rs::prelude::*;
+use NeoRust::prelude::*;
 
 const RPC_URL: &str = NeoConstants::SEED_1;
 const SIGNING_KEY: &str = "fdb33e2105f08abe41a8ee3b758726a31abdd57b7a443f470f23efce853af169";

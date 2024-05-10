@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use eyre::Result;
 
-use neo_rs::prelude::*;
+use NeoRust::prelude::*;
 /// use `debug_traceTransaction` to fetch traces
 /// requires, a valid endpoint in `RPC_URL` env var that supports `debug_traceTransaction`
 #[tokio::main]

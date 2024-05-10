@@ -23,7 +23,7 @@
 //! ```
 //! use p256::elliptic_curve::rand_core::OsRng;
 //! use scrypt::Params;
-//! use neo_rs::prelude::{KeyPair, NEP2, Secp256r1PrivateKey};
+//! use NeoRust::prelude::{KeyPair, NEP2, Secp256r1PrivateKey};
 //!
 //! // To encrypt a private key:
 //! let key_pair = KeyPair::from_secret_key(&Secp256r1PrivateKey::random(&mut OsRng));

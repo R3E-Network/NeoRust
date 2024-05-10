@@ -26,7 +26,7 @@ impl Hash for AddressOrScriptHash {
 	///
 	/// ```
 	/// use std::collections::HashSet;
-	/// use neo_rs::prelude::AddressOrScriptHash;
+	/// use NeoRust::prelude::AddressOrScriptHash;
 	/// let mut set = HashSet::new();
 	/// set.insert(AddressOrScriptHash::Address("myAddress".into()));
 	/// ```
@@ -50,7 +50,7 @@ impl From<Address> for AddressOrScriptHash {
 	/// # Examples
 	///
 	/// ```
-	/// use neo_rs::prelude::AddressOrScriptHash;
+	/// use NeoRust::prelude::AddressOrScriptHash;
 	/// let from_address = AddressOrScriptHash::from("myAddress".into());
 	/// assert!(matches!(from_address, AddressOrScriptHash::Address(_)));
 	/// ```
@@ -65,7 +65,7 @@ impl From<Bytes> for AddressOrScriptHash {
 	/// # Examples
 	///
 	/// ```
-	/// use neo_rs::prelude::{AddressOrScriptHash, Bytes};
+	/// use NeoRust::prelude::{AddressOrScriptHash, Bytes};
 	/// let bytes: Bytes = vec![0xdeu8, 0xadu8, 0xbeu8, 0xefu8];
 	/// let from_bytes = AddressOrScriptHash::from(bytes);
 	/// assert!(matches!(from_bytes, AddressOrScriptHash::ScriptHash(_)));
@@ -82,7 +82,7 @@ impl AddressOrScriptHash {
 	///
 	/// ```
 	/// use primitive_types::H160;
-	/// use neo_rs::prelude::AddressOrScriptHash;
+	/// use NeoRust::prelude::AddressOrScriptHash;
 	/// let script_hash = AddressOrScriptHash::ScriptHash(H160::repeat_byte(0x01));
 	/// let address = script_hash.address();
 	/// assert_eq!(address, "convertedAddressFromScriptHash");
@@ -100,7 +100,7 @@ impl AddressOrScriptHash {
 	///
 	/// ```
 	/// use primitive_types::H160;
-	/// use neo_rs::prelude::AddressOrScriptHash;
+	/// use NeoRust::prelude::AddressOrScriptHash;
 	/// let address = AddressOrScriptHash::Address("myAddress".into());
 	/// let script_hash = address.script_hash();
 	/// assert_eq!(script_hash, H160::repeat_byte(0x02)); // Assuming `to_address` converts an address into a specific script hash

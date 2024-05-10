@@ -508,7 +508,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		from: Address,
 		to: Address,
 		amount: u32,
-	) -> Result<Transaction<Self::Provider>, ProviderError> {
+	) -> Result<Transaction, ProviderError> {
 		let params =
 			[token_hash.to_value(), from.to_value(), to.to_value(), amount.to_value()].to_vec();
 		self.request("sendfrom", params).await
@@ -523,7 +523,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		&self,
 		from: Option<H160>,
 		send_tokens: Vec<TransactionSendToken>,
-	) -> Result<Transaction<Self::Provider>, ProviderError> {
+	) -> Result<Transaction, ProviderError> {
 		let params = [from.unwrap().to_value(), send_tokens.to_value()].to_vec();
 		self.request("sendmany", params).await
 	}
@@ -539,7 +539,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		token_hash: H160,
 		to: Address,
 		amount: u32,
-	) -> Result<Transaction<Self::Provider>, ProviderError> {
+	) -> Result<Transaction, ProviderError> {
 		let params = [token_hash.to_value(), to.to_value(), amount.to_value()].to_vec();
 		self.request("sendtoaddress", params).await
 	}
@@ -547,7 +547,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	async fn send_to_address_send_token(
 		&self,
 		send_token: &TransactionSendToken,
-	) -> Result<Transaction<P>, ProviderError> {
+	) -> Result<Transaction, ProviderError> {
 		let params = [send_token.to_value()].to_vec();
 		self.request("sendtoaddress", params).await
 	}
@@ -862,7 +862,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		&self,
 		send_token: &TransactionSendToken,
 		from: Address,
-	) -> Result<Transaction<Self::Provider>, ProviderError> {
+	) -> Result<Transaction, ProviderError> {
 		let params = [from.to_value(), vec![send_token.to_value()].into()].to_vec();
 		self.request("sendmany", params).await
 	}
@@ -930,7 +930,7 @@ impl Provider<MockProvider> {
 	/// # Example
 	///
 	/// ```
-	/// # use neo_rs::prelude::Provider;
+	/// # use NeoRust::prelude::Provider;
 	///  async fn foo() -> Result<(), Box<dyn std::error::Error>> {
 	/// // Instantiate the provider
 	/// let (provider, mock) = Provider::mocked();
@@ -1030,7 +1030,7 @@ mod sealed {
 ///
 /// ```no_run
 /// use std::convert::TryFrom;
-/// use neo_rs::prelude::{Http, NeoNetwork, Provider, ProviderExt};
+/// use NeoRust::prelude::{Http, NeoNetwork, Provider, ProviderExt};
 /// let http_provider = Provider::<Http>::try_from("https://seed1.neo.org:10333").unwrap().set_network(NeoNetwork::MainNet.to_magic());
 /// ```
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
@@ -1097,7 +1097,7 @@ impl ProviderExt for Provider<Http> {
 /// # Example
 ///
 /// ```
-/// use neo_rs::prelude::is_local_endpoint;
+/// use NeoRust::prelude::is_local_endpoint;
 /// assert!(is_local_endpoint("http://localhost:8545"));
 /// assert!(is_local_endpoint("http://test.localdev.me"));
 /// assert!(is_local_endpoint("http://169.254.0.0:8545"));

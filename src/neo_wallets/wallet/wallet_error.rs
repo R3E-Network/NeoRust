@@ -30,7 +30,7 @@ use neo::prelude::{BuilderError, CryptoError, TransactionError};
 /// Handling a `WalletError` might look like this:
 ///
 /// ```
-/// # use neo_rs::prelude::WalletError;
+/// # use NeoRust::prelude::WalletError;
 /// # fn main() -> Result<(), WalletError> {
 /// let result = some_wallet_operation();
 ///     match result {

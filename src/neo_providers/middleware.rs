@@ -376,7 +376,7 @@ pub trait Middleware: Sync + Send + Debug {
 		from: Address,
 		to: Address,
 		amount: u32,
-	) -> Result<Transaction<Self::Provider>, Self::Error> {
+	) -> Result<Transaction, Self::Error> {
 		self.inner()
 			.send_from(token_hash, from, to, amount)
 			.await
@@ -389,7 +389,7 @@ pub trait Middleware: Sync + Send + Debug {
 		&self,
 		from: Option<H160>,
 		send_tokens: Vec<TransactionSendToken>,
-	) -> Result<Transaction<Self::Provider>, Self::Error> {
+	) -> Result<Transaction, Self::Error> {
 		self.inner()
 			.send_many(from, send_tokens)
 			.await
@@ -401,7 +401,7 @@ pub trait Middleware: Sync + Send + Debug {
 		token_hash: H160,
 		to: Address,
 		amount: u32,
-	) -> Result<Transaction<Self::Provider>, Self::Error> {
+	) -> Result<Transaction, Self::Error> {
 		self.inner()
 			.send_to_address(token_hash, to, amount)
 			.await
@@ -648,7 +648,7 @@ pub trait Middleware: Sync + Send + Debug {
 	async fn send_to_address_send_token(
 		&self,
 		send_token: &TransactionSendToken,
-	) -> Result<Transaction<Self::Provider>, Self::Error> {
+	) -> Result<Transaction, Self::Error> {
 		self.inner()
 			.send_to_address_send_token(send_token)
 			.await
@@ -659,7 +659,7 @@ pub trait Middleware: Sync + Send + Debug {
 		&self,
 		send_token: &TransactionSendToken,
 		from: Address,
-	) -> Result<Transaction<Self::Provider>, Self::Error> {
+	) -> Result<Transaction, Self::Error> {
 		self.inner()
 			.send_from_send_token(send_token, from)
 			.await

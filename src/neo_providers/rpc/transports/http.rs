@@ -23,7 +23,7 @@ use super::common::{JsonRpcError, Request, Response};
 /// ```no_run
 /// use std::str::FromStr;
 /// use primitive_types::H256;
-/// use neo_rs::prelude::{Http, JsonRpcClient, Middleware, NeoConstants, Provider};
+/// use NeoRust::prelude::{Http, JsonRpcClient, Middleware, NeoConstants, Provider};
 ///
 /// # async fn foo() -> Result<(), Box<dyn std::error::Error>> {
 /// let provider = Provider::<Http>::try_from(
@@ -140,7 +140,7 @@ impl HttpProvider {
 	///
 	/// ```
 	/// use url::Url;
-	/// use neo_rs::prelude::Http;
+	/// use NeoRust::prelude::Http;
 	///
 	/// let url = Url::parse("http://localhost:8545").unwrap();
 	/// let provider = Http::new(url);
@@ -165,7 +165,7 @@ impl HttpProvider {
 	///
 	/// ```
 	/// use url::Url;
-	/// use neo_rs::prelude::Http;
+	/// use NeoRust::prelude::Http;
 	///
 	/// let url = Url::parse("http://localhost:8545").unwrap();
 	/// let provider = Http::new(url);
@@ -191,7 +191,7 @@ impl HttpProvider {
 	///
 	/// ```
 	/// use url::Url;
-	/// use neo_rs::prelude::Http;
+	/// use NeoRust::prelude::Http;
 	///
 	/// let url = Url::parse("http://localhost:8545").unwrap();
 	/// let client = reqwest::Client::builder().build().unwrap();

@@ -16,7 +16,7 @@ use crate::prelude::ScriptHash;
 /// # Examples
 ///
 /// ```
-/// use neo_rs::prelude::parse_string_u64;
+/// use NeoRust::prelude::parse_string_u64;
 /// let decimal = "12345";
 /// assert_eq!(parse_string_u64(decimal), 12345);
 ///
@@ -37,7 +37,7 @@ pub fn parse_string_u64(u64_str: &str) -> u64 {
 ///
 /// ```
 /// use primitive_types::U256;
-/// use neo_rs::prelude::parse_string_u256;
+/// use NeoRust::prelude::parse_string_u256;
 /// let decimal = "123456789";
 /// assert_eq!(parse_string_u256(decimal), U256::from(123456789));
 ///
@@ -57,7 +57,7 @@ pub fn parse_string_u256(u256_str: &str) -> U256 {
 /// # Examples
 ///
 /// ```
-/// use neo_rs::prelude::{parse_address, ScriptHash};
+/// use NeoRust::prelude::{parse_address, ScriptHash};
 /// let address_hex = "0xabcdef1234567890";
 /// let script_hash = parse_address(address_hex);
 /// assert_eq!(script_hash, ScriptHash::from_slice(&[0xab, 0xcd, 0xef, 0x12, 0x34, 0x56, 0x78, 0x90]));
@@ -75,7 +75,7 @@ pub fn parse_address(address: &str) -> ScriptHash {
 ///
 /// ```
 /// use primitive_types::H160;
-/// use neo_rs::prelude::encode_string_h160;
+/// use NeoRust::prelude::encode_string_h160;
 /// let hash = H160::repeat_byte(0xab);
 /// let encoded = encode_string_h160(&hash);
 /// assert!(encoded.starts_with("H160"));
@@ -90,7 +90,7 @@ pub fn encode_string_h160(h160: &H160) -> String {
 ///
 /// ```
 /// use primitive_types::H256;
-/// use neo_rs::prelude::parse_string_h256;
+/// use NeoRust::prelude::parse_string_h256;
 /// let hex_str = "0x123456";
 /// let h256 = parse_string_h256(hex_str);
 /// assert_eq!(h256, H256::from_low_u64_be(0x123456));
@@ -110,7 +110,7 @@ pub fn parse_string_h256(h256_str: &str) -> H256 {
 ///
 /// ```
 /// use primitive_types::H256;
-/// use neo_rs::prelude::encode_string_h256;
+/// use NeoRust::prelude::encode_string_h256;
 /// let hash = H256::repeat_byte(0xab);
 /// let encoded = encode_string_h256(&hash);
 /// assert!(encoded.starts_with("H256"));
@@ -125,7 +125,7 @@ pub fn encode_string_h256(h256: &H256) -> String {
 ///
 /// ```
 /// use primitive_types::U256;
-/// use neo_rs::prelude::encode_string_u256;
+/// use NeoRust::prelude::encode_string_u256;
 /// let value = U256::from(255);
 /// let encoded = encode_string_u256(&value);
 /// assert_eq!(encoded, "0xff");
@@ -140,7 +140,7 @@ pub fn encode_string_u256(u256: &U256) -> String {
 ///
 /// ```
 /// use primitive_types::U256;
-/// use neo_rs::prelude::encode_vec_string_vec_u256;
+/// use NeoRust::prelude::encode_vec_string_vec_u256;
 /// let values = vec![U256::from(1), U256::from(2)];
 /// let encoded_values = encode_vec_string_vec_u256(values);
 /// assert_eq!(encoded_values, vec!["0x1", "0x2"]);
@@ -155,7 +155,7 @@ pub fn encode_vec_string_vec_u256(item: Vec<U256>) -> Vec<String> {
 ///
 /// ```
 /// use primitive_types::U256;
-/// use neo_rs::prelude::parse_vec_string_vec_u256;
+/// use NeoRust::prelude::parse_vec_string_vec_u256;
 /// let strings = vec!["0x1".to_string(), "0x2".to_string()];
 /// let u256_values = parse_vec_string_vec_u256(strings);
 /// assert_eq!(u256_values, vec![U256::from(1), U256::from(2)]);
@@ -170,7 +170,7 @@ pub fn parse_vec_string_vec_u256(item: Vec<String>) -> Vec<U256> {
 ///
 /// ```
 /// use primitive_types::{H256, U256};
-/// use neo_rs::prelude::h256_to_u256;
+/// use NeoRust::prelude::h256_to_u256;
 /// let h256 = H256::repeat_byte(0x01);
 /// let u256 = h256_to_u256(h256);
 /// assert_eq!(u256, U256::from_big_endian(&[0x01; 32]));
@@ -184,7 +184,7 @@ pub fn h256_to_u256(item: H256) -> U256 {
 /// # Examples
 ///
 /// ```
-/// use neo_rs::prelude::bytes_to_string;
+/// use NeoRust::prelude::bytes_to_string;
 /// let bytes = [0xde, 0xad, 0xbe, 0xef];
 /// let hex_string = bytes_to_string(&bytes);
 /// assert_eq!(hex_string, "0xdeadbeef");
@@ -198,7 +198,7 @@ pub fn bytes_to_string(mybytes: &[u8]) -> String {
 /// # Examples
 ///
 /// ```
-/// use neo_rs::prelude::string_to_bytes;
+/// use NeoRust::prelude::string_to_bytes;
 /// let hex_string = "0xdeadbeef";
 /// let bytes = string_to_bytes(hex_string).unwrap();
 /// assert_eq!(bytes, vec![0xde, 0xad, 0xbe, 0xef]);
@@ -225,7 +225,7 @@ pub fn string_to_bytes(mystring: &str) -> Option<Vec<u8>> {
 ///
 /// ```
 /// use primitive_types::U256;
-/// use neo_rs::prelude::u256_sqrt;
+/// use NeoRust::prelude::u256_sqrt;
 /// let input = U256::from(16);
 /// let sqrt = u256_sqrt(&input);
 /// assert_eq!(sqrt, U256::from(4));
@@ -249,7 +249,7 @@ pub fn u256_sqrt(input: &U256) -> U256 {
 ///
 /// ```
 /// use primitive_types::U256;
-/// use neo_rs::prelude::u256_min;
+/// use NeoRust::prelude::u256_min;
 /// let a = U256::from(1);
 /// let b = U256::from(2);
 /// assert_eq!(u256_min(a, b), U256::from(1));
@@ -266,7 +266,7 @@ pub fn u256_min(x: U256, y: U256) -> U256 {
 /// # Examples
 ///
 /// ```
-/// use neo_rs::prelude::vec_to_array32;
+/// use NeoRust::prelude::vec_to_array32;
 /// let vec = vec![0_u8; 32];
 /// let array = vec_to_array32(vec).unwrap();
 /// assert_eq!(array.len(), 32);
@@ -289,7 +289,7 @@ pub fn vec_to_array32(vec: Vec<u8>) -> Result<[u8; 32], TypeError> {
 /// # Examples
 ///
 /// ```
-/// use neo_rs::prelude::var_size;
+/// use NeoRust::prelude::var_size;
 /// assert_eq!(var_size(256), 2); // 256 requires at least 2 bytes.
 /// assert_eq!(var_size(1), 1); // Smallest non-zero values require at least 1 byte.
 /// ```
@@ -313,7 +313,7 @@ pub trait ToBase58 {
 	/// # Examples
 	///
 	/// ```
-	/// use neo_rs::prelude::ToBase58;
+	/// use NeoRust::prelude::ToBase58;
 	/// let bytes = [1, 2, 3];
 	/// assert_eq!(bytes.to_base58(), "Ldp");
 	/// ```
@@ -332,7 +332,7 @@ pub trait ToBase64 {
 	/// # Examples
 	///
 	/// ```
-	/// use neo_rs::prelude::ToBase64;
+	/// use NeoRust::prelude::ToBase64;
 	/// let bytes = [1, 2, 3];
 	/// assert_eq!(bytes.to_base64(), "AQID");
 	/// ```

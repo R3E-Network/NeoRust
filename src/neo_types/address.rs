@@ -30,7 +30,7 @@ pub trait AddressExtension {
 	/// Basic usage:
 	///
 	/// ```
-	/// use neo_rs::prelude::AddressExtension;
+	/// use NeoRust::prelude::AddressExtension;
 	/// let address = "someBase58EncodedAddress";
 	/// let script_hash = address.address_to_script_hash().unwrap();
 	/// ```
@@ -43,7 +43,7 @@ pub trait AddressExtension {
 	/// Basic usage:
 	///
 	/// ```
-	/// use neo_rs::prelude::AddressExtension;
+	/// use NeoRust::prelude::AddressExtension;
 	/// let script = "abcdef1234567890";
 	/// let script_hash = script.script_to_script_hash().unwrap();
 	/// ```
@@ -56,7 +56,7 @@ pub trait AddressExtension {
 	/// Basic usage:
 	///
 	/// ```
-	/// use neo_rs::prelude::AddressExtension;
+	/// use NeoRust::prelude::AddressExtension;
 	/// let hex_string = "abcdef1234567890";
 	/// let script_hash = hex_string.hex_to_script_hash().unwrap();
 	/// ```
@@ -69,7 +69,7 @@ pub trait AddressExtension {
 	/// Basic usage:
 	///
 	/// ```
-	/// use neo_rs::prelude::AddressExtension;
+	/// use NeoRust::prelude::AddressExtension;
 	/// let random_address = String::random();
 	/// ```
 	fn random() -> Self;

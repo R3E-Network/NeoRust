@@ -110,7 +110,7 @@ impl ScriptBuilder {
 	///
 	/// ```
 	/// use num_bigint::BigInt;
-	/// use neo_rs::prelude::ScriptBuilder;
+	/// use NeoRust::prelude::ScriptBuilder;
 	///
 	/// let mut builder = ScriptBuilder::new();
 	/// builder.push_int(&BigInt::from(15))?;
@@ -163,7 +163,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```
-	/// use neo_rs::prelude::{OpCode, ScriptBuilder};
+	/// use NeoRust::prelude::{OpCode, ScriptBuilder};
 	/// let mut builder = ScriptBuilder::new();
 	/// builder.push_opcode_bytes(OpCode::PushData1, vec![0x01]);
 	/// ```

@@ -42,7 +42,7 @@ impl NEP6Wallet {
 	///
 	/// ```
 	/// use std::collections::HashMap;
-	/// use neo_rs::prelude::{NEP6Wallet, ScryptParamsDef};
+	/// use NeoRust::prelude::{NEP6Wallet, ScryptParamsDef};
 	///
 	/// let name = "MyWallet".to_string();
 	/// let version = "1.0".to_string();

@@ -1,6 +1,6 @@
 use eyre::Result;
 
-use neo_rs::prelude::*;
+use NeoRust::prelude::*;
 fn main() -> Result<()> {
     let phrase = "work man father plunge mystery proud hollow address reunion sauce theory bonus";
     let index = 0u32;

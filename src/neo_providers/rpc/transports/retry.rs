@@ -81,7 +81,7 @@ where
 	///
 	/// ```
 	///
-	/// # use neo_rs::prelude::{Http, HttpRateLimitRetryPolicy, RetryClient};
+	/// # use NeoRust::prelude::{Http, HttpRateLimitRetryPolicy, RetryClient};
 	///  async fn demo() {
 	/// use std::time::Duration;
 	/// use url::Url;

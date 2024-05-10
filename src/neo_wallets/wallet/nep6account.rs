@@ -63,7 +63,7 @@ impl NEP6Account {
 	///
 	/// ```
 	/// use std::collections::HashMap;
-	/// use neo_rs::prelude::{Address, NEP6Account, NEP6Contract};
+	/// use NeoRust::prelude::{Address, NEP6Account, NEP6Contract};
 	///
 	/// let address = Address::from("example_address");
 	/// let label = Some("My Account".to_string());
@@ -100,7 +100,7 @@ impl NEP6Account {
 	/// # Example
 	///
 	/// ```
-	/// use neo_rs::prelude::{Account, NEP6Account};
+	/// use NeoRust::prelude::{Account, NEP6Account};
 	///
 	/// let account = Account::default();
 	/// let nep6_account = NEP6Account::from_account(&account);
@@ -159,7 +159,7 @@ impl NEP6Account {
 	/// # Example
 	///
 	/// ```
-	/// use neo_rs::prelude::NEP6Account;
+	/// use NeoRust::prelude::NEP6Account;
 	/// let nep6_account = NEP6Account::default();
 	/// let account = nep6_account.to_account();
 	/// ```
@@ -203,7 +203,7 @@ impl PartialEq for NEP6Account {
 	///
 	/// ```
 	///
-	/// use neo_rs::prelude::NEP6Account;
+	/// use NeoRust::prelude::NEP6Account;
 	///
 	/// let account1 = NEP6Account::default();
 	/// let account2 = NEP6Account::default();

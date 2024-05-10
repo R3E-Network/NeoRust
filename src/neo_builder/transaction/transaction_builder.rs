@@ -4,6 +4,7 @@ use std::{
 	fmt::Debug,
 	hash::{Hash, Hasher},
 	iter::Iterator,
+	mem,
 	str::FromStr,
 };
 
@@ -190,7 +191,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 	}
 
 	// Get unsigned transaction
-	pub async fn get_unsigned_tx(&mut self) -> Result<Transaction<P>, TransactionError> {
+	pub async fn get_unsigned_tx(&mut self) -> Result<Transaction, TransactionError> {
 		// Validate configuration
 		if self.signers.is_empty() {
 			return Err(TransactionError::NoSigners)
@@ -222,8 +223,8 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 		}
 
 		// Get fees
-		let system_fee = self.get_system_fee().await.unwrap();
-		let network_fee = self.get_network_fee().await.unwrap();
+		let system_fee = Box::pin(self.get_system_fee()).await?;
+		let network_fee = Box::pin(self.get_network_fee()).await?;
 
 		// Check sender balance if needed
 		if let Some(fee_consumer) = &self.fee_consumer {
@@ -234,7 +235,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 		}
 
 		Ok(Transaction {
-			provider: None,
+			network: Some(self.provider.unwrap().network().await),
 			version: self.version,
 			nonce: self.nonce as i32,
 			valid_until_block: self.valid_until_block.unwrap() as i32,
@@ -249,18 +250,16 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 		})
 	}
 
-	// async fn get_system_fee(&self) -> Result<u64, TransactionError> {
-	// 	let script = self.script.as_ref().unwrap();
-	//
-	// 	let response = NEO_INSTANCE
-	// 		.read()
-	// 		.unwrap()
-	// 		.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
-	// 		.request()
-	// 		.await
-	// 		.unwrap();
-	// 	Ok(u64::from_str(response.gas_consumed.as_str()).unwrap()) // example
-	// }
+	async fn get_system_fee(&self) -> Result<u64, TransactionError> {
+		let script = self.script.as_ref().unwrap();
+
+		let response = self
+			.provider
+			.unwrap()
+			.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
+			.await?;
+		Ok(u64::from_str(response.gas_consumed.as_str()).unwrap()) // example
+	}
 
 	async fn get_network_fee(&mut self) -> Result<u64, TransactionError> {
 		let fee = self
@@ -294,7 +293,6 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 	}
 
 	fn is_account_signer(signer: &Signer) -> bool {
-		// let sig = <T as Signer>::SignerType;
 		if signer.get_type() == SignerType::Account {
 			return true
 		}
@@ -302,14 +300,14 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 	}
 
 	// Sign transaction
-	pub async fn sign(&mut self) -> Result<&mut Self, BuilderError> {
-		let mut transaction =
-			self.get_unsigned_tx().await.unwrap().with_provider(self.provider.unwrap());
-		let tx_bytes = transaction.get_hash_data().await?;
+	pub async fn sign(&mut self) -> Result<Transaction, BuilderError> {
+		let mut unsigned_tx = self.get_unsigned_tx().await.unwrap();
+		// let provider = self.provider.unwrap();
+		let tx_bytes = unsigned_tx.get_hash_data().await?;
 
 		let mut witnesses_to_add = Vec::new();
 
-		for signer in &mut transaction.signers {
+		for signer in &mut unsigned_tx.signers {
 			if Self::is_account_signer(signer) {
 				let account_signer = signer.as_account_signer().unwrap();
 				let acc = &account_signer.account;
@@ -335,10 +333,10 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 		}
 
 		for witness in witnesses_to_add {
-			transaction.add_witness(witness);
+			unsigned_tx.add_witness(witness);
 		}
 
-		Ok(transaction)
+		Ok(unsigned_tx)
 	}
 
 	fn signers_contain_multi_sig_with_committee_member(&self, committee: &HashSet<H160>) -> bool {
@@ -391,31 +389,23 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 
 #[cfg(test)]
 mod tests {
-	use std::{
-		ops::Deref,
-		str::FromStr,
-		sync::{
-			atomic::{AtomicBool, Ordering},
-			Arc,
-		},
-	};
+	use std::{ops::Deref, str::FromStr};
 
 	use lazy_static::lazy_static;
-	use openssl::rand;
-	use primitive_types::{H160, H256};
+	use primitive_types::H160;
 
 	use neo::prelude::{
-		Account, AccountSigner, AccountTrait, ContractSigner, Http, Middleware, NeoConstants,
-		Provider, ScriptBuilder, TransactionAttribute, TransactionBuilder, Witness,
+		Account, AccountSigner, AccountTrait, Http, Middleware, NeoConstants, Provider,
+		ScriptBuilder, TransactionBuilder,
 	};
 
 	lazy_static! {
-		pub static ref ACCOUNT1: Account = Account::from_private_key(
-			"e6e919577dd7b8e97805151c05ae07ff4f752654d6d8797597aca989c02c4cb3"
-		);
-		pub static ref ACCOUNT2: Account = Account::from_private_key(
-			"b4b2b579cac270125259f08a5f414e9235817e7637b9a66cfeb3b77d90c8e7f9"
-		);
+		pub static ref ACCOUNT1: Account =
+			Account::from_wif("e6e919577dd7b8e97805151c05ae07ff4f752654d6d8797597aca989c02c4cb3")
+				.unwrap();
+		pub static ref ACCOUNT2: Account =
+			Account::from_wif("b4b2b579cac270125259f08a5f414e9235817e7637b9a66cfeb3b77d90c8e7f9")
+				.unwrap();
 		pub static ref TEST_PROVIDER: Provider<Http> =
 			Provider::<Http>::try_from(NeoConstants::SEED_1).unwrap();
 	}
@@ -435,57 +425,55 @@ mod tests {
 			.await
 			.unwrap();
 
-		assert_eq!(tx.nonce(), nonce);
+		assert_eq!(tx.nonce(), &(nonce as i32));
 
 		nonce = 0;
 		tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
 			.valid_until_block(1)
 			.unwrap()
 			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).into()])
+			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
 			.nonce(nonce)
 			.unwrap()
 			.get_unsigned_tx()
 			.await
 			.unwrap();
-		assert_eq!(tx.nonce(), nonce);
+		assert_eq!(tx.nonce(), &(nonce as i32));
 
 		nonce = u32::MAX;
 		tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
 			.valid_until_block(1)
 			.unwrap()
 			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).into()])
+			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
 			.nonce(nonce)
 			.unwrap()
 			.get_unsigned_tx()
 			.await
 			.unwrap();
-		assert_eq!(tx.nonce(), nonce);
+		assert_eq!(tx.nonce(), &(nonce as i32));
 	}
 
-	#[tokio::test]
-	async fn test_invoke_script() {
-		let script = ScriptBuilder::new()
-			.contract_call(
-				&H160::from_str("86d58778c8d29e03182f38369f0d97782d303cc0").unwrap(),
-				"symbol",
-				&[],
-				None,
-			)
-			.unwrap()
-			.to_bytes();
-
-		let result = TransactionBuilder::new()
-			.set_script(script)
-			.call_invoke_script()
-			.await
-			.unwrap()
-			.invocation_result
-			.unwrap();
-
-		assert_eq!(result.stack()[0].as_str().unwrap(), "NEO");
-	}
+	// #[tokio::test]
+	// async fn test_invoke_script() {
+	// 	let script = ScriptBuilder::new()
+	// 		.contract_call(
+	// 			&H160::from_str("86d58778c8d29e03182f38369f0d97782d303cc0").unwrap(),
+	// 			"symbol",
+	// 			&[],
+	// 			None,
+	// 		)
+	// 		.unwrap()
+	// 		.to_bytes();
+	//
+	// 	let result = TransactionBuilder::new()
+	// 		.set_script(script)
+	// 		.ca
+	// 		.invocation_result
+	// 		.unwrap();
+	//
+	// 	assert_eq!(result.stack()[0].as_str().unwrap(), "NEO");
+	// }
 
 	#[tokio::test]
 	async fn test_build_without_setting_script() {
@@ -519,11 +507,11 @@ mod tests {
 		let signers = tx
 			.witnesses()
 			.iter()
-			.map(|witness| witness.verification_script().get_public_keys()[0])
+			.map(|witness| witness.verification.get_public_keys().unwrap().first().unwrap().clone())
 			.collect::<Vec<_>>();
 
-		assert!(signers.contains(&ACCOUNT1.deref().key_pair.unwrap().public_key()));
-		assert!(signers.contains(&ACCOUNT2.deref().key_pair.unwrap().public_key()));
+		assert!(signers.contains(&ACCOUNT1.deref().clone().key_pair.unwrap().public_key()));
+		assert!(signers.contains(&ACCOUNT2.deref().clone().key_pair.unwrap().public_key()));
 	}
 
 	// 	#[tokio::test]

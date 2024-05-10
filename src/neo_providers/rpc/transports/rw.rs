@@ -30,7 +30,7 @@ impl<Read, Write> RwClient<Read, Write> {
 	///
 	/// ```no_run
 	/// use url::Url;
-	/// use neo_rs::prelude::Http;
+	/// use NeoRust::prelude::Http;
 	/// async fn t(){
 	/// let http = Http::new(Url::parse("http://localhost:8545").unwrap());
 	/// let ws = Ws::connect("ws://localhost:8545").await.unwrap();

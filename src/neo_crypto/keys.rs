@@ -33,7 +33,7 @@
 //!
 //! ```
 //! use rand_core::OsRng;
-//! use neo_rs::prelude::Secp256r1PrivateKey;
+//! use NeoRust::prelude::Secp256r1PrivateKey;
 //!
 //! // Generate a new private key
 //! let private_key = Secp256r1PrivateKey::random(&mut OsRng);
@@ -55,6 +55,7 @@
 use core::fmt;
 use std::{
 	cmp::Ordering,
+	fmt::Debug,
 	hash::{Hash, Hasher},
 };
 
@@ -85,9 +86,15 @@ pub struct Secp256r1PrivateKey {
 	inner: SecretKey,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Secp256r1Signature {
 	inner: Signature,
+}
+
+impl Debug for Secp256r1Signature {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "Secp256r1Signature")
+	}
 }
 
 #[derive(Debug, PartialEq, Clone)]

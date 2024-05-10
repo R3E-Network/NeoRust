@@ -4,7 +4,7 @@
 ///
 /// ```
 ///
-/// use neo_rs::prelude::Decoder;
+/// use NeoRust::prelude::Decoder;
 /// let data = [0x01, 0x02, 0x03, 0x04];
 /// let mut decoder = Decoder::new(&data);
 ///

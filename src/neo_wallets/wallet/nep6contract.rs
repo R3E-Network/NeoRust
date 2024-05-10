@@ -36,7 +36,7 @@ impl PartialEq for NEP6Contract {
 	/// # Example
 	///
 	/// ```
-	/// use neo_rs::prelude::NEP6Contract;
+	/// use NeoRust::prelude::NEP6Contract;
 	///
 	/// let contract1 = NEP6Contract::default();
 	/// let contract2 = NEP6Contract::default();

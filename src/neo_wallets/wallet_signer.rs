@@ -6,7 +6,7 @@ use signature::hazmat::PrehashSigner;
 
 use neo::{
 	crypto::Secp256r1Signature,
-	prelude::{Transaction, WalletError},
+	prelude::{JsonRpcClient, Middleware, Transaction, WalletError},
 };
 
 /// An Ethereum private-public key pair which can be used for signing messages.
@@ -22,7 +22,7 @@ use neo::{
 /// ```
 ///
 /// # use rand::thread_rng;
-/// use neo_rs::prelude::LocalSigner;
+/// use NeoRust::prelude::LocalSigner;
 ///  async fn foo() -> Result<(), Box<dyn std::error::Error>> {
 /// let wallet = LocalSigner::new(&mut thread_rng());
 ///
@@ -82,10 +82,10 @@ impl<D: Sync + Send + PrehashSigner<Secp256r1Signature>> WalletSigner<D> {
 		let mut tx_with_network = tx.clone();
 		if tx_with_network.network().is_none() {
 			// in the case we don't have a network, let's use the signer chain id instead
-			tx_with_network.set_network(self.network.unwrap() as u32);
+			tx_with_network.set_network(self.network.map(|n| n as u32));
 		}
 		self.signer
-			.sign_prehash(&tx_with_network.get_hash_data().unwrap())
+			.sign_prehash(&tx_with_network.get_hash_data().await.unwrap())
 			.map_err(|_| WalletError::SignHashError)
 	}
 

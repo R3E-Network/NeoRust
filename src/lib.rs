@@ -10,7 +10,7 @@
 //! when you want to quickly bootstrap a new project.
 //!
 //! ```rust
-//! use neo_rs::prelude::*;
+//! use NeoRust::prelude::*;
 //! ```
 //!
 //! Examples on how you can use the types imported by the prelude can be found in the
@@ -125,25 +125,23 @@ use neo_wallets as wallets;
 #[doc(hidden)]
 #[allow(unknown_lints, ambiguous_glob_reexports)]
 pub mod prelude {
-    pub use super::{
-        builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
-        providers::*, types::*, wallets::*,
-    };
+	pub use super::{
+		builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
+		providers::*, types::*, wallets::*,
+	};
 }
-
 
 pub fn add(left: usize, right: usize) -> usize {
-    left + right
+	left + right
 }
-
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+	use super::*;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+	#[test]
+	fn it_works() {
+		let result = add(2, 2);
+		assert_eq!(result, 4);
+	}
 }

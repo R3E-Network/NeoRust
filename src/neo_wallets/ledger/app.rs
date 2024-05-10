@@ -41,7 +41,7 @@ impl LedgerNeo {
 	///
 	///
 	/// ```
-	/// use neo_rs::prelude::{HDPath, Ledger};
+	/// use NeoRust::prelude::{HDPath, Ledger};
 	///  async fn foo() -> Result<(), Box<dyn std::error::Error>> {
 	///
 	/// let ledger = Ledger::new(HDPath::LedgerLive(0), 1).await?;
