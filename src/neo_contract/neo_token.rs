@@ -17,7 +17,7 @@ pub struct NeoToken<'a, P: JsonRpcClient> {
 	provider: Option<&'a Provider<P>>,
 }
 
-impl<'a, P: JsonRpcClient> NeoToken<'a, P> {
+impl<'a, P: JsonRpcClient + 'static> NeoToken<'a, P> {
 	pub const NAME: &'static str = "NeoToken";
 	// pub const SCRIPT_HASH: H160 = Self::calc_native_contract_hash(Self::NAME).unwrap();
 	pub const DECIMALS: u8 = 0;

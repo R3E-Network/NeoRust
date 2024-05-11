@@ -11,7 +11,7 @@ pub struct PolicyContract<'a, P: JsonRpcClient> {
 	provider: Option<&'a Provider<P>>,
 }
 
-impl<'a, P: JsonRpcClient> PolicyContract<'a, P> {
+impl<'a, P: JsonRpcClient + 'static> PolicyContract<'a, P> {
 	pub const NAME: &'static str = "PolicyContract";
 	// pub const SCRIPT_HASH: H160 = Self::calc_native_contract_hash(Self::NAME).unwrap();
 

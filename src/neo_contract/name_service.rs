@@ -62,7 +62,7 @@ pub struct NeoNameService<'a, P: JsonRpcClient> {
 	provider: Option<&'a Provider<P>>,
 }
 
-impl<'a, P: JsonRpcClient> NeoNameService<'a, P> {
+impl<'a, P: JsonRpcClient + 'static> NeoNameService<'a, P> {
 	const ADD_ROOT: &'static str = "addRoot";
 	const ROOTS: &'static str = "roots";
 	const SET_PRICE: &'static str = "setPrice";

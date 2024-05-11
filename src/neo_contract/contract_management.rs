@@ -14,7 +14,7 @@ pub struct ContractManagement<'a, P: JsonRpcClient> {
 	provider: Option<&'a Provider<P>>,
 }
 
-impl<'a, P: JsonRpcClient> ContractManagement<'a, P> {
+impl<'a, P: JsonRpcClient + 'static> ContractManagement<'a, P> {
 	pub fn new(script_hash: H160, provider: Option<&'a Provider<P>>) -> Self {
 		Self { script_hash, provider }
 	}

@@ -29,7 +29,7 @@ pub struct NeoURI<'a, P: JsonRpcClient> {
 	provider: Option<&'a Provider<P>>,
 }
 
-impl<'a, P: JsonRpcClient> NeoURI<'a, P> {
+impl<'a, P: JsonRpcClient + 'static> NeoURI<'a, P> {
 	const NEO_SCHEME: &'static str = "neo";
 	const MIN_NEP9_URI_LENGTH: usize = 38;
 	const NEO_TOKEN_STRING: &'static str = "neo";
