@@ -463,7 +463,7 @@ impl NeoSerializable for Signer {
 		match reader.read_u8() {
 			0 => Ok(Signer::Account(AccountSigner::decode(reader)?)),
 			1 => Ok(Signer::Contract(ContractSigner::decode(reader)?)),
-			// 2 => Ok(Signer::Transaction(TransactionSigner::decode(reader)?)),
+			//_ => Ok(Signer::Transaction(TransactionSigner::decode(reader)?)),
 			_ => Err(TransactionError::InvalidTransaction),
 		}
 	}
@@ -676,8 +676,10 @@ mod tests {
 	#[test]
 	fn test_deserialize_too_many_contracts() {
 		let data = hex::decode("111118d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401").unwrap();
+		//Always trigger the last arm in decode!!!
 
 		let err = Signer::from_bytes(&data).unwrap_err();
+		println!("Error: {}", err);
 
 		assert!(err.to_string().contains("too many allowed contracts"));
 	}

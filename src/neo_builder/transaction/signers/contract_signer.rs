@@ -7,7 +7,7 @@ use neo::prelude::{
 	deserialize_script_hash, deserialize_vec_public_key, deserialize_vec_script_hash,
 	serialize_script_hash, serialize_vec_public_key, serialize_vec_script_hash, ContractParameter,
 	Decoder, Encoder, NeoConstants, NeoSerializable, Secp256r1PublicKey, SignerTrait, SignerType,
-	TransactionError, VarSizeTrait, WitnessRule, WitnessScope,
+	TransactionError, VarSizeTrait, WitnessRule, WitnessScope, BuilderError,
 };
 
 #[derive(Debug, Clone, Serialize, PartialEq, Deserialize)]
@@ -171,12 +171,21 @@ impl NeoSerializable for ContractSigner {
 		let mut rules = vec![];
 		if scopes.contains(&WitnessScope::CustomContracts) {
 			allowed_contracts = reader.read_serializable_list::<H160>().unwrap();
+			if allowed_contracts.len() > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
+				return Err(BuilderError::SignerConfiguration("Too many allowed contracts".to_string()).into());
+			}
 		}
 		if scopes.contains(&WitnessScope::CustomGroups) {
 			allowed_groups = reader.read_serializable_list::<Secp256r1PublicKey>().unwrap();
+			if allowed_groups.len() > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
+				return Err(BuilderError::SignerConfiguration("Too many allowed contracts".to_string()).into());
+			}
 		}
 		if scopes.contains(&WitnessScope::WitnessRules) {
 			rules = reader.read_serializable_list::<WitnessRule>().unwrap();
+			if rules.len() > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
+				return Err(BuilderError::SignerConfiguration("Too many allowed contracts".to_string()).into());
+			}
 		}
 		Ok(Self {
 			signer_hash,
