@@ -675,13 +675,20 @@ mod tests {
 
 	#[test]
 	fn test_deserialize_too_many_contracts() {
-		let data = hex::decode("111118d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401").unwrap();
+		let mut serialized = format!("{}11{}", SCRIPT_HASH.as_bytes().to_hex(), "11");
+		//println!("serialized: {}", serialized.len());
+		for _ in 0..=16 {
+			serialized.push_str(&SCRIPT_HASH1.as_bytes().to_hex());
+		}
+		let mut data = hex::decode(&serialized).unwrap();
+		data.insert(0, 1);
+		//let data = hex::decode("111118d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401d802a401").unwrap();
 		//Always trigger the last arm in decode!!!
-
+		
 		let err = Signer::from_bytes(&data).unwrap_err();
-		println!("Error: {}", err);
+		//println!("Error: {}", err);
 
-		assert!(err.to_string().contains("too many allowed contracts"));
+		assert!(err.to_string().contains("Too many allowed contracts"));
 	}
 
 	#[test]
