@@ -95,13 +95,18 @@ pub trait SignerTrait {
 	fn set_rules(&mut self, mut rules: Vec<WitnessRule>) -> Result<&mut Self, BuilderError> {
 		if !rules.is_empty() {
 			if self.get_scopes().contains(&WitnessScope::Global) {
-				return Err(BuilderError::IllegalState(
-					"Cannot set rules for global scope".to_string(),
+				return Err(BuilderError::SignerConfiguration(
+					"Trying to set witness rules on a Signer with global scope.".to_string()
 				))
 			}
 
 			if self.get_rules().len() + rules.len() > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
-				return Err(BuilderError::IllegalState("Too many rules".to_string()))
+				return Err(BuilderError::SignerConfiguration(
+					format!(
+						"Trying to set more than {} allowed witness rules on a signer.",
+						NeoConstants::MAX_SIGNER_SUBITEMS
+					)
+				))
 			}
 
 			for rule in &rules {
@@ -119,7 +124,7 @@ pub trait SignerTrait {
 	}
 
 	fn check_depth(&self, condition: &WitnessCondition, depth: u8) -> Result<(), BuilderError> {
-		if depth == 0 {
+		if depth < 0 {
 			return Err(BuilderError::IllegalState(format!(
 				"A maximum nesting depth of {} is allowed for witness conditions",
 				WitnessCondition::MAX_NESTING_DEPTH
@@ -490,7 +495,7 @@ mod tests {
 	use neo::prelude::{
 		Account, AccountSigner, AccountTrait, BuilderError, Encoder, NeoSerializable, ScriptHash,
 		ScriptHashExtension, Secp256r1PublicKey, SignerTrait, WitnessAction, WitnessCondition,
-		WitnessRule, WitnessScope,
+		WitnessRule, WitnessScope, NeoConstants,
 	};
 
 	// const script_hash:ScriptHash = Account::from_wif("Kzt94tAAiZSgH7Yt4i25DW6jJFprZFPSqTgLr5dWmWgKDKCjXMfZ").unwrap().get_script_hash();
@@ -695,12 +700,15 @@ mod tests {
 	fn test_serialize_deserialize_max_nested_rules() {
 		let rule = WitnessRule::new(
 			WitnessAction::Allow,
-			WitnessCondition::And(vec![WitnessCondition::Boolean(true)]),
+			//WitnessCondition::And(vec![WitnessCondition::Boolean(true)]),
+			WitnessCondition::And(vec![WitnessCondition::And(vec![WitnessCondition::Boolean(true)])]),
 		);
 
 		let mut buffer = Encoder::new();
 
-		let mut account_signer = AccountSigner::none(&SCRIPT_HASH.deref().into()).unwrap();
+		//let mut account_signer = AccountSigner::none(&SCRIPT_HASH.deref().into()).unwrap();
+		let mut account_signer = AccountSigner::none(&ScriptHash::zero().into()).unwrap();
+		
 		account_signer.set_rules(vec![rule]).unwrap();
 		account_signer.encode(&mut buffer);
 
@@ -718,7 +726,9 @@ mod tests {
 
 		let err = signer.set_rules(vec![rule]).unwrap_err();
 
-		assert_eq!(err, BuilderError::TooManySigners("".to_string()));
+		assert_eq!(err, BuilderError::SignerConfiguration(
+			"Trying to set witness rules on a Signer with global scope.".to_string()
+		));
 	}
 
 	#[test]
@@ -728,13 +738,18 @@ mod tests {
 
 		let mut signer = AccountSigner::none(&SCRIPT_HASH.deref().into()).unwrap();
 
-		for _ in 0..16 {
+		for _ in 0.. NeoConstants::MAX_SIGNER_SUBITEMS {
 			signer.set_rules(vec![rule.clone()]).unwrap();
 		}
 
 		let err = signer.set_rules(vec![rule]).unwrap_err();
 
-		assert_eq!(err, BuilderError::TooManySigners("".to_string()));
+		assert_eq!(err, BuilderError::SignerConfiguration(
+			format!(
+				"Trying to set more than {} allowed witness rules on a signer.",
+				NeoConstants::MAX_SIGNER_SUBITEMS
+			)
+		));
 	}
 
 	#[test]
