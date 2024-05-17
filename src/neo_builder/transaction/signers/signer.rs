@@ -56,12 +56,19 @@ pub trait SignerTrait {
 		}
 
 		// Update state
+		// if !self.get_scopes().contains(&WitnessScope::CustomContracts) {
+		// 	if self.get_scopes().contains(&WitnessScope::None) {
+		// 		self.set_scopes(vec![WitnessScope::CustomContracts]);
+		// 	} else {
+		// 		self.get_scopes_mut().push(WitnessScope::CustomContracts);
+		// 	}
+		// }
+		// Remove WitnessScope::None if it is present
+		self.get_scopes_mut().retain(|scope| *scope != WitnessScope::None);
+
+		// Add WitnessScope::CustomContracts if it is not already present
 		if !self.get_scopes().contains(&WitnessScope::CustomContracts) {
-			if self.get_scopes().contains(&WitnessScope::None) {
-				self.set_scopes(vec![WitnessScope::CustomContracts]);
-			} else {
-				self.get_scopes_mut().push(WitnessScope::CustomContracts);
-			}
+    		self.get_scopes_mut().push(WitnessScope::CustomContracts);
 		}
 
 		self.get_allowed_contracts_mut().extend(contracts);
@@ -110,7 +117,7 @@ pub trait SignerTrait {
 			}
 
 			for rule in &rules {
-				self.check_depth(&rule.condition, WitnessCondition::MAX_NESTING_DEPTH as u8)?;
+				self.check_depth(&rule.condition, WitnessCondition::MAX_NESTING_DEPTH as i8)?;
 			}
 
 			if !self.get_scopes().contains(&WitnessScope::WitnessRules) {
@@ -123,7 +130,7 @@ pub trait SignerTrait {
 		Ok(self)
 	}
 
-	fn check_depth(&self, condition: &WitnessCondition, depth: u8) -> Result<(), BuilderError> {
+	fn check_depth(&self, condition: &WitnessCondition, depth: i8) -> Result<(), BuilderError> {
 		if depth < 0 {
 			return Err(BuilderError::IllegalState(format!(
 				"A maximum nesting depth of {} is allowed for witness conditions",
@@ -662,19 +669,20 @@ mod tests {
 
 	#[test]
 	fn test_serialize_custom_contracts() {
-		let mut buffer = Encoder::new();
-		let mut signer = AccountSigner::none(&SCRIPT_HASH1.deref().into()).unwrap();
+		//let mut buffer = Encoder::new();
+		let mut signer = AccountSigner::none(&SCRIPT_HASH.deref().into()).unwrap(); //stupid mistake using SCRIPT_HASH1
 		signer.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2]).unwrap();
 
-		signer.encode(&mut buffer);
+		//signer.encode(&mut buffer);
 
 		let expected = format!(
-			"{}{}02{}{}",
+			"{}{:02x}02{}{}",
 			SCRIPT_HASH.as_bytes().to_hex(),
 			WitnessScope::CustomContracts.byte_repr(),
 			SCRIPT_HASH1.as_bytes().to_hex(),
 			SCRIPT_HASH2.as_bytes().to_hex()
 		);
+
 		assert_eq!(signer.to_array(), expected.from_hex().unwrap());
 	}
 
