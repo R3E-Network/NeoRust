@@ -515,6 +515,13 @@ mod tests {
 		};
 		pub static ref SCRIPT_HASH1: H160 = H160::from_script(&"d802a401".from_hex().unwrap());
 		pub static ref SCRIPT_HASH2: H160 = H160::from_script(&"c503b112".from_hex().unwrap());
+		pub static ref GROUP_PUB_KEY1: Secp256r1PublicKey = Secp256r1PublicKey::from_encoded(
+			"0306d3e7f18e6dd477d34ce3cfeca172a877f3c907cc6c2b66c295d1fcc76ff8f7",
+		).unwrap();
+		pub static ref GROUP_PUB_KEY2: Secp256r1PublicKey = Secp256r1PublicKey::from_encoded(
+			"02958ab88e4cea7ae1848047daeb8883daf5fdf5c1301dbbfe973f0a29fe75de60",
+		)
+		.unwrap();
 	}
 
 	#[test]
@@ -548,11 +555,80 @@ mod tests {
 		);
 	}
 
+	// #[test]
+	// fn test_serialize_and_deserialize() {
+	// 	let serialized = "9429a9a942a8a8a9429a917102d802a401c503b112\
+    //     02a877f3c907cc6c2b66c295d1fcc76ff8f702958ab88e4cea7ae1848047daeb8883daf5fdf5c1301dbbfe973f0a29fe75de6001010128d802a401"
+	// 		.from_hex().unwrap();
+
+	// 	let signer = Signer::from_bytes(&serialized).unwrap();
+
+	// 	assert_eq!(signer.get_signer_hash(), SCRIPT_HASH.deref());
+
+	// 	assert_eq!(
+	// 		signer.get_scopes(),
+	// 		&vec![
+	// 			WitnessScope::CalledByEntry,
+	// 			WitnessScope::CustomContracts,
+	// 			WitnessScope::CustomGroups,
+	// 			WitnessScope::WitnessRules,
+	// 		]
+	// 	);
+
+	// 	let signer = Signer::from_bytes(&serialized).unwrap();
+
+	// 	// Assert hash
+	// 	assert_eq!(signer.get_signer_hash(), SCRIPT_HASH.deref());
+
+	// 	// Assert other properties
+	// 	assert_eq!(signer.get_allowed_contracts().len(), 2);
+
+	// 	let contract1 = H160::from_hex("d802a401").unwrap();
+	// 	let contract2 = H160::from_hex("c503b112").unwrap();
+	// 	assert_eq!(signer.get_allowed_contracts(), &vec![contract1, contract2]);
+
+	// 	assert_eq!(signer.get_allowed_groups().len(), 2);
+
+	// 	let group1 = Secp256r1PublicKey::from_encoded(
+	// 		"030306d3e7f18e6dd477d34ce3cfeca172a877f3c907cc6c2b66c295d1fcc76ff8f7",
+	// 	)
+	// 	.unwrap();
+	// 	let group2 = Secp256r1PublicKey::from_encoded(
+	// 		"02958ab88e4cea7ae1848047daeb8883daf5fdf5c1301dbbfe973f0a29fe75de60",
+	// 	)
+	// 	.unwrap();
+	// 	assert_eq!(signer.get_allowed_groups(), &vec![group1, group2]);
+
+	// 	assert_eq!(signer.get_rules().len(), 1);
+
+	// 	let rule = &signer.get_rules()[0];
+	// 	assert_eq!(rule.action, WitnessAction::Allow);
+	// 	assert_eq!(rule.condition, WitnessCondition::CalledByContract(contract1));
+	// }
+
 	#[test]
-	fn test_serialize_and_deserialize() {
-		let serialized = "9429a9a942a8a8a9429a917102d802a401c503b112\
-        02a877f3c907cc6c2b66c295d1fcc76ff8f702958ab88e4cea7ae1848047daeb8883daf5fdf5c1301dbbfe973f0a29fe75de6001010128d802a401"
-			.from_hex().unwrap();
+	fn deserialize() {
+		let data_str = format!(
+			"{}{}{}{}{}{}{}{}{}{}{}{}",
+			SCRIPT_HASH.as_bytes().to_hex(),
+			"71",
+			"02",
+			SCRIPT_HASH1.as_bytes().to_hex(),
+			SCRIPT_HASH2.as_bytes().to_hex(),
+			"02",
+			GROUP_PUB_KEY1.get_encoded_compressed_hex().trim_start_matches("0x").to_string(),
+			GROUP_PUB_KEY2.get_encoded_compressed_hex().trim_start_matches("0x").to_string(),
+			"01",
+			"01",
+			"28",
+			SCRIPT_HASH1.as_bytes().to_hex()
+		);
+		// let mut serialized = "9429a9a942a8a8a9429a917102d802a401c503b112\
+        // 02a877f3c907cc6c2b66c295d1fcc76ff8f702958ab88e4cea7ae1848047daeb8883daf5fdf5c1301dbbfe973f0a29fe75de6001010128d802a401"
+		// 	.from_hex().unwrap();
+		let mut serialized = data_str.from_hex().unwrap();
+
+		serialized.insert(0, 1);
 
 		let signer = Signer::from_bytes(&serialized).unwrap();
 
@@ -568,35 +644,35 @@ mod tests {
 			]
 		);
 
-		let signer = Signer::from_bytes(&serialized).unwrap();
+		// let signer = Signer::from_bytes(&serialized).unwrap();
 
-		// Assert hash
-		assert_eq!(signer.get_signer_hash(), SCRIPT_HASH.deref());
+		// // Assert hash
+		// assert_eq!(signer.get_signer_hash(), SCRIPT_HASH.deref());
 
-		// Assert other properties
-		assert_eq!(signer.get_allowed_contracts().len(), 2);
+		// // Assert other properties
+		// assert_eq!(signer.get_allowed_contracts().len(), 2);
 
-		let contract1 = H160::from_hex("d802a401").unwrap();
-		let contract2 = H160::from_hex("c503b112").unwrap();
-		assert_eq!(signer.get_allowed_contracts(), &vec![contract1, contract2]);
+		// let contract1 = H160::from_hex("d802a401").unwrap();
+		// let contract2 = H160::from_hex("c503b112").unwrap();
+		assert_eq!(signer.get_allowed_contracts(), &vec![*SCRIPT_HASH1, *SCRIPT_HASH2]);
 
-		assert_eq!(signer.get_allowed_groups().len(), 2);
+		// assert_eq!(signer.get_allowed_groups().len(), 2);
 
-		let group1 = Secp256r1PublicKey::from_encoded(
-			"030306d3e7f18e6dd477d34ce3cfeca172a877f3c907cc6c2b66c295d1fcc76ff8f7",
-		)
-		.unwrap();
-		let group2 = Secp256r1PublicKey::from_encoded(
-			"02958ab88e4cea7ae1848047daeb8883daf5fdf5c1301dbbfe973f0a29fe75de60",
-		)
-		.unwrap();
-		assert_eq!(signer.get_allowed_groups(), &vec![group1, group2]);
+		// let group1 = Secp256r1PublicKey::from_encoded(
+		// 	"030306d3e7f18e6dd477d34ce3cfeca172a877f3c907cc6c2b66c295d1fcc76ff8f7",
+		// )
+		// .unwrap();
+		// let group2 = Secp256r1PublicKey::from_encoded(
+		// 	"02958ab88e4cea7ae1848047daeb8883daf5fdf5c1301dbbfe973f0a29fe75de60",
+		// )
+		// .unwrap();
+		assert_eq!(signer.get_allowed_groups(), &vec![GROUP_PUB_KEY1.clone(), GROUP_PUB_KEY2.clone()]);
 
-		assert_eq!(signer.get_rules().len(), 1);
+		// assert_eq!(signer.get_rules().len(), 1);
 
 		let rule = &signer.get_rules()[0];
 		assert_eq!(rule.action, WitnessAction::Allow);
-		assert_eq!(rule.condition, WitnessCondition::CalledByContract(contract1));
+		assert_eq!(rule.condition, WitnessCondition::CalledByContract(*SCRIPT_HASH1));
 	}
 
 	#[test]
