@@ -45,14 +45,17 @@ pub trait SignerTrait {
 		// Validate
 		if self.get_scopes().contains(&WitnessScope::Global) {
 			return Err(BuilderError::SignerConfiguration(
-				"Cannot set contracts for global scope".to_string(),
+				"Trying to set allowed contracts on a Signer with global scope.".to_string(),
 			))
 		}
 
 		if self.get_allowed_contracts().len() + contracts.len()
 			> NeoConstants::MAX_SIGNER_SUBITEMS as usize
 		{
-			return Err(BuilderError::SignerConfiguration("Too many allowed contracts".to_string()))
+			return Err(BuilderError::SignerConfiguration(format!(
+				"Trying to set more than {} allowed contracts on a signer.",
+				NeoConstants::MAX_SIGNER_SUBITEMS
+			)))
 		}
 
 		// Update state
@@ -80,7 +83,7 @@ pub trait SignerTrait {
 	fn set_allowed_groups(&mut self, groups: Vec<Secp256r1PublicKey>) -> Result<(), BuilderError> {
 		if self.get_scopes().contains(&WitnessScope::Global) {
 			return Err(BuilderError::SignerConfiguration(
-				"Cannot set groups for global scope".to_string(),
+				"Trying to set allowed contract groups on a Signer with global scope.".to_string(),
 			))
 		}
 
@@ -89,6 +92,8 @@ pub trait SignerTrait {
 		{
 			return Err(BuilderError::SignerConfiguration("Too many allowed groups".to_string()))
 		}
+
+		self.get_scopes_mut().retain(|scope| *scope != WitnessScope::None);
 
 		if !self.get_scopes().contains(&WitnessScope::CustomGroups) {
 			self.get_scopes_mut().push(WitnessScope::CustomGroups);
@@ -498,6 +503,7 @@ mod tests {
 	use neo::builder::Signer;
 	use primitive_types::H160;
 	use rustc_serialize::hex::{FromHex, ToHex};
+	use std::collections::HashSet;
 
 	use neo::prelude::{
 		Account, AccountSigner, AccountTrait, BuilderError, Encoder, NeoSerializable, ScriptHash,
@@ -530,7 +536,18 @@ mod tests {
 
 		assert_eq!(signer.signer_hash, *SCRIPT_HASH);
 		assert_eq!(signer.scopes, vec![WitnessScope::CalledByEntry]);
-		assert!(signer.allowed_contracts.is_empty());
+		assert!(signer.get_allowed_contracts().is_empty());
+		assert!(signer.get_allowed_groups().is_empty());
+	}
+
+	#[test]
+	fn test_create_signer_with_global_scope() {
+		let signer = AccountSigner::global(&SCRIPT_HASH.deref().into()).unwrap();
+
+		assert_eq!(signer.signer_hash, *SCRIPT_HASH);
+		assert_eq!(signer.scopes, vec![WitnessScope::Global]);
+		assert!(signer.get_allowed_contracts().is_empty());
+		assert!(signer.get_allowed_groups().is_empty());
 	}
 
 	#[test]
@@ -607,7 +624,7 @@ mod tests {
 	// }
 
 	#[test]
-	fn deserialize() {
+	fn test_deserialize() {
 		let data_str = format!(
 			"{}{}{}{}{}{}{}{}{}{}{}{}",
 			SCRIPT_HASH.as_bytes().to_hex(),
@@ -634,14 +651,15 @@ mod tests {
 
 		assert_eq!(signer.get_signer_hash(), SCRIPT_HASH.deref());
 
+		let expected_scopes: HashSet<WitnessScope> = vec![
+			WitnessScope::CalledByEntry,
+			WitnessScope::CustomContracts,
+			WitnessScope::CustomGroups,
+			WitnessScope::WitnessRules,].into_iter().collect();
+		// Compare in set so the order does not matter
 		assert_eq!(
-			signer.get_scopes(),
-			&vec![
-				WitnessScope::CalledByEntry,
-				WitnessScope::CustomContracts,
-				WitnessScope::CustomGroups,
-				WitnessScope::WitnessRules,
-			]
+			signer.get_scopes().iter().cloned().collect::<HashSet<_>>(),
+			expected_scopes
 		);
 
 		// let signer = Signer::from_bytes(&serialized).unwrap();
@@ -654,7 +672,7 @@ mod tests {
 
 		// let contract1 = H160::from_hex("d802a401").unwrap();
 		// let contract2 = H160::from_hex("c503b112").unwrap();
-		assert_eq!(signer.get_allowed_contracts(), &vec![*SCRIPT_HASH1, *SCRIPT_HASH2]);
+		assert_eq!(signer.get_allowed_contracts().iter().cloned().collect::<HashSet<_>>(), vec![*SCRIPT_HASH1, *SCRIPT_HASH2].into_iter().collect());
 
 		// assert_eq!(signer.get_allowed_groups().len(), 2);
 
@@ -666,7 +684,7 @@ mod tests {
 		// 	"02958ab88e4cea7ae1848047daeb8883daf5fdf5c1301dbbfe973f0a29fe75de60",
 		// )
 		// .unwrap();
-		assert_eq!(signer.get_allowed_groups(), &vec![GROUP_PUB_KEY1.clone(), GROUP_PUB_KEY2.clone()]);
+		assert_eq!(signer.get_allowed_groups().iter().cloned().collect::<HashSet<_>>(), vec![GROUP_PUB_KEY1.clone(), GROUP_PUB_KEY2.clone()].into_iter().collect());
 
 		// assert_eq!(signer.get_rules().len(), 1);
 
@@ -681,8 +699,11 @@ mod tests {
 		signer.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2]).expect("");
 
 		assert_eq!(signer.signer_hash, *SCRIPT_HASH);
-		assert_eq!(signer.scopes, vec![WitnessScope::CalledByEntry, WitnessScope::CustomContracts]);
-		assert_eq!(signer.allowed_contracts, vec![*SCRIPT_HASH1, *SCRIPT_HASH2]);
+		assert_eq!(signer.get_scopes().iter().cloned().collect::<HashSet<_>>(), 
+				   vec![WitnessScope::CalledByEntry, WitnessScope::CustomContracts].into_iter().collect());
+		assert_eq!(signer.get_allowed_contracts().iter().cloned().collect::<HashSet<_>>(), 
+				   vec![*SCRIPT_HASH1, *SCRIPT_HASH2].into_iter().collect());
+		assert!(signer.get_allowed_groups().is_empty());
 	}
 
 	#[test]
@@ -691,9 +712,10 @@ mod tests {
 		signer.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2]).expect("");
 
 		assert_eq!(signer.signer_hash, *SCRIPT_HASH);
-		assert_eq!(signer.scopes, vec![WitnessScope::CustomContracts]);
-		assert_eq!(signer.allowed_contracts, vec![*SCRIPT_HASH1, *SCRIPT_HASH2]);
-		assert_eq!(signer.get_allowed_groups().len(), 0);
+		assert_eq!(signer.get_scopes(), &vec![WitnessScope::CustomContracts]);
+		assert_eq!(signer.get_allowed_contracts().iter().cloned().collect::<HashSet<_>>(), 
+				   vec![*SCRIPT_HASH1, *SCRIPT_HASH2].into_iter().collect());
+		assert!(signer.get_allowed_groups().is_empty());
 		// XCTAssertEqual(signer.scopes, [.customContracts])
 		// XCTAssertEqual(signer.allowedContracts, [contract1, contract2])
 		// XCTAssert(signer.allowedGroups.isEmpty)
@@ -702,17 +724,46 @@ mod tests {
 	#[test]
 	fn test_build_valid_signer3() {
 		let mut signer = AccountSigner::none(&SCRIPT_HASH.deref().into()).unwrap();
-		signer.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2]).expect("");
+		signer.set_allowed_groups(vec![GROUP_PUB_KEY1.clone(), GROUP_PUB_KEY2.clone()]).expect("");
 
 		assert_eq!(signer.signer_hash, *SCRIPT_HASH);
-		assert_eq!(signer.scopes, vec![WitnessScope::CustomContracts]);
-		assert_eq!(signer.allowed_contracts, vec![*SCRIPT_HASH1, *SCRIPT_HASH2]);
+		assert_eq!(signer.get_scopes(), &vec![WitnessScope::CustomGroups]);
+		assert_eq!(signer.get_allowed_groups().iter().cloned().collect::<HashSet<_>>(), 
+				   vec![GROUP_PUB_KEY1.clone(), GROUP_PUB_KEY2.clone()].into_iter().collect());
+		assert!(signer.get_allowed_contracts().is_empty());
+	}
+
+	#[test]
+	fn test_fail_building_signer_with_global_ccope_and_custom_contracts() {
+		let mut signer = AccountSigner::global(&SCRIPT_HASH.deref().into()).unwrap();
+		let err = signer.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2]).unwrap_err();
+
+		assert_eq!(err, BuilderError::SignerConfiguration(
+			"Trying to set allowed contracts on a Signer with global scope.".to_string()
+		));
+		// XCTAssertEqual(signer.scopes, [.customContracts])
+		// XCTAssertEqual(signer.allowedContracts, [contract1, contract2])
+		// XCTAssert(signer.allowedGroups.isEmpty)
+	}
+
+
+	#[test]
+	fn test_fail_building_signer_with_global_ccope_and_custom_groups() {
+		let mut signer = AccountSigner::global(&SCRIPT_HASH.deref().into()).unwrap();
+		let err = signer.set_allowed_groups(vec![GROUP_PUB_KEY1.clone(), GROUP_PUB_KEY2.clone()]).unwrap_err();
+
+		assert_eq!(err, BuilderError::SignerConfiguration(
+			"Trying to set allowed contract groups on a Signer with global scope.".to_string()
+		));
+		// XCTAssertEqual(signer.scopes, [.customContracts])
+		// XCTAssertEqual(signer.allowedContracts, [contract1, contract2])
+		// XCTAssert(signer.allowedGroups.isEmpty)
 	}
 
 	#[test]
 	fn test_fail_building_signer_too_many_contracts() {
 		let script = H160::from_hex("3ab0be8672e25cf475219d018ded961ec684ca88").unwrap();
-		let contracts = (0..17).map(|_| script.clone()).collect::<Vec<_>>();
+		let contracts = (0..=16).map(|_| script.clone()).collect::<Vec<_>>();
 
 		let err = AccountSigner::called_by_entry(&script.into())
 			.unwrap()
@@ -721,7 +772,31 @@ mod tests {
 
 		assert_eq!(
 			err,
-			BuilderError::SignerConfiguration("Too many allowed contracts".to_string())
+			BuilderError::SignerConfiguration(format!(
+				"Trying to set more than {} allowed contracts on a signer.",
+				NeoConstants::MAX_SIGNER_SUBITEMS
+			))
+		);
+	}
+
+	#[test]
+	fn test_fail_building_signer_too_many_contracts_added_separately() {
+		let script = H160::from_hex("3ab0be8672e25cf475219d018ded961ec684ca88").unwrap();
+		let contracts = (0..=15).map(|_| script.clone()).collect::<Vec<_>>();
+
+		let mut signer = AccountSigner::none(&SCRIPT_HASH.deref().into()).unwrap();
+		signer.set_allowed_contracts(vec![script]).expect("");
+
+		let err = signer
+								.set_allowed_contracts(contracts)
+								.unwrap_err();
+
+		assert_eq!(
+			err,
+			BuilderError::SignerConfiguration(format!(
+				"Trying to set more than {} allowed contracts on a signer.",
+				NeoConstants::MAX_SIGNER_SUBITEMS
+			))
 		);
 	}
 
@@ -729,7 +804,7 @@ mod tests {
 	fn test_serialize_global_scope() {
 		let mut buffer = Encoder::new();
 
-		AccountSigner::global(SCRIPT_HASH.deref().into()).unwrap().encode(&mut buffer);
+		AccountSigner::global(&SCRIPT_HASH.deref().into()).unwrap().encode(&mut buffer);
 
 		let mut script_hash_vec = SCRIPT_HASH.deref().as_bytes().to_vec();
 		// SCRIPT_HASH.reverse();
@@ -806,7 +881,7 @@ mod tests {
 		let rule =
 			WitnessRule::new(WitnessAction::Allow, WitnessCondition::ScriptHash(*SCRIPT_HASH));
 
-		let mut signer = AccountSigner::global(SCRIPT_HASH.deref().into()).unwrap();
+		let mut signer = AccountSigner::global(&SCRIPT_HASH.deref().into()).unwrap();
 
 		let err = signer.set_rules(vec![rule]).unwrap_err();
 
@@ -838,8 +913,8 @@ mod tests {
 
 	#[test]
 	fn test_signer_equals() {
-		let signer1 = AccountSigner::global(SCRIPT_HASH.deref().into()).unwrap();
-		let signer2 = AccountSigner::global(SCRIPT_HASH.deref().into()).unwrap();
+		let signer1 = AccountSigner::global(&SCRIPT_HASH.deref().into()).unwrap();
+		let signer2 = AccountSigner::global(&SCRIPT_HASH.deref().into()).unwrap();
 
 		assert_eq!(signer1, signer2);
 

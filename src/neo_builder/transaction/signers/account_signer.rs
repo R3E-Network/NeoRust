@@ -218,8 +218,8 @@ impl AccountSigner {
 		Ok(Self::new(&account, WitnessScope::CalledByEntry))
 	}
 
-	pub fn global(account: Account) -> Result<Self, TransactionError> {
-		Ok(Self::new(&account, WitnessScope::Global))
+	pub fn global(account: &Account) -> Result<Self, TransactionError> {
+		Ok(Self::new(account, WitnessScope::Global))
 	}
 
 	pub fn global_hash160(account_hash: H160) -> Result<Self, TransactionError> {
