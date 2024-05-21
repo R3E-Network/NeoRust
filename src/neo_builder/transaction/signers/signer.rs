@@ -90,7 +90,10 @@ pub trait SignerTrait {
 		if self.get_allowed_groups().len() + groups.len()
 			> NeoConstants::MAX_SIGNER_SUBITEMS as usize
 		{
-			return Err(BuilderError::SignerConfiguration("Too many allowed groups".to_string()))
+			return Err(BuilderError::SignerConfiguration(format!(
+				"Trying to set more than {} allowed contract groups on a signer.",
+				NeoConstants::MAX_SIGNER_SUBITEMS
+			)))
 		}
 
 		self.get_scopes_mut().retain(|scope| *scope != WitnessScope::None);
@@ -765,7 +768,7 @@ mod tests {
 		let script = H160::from_hex("3ab0be8672e25cf475219d018ded961ec684ca88").unwrap();
 		let contracts = (0..=16).map(|_| script.clone()).collect::<Vec<_>>();
 
-		let err = AccountSigner::called_by_entry(&script.into())
+		let err = AccountSigner::called_by_entry(&SCRIPT_HASH.deref().into())
 			.unwrap()
 			.set_allowed_contracts(contracts)
 			.unwrap_err();
@@ -801,25 +804,76 @@ mod tests {
 	}
 
 	#[test]
+	fn test_fail_building_signer_too_many_groups() {
+		let public_key = Secp256r1PublicKey::from_encoded(
+			"0306d3e7f18e6dd477d34ce3cfeca172a877f3c907cc6c2b66c295d1fcc76ff8f7",
+		).unwrap();
+		let groups = (0..=16).map(|_| public_key.clone()).collect::<Vec<_>>();
+
+		let err = AccountSigner::called_by_entry(&SCRIPT_HASH.deref().into())
+			.unwrap()
+			.set_allowed_groups(groups)
+			.unwrap_err();
+
+		assert_eq!(
+			err,
+			BuilderError::SignerConfiguration(format!(
+				"Trying to set more than {} allowed contract groups on a signer.",
+				NeoConstants::MAX_SIGNER_SUBITEMS
+			))
+		);
+	}
+
+	#[test]
+	fn test_fail_building_signer_too_many_groups_added_separately() {
+		let public_key = Secp256r1PublicKey::from_encoded(
+			"0306d3e7f18e6dd477d34ce3cfeca172a877f3c907cc6c2b66c295d1fcc76ff8f7",
+		).unwrap();
+		let groups = (0..=15).map(|_| public_key.clone()).collect::<Vec<_>>();
+
+		let mut signer = AccountSigner::none(&SCRIPT_HASH.deref().into()).unwrap();
+		signer.set_allowed_groups(vec![public_key]).expect("");
+
+		let err = signer
+								.set_allowed_groups(groups)
+								.unwrap_err();
+
+		assert_eq!(
+			err,
+			BuilderError::SignerConfiguration(format!(
+				"Trying to set more than {} allowed contract groups on a signer.",
+				NeoConstants::MAX_SIGNER_SUBITEMS
+			))
+		);
+	}
+
+	#[test]
 	fn test_serialize_global_scope() {
 		let mut buffer = Encoder::new();
 
 		AccountSigner::global(&SCRIPT_HASH.deref().into()).unwrap().encode(&mut buffer);
 
-		let mut script_hash_vec = SCRIPT_HASH.deref().as_bytes().to_vec();
+		// let mut script_hash_vec = SCRIPT_HASH.deref().as_bytes().to_vec();
 		// SCRIPT_HASH.reverse();
 
-		let expected = hex::decode(format!(
-			"{}{:02x}",
-			script_hash_vec.to_hex(),
-			WitnessScope::Global.byte_repr()
-		))
-		.unwrap();
-		assert_eq!(buffer.to_bytes(), expected);
+		// let expected = hex::decode(format!(
+		// 	"{}{:02x}",
+		// 	script_hash_vec.to_hex(),
+		// 	WitnessScope::Global.byte_repr()
+		// ))
+		// .unwrap();
+		// let expected = hex::decode(format!(
+		// 	"{}{:02x}",
+		// 	SCRIPT_HASH.as_bytes().to_hex(),
+		// 	WitnessScope::Global.byte_repr()
+		// ))
+		// .unwrap();
+		let expected = format!("{}{:02x}", SCRIPT_HASH.as_bytes().to_hex(), WitnessScope::Global.byte_repr());
+		assert_eq!(buffer.to_bytes().to_hex(), expected);
 	}
 
 	#[test]
-	fn test_serialize_custom_contracts() {
+	fn test_serialize_custom_contracts_scope_produces_correct_byte_array() {
 		//let mut buffer = Encoder::new();
 		let mut signer = AccountSigner::none(&SCRIPT_HASH.deref().into()).unwrap(); //stupid mistake using SCRIPT_HASH1
 		signer.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2]).unwrap();
@@ -836,6 +890,26 @@ mod tests {
 
 		assert_eq!(signer.to_array(), expected.from_hex().unwrap());
 	}
+
+	#[test]
+	fn test_serialize_custom_group_scope() {
+		
+
+		let mut signer = AccountSigner::none(&SCRIPT_HASH.deref().into()).unwrap();
+		signer.set_allowed_groups(vec![GROUP_PUB_KEY1.clone(), GROUP_PUB_KEY2.clone()]).expect("");
+
+		let expected = format!(
+			"{}{:02x}02{}{}",
+			SCRIPT_HASH.as_bytes().to_hex(),
+			WitnessScope::CustomGroups.byte_repr(),
+			GROUP_PUB_KEY1.get_encoded_compressed_hex().trim_start_matches("0x").to_string(),
+			GROUP_PUB_KEY2.get_encoded_compressed_hex().trim_start_matches("0x").to_string(),
+		);
+
+		assert_eq!(signer.to_array(), expected.from_hex().unwrap());
+	}
+
+	
 
 	#[test]
 	fn test_deserialize_too_many_contracts() {
