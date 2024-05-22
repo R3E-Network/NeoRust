@@ -507,7 +507,7 @@ mod tests {
 	use std::collections::HashSet;
 
 	use neo::prelude::{
-		Account, AccountSigner, AccountTrait, BuilderError, Encoder, NeoConstants, NeoSerializable,
+		Account, AccountSigner, AccountTrait, BuilderError, ContractSigner, Encoder, NeoConstants, NeoSerializable,
 		ScriptHash, ScriptHashExtension, Secp256r1PublicKey, SignerTrait, WitnessAction,
 		WitnessCondition, WitnessRule, WitnessScope,
 	};
@@ -553,7 +553,7 @@ mod tests {
 	}
 
 	#[test]
-	fn test_fail_depth_check() {
+	fn test_fail_on_stepping_over_max_condition_nesting_depth() {
 		let condition =
 			WitnessCondition::And(vec![WitnessCondition::And(vec![WitnessCondition::And(vec![
 				WitnessCondition::Not(Box::new(WitnessCondition::ScriptHash(*SCRIPT_HASH))),
@@ -1096,7 +1096,7 @@ mod tests {
 	}
 
 	#[test]
-	fn test_fail_adding_rules_to_global_scope() {
+	fn test_fail_adding_rules_to_global_signer() {
 		let rule =
 			WitnessRule::new(WitnessAction::Allow, WitnessCondition::ScriptHash(*SCRIPT_HASH));
 
@@ -1113,7 +1113,7 @@ mod tests {
 	}
 
 	#[test]
-	fn test_too_many_rules() {
+	fn test_fail_adding_too_many_rules() {
 		let rule =
 			WitnessRule::new(WitnessAction::Allow, WitnessCondition::ScriptHash(*SCRIPT_HASH));
 
@@ -1141,9 +1141,19 @@ mod tests {
 
 		assert_eq!(signer1, signer2);
 
-		let signer3 = AccountSigner::called_by_entry(&SCRIPT_HASH.deref().into()).unwrap();
-		let signer4 = AccountSigner::called_by_entry(&SCRIPT_HASH.deref().into()).unwrap();
+		let signer3 = ContractSigner::called_by_entry(*SCRIPT_HASH, &[]);
+		let signer4 = ContractSigner::called_by_entry(*SCRIPT_HASH, &[]);
 
 		assert_eq!(signer3, signer4);
+
+		let mut signer5 = AccountSigner::called_by_entry(&SCRIPT_HASH.deref().into()).unwrap();
+		signer5.set_allowed_groups(vec![GROUP_PUB_KEY1.clone(), GROUP_PUB_KEY2.clone()]).expect("");
+		signer5.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2]).expect("");
+
+		let mut signer6 = AccountSigner::called_by_entry(&SCRIPT_HASH.deref().into()).unwrap();
+		signer6.set_allowed_groups(vec![GROUP_PUB_KEY1.clone(), GROUP_PUB_KEY2.clone()]).expect("");
+		signer6.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2]).expect("");
+
+		assert_eq!(signer5, signer6);
 	}
 }
