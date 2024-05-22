@@ -41,7 +41,7 @@ impl NeoSerializable for AccountSigner {
 	type Error = TransactionError;
 
 	fn size(&self) -> usize {
-		let mut size: usize = NeoConstants::HASH160_SIZE as usize;
+		let mut size: usize = NeoConstants::HASH160_SIZE as usize + 1;
 		if self.scopes.contains(&WitnessScope::CustomContracts) {
 			size += self.allowed_contracts.var_size();
 		}
@@ -80,19 +80,31 @@ impl NeoSerializable for AccountSigner {
 		if scopes.contains(&WitnessScope::CustomContracts) {
 			allowed_contracts = reader.read_serializable_list::<H160>().unwrap();
 			if allowed_contracts.len() > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
-				return Err(BuilderError::SignerConfiguration("Too many allowed contracts".to_string()).into());
+				return Err(BuilderError::SignerConfiguration(format!(
+					"A signer's scope can only contain {} allowed contracts. The input data contained {} contracts.",
+					NeoConstants::MAX_SIGNER_SUBITEMS,
+					allowed_contracts.len()
+				)).into());
 			}
 		}
 		if scopes.contains(&WitnessScope::CustomGroups) {
 			allowed_groups = reader.read_serializable_list::<Secp256r1PublicKey>().unwrap();
 			if allowed_groups.len() > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
-				return Err(BuilderError::SignerConfiguration("Too many allowed contracts".to_string()).into());
+				return Err(BuilderError::SignerConfiguration(format!(
+					"A signer's scope can only contain {} allowed contract groups. The input data contained {} groups.",
+					NeoConstants::MAX_SIGNER_SUBITEMS,
+					allowed_groups.len()
+				)).into());
 			}
 		}
 		if scopes.contains(&WitnessScope::WitnessRules) {
 			rules = reader.read_serializable_list::<WitnessRule>().unwrap();
 			if rules.len() > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
-				return Err(BuilderError::SignerConfiguration("Too many allowed contracts".to_string()).into());
+				return Err(BuilderError::SignerConfiguration(format!(
+					"A signer's scope can only contain {} rules. The input data contained {} rules.",
+					NeoConstants::MAX_SIGNER_SUBITEMS,
+					rules.len()
+				)).into());
 			}
 		}
 		Ok(Self {

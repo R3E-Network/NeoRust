@@ -549,7 +549,7 @@ impl NeoSerializable for Secp256r1PublicKey {
 	type Error = CryptoError;
 
 	fn size(&self) -> usize {
-		64
+		NeoConstants::PUBLIC_KEY_SIZE_COMPRESSED as usize
 	}
 
 	fn encode(&self, writer: &mut Encoder) {

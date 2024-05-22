@@ -86,21 +86,32 @@ impl NeoSerializable for u8 {
 
 pub trait VarSizeTrait {
 	fn var_size(&self) -> usize;
+	fn get_var_size(i: usize) -> usize {
+		if i < 0xFD {
+			1 // byte
+		} else if i <= 0xFFFF {
+			1 + 2 // 0xFD + uint16
+		} else if i <= 0xFFFFFFFF {
+			1 + 4 // 0xFE + uint32
+		} else {
+			1 + 8 // 0xFF + uint64
+		}
+	}
 }
 
 impl<T: NeoSerializable> VarSizeTrait for Vec<T> {
 	fn var_size(&self) -> usize {
-		let count_var_size = self.len();
+		let count_var_size = Self::get_var_size(self.len());
 		count_var_size + self.iter().map(|item| item.size()).sum::<usize>()
 	}
 }
 
-// impl<T:NeoSerializable> VarSizeTrait for &[T] {
-// 	fn var_size(&self) -> usize {
-// 		let count_var_size = self.len();
-// 		count_var_size + self.iter().map(|item| item.size()).sum::<usize>()
-// 	}
-// }
+impl<T:NeoSerializable> VarSizeTrait for &[T] {
+	fn var_size(&self) -> usize {
+		let count_var_size = Self::get_var_size(self.len());
+		count_var_size + self.iter().map(|item| item.size()).sum::<usize>()
+	}
+}
 
 // fn var_size_of_serializables<T: NeoSerializable>(elements: &[T]) -> usize {
 // 	let count_var_size = elements.len();
