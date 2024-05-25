@@ -458,12 +458,16 @@ mod tests {
 				.unwrap(),
 		)
 		.unwrap();
-		let account = Account::from_key_pair(key_pair, None, None).unwrap();
+		let account = Account::from_key_pair(key_pair.clone(), None, None).unwrap();
 
 		assert!(!account.is_multi_sig());
 		assert_eq!(
 			account.address_or_scripthash().address(),
 			TestConstants::DEFAULT_ACCOUNT_ADDRESS
+		);
+		assert_eq!(
+			*account.key_pair(),
+			Some(key_pair)
 		);
 		assert_eq!(account.label, Some(TestConstants::DEFAULT_ACCOUNT_ADDRESS.to_string()));
 		assert_eq!(

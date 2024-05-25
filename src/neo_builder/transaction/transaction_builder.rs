@@ -395,19 +395,25 @@ mod tests {
 	use primitive_types::H160;
 
 	use neo::prelude::{
-		Account, AccountSigner, AccountTrait, Http, Middleware, NeoConstants, Provider,
-		ScriptBuilder, TransactionBuilder,
+		Account, AccountSigner, AccountTrait, Http, KeyPair, Middleware, NeoConstants, Provider,
+		ScriptBuilder, Secp256r1PrivateKey, TransactionBuilder,
 	};
 
 	lazy_static! {
 		pub static ref ACCOUNT1: Account =
-			Account::from_wif("e6e919577dd7b8e97805151c05ae07ff4f752654d6d8797597aca989c02c4cb3")
-				.unwrap();
+			Account::from_key_pair(KeyPair::from_secret_key(
+				&Secp256r1PrivateKey::from_bytes(&hex::decode("e6e919577dd7b8e97805151c05ae07ff4f752654d6d8797597aca989c02c4cb3").unwrap()).unwrap()), 
+				None, None)
+				.expect("Failed to create ACCOUNT1");
 		pub static ref ACCOUNT2: Account =
-			Account::from_wif("b4b2b579cac270125259f08a5f414e9235817e7637b9a66cfeb3b77d90c8e7f9")
-				.unwrap();
+			Account::from_key_pair(KeyPair::from_secret_key(
+				&Secp256r1PrivateKey::from_bytes(&hex::decode("b4b2b579cac270125259f08a5f414e9235817e7637b9a66cfeb3b77d90c8e7f9").unwrap()).unwrap()), 
+				None, None)
+				.expect("Failed to create ACCOUNT2");
+
+				
 		pub static ref TEST_PROVIDER: Provider<Http> =
-			Provider::<Http>::try_from(NeoConstants::SEED_1).unwrap();
+			Provider::<Http>::try_from(NeoConstants::SEED_1).expect("Failed to create TEST_PROVIDER");
 	}
 
 	#[tokio::test]

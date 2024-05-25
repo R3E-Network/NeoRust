@@ -107,6 +107,12 @@ impl KeyPair {
 	}
 }
 
+impl PartialEq for KeyPair {
+    fn eq(&self, other: &Self) -> bool {
+        self.private_key == other.private_key && self.public_key == other.public_key
+    }
+}
+
 #[cfg(test)]
 mod tests {
 	use rustc_serialize::hex::FromHex;
