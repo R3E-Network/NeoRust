@@ -116,8 +116,9 @@ impl PartialEq for KeyPair {
 #[cfg(test)]
 mod tests {
 	use rustc_serialize::hex::FromHex;
-
-	use neo::prelude::KeyPair;
+	use hex_literal::hex;
+	use neo::prelude::{CryptoError, KeyPair, Secp256r1PublicKey};
+	use p256::EncodedPoint;
 
 	#[test]
 	fn test_public_key_wif() {
@@ -131,4 +132,55 @@ mod tests {
 			"L3tgppXLgdaeqSGSFw1Go3skBiy8vQAM7YMXvTHsKQtE16PBncSU"
 		);
 	}
+
+	#[test]
+    pub fn setup_new_ec_public_key_and_get_encoded_and_get_ec_point() {
+        let expected_x = hex!("b4af8d061b6b320cce6c63bc4ec7894dce107bfc5f5ef5c68a93b4ad1e136816");
+        let expected_y = hex!("5f4f7fb1c5862465543c06dd5a2aa414f6583f92a5cc3e1d4259df79bf6839c9");
+
+        let expected_ec_point = EncodedPoint::from_affine_coordinates(
+            &expected_x.into(),
+            &expected_y.into(),
+            false
+        );
+
+        let enc_ec_point = "03b4af8d061b6b320cce6c63bc4ec7894dce107bfc5f5ef5c68a93b4ad1e136816";
+        let enc_ec_point_bytes = hex::decode(enc_ec_point).unwrap();
+
+        let pub_key = Secp256r1PublicKey::from_encoded(&enc_ec_point).unwrap();
+        
+        assert_eq!(pub_key.get_encoded_point(false), expected_ec_point);
+        assert_eq!(pub_key.get_encoded(true), enc_ec_point_bytes);
+        assert_eq!(pub_key.get_encoded_compressed_hex(), enc_ec_point);
+    }
+
+	#[test]
+    pub fn create_ec_public_key_from_uncompressed_ec_point() {
+        let ec_point = "04b4af8d061b6b320cce6c63bc4ec7894dce107bfc5f5ef5c68a93b4ad1e1368165f4f7fb1c5862465543c06dd5a2aa414f6583f92a5cc3e1d4259df79bf6839c9";
+
+        let pub_key = Secp256r1PublicKey::from_encoded(&ec_point).unwrap();
+
+        assert_eq!(
+            pub_key.get_encoded_compressed_hex(),
+            "03b4af8d061b6b320cce6c63bc4ec7894dce107bfc5f5ef5c68a93b4ad1e136816"
+        );
+    }
+
+	#[test]
+    pub fn invalid_size() {
+		///
+		/// Need futher adjustments to deal with specifc errors in PublicKey
+		/// 
+        let pub_key_hex = "03b4af8d061b6b320cce6c63bc4ec7894dce107bfc5f5ef5c68a93b4ad1e1368"; //only 32 bits
+
+        let pub_key = Secp256r1PublicKey::from_encoded(&pub_key_hex);
+
+        assert_eq!(
+			pub_key,
+			None
+		);
+    }
+
+
+
 }

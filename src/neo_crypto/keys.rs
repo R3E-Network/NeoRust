@@ -189,6 +189,10 @@ impl Secp256r1PublicKey {
 		self.inner.to_encoded_point(compressed).as_bytes().to_vec()
 	}
 
+	pub fn get_encoded_point(&self, compressed: bool) -> EncodedPoint {
+		self.inner.to_encoded_point(compressed)
+	}
+
 	/// Gets this public key's elliptic curve point encoded as defined in section 2.3.3 of [SEC1](http://www.secg.org/sec1-v2.pdf)
 	/// in compressed format as hexadecimal.
 	///
