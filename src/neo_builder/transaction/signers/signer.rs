@@ -507,9 +507,9 @@ mod tests {
 	use std::collections::HashSet;
 
 	use neo::prelude::{
-		Account, AccountSigner, AccountTrait, BuilderError, ContractSigner, Encoder, NeoConstants, NeoSerializable,
-		ScriptHash, ScriptHashExtension, Secp256r1PublicKey, SignerTrait, WitnessAction,
-		WitnessCondition, WitnessRule, WitnessScope,
+		Account, AccountSigner, AccountTrait, BuilderError, ContractSigner, Encoder, NeoConstants,
+		NeoSerializable, ScriptHash, ScriptHashExtension, Secp256r1PublicKey, SignerTrait,
+		WitnessAction, WitnessCondition, WitnessRule, WitnessScope,
 	};
 
 	// const script_hash:ScriptHash = Account::from_wif("Kzt94tAAiZSgH7Yt4i25DW6jJFprZFPSqTgLr5dWmWgKDKCjXMfZ").unwrap().get_script_hash();
@@ -1147,11 +1147,15 @@ mod tests {
 		assert_eq!(signer3, signer4);
 
 		let mut signer5 = AccountSigner::called_by_entry(&SCRIPT_HASH.deref().into()).unwrap();
-		signer5.set_allowed_groups(vec![GROUP_PUB_KEY1.clone(), GROUP_PUB_KEY2.clone()]).expect("");
+		signer5
+			.set_allowed_groups(vec![GROUP_PUB_KEY1.clone(), GROUP_PUB_KEY2.clone()])
+			.expect("");
 		signer5.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2]).expect("");
 
 		let mut signer6 = AccountSigner::called_by_entry(&SCRIPT_HASH.deref().into()).unwrap();
-		signer6.set_allowed_groups(vec![GROUP_PUB_KEY1.clone(), GROUP_PUB_KEY2.clone()]).expect("");
+		signer6
+			.set_allowed_groups(vec![GROUP_PUB_KEY1.clone(), GROUP_PUB_KEY2.clone()])
+			.expect("");
 		signer6.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2]).expect("");
 
 		assert_eq!(signer5, signer6);

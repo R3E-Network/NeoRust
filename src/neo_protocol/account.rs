@@ -465,10 +465,7 @@ mod tests {
 			account.address_or_scripthash().address(),
 			TestConstants::DEFAULT_ACCOUNT_ADDRESS
 		);
-		assert_eq!(
-			*account.key_pair(),
-			Some(key_pair)
-		);
+		assert_eq!(*account.key_pair(), Some(key_pair));
 		assert_eq!(account.label, Some(TestConstants::DEFAULT_ACCOUNT_ADDRESS.to_string()));
 		assert_eq!(
 			account.verification_script.unwrap().script(),

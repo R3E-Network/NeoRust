@@ -9,8 +9,8 @@ use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
-	var_size, BuilderError, Bytes, Decoder, Encoder, HashableForVec, InteropService, NeoSerializable, OpCode,
-	ScriptBuilder, Secp256r1PublicKey, Secp256r1Signature,
+	var_size, BuilderError, Bytes, Decoder, Encoder, HashableForVec, InteropService,
+	NeoSerializable, OpCode, ScriptBuilder, Secp256r1PublicKey, Secp256r1Signature,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]

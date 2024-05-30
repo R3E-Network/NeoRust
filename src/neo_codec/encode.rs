@@ -106,7 +106,7 @@ impl<T: NeoSerializable> VarSizeTrait for Vec<T> {
 	}
 }
 
-impl<T:NeoSerializable> VarSizeTrait for &[T] {
+impl<T: NeoSerializable> VarSizeTrait for &[T] {
 	fn var_size(&self) -> usize {
 		let count_var_size = Self::get_var_size(self.len());
 		count_var_size + self.iter().map(|item| item.size()).sum::<usize>()

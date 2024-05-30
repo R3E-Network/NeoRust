@@ -43,13 +43,11 @@
 //! Proper error handling is implemented to deal with common issues like incorrect password, invalid NEP2 format,
 //! and other cryptographic errors.
 
-use openssl;
-
+use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyInit};
 use neo::prelude::{
 	base58check_decode, public_key_to_address, vec_to_array32, HashableForVec, KeyPair,
 	NeoConstants, ProviderError, Secp256r1PublicKey, ToBase58,
 };
-use openssl::symm::{Cipher, Crypter, Mode};
 use rustc_serialize::hex::FromHex;
 use scrypt::{scrypt, Params};
 
@@ -69,37 +67,27 @@ impl NEP2 {
 fn encrypt_aes256_ecb(data: &[u8], key: &[u8]) -> Result<Vec<u8>, ProviderError> {
 	// Ensure key is the correct length for AES-256
 	assert_eq!(key.len(), 32);
+	let key: [u8; 32] = key.try_into().unwrap();
+	let mut buf = [0u8; 64];
+	let pt_len = data.len();
+	buf[..pt_len].copy_from_slice(&data);
+	let ct = Aes256EcbEnc::new(&key.into())
+		.encrypt_padded_mut::<Pkcs7>(&mut buf, pt_len)
+		.unwrap();
 
-	let cipher = Cipher::aes_256_ecb();
-	let mut crypter = Crypter::new(cipher, Mode::Encrypt, key, None)
-		.map_err(|_| ProviderError::InvalidPassword)?;
-
-	let mut output = vec![0; data.len() + cipher.block_size()];
-	let count = crypter.update(data, &mut output).map_err(|_| ProviderError::InvalidPassword)?;
-	let rest = crypter
-		.finalize(&mut output[count..])
-		.map_err(|_| ProviderError::InvalidPassword)?;
-	output.truncate(count + rest);
-	Ok(output)
+	Ok(ct.to_vec())
 }
 
 fn decrypt_aes256_ecb(encrypted_data: &[u8], key: &[u8]) -> Result<Vec<u8>, ProviderError> {
 	// Ensure key is the correct length for AES-256
 	assert_eq!(key.len(), 32);
+	let key: [u8; 32] = key.try_into().unwrap();
+	let mut buf = [0u8; 64];
+	let pt = Aes256EcbDec::new(&key.into())
+		.decrypt_padded_b2b_mut::<Pkcs7>(&encrypted_data, &mut buf)
+		.unwrap();
 
-	let cipher = Cipher::aes_256_ecb();
-	let mut crypter = Crypter::new(cipher, Mode::Decrypt, key, None)
-		.map_err(|_| ProviderError::InvalidPassword)?;
-
-	let mut output = vec![0; encrypted_data.len() + cipher.block_size()];
-	let count = crypter
-		.update(encrypted_data, &mut output)
-		.map_err(|_| ProviderError::InvalidPassword)?;
-	let rest = crypter
-		.finalize(&mut output[count..])
-		.map_err(|_| ProviderError::InvalidPassword)?;
-	output.truncate(count + rest);
-	Ok(output)
+	Ok(pt.to_vec())
 }
 
 pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<String, ProviderError> {
@@ -240,5 +228,40 @@ mod tests {
 		)
 		.unwrap();
 		assert_eq!(encrypted, TestConstants::DEFAULT_ACCOUNT_ENCRYPTED_PRIVATE_KEY);
+	}
+
+	#[test]
+	fn test_encrypt_decrypt_aes256_ecb() {
+		let key = vec![0u8; 32];
+		let data = b"Hello, World!";
+
+		let encrypted = encrypt_aes256_ecb(data, &key).unwrap();
+		let decrypted = decrypt_aes256_ecb(&encrypted, &key).unwrap();
+
+		assert_eq!(decrypted, data);
+
+		let key = [0x42; 32];
+		let plaintext = *b"hello world! this is my plaintext.";
+
+		let mut buf = [0u8; 48];
+		let pt_len = plaintext.len();
+		buf[..pt_len].copy_from_slice(&plaintext);
+		let ct = Aes256EcbEnc::new(&key.into())
+			.encrypt_padded_mut::<Pkcs7>(&mut buf, pt_len)
+			.unwrap();
+
+		let pt = Aes256EcbDec::new(&key.into()).decrypt_padded_mut::<Pkcs7>(&mut buf).unwrap();
+		assert_eq!(pt, &plaintext);
+
+		let mut buf = [0u8; 48];
+		let ct = Aes256EcbEnc::new(&key.into())
+			.encrypt_padded_b2b_mut::<Pkcs7>(&plaintext, &mut buf)
+			.unwrap();
+
+		let mut buf = [0u8; 48];
+		let pt = Aes256EcbDec::new(&key.into())
+			.decrypt_padded_b2b_mut::<Pkcs7>(&ct, &mut buf)
+			.unwrap();
+		assert_eq!(pt, &plaintext);
 	}
 }

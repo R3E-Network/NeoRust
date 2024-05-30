@@ -42,7 +42,7 @@ futures-channel = "0.3.28"
 futures-locks = { version = "0.7.1", default-features = false }
 futures-timer = { version = "3.0.2", default-features = false, features = ["wasm-bindgen"] }
 pin-project = "1.1"
-reqwest = { version = "0.11.19", default-features = false, features = ["json"]}
+reqwest = { version = "0.11.19", default-features = false, features = ["json"] }
 url = { version = "2.4", default-features = false }
 
 # crypto
@@ -54,7 +54,7 @@ tiny-keccak = { version = "2.0.2", default-features = false }
 spki = { version = "0.7.2", default-features = false }
 
 # serde
-serde = { version = "1.0",features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["raw_value"] }
 
 # macros
@@ -127,8 +127,8 @@ indexmap = "2.0.0"
 getset = "0.1.2"
 educe = "0.4.23"
 byteorder = "1.4.3"
-serde-big-array       = "0.5.1"
-blake2                = { version = "0.10.6", default-features=false }
+serde-big-array = "0.5.1"
+blake2 = { version = "0.10.6", default-features = false }
 ethereum-types = "0.14.1"
 rustc-serialize = "0.3.24"
 serde_bytes = "0.11.12"
@@ -141,7 +141,7 @@ typenum = { version = "1.14", features = [] }
 signature = { version = "2.1.0", features = [] }
 rand_core = "0.6.4"
 num-integer = { version = "0.1.45", features = [] }
-openssl = "0.10"
+#openssl = "0.10"
 
 log = "0.4.14"
 ecb = "0.1.2"
@@ -163,6 +163,7 @@ coins-ledger = { version = "0.10.1", default-features = false, optional = true }
 protobuf = { version = "=3.2.0", optional = true }
 # yubi
 yubihsm = { version = "0.42", features = ["mockhsm", "http", "usb"], optional = true }
+block-padding = "0.3.3"
 
 [features]
 futures = []
