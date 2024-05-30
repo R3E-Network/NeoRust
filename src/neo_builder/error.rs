@@ -47,3 +47,9 @@ pub enum BuilderError {
 	#[error(transparent)]
 	TransactionError(#[from] TransactionError),
 }
+
+impl Into<TransactionError> for BuilderError {
+	fn into(self) -> TransactionError {
+		TransactionError::TransactionConfiguration(self.to_string())
+	}
+}

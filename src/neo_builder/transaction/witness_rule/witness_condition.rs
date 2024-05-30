@@ -9,6 +9,8 @@ use neo::prelude::{
 	Decoder, Encoder, NeoSerializable, ScriptHashExtension, Secp256r1PublicKey, TransactionError,
 };
 
+use crate::neo_codec::VarSizeTrait;
+
 /// Enum representing the different types of witness conditions that can be used in a smart contract.
 #[derive(Clone, Debug, PartialEq)]
 pub enum WitnessCondition {
@@ -299,7 +301,8 @@ impl NeoSerializable for WitnessCondition {
 			WitnessCondition::Not(_) => 1 + self.expression().unwrap().size(),
 			WitnessCondition::And(_) | WitnessCondition::Or(_) => {
 				let exp = self.expression_list().unwrap();
-				1 + 1 + exp.len() + exp.iter().map(|e| e.size()).sum::<usize>()
+				//1 + exp.len() + exp.iter().map(|e| e.size()).sum::<usize>()
+				1 + exp.var_size()
 			},
 			WitnessCondition::ScriptHash(_) | WitnessCondition::CalledByContract(_) => 1 + 20,
 			WitnessCondition::Group(_) | WitnessCondition::CalledByGroup(_) => 1 + 33,

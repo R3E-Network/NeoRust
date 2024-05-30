@@ -17,6 +17,10 @@ where
 	/// Returns a string representation of the object.
 	fn to_bs58_string(&self) -> String;
 
+	/// Creates an instance for a zero-value hash.
+	/// Returns a zero-value hash
+	fn zero() -> Self;
+
 	/// Creates an instance from a byte slice.
 	///
 	/// # Errors
@@ -59,6 +63,11 @@ where
 impl ScriptHashExtension for H160 {
 	fn to_bs58_string(&self) -> String {
 		bs58::encode(self.0).into_string()
+	}
+
+	fn zero() -> Self {
+		let arr = [0u8; 20];
+		Self(arr)
 	}
 
 	fn from_slice(slice: &[u8]) -> Result<Self, TypeError> {

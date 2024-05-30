@@ -9,7 +9,7 @@ use neo::prelude::{
 	serialize_script_hash, serialize_vec_public_key, serialize_vec_script_hash, Account,
 	AccountTrait, Decoder, Encoder, NeoConstants, NeoSerializable, PublicKeyExtension,
 	ScriptHashExtension, SignerTrait, SignerType, TransactionError, VarSizeTrait, WitnessRule,
-	WitnessScope,
+	WitnessScope, BuilderError,
 };
 
 use crate::prelude::Secp256r1PublicKey;
@@ -41,7 +41,7 @@ impl NeoSerializable for AccountSigner {
 	type Error = TransactionError;
 
 	fn size(&self) -> usize {
-		let mut size: usize = NeoConstants::HASH160_SIZE as usize;
+		let mut size: usize = NeoConstants::HASH160_SIZE as usize + 1;
 		if self.scopes.contains(&WitnessScope::CustomContracts) {
 			size += self.allowed_contracts.var_size();
 		}
@@ -79,12 +79,33 @@ impl NeoSerializable for AccountSigner {
 		let mut rules = vec![];
 		if scopes.contains(&WitnessScope::CustomContracts) {
 			allowed_contracts = reader.read_serializable_list::<H160>().unwrap();
+			if allowed_contracts.len() > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
+				return Err(BuilderError::SignerConfiguration(format!(
+					"A signer's scope can only contain {} allowed contracts. The input data contained {} contracts.",
+					NeoConstants::MAX_SIGNER_SUBITEMS,
+					allowed_contracts.len()
+				)).into());
+			}
 		}
 		if scopes.contains(&WitnessScope::CustomGroups) {
 			allowed_groups = reader.read_serializable_list::<Secp256r1PublicKey>().unwrap();
+			if allowed_groups.len() > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
+				return Err(BuilderError::SignerConfiguration(format!(
+					"A signer's scope can only contain {} allowed contract groups. The input data contained {} groups.",
+					NeoConstants::MAX_SIGNER_SUBITEMS,
+					allowed_groups.len()
+				)).into());
+			}
 		}
 		if scopes.contains(&WitnessScope::WitnessRules) {
 			rules = reader.read_serializable_list::<WitnessRule>().unwrap();
+			if rules.len() > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
+				return Err(BuilderError::SignerConfiguration(format!(
+					"A signer's scope can only contain {} rules. The input data contained {} rules.",
+					NeoConstants::MAX_SIGNER_SUBITEMS,
+					rules.len()
+				)).into());
+			}
 		}
 		Ok(Self {
 			signer_hash,
@@ -209,8 +230,8 @@ impl AccountSigner {
 		Ok(Self::new(&account, WitnessScope::CalledByEntry))
 	}
 
-	pub fn global(account: Account) -> Result<Self, TransactionError> {
-		Ok(Self::new(&account, WitnessScope::Global))
+	pub fn global(account: &Account) -> Result<Self, TransactionError> {
+		Ok(Self::new(account, WitnessScope::Global))
 	}
 
 	pub fn global_hash160(account_hash: H160) -> Result<Self, TransactionError> {

@@ -189,6 +189,10 @@ impl Secp256r1PublicKey {
 		self.inner.to_encoded_point(compressed).as_bytes().to_vec()
 	}
 
+	pub fn get_encoded_point(&self, compressed: bool) -> EncodedPoint {
+		self.inner.to_encoded_point(compressed)
+	}
+
 	/// Gets this public key's elliptic curve point encoded as defined in section 2.3.3 of [SEC1](http://www.secg.org/sec1-v2.pdf)
 	/// in compressed format as hexadecimal.
 	///
@@ -218,6 +222,14 @@ impl Secp256r1PublicKey {
 			Err(_) => None,
 		}
 	}
+
+	fn get_size(&self) -> usize {
+        if self.inner.to_encoded_point(false).is_identity() {
+            1
+        } else {
+            NeoConstants::PUBLIC_KEY_SIZE_COMPRESSED as usize
+        }
+    }
 }
 
 impl Secp256r1PrivateKey {
@@ -549,11 +561,11 @@ impl NeoSerializable for Secp256r1PublicKey {
 	type Error = CryptoError;
 
 	fn size(&self) -> usize {
-		64
+		NeoConstants::PUBLIC_KEY_SIZE_COMPRESSED as usize
 	}
 
 	fn encode(&self, writer: &mut Encoder) {
-		writer.write_bytes(&self.to_vec());
+		writer.write_bytes(&self.get_encoded(true));
 	}
 
 	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
@@ -562,16 +574,21 @@ impl NeoSerializable for Secp256r1PublicKey {
 	}
 
 	fn to_array(&self) -> Vec<u8> {
-		self.get_encoded(false)
+		//self.get_encoded(false)
+		let mut writer = Encoder::new();
+		self.encode(&mut writer);
+		writer.to_bytes()
 	}
 }
 
 #[cfg(test)]
 mod tests {
 	use rustc_serialize::hex::{FromHex, ToHex};
+	use hex_literal::hex;
+	use p256::EncodedPoint;
 
 	use neo::prelude::{
-		HashableForVec, Secp256r1PrivateKey, Secp256r1PublicKey, Secp256r1Signature, ToArray32,
+		Decoder, HashableForVec, Secp256r1PrivateKey, Secp256r1PublicKey, Secp256r1Signature, ToArray32, NeoSerializable
 	};
 
 	const ENCODED_POINT: &str =
@@ -579,10 +596,23 @@ mod tests {
 
 	#[test]
 	fn test_new_public_key_from_point() {
-		let mut public_key = Secp256r1PublicKey::from_encoded(ENCODED_POINT).unwrap();
+		let expected_x = hex!("b4af8d061b6b320cce6c63bc4ec7894dce107bfc5f5ef5c68a93b4ad1e136816");
+        let expected_y = hex!("5f4f7fb1c5862465543c06dd5a2aa414f6583f92a5cc3e1d4259df79bf6839c9");
 
-		assert_eq!(public_key.get_encoded(true).as_slice(), ENCODED_POINT.from_hex().unwrap());
-		assert_eq!(public_key.get_encoded_compressed_hex(), ENCODED_POINT);
+        let expected_ec_point = EncodedPoint::from_affine_coordinates(
+            &expected_x.into(),
+            &expected_y.into(),
+            false
+        );
+
+        let enc_ec_point = "03b4af8d061b6b320cce6c63bc4ec7894dce107bfc5f5ef5c68a93b4ad1e136816";
+        let enc_ec_point_bytes = hex::decode(enc_ec_point).unwrap();
+
+        let pub_key = Secp256r1PublicKey::from_encoded(&enc_ec_point).unwrap();
+        
+        assert_eq!(pub_key.get_encoded_point(false), expected_ec_point);
+        assert_eq!(pub_key.get_encoded(true), enc_ec_point_bytes);
+        assert_eq!(pub_key.get_encoded_compressed_hex(), enc_ec_point);
 	}
 
 	#[test]
@@ -598,28 +628,37 @@ mod tests {
 
 	#[test]
 	fn test_new_public_key_from_string_with_invalid_size() {
-		let too_small = &ENCODED_POINT[0..ENCODED_POINT.len() - 2];
+		let too_small = "03b4af8d061b6b320cce6c63bc4ec7894dce107bfc5f5ef5c68a93b4ad1e1368"; //only 32 bits
 		assert!(Secp256r1PublicKey::from_encoded(too_small).is_none());
 	}
 
 	#[test]
 	fn test_new_public_key_from_point_with_hex_prefix() {
 		let prefixed = format!("0x{}", ENCODED_POINT);
-		let a = Secp256r1PublicKey::from_encoded(&prefixed);
-		assert!(a.is_some());
+		let a = Secp256r1PublicKey::from_encoded(&prefixed).unwrap();
+		assert_eq!(
+			a.get_encoded_compressed_hex(),
+			ENCODED_POINT
+		);
 	}
 
 	#[test]
 	fn test_serialize_public_key() {
-		let mut public_key = Secp256r1PublicKey::from_encoded(ENCODED_POINT).unwrap();
-		assert_eq!(public_key.get_encoded(true), ENCODED_POINT.from_hex().unwrap());
+		let enc_point = "03b4af8d061b6b320cce6c63bc4ec7894dce107bfc5f5ef5c68a93b4ad1e136816";
+        let pub_key = Secp256r1PublicKey::from_encoded(&enc_point).unwrap();
+
+        assert_eq!(
+            pub_key.to_array(),
+            enc_point.from_hex().unwrap()
+        );
 	}
 
 	#[test]
 	fn test_deserialize_public_key() {
-		let data = "036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296";
-		let mut public_key = Secp256r1PublicKey::from_encoded(&data).unwrap();
-		assert_eq!(public_key.get_encoded(true).to_hex(), data);
+		let data = hex!("036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296");
+		let mut decoder = Decoder::new(&data);
+		let mut public_key = Secp256r1PublicKey::decode(&mut decoder).unwrap();
+		assert_eq!(public_key.get_encoded(true).to_hex(), data.to_hex());
 	}
 
 	#[test]
@@ -628,7 +667,7 @@ mod tests {
 			"036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
 		)
 		.unwrap();
-		assert_eq!(key.get_encoded(true).len(), 33);
+		assert_eq!(key.get_size(), 33);
 	}
 
 	#[test]
