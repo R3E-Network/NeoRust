@@ -9,7 +9,7 @@ use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
-	var_size, BuilderError, Bytes, Decoder, Encoder, InteropService, NeoSerializable, OpCode,
+	var_size, BuilderError, Bytes, Decoder, Encoder, HashableForVec, InteropService, NeoSerializable, OpCode,
 	ScriptBuilder, Secp256r1PublicKey, Secp256r1Signature,
 };
 
@@ -133,7 +133,9 @@ impl VerificationScript {
 
 	// other methods
 	pub fn hash(&self) -> H160 {
-		H160::from_slice(&self.script)
+		let mut reverse_script = self.script.sha256_ripemd160();
+		reverse_script.reverse();
+		H160::from_slice(&reverse_script)
 	}
 
 	pub fn get_signatures(&self) -> Vec<Secp256r1Signature> {
