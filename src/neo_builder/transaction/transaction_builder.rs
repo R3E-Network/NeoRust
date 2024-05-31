@@ -399,6 +399,8 @@ mod tests {
 		ScriptBuilder, Secp256r1PrivateKey, TransactionBuilder,
 	};
 
+use crate::prelude::TransactionError;
+
 	lazy_static! {
 		pub static ref ACCOUNT1: Account = Account::from_key_pair(
 			KeyPair::from_secret_key(
@@ -501,12 +503,13 @@ mod tests {
 	#[tokio::test]
 	async fn test_build_without_setting_script() {
 		let err = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
+			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
 			.get_unsigned_tx()
 			.await
 			.err()
 			.unwrap();
 
-		assert_eq!(err.to_string(), "Cannot build a transaction without a script");
+		assert_eq!(err, TransactionError::NoScript);
 	}
 
 	#[tokio::test]
