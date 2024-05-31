@@ -6,6 +6,9 @@ use std::{
 use async_trait::async_trait;
 use futures_util::lock::Mutex;
 use primitive_types::{H160, H256};
+use rustc_serialize::base64;
+use rustc_serialize::base64::ToBase64;
+use rustc_serialize::hex::FromHex;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tracing::trace;
 use tracing_futures::Instrument;
@@ -409,7 +412,9 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	) -> Result<InvocationResult, ProviderError> {
 		let signers: Vec<TransactionSigner> =
 			signers.into_iter().map(|signer| signer.into()).collect::<Vec<_>>();
-		self.request("invokescript", [hex.to_value(), signers.to_value()]).await
+		let scriptBase64 = serde_json::to_value(hex.from_hex().unwrap().to_base64()).unwrap();
+		let signersJson = serde_json::to_value(&signers).unwrap();
+		self.request("invokescript", [scriptBase64, signersJson]).await
 	}
 
 	/// Gets the unclaimed GAS of the account with the specified script hash.

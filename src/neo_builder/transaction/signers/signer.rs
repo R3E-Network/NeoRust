@@ -9,6 +9,8 @@ use neo::prelude::{
 	WitnessScope,
 };
 
+use crate::neo_protocol::AccountTrait;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SignerType {
 	Account,
@@ -371,10 +373,10 @@ impl Into<AccountSigner> for Signer {
 impl Into<TransactionSigner> for Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::Account(_account_signer) =>
-				panic!("Cannot convert AccountSigner into TransactionSigner"),
-			Signer::Contract(_contract_signer) =>
-				panic!("Cannot convert ContractSigner into AccountSigner"),
+			Signer::Account(account_signer) =>
+				TransactionSigner::new(account_signer.account.get_script_hash(), account_signer.scopes),
+			Signer::Contract(contract_signer) =>
+				TransactionSigner::new(*contract_signer.get_signer_hash(), contract_signer.get_scopes().to_vec()),
 			Signer::Transaction(transaction_signer) => transaction_signer,
 		}
 	}

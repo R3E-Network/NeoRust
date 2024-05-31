@@ -438,7 +438,7 @@ use crate::prelude::TransactionError;
 	#[tokio::test]
 	async fn test_build_transaction_with_correct_nonce() {
 		let mut nonce = 1;
-
+		
 		let mut tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
 			.valid_until_block(1)
 			.unwrap()

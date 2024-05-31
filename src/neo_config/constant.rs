@@ -22,11 +22,11 @@ impl NeoConstants {
 
 	// pub const DEFAULT_SCRYPT_PARAMS: Params = Params::new(14, 8, 8, 32).unwrap();
 
-	pub const SEED_1: &'static str = "seed1.neo.org:10333";
-	pub const SEED_2: &'static str = "seed2.neo.org:10333";
-	pub const SEED_3: &'static str = "seed3.neo.org:10333";
-	pub const SEED_4: &'static str = "seed4.neo.org:10333";
-	pub const SEED_5: &'static str = "seed5.neo.org:10333";
+	pub const SEED_1: &'static str = "http://seed1.neo.org:10332";
+	pub const SEED_2: &'static str = "http://seed2.neo.org:10332";
+	pub const SEED_3: &'static str = "http://seed3.neo.org:10332";
+	pub const SEED_4: &'static str = "http://seed4.neo.org:10332";
+	pub const SEED_5: &'static str = "http://seed5.neo.org:10332";
 
 	pub const SCRYPT_N: usize = 16384;
 	pub const SCRYPT_R: u32 = 8;
