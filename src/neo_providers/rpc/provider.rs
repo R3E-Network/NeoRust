@@ -117,7 +117,8 @@ impl<P: JsonRpcClient> Provider<P> {
 		// https://docs.rs/tracing/0.1.22/tracing/span/struct.Span.html#in-asynchronous-code
 		let res = async move {
 			trace!("tx");
-			let res: R = self.inner.fetch(method, params).await.map_err(Into::into)?;
+			let fetched = self.inner.fetch(method, params).await;
+			let res: R = fetched.map_err(Into::into)?;
 			trace!(rx = ?serde_json::to_string(&res)?);
 			Ok::<_, ProviderError>(res)
 		}

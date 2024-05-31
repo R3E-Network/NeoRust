@@ -5,7 +5,7 @@ use std::{
 
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString};
+use strum_macros::{Display, EnumString, AsRefStr};
 use strum;
 
 use neo::prelude::{deserialize_script_hash, serialize_script_hash, ContractParameter, StackItem};
@@ -24,8 +24,9 @@ pub struct InvocationResult {
 	pub session_id: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, EnumString, Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Serialize, Deserialize, EnumString, AsRefStr, Debug, PartialEq, Eq, Clone, Hash)]
 #[strum(serialize_all = "UPPERCASE")]
+#[serde(rename_all = "UPPERCASE")]
 pub enum NeoVMStateType {
 	Halt,
 	Fault,
