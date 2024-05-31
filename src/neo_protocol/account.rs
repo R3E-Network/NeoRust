@@ -539,7 +539,7 @@ mod tests {
 	}
 
 	#[test]
-	fn test_encrypt_public_key() {
+	fn test_encrypt_private_key() {
 		let key_pair = KeyPair::from_private_key(
 			&TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY
 				.from_hex()

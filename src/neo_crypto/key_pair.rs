@@ -129,7 +129,7 @@ mod tests {
 	use ethereum_types::H160;
 use rustc_serialize::hex::FromHex;
 	use hex_literal::hex;
-	use neo::prelude::{CryptoError, KeyPair, Secp256r1PublicKey, ScriptHash, ScriptHashExtension};
+	use neo::prelude::{CryptoError, KeyPair, Secp256r1PublicKey, ScriptHash, ScriptHashExtension, TestConstants};
 	use p256::EncodedPoint;
 
 use crate::neo_codec::NeoSerializable;
@@ -149,27 +149,27 @@ use crate::neo_codec::NeoSerializable;
 
 	#[test]
 	fn test_address() {
-		let private_key = "84180ac9d6eb6fba207ea4ef9d2200102d1ebeb4b9c07e2c6a738a42742e27a5"
+		let private_key = TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY
 			.from_hex()
 			.unwrap();
 		let private_key_arr: &[u8; 32] = private_key.as_slice().try_into().unwrap();
 		let key_pair = KeyPair::from_private_key(private_key_arr).unwrap();
 		assert_eq!(
 			key_pair.get_address(),
-			"NM7Aky765FG8NhhwtxjXRx7jEL1cnw7PBP"
+			TestConstants::DEFAULT_ACCOUNT_ADDRESS
 		);
 	}
 
 	#[test]
 	fn test_script_hash() {
-		let private_key = "84180ac9d6eb6fba207ea4ef9d2200102d1ebeb4b9c07e2c6a738a42742e27a5"
+		let private_key = TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY
 			.from_hex()
 			.unwrap();
 		let private_key_arr: &[u8; 32] = private_key.as_slice().try_into().unwrap();
 		let key_pair = KeyPair::from_private_key(private_key_arr).unwrap();
 		assert_eq!(
 			key_pair.get_script_hash(),
-			ScriptHash::from_hex("69ecca587293047be4c59159bf8bc399985c160d").unwrap()
+			ScriptHash::from_hex(TestConstants::DEFAULT_ACCOUNT_SCRIPT_HASH).unwrap()
 		);
 	}
 
