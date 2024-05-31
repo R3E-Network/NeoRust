@@ -19,7 +19,7 @@ lazy_static! {
 pub enum InteropService {
 	#[strum(serialize = "System.Crypto.CheckSig")]
 	SystemCryptoCheckSig,
-	#[strum(serialize = "System.Crypto.CheckMultiSig")]
+	#[strum(serialize = "System.Crypto.CheckMultisig")]
 	SystemCryptoCheckMultiSig,
 	#[strum(serialize = "System.Contract.Call")]
 	SystemContractCall,
@@ -89,15 +89,16 @@ pub enum InteropService {
 
 impl InteropService {
 	pub fn hash(&self) -> String {
-		let mut hashes = INTEROP_SERVICE_HASHES.lock().unwrap();
-		return if let Some(hash) = hashes.get(self.to_string().as_str()) {
-			hash.clone()
-		} else {
+		// May introduce problem, temporily remove
+		// let mut hashes = INTEROP_SERVICE_HASHES.lock().unwrap();
+		// return if let Some(hash) = hashes.get(self.to_string().as_str()) {
+		// 	hash.clone()
+		// } else {
 			let sha = self.to_string().as_bytes().hash256()[..4].to_vec();
 			let hash = hex::encode(sha);
-			hashes.insert(self.to_string(), hash.clone());
+			//hashes.insert(self.to_string(), hash.clone());
 			hash
-		}
+		// }
 	}
 
 	pub fn from_hash(hash: String) -> Option<InteropService> {

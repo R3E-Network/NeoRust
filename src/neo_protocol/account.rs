@@ -437,6 +437,7 @@ mod tests {
 		Secp256r1PublicKey, TestConstants, ToArray32, VerificationScript,
 	};
 	use rustc_serialize::hex::FromHex;
+	use primitive_types::H160;
 
 	#[test]
 	fn test_create_generic_account() {
@@ -586,15 +587,27 @@ mod tests {
 		.unwrap();
 
 		assert_eq!(
-			account.key_pair.clone().unwrap().public_key.get_encoded(false),
-			expected_key_pair.public_key.get_encoded(false)
+			account.key_pair.clone().unwrap(),
+			expected_key_pair.clone()
 		);
-		assert_eq!(
-			account.key_pair.clone().unwrap().private_key.to_vec(),
-			expected_key_pair.private_key.to_vec()
-		);
+		// assert_eq!(
+		// 	account.key_pair.clone().unwrap().private_key.to_vec(),
+		// 	expected_key_pair.private_key.to_vec()
+		// );
 		let addr = account.address_or_scripthash();
 		assert_eq!(addr.address(), TestConstants::DEFAULT_ACCOUNT_ADDRESS);
+		assert_eq!(account.label, Some(TestConstants::DEFAULT_ACCOUNT_ADDRESS.to_string()));
+		assert_eq!(account.encrypted_private_key, None);
+		assert_eq!(
+			addr.script_hash(),
+			H160::from_hex(TestConstants::DEFAULT_ACCOUNT_SCRIPT_HASH).unwrap()
+		);
+		assert!(!account.is_locked);
+		assert!(!account.is_default);
+		assert_eq!(
+			account.verification_script.unwrap().script(),
+			&hex::decode(TestConstants::DEFAULT_ACCOUNT_VERIFICATION_SCRIPT).unwrap()
+		);
 	}
 
 	#[test]
@@ -610,7 +623,7 @@ mod tests {
 			&account.address_or_scripthash.script_hash().to_hex(),
 			TestConstants::DEFAULT_ACCOUNT_SCRIPT_HASH
 		);
-		// assert!(!account.is_default);
+		assert!(!account.is_default);
 		assert!(!account.is_locked);
 		assert!(account.verification_script.is_none());
 	}
