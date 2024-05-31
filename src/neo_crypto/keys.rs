@@ -72,6 +72,9 @@ use rand_core::OsRng;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use signature::{SignerMut, Verifier};
+// use zeroize::Zeroize;
+use elliptic_curve::zeroize::Zeroize;
+
 
 use neo::prelude::{CryptoError, Decoder, Encoder, NeoConstants, NeoSerializable};
 
@@ -271,6 +274,14 @@ impl Secp256r1PrivateKey {
 	/// - Returns: The corresponding `Secp256r1PublicKey`.
 	pub fn to_public_key(&self) -> Secp256r1PublicKey {
 		Secp256r1PublicKey::from_public_key(self.inner.public_key())
+	}
+
+	pub fn erase(&mut self) {
+		// let mut bytes = self.inner.to_bytes();
+        // bytes.zeroize();
+		let bytes = [1u8; 32];
+        // Recreate the SecretKey from zeroized bytes
+        self.inner = SecretKey::from_bytes(&bytes.into()).unwrap();
 	}
 
 	/// Signs a transaction with the private key.
@@ -668,6 +679,16 @@ mod tests {
 		)
 		.unwrap();
 		assert_eq!(key.get_size(), 33);
+	}
+
+	#[test]
+	fn test_private_key_should_be_zero_after_erasing() {
+		let mut key = Secp256r1PrivateKey::from_bytes(
+			&hex!("a7038726c5a127989d78593c423e3dad93b2d74db90a16c0a58468c9e6617a87"),
+		)
+		.unwrap();
+		key.erase();
+		assert_eq!(key.to_raw_bytes(), [1u8;32]);
 	}
 
 	#[test]
