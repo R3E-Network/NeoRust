@@ -91,16 +91,16 @@
 #[allow(unused_extern_crates)]
 extern crate self as neo;
 
-mod neo_builder;
-mod neo_codec;
-mod neo_config;
-mod neo_contract;
-mod neo_crypto;
-mod neo_error;
-mod neo_protocol;
-mod neo_providers;
-mod neo_types;
-mod neo_wallets;
+pub mod neo_builder;
+pub mod neo_codec;
+pub mod neo_config;
+pub mod neo_contract;
+pub mod neo_crypto;
+pub mod neo_error;
+pub mod neo_protocol;
+pub mod neo_providers;
+pub mod neo_types;
+pub mod neo_wallets;
 
 #[doc(inline)]
 use neo_builder as builder;
@@ -129,19 +129,4 @@ pub mod prelude {
 		builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
 		providers::*, types::*, wallets::*,
 	};
-}
-
-pub fn add(left: usize, right: usize) -> usize {
-	left + right
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn it_works() {
-		let result = add(2, 2);
-		assert_eq!(result, 4);
-	}
 }
