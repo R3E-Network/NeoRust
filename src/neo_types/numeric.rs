@@ -104,7 +104,7 @@ mod tests {
 		let n = BigInt::from(1234);
 		let bytes = n.to_bytes_padded(8);
 
-		assert_eq!(bytes, vec![0, 0, 0, 0, 4, 210, 0, 0]);
+		assert_eq!(bytes, vec![0, 0, 0, 0, 0, 0, 4, 210]);
 	}
 
 	#[test]
@@ -130,19 +130,19 @@ mod tests {
 	#[test]
 	fn test_i32_to_bytes() {
 		let n = 256;
-		assert_eq!(n.to_bytes(), vec![0, 1, 0, 0]);
+		assert_eq!(n.to_bytes(), vec![0, 0, 1, 0]);
 	}
 
 	#[test]
 	fn test_i64_to_bytes() {
 		let n = 123456;
-		assert_eq!(n.to_bytes(), vec![0, 0, 1, 214, 210, 96, 0, 0]);
+		assert_eq!(n.to_bytes(), vec![0, 1, 226, 64]);
 	}
 
 	#[test]
 	fn test_f32_to_bytes() {
 		let n = 1.5f32;
-		assert_eq!(n.to_bytes(), vec![0, 0, 120, 63]);
+		assert_eq!(n.to_bytes(), vec![63, 192, 0, 0]);
 	}
 
 	#[test]
