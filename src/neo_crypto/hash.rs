@@ -112,7 +112,7 @@ impl HashableForString for String {
 	}
 
 	fn sha256_ripemd160(&self) -> String {
-		hex_encode(&self.from_hex().unwrap().sha256_ripemd160())
+		hex_encode(&self.as_bytes().sha256_ripemd160())
 	}
 
 	fn hmac_sha512(&self, key: &str) -> String {
@@ -164,7 +164,7 @@ mod tests {
 	fn test_sha256_ripemd160_for_bytes() {
 		let data = b"hello world";
 		// Use the expected hash value for "hello world" using SHA256 followed by RIPEMD160
-		let expected = "..."; // fill this in
+		let expected = "d7d5ee7824ff93f94c3055af9382c86c68b5ca92";
 		let result = data.sha256_ripemd160();
 		assert_eq!(hex_encode(&result), expected);
 	}
@@ -172,7 +172,7 @@ mod tests {
 	#[test]
 	fn test_sha256_ripemd160_for_string() {
 		let data = String::from("hello world");
-		let expected = "..."; // fill this in
+		let expected = "d7d5ee7824ff93f94c3055af9382c86c68b5ca92"; // fill this in
 		assert_eq!(data.sha256_ripemd160(), expected);
 	}
 
@@ -181,7 +181,7 @@ mod tests {
 		let data = b"hello world";
 		let key = b"secret";
 		// Use the expected HMAC-SHA512 value for "hello world" with key "secret"
-		let expected = "..."; // fill this in
+		let expected = "6d32239b01dd1750557211629313d95e4f4fcb8ee517e443990ac1afc7562bfd74ffa6118387efd9e168ff86d1da5cef4a55edc63cc4ba289c4c3a8b4f7bdfc2";
 		let result = data.hmac_sha512(key);
 		assert_eq!(hex_encode(&result), expected);
 	}
@@ -190,7 +190,7 @@ mod tests {
 	fn test_hmac_sha512_for_string() {
 		let data = String::from("hello world");
 		let key = "secret";
-		let expected = "..."; // fill this in
+		let expected = "6d32239b01dd1750557211629313d95e4f4fcb8ee517e443990ac1afc7562bfd74ffa6118387efd9e168ff86d1da5cef4a55edc63cc4ba289c4c3a8b4f7bdfc2";
 		assert_eq!(data.hmac_sha512(key), expected);
 	}
 

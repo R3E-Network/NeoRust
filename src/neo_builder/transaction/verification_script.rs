@@ -79,11 +79,11 @@ impl VerificationScript {
 
 		let mut reader = Decoder::new(&self.script);
 
-		let n = match reader.by_ref().read_push_int() {
+		let threshold = match reader.by_ref().read_push_int() {
 			Ok(n) => n,
 			Err(_) => return false,
 		};
-		if !(1..=16).contains(&(n.to_i32().unwrap())) {
+		if !(1..=16).contains(&(threshold.to_i32().unwrap())) {
 			return false
 		}
 
@@ -98,7 +98,7 @@ impl VerificationScript {
 			reader.mark();
 		}
 
-		if !(m >= n && m <= BigInt::from(16)) {
+		if !(m >= threshold && m <= BigInt::from(16)) {
 			return false
 		}
 
@@ -115,19 +115,6 @@ impl VerificationScript {
 		if service_bytes != hash {
 			return false
 		}
-
-		match reader.by_ref().read_var_int() {
-			Ok(v) =>
-				if BigInt::from(v) != m {
-					return false
-				},
-			Err(_) => return false,
-		}
-
-		if reader.by_ref().read_u8() != OpCode::Syscall as u8 {
-			return false
-		}
-
 		true
 	}
 

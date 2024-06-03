@@ -19,7 +19,7 @@ lazy_static! {
 pub enum InteropService {
 	#[strum(serialize = "System.Crypto.CheckSig")]
 	SystemCryptoCheckSig,
-	#[strum(serialize = "System.Crypto.CheckMultiSig")]
+	#[strum(serialize = "System.Crypto.CheckMultisig")]
 	SystemCryptoCheckMultiSig,
 	#[strum(serialize = "System.Contract.Call")]
 	SystemContractCall,
@@ -93,8 +93,9 @@ impl InteropService {
 		return if let Some(hash) = hashes.get(self.to_string().as_str()) {
 			hash.clone()
 		} else {
-			let sha = self.to_string().as_bytes().hash256()[..4].to_vec();
-			let hash = hex::encode(sha);
+			let self_string = self.to_string();
+			let sha = self_string.as_bytes().hash256();
+			let hash = hex::encode(sha[..4].to_vec());
 			hashes.insert(self.to_string(), hash.clone());
 			hash
 		}
