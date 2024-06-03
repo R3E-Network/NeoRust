@@ -242,9 +242,8 @@ mod tests {
 
 		let hash = H160::from_public_key(&public_key.from_hex().unwrap()).unwrap();
 		let mut hash = hash.to_array();
-		hash.reverse();
-		let expected = script.sha256_ripemd160();
-		assert_eq!(hash, expected.from_hex().unwrap());
+		let expected = script.from_hex().unwrap().sha256_ripemd160();
+		assert_eq!(hash, expected);
 	}
 
 	#[test]

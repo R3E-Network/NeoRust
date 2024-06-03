@@ -45,14 +45,8 @@ pub fn serialize<T: serde::Serialize>(t: &T) -> serde_json::Value {
 
 /// Convert a script to a script hash.
 pub fn script_hash_from_script(script: &[u8]) -> ScriptHash {
-	let mut hash = script.sha256_ripemd160();
-	hash.reverse();
-	let mut arr = [0u8; 20];
-	arr.copy_from_slice(&hash);
-	let a = H160::from_slice(&arr);
-	let b = a.clone().to_hex();
-	let _c = H160::from_str(&b).unwrap();
-	a
+	let hash = script.sha256_ripemd160();
+	H160::from_slice(&hash)
 }
 
 /// Convert a public key to an address.
