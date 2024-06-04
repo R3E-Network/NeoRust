@@ -109,9 +109,7 @@ impl ScriptHashExtension for H160 {
 
 	fn to_address(&self) -> String {
 		let mut data = vec![DEFAULT_ADDRESS_VERSION];
-		let mut script = self.0.clone();
-		script.reverse();
-		data.extend_from_slice(&script);
+		data.extend_from_slice(&self.as_bytes());
 		let sha = &data.hash256().hash256();
 		data.extend_from_slice(&sha[..4]);
 		bs58::encode(data).into_string()
