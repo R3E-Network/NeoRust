@@ -169,7 +169,7 @@ mod tests {
 		let key_pair = KeyPair::from_private_key(private_key_arr).unwrap();
 		assert_eq!(
 			key_pair.get_script_hash(),
-			ScriptHash::from_hex("69ecca587293047be4c59159bf8bc399985c160d").unwrap()
+			ScriptHash::from_hex("0x69ecca587293047be4c59159bf8bc399985c160d").unwrap()
 		);
 	}
 

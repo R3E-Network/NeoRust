@@ -120,9 +120,8 @@ impl VerificationScript {
 
 	// other methods
 	pub fn hash(&self) -> H160 {
-		let mut reverse_script = self.script.sha256_ripemd160();
-		reverse_script.reverse();
-		H160::from_slice(&reverse_script)
+		let mut script_hash = self.script.sha256_ripemd160();
+		H160::from_slice(&script_hash)
 	}
 
 	pub fn get_signatures(&self) -> Vec<Secp256r1Signature> {

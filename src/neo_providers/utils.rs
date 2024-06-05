@@ -76,9 +76,7 @@ pub fn private_key_to_address(private_key: &Secp256r1PrivateKey) -> String {
 /// Convert a script hash to an address.
 pub fn script_hash_to_address(script_hash: &ScriptHash) -> String {
 	let mut data = vec![DEFAULT_ADDRESS_VERSION];
-	let mut script = script_hash.0.clone();
-	script.reverse();
-	data.extend_from_slice(&script);
+	data.extend_from_slice(script_hash.as_bytes());
 	let sha = &data.hash256().hash256();
 	data.extend_from_slice(&sha[..4]);
 	bs58::encode(data).into_string()

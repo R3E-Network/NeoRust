@@ -1,3 +1,4 @@
+use byte_slice_cast::AsByteSlice;
 use hex::FromHexError;
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
@@ -81,9 +82,14 @@ impl ScriptHashExtension for H160 {
 	}
 
 	fn from_hex(hex: &str) -> Result<Self, FromHexError> {
-		let hex = if hex.starts_with("0x") { &hex[2..] } else { hex };
-		let bytes = hex::decode(hex)?;
-		Ok(Self::from_slice(&bytes))
+		if hex.starts_with("0x") {
+			let mut bytes = hex::decode(&hex[2..])?;
+			bytes.reverse();
+			Ok(Self::from_slice(&bytes))
+		} else {
+			let bytes = hex::decode(hex)?;
+			Ok(Self::from_slice(&bytes))
+		}
 	}
 
 	fn from_address(address: &str) -> Result<Self, TypeError> {
@@ -130,11 +136,9 @@ impl ScriptHashExtension for H160 {
 	}
 
 	fn from_script(script: &[u8]) -> Self {
-		let mut hash = script.sha256_ripemd160();
-		hash.reverse();
-		let mut arr = [0u8; 20];
-		arr.copy_from_slice(&hash);
-		Self(arr)
+		let hash: [u8; 20] = script.sha256_ripemd160().as_byte_slice().try_into()
+			.expect("script does not have exactly 20 elements");
+		Self(hash)
 	}
 
 	fn from_public_key(public_key: &[u8]) -> Result<Self, TypeError> {
@@ -171,7 +175,7 @@ mod tests {
 				.unwrap()
 				.as_bytes()
 				.to_hex(),
-			"23ba2703c53263e8d6e522dc32203339dcd8eee9".to_string()
+			"e9eed8dc39332032dc22e5d6e86332c50327ba23".to_string()
 		);
 	}
 
@@ -250,7 +254,7 @@ mod tests {
 			"110c21026aa8fe6b4360a67a530e23c08c6a72525afde34719c5436f9d3ced759f939a3d110b41138defaf";
 		let hash = H160::from_script(&script.from_hex().unwrap());
 
-		assert_eq!(hash.to_hex(), "afaed076854454449770763a628f379721ea9808");
+		assert_eq!(hash.to_hex(), "0898ea2197378f623a7670974454448576d0aeaf");
 	}
 
 	#[test]
