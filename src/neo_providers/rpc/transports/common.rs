@@ -413,8 +413,8 @@ mod tests {
 		match response {
 			Response::Success { id, result } => {
 				assert_eq!(id, 0);
-				let result: u64 = serde_json::from_str(result.get()).unwrap();
-				assert_eq!(result, 250);
+				let result: String = serde_json::from_str(result.get()).unwrap();
+				assert_eq!(i64::from_str_radix(result.trim_start_matches("0x"), 16).unwrap(), 250);
 			},
 			_ => panic!("expected `Success` response"),
 		}
