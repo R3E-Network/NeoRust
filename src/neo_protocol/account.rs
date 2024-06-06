@@ -438,6 +438,8 @@ mod tests {
 	};
 	use rustc_serialize::hex::FromHex;
 
+use crate::neo_protocol::account::Base64Encode;
+
 	#[test]
 	fn test_create_generic_account() {
 		let account = Account::create().unwrap();
@@ -521,7 +523,7 @@ mod tests {
 			account.address_or_scripthash().address(),
 			TestConstants::COMMITTEE_ACCOUNT_ADDRESS.to_string()
 		);
-		assert_eq!(account.label, Some(TestConstants::COMMITTEE_ACCOUNT_ADDRESS.to_string()));
+		assert_eq!(account.label, Some(TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT.to_string().from_hex().unwrap().to_base64()));
 		assert_eq!(
 			account.verification_script.unwrap().script(),
 			&hex::decode(TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT).unwrap()
