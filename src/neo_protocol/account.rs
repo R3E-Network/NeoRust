@@ -7,6 +7,12 @@ use std::{
 	fmt::Debug,
 	hash::{Hash, Hasher},
 	str::FromStr,
+	rc::Rc,
+	cell::RefCell,
+	sync::Weak,
+	sync::Mutex,
+	sync::Arc,
+	ptr::null_mut,
 };
 
 pub trait AccountTrait: Sized + PartialEq + Send + Sync + Debug + Clone {
@@ -73,6 +79,10 @@ pub trait AccountTrait: Sized + PartialEq + Send + Sync + Debug + Clone {
 
 	fn from_public_key(public_key: &Secp256r1PublicKey) -> Result<Self, Self::Error>;
 
+	fn set_wallet(&mut self, wallet: Option<Weak<Wallet>>);
+
+	fn get_wallet(&self) -> Option<Arc<Wallet>>;
+
 	fn multi_sig_from_public_keys(
 		public_keys: &mut [Secp256r1PublicKey],
 		signing_threshold: u32,
@@ -108,6 +118,8 @@ pub struct Account {
 	pub encrypted_private_key: Option<String>,
 	pub signing_threshold: Option<u32>,
 	pub nr_of_participants: Option<u32>,
+	#[serde(skip)]
+	pub wallet: Option<Weak<Wallet>>,
 }
 
 impl From<H160> for Account {
@@ -236,6 +248,7 @@ impl AccountTrait for Account {
 			encrypted_private_key: None,
 			signing_threshold,
 			nr_of_participants,
+			wallet: None,
 		}
 	}
 
@@ -257,6 +270,7 @@ impl AccountTrait for Account {
 			encrypted_private_key: None,
 			signing_threshold,
 			nr_of_participants,
+			wallet:None,
 		})
 	}
 
@@ -281,6 +295,7 @@ impl AccountTrait for Account {
 			encrypted_private_key,
 			signing_threshold,
 			nr_of_participants,
+			wallet:None,
 		}
 	}
 
@@ -309,7 +324,7 @@ impl AccountTrait for Account {
 		let key_pair = self
 			.key_pair
 			.as_ref()
-			.ok_or(Self::Error::IllegalState("No decrypted key pair present".to_string()))
+			.ok_or(Self::Error::IllegalState("The account does not hold a decrypted private key.".to_string()))
 			.unwrap();
 		let encrypted_private_key = get_nep2_from_private_key(
 			key_pair.private_key.to_raw_bytes().to_hex().as_str(),
@@ -327,12 +342,18 @@ impl AccountTrait for Account {
 
 	fn get_signing_threshold(&self) -> Result<u32, Self::Error> {
 		self.signing_threshold
-			.ok_or_else(|| Self::Error::IllegalState("Account is not MultiSig".to_string()))
+			.ok_or_else(|| Self::Error::IllegalState(format!(
+				"Cannot get signing threshold from account {}",
+				self.address_or_scripthash().address()
+			)))
 	}
 
 	fn get_nr_of_participants(&self) -> Result<u32, Self::Error> {
 		self.nr_of_participants
-			.ok_or_else(|| Self::Error::IllegalState("Account is not MultiSig".to_string()))
+			.ok_or_else(|| Self::Error::IllegalState(format!(
+				"Cannot get signing threshold from account {}",
+				self.address_or_scripthash().address()
+			)))
 	}
 
 	fn from_verification_script(script: &VerificationScript) -> Result<Self, Self::Error> {
@@ -377,7 +398,7 @@ impl AccountTrait for Account {
 		let addr = ScriptHash::from_script(&script.script());
 
 		Ok(Self {
-			label: Some(script.script().to_base64()),
+			label: Some(addr.to_address()),
 			verification_script: Some(script),
 			signing_threshold: Some(signing_threshold),
 			nr_of_participants: Some(public_keys.len() as u32),
@@ -422,6 +443,14 @@ impl AccountTrait for Account {
 	fn is_multi_sig(&self) -> bool {
 		self.signing_threshold.is_some() && self.nr_of_participants.is_some()
 	}
+
+	fn set_wallet(&mut self, wallet: Option<Weak<Wallet>>) {
+        self.wallet = wallet;
+    }
+
+    fn get_wallet(&self) -> Option<Arc<Wallet>> {
+        self.wallet.as_ref().and_then(|w| w.upgrade())
+    }
 }
 
 impl PrehashSigner<Secp256r1Signature> for Account {
@@ -433,8 +462,8 @@ impl PrehashSigner<Secp256r1Signature> for Account {
 #[cfg(test)]
 mod tests {
 	use neo::prelude::{
-		Account, AccountTrait, KeyPair, PrivateKeyExtension, ScriptHashExtension,
-		Secp256r1PublicKey, TestConstants, ToArray32, VerificationScript,
+		Account, AccountTrait, KeyPair, PrivateKeyExtension, ProviderError, ScriptHashExtension,
+		Secp256r1PublicKey, TestConstants, ToArray32, VerificationScript, Wallet, WalletTrait
 	};
 	use rustc_serialize::hex::FromHex;
 	use primitive_types::H160;
@@ -599,7 +628,7 @@ mod tests {
 		assert_eq!(account.label, Some(TestConstants::DEFAULT_ACCOUNT_ADDRESS.to_string()));
 		assert_eq!(account.encrypted_private_key, None);
 		assert_eq!(
-			addr.script_hash(),
+			account.get_script_hash(),
 			H160::from_hex(TestConstants::DEFAULT_ACCOUNT_SCRIPT_HASH).unwrap()
 		);
 		assert!(!account.is_locked);
@@ -677,5 +706,48 @@ mod tests {
 
 		account.is_locked = false;
 		assert!(!account.is_locked);
+	}
+
+	#[test]
+	fn test_is_default() {
+		let mut account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+		let mut wallet = Wallet::new();
+		let script_hash: H160 = account.get_script_hash();
+		wallet.add_account(account);
+		{
+			let account = wallet.get_account(&script_hash).unwrap();
+			assert!(!account.is_default);
+		}
+		wallet.set_default_account(script_hash);
+		{
+			let account = wallet.get_account(&script_hash).unwrap();
+			assert!(account.is_default);
+		}
+	}
+
+	#[test]
+	fn calling_get_signing_threshold_with_single_sig_should_fail() {
+		let mut account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+		let err = account.get_signing_threshold().unwrap_err();
+		assert_eq!(
+			err,
+			ProviderError::IllegalState(format!(
+				"Cannot get signing threshold from account {}",
+				TestConstants::DEFAULT_ACCOUNT_ADDRESS
+			))
+		);
+	}
+
+	#[test]
+	fn calling_get_nr_of_participants_with_single_sig_should_fail() {
+		let mut account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+		let err = account.get_nr_of_participants().unwrap_err();
+		assert_eq!(
+			err,
+			ProviderError::IllegalState(format!(
+				"Cannot get signing threshold from account {}",
+				TestConstants::DEFAULT_ACCOUNT_ADDRESS
+			))
+		);
 	}
 }

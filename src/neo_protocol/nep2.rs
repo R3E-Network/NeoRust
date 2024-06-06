@@ -46,7 +46,7 @@
 use openssl;
 
 use neo::prelude::{
-	base58check_decode, public_key_to_address, vec_to_array32, HashableForVec, KeyPair,
+	base58check_encode, base58check_decode, public_key_to_address, vec_to_array32, HashableForVec, KeyPair,
 	NeoConstants, ProviderError, Secp256r1PublicKey, ToBase58,
 };
 use openssl::symm::{Cipher, Crypter, Mode};
@@ -86,18 +86,25 @@ fn encrypt_aes256_ecb(data: &[u8], key: &[u8]) -> Result<Vec<u8>, ProviderError>
 fn decrypt_aes256_ecb(encrypted_data: &[u8], key: &[u8]) -> Result<Vec<u8>, ProviderError> {
 	// Ensure key is the correct length for AES-256
 	assert_eq!(key.len(), 32);
+	assert_eq!(encrypted_data.len() % 16, 0);
 
 	let cipher = Cipher::aes_256_ecb();
 	let mut crypter = Crypter::new(cipher, Mode::Decrypt, key, None)
 		.map_err(|_| ProviderError::InvalidPassword)?;
+	crypter.pad(false);
 
 	let mut output = vec![0; encrypted_data.len() + cipher.block_size()];
 	let count = crypter
 		.update(encrypted_data, &mut output)
 		.map_err(|_| ProviderError::InvalidPassword)?;
+	assert_eq!(output.len(), 48);
 	let rest = crypter
 		.finalize(&mut output[count..])
-		.map_err(|_| ProviderError::InvalidPassword)?;
+		.map_err(|err| {
+            eprintln!("Error during finalize: {:?}", err);
+            ProviderError::InvalidPassword
+        })?;
+	//
 	output.truncate(count + rest);
 	Ok(output)
 }
@@ -124,7 +131,9 @@ pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<Stri
 		u8xor[i] = &private_key[i] ^ half_1[i];
 	}
 
-	let encrypted = encrypt_aes256_ecb(&u8xor.to_vec(), &private_key)?;
+	let encrypted = encrypt_aes256_ecb(&u8xor.to_vec(), &_half_2)?;
+
+	//assert_eq!(encrypted.len(), 32);
 
 	// # Assemble the final result
 	let mut assembled = Vec::new();
@@ -133,10 +142,11 @@ pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<Stri
 	assembled.push(NeoConstants::NEP_HEADER_2);
 	assembled.push(NeoConstants::NEP_FLAG);
 	assembled.extend(addresshash.to_vec());
-	assembled.extend(encrypted);
+	assembled.extend(&encrypted[0..32]);
 
 	// # Finally, encode with Base58Check
-	Ok(assembled.to_base58())
+	//Ok(assembled.to_base58())
+	Ok(base58check_encode(&assembled))
 }
 
 pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>, ProviderError> {
@@ -169,7 +179,7 @@ pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>
 	// derived1 = derived[:32]
 	// derived2 = derived[32:]
 
-	let decrypted = encrypt_aes256_ecb(half_2, encrypted)?;
+	let decrypted = decrypt_aes256_ecb(encrypted, half_2)?;
 
 	let mut pri_key = [0u8; 32];
 
@@ -189,8 +199,10 @@ pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>
 	// kp_new_address_hash_tmp = hashlib.sha256(kp_new_address.encode("utf-8")).digest()
 	// kp_new_address_hash_tmp2 = hashlib.sha256(kp_new_address_hash_tmp).digest()
 	// kp_new_address_hash = kp_new_address_hash_tmp2[:4]
+	assert_eq!(kp_addresshash, address_hash);
 	if kp_addresshash != address_hash {
-		println!("Wrong Passphrase");
+		println!("Calculated address hash does not match the one in the provided encrypted address.");
+		//return Err(ProviderError::CustomError("Calculated address hash does not match the one in the provided encrypted address.".to_string()));
 	}
 
 	Ok(pri_key.to_vec())
@@ -224,7 +236,7 @@ mod tests {
 			TestConstants::DEFAULT_ACCOUNT_PASSWORD,
 		) {
 			Ok(key_pair) => key_pair,
-			Err(_) => panic!("Decryption failed"),
+			Err(e) => panic!("{}", e),
 		};
 		assert_eq!(
 			decrypted_key_pair,
