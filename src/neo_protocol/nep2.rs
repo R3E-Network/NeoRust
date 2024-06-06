@@ -43,13 +43,15 @@
 //! Proper error handling is implemented to deal with common issues like incorrect password, invalid NEP2 format,
 //! and other cryptographic errors.
 
-use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyInit};
+use aes::cipher::{block_padding::NoPadding, BlockDecryptMut, BlockEncryptMut, KeyInit};
 use neo::prelude::{
 	base58check_decode, public_key_to_address, vec_to_array32, HashableForVec, KeyPair,
 	NeoConstants, ProviderError, Secp256r1PublicKey, ToBase58,
 };
 use rustc_serialize::hex::FromHex;
 use scrypt::{scrypt, Params};
+
+use crate::prelude::base58check_encode;
 
 type Aes256EcbEnc = ecb::Encryptor<aes::Aes256>;
 type Aes256EcbDec = ecb::Decryptor<aes::Aes256>;
@@ -72,7 +74,7 @@ fn encrypt_aes256_ecb(data: &[u8], key: &[u8]) -> Result<Vec<u8>, ProviderError>
 	let pt_len = data.len();
 	buf[..pt_len].copy_from_slice(&data);
 	let ct = Aes256EcbEnc::new(&key.into())
-		.encrypt_padded_mut::<Pkcs7>(&mut buf, pt_len)
+		.encrypt_padded_mut::<NoPadding>(&mut buf, pt_len)
 		.unwrap();
 
 	Ok(ct.to_vec())
@@ -84,7 +86,7 @@ fn decrypt_aes256_ecb(encrypted_data: &[u8], key: &[u8]) -> Result<Vec<u8>, Prov
 	let key: [u8; 32] = key.try_into().unwrap();
 	let mut buf = [0u8; 64];
 	let pt = Aes256EcbDec::new(&key.into())
-		.decrypt_padded_b2b_mut::<Pkcs7>(&encrypted_data, &mut buf)
+		.decrypt_padded_b2b_mut::<NoPadding>(&encrypted_data, &mut buf)
 		.unwrap();
 
 	Ok(pt.to_vec())
@@ -92,18 +94,13 @@ fn decrypt_aes256_ecb(encrypted_data: &[u8], key: &[u8]) -> Result<Vec<u8>, Prov
 
 pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<String, ProviderError> {
 	let private_key = pri_key.from_hex().unwrap();
-
 	let key_pair = KeyPair::from_private_key(&vec_to_array32(private_key.to_vec()).unwrap())?;
-
 	let addresshash: [u8; 4] = address_hash_from_pubkey(&key_pair.public_key.get_encoded(true));
-
 	let mut result = vec![0u8; NeoConstants::SCRYPT_DK_LEN];
 	let params =
 		Params::new(NeoConstants::SCRYPT_LOG_N, NeoConstants::SCRYPT_R, NeoConstants::SCRYPT_P, 32)
 			.unwrap();
-
 	scrypt(passphrase.as_bytes(), addresshash.to_vec().as_slice(), &params, &mut result).unwrap();
-
 	let half_1 = &result[0..32];
 	let _half_2 = &result[32..64];
 	let mut u8xor = [0u8; 32];
@@ -112,7 +109,7 @@ pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<Stri
 		u8xor[i] = &private_key[i] ^ half_1[i];
 	}
 
-	let encrypted = encrypt_aes256_ecb(&u8xor.to_vec(), &private_key)?;
+	let encrypted = encrypt_aes256_ecb(&u8xor.to_vec(), &_half_2)?;
 
 	// # Assemble the final result
 	let mut assembled = Vec::new();
@@ -124,7 +121,7 @@ pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<Stri
 	assembled.extend(encrypted);
 
 	// # Finally, encode with Base58Check
-	Ok(assembled.to_base58())
+	Ok(base58check_encode(&assembled))
 }
 
 pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>, ProviderError> {
@@ -133,6 +130,9 @@ pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>
 		()
 	}
 	let decoded_key: [u8; 39] = base58check_decode(nep2).unwrap().try_into().unwrap();
+	if (decoded_key[0] != 0x01 || decoded_key[1] != 0x42 || decoded_key[2] != 0xe0) {
+		return Err(ProviderError::InvalidAddress);
+	}
 
 	let address_hash: &[u8] = &decoded_key[3..7];
 	let encrypted: &[u8] = &decoded_key[7..39];
@@ -157,7 +157,7 @@ pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>
 	// derived1 = derived[:32]
 	// derived2 = derived[32:]
 
-	let decrypted = encrypt_aes256_ecb(half_2, encrypted)?;
+	let decrypted = decrypt_aes256_ecb(encrypted, half_2)?;
 
 	let mut pri_key = [0u8; 32];
 
@@ -232,36 +232,12 @@ mod tests {
 
 	#[test]
 	fn test_encrypt_decrypt_aes256_ecb() {
-		let key = vec![0u8; 32];
-		let data = b"Hello, World!";
+		let key = &[0u8; 32];
+		let data = b"Hello, World! We want length 32!";
 
-		let encrypted = encrypt_aes256_ecb(data, &key).unwrap();
-		let decrypted = decrypt_aes256_ecb(&encrypted, &key).unwrap();
+		let encrypted = encrypt_aes256_ecb(data, key).unwrap();
+		let decrypted = decrypt_aes256_ecb(&encrypted, key).unwrap();
 
 		assert_eq!(decrypted, data);
-
-		let key = [0x42; 32];
-		let plaintext = *b"hello world! this is my plaintext.";
-
-		let mut buf = [0u8; 48];
-		let pt_len = plaintext.len();
-		buf[..pt_len].copy_from_slice(&plaintext);
-		let ct = Aes256EcbEnc::new(&key.into())
-			.encrypt_padded_mut::<Pkcs7>(&mut buf, pt_len)
-			.unwrap();
-
-		let pt = Aes256EcbDec::new(&key.into()).decrypt_padded_mut::<Pkcs7>(&mut buf).unwrap();
-		assert_eq!(pt, &plaintext);
-
-		let mut buf = [0u8; 48];
-		let ct = Aes256EcbEnc::new(&key.into())
-			.encrypt_padded_b2b_mut::<Pkcs7>(&plaintext, &mut buf)
-			.unwrap();
-
-		let mut buf = [0u8; 48];
-		let pt = Aes256EcbDec::new(&key.into())
-			.decrypt_padded_b2b_mut::<Pkcs7>(&ct, &mut buf)
-			.unwrap();
-		assert_eq!(pt, &plaintext);
 	}
 }
