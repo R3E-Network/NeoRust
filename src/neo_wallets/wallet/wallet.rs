@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File, io::Write, path::PathBuf};
+use std::{collections::HashMap, fs::File, io::Write, path::PathBuf, sync::Weak, sync::Mutex, sync::Arc};
 
 use primitive_types::H160;
 use serde_derive::{Deserialize, Serialize};
@@ -65,6 +65,8 @@ impl WalletTrait for Wallet {
 	}
 
 	fn add_account(&mut self, account: Self::Account) {
+		// let weak_self = Arc::new(&self);
+		// account.set_wallet(Some(Arc::downgrade(weak_self)));
 		self.accounts.insert(account.get_script_hash().clone(), account);
 	}
 

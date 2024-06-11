@@ -45,13 +45,11 @@
 
 use aes::cipher::{block_padding::NoPadding, BlockDecryptMut, BlockEncryptMut, KeyInit};
 use neo::prelude::{
-	base58check_decode, public_key_to_address, vec_to_array32, HashableForVec, KeyPair,
+	base58check_encode, base58check_decode, public_key_to_address, vec_to_array32, HashableForVec, KeyPair,
 	NeoConstants, ProviderError, Secp256r1PublicKey, ToBase58,
 };
 use rustc_serialize::hex::FromHex;
 use scrypt::{scrypt, Params};
-
-use crate::prelude::base58check_encode;
 
 type Aes256EcbEnc = ecb::Encryptor<aes::Aes256>;
 type Aes256EcbDec = ecb::Decryptor<aes::Aes256>;
@@ -111,6 +109,8 @@ pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<Stri
 
 	let encrypted = encrypt_aes256_ecb(&u8xor.to_vec(), &_half_2)?;
 
+	//assert_eq!(encrypted.len(), 32);
+
 	// # Assemble the final result
 	let mut assembled = Vec::new();
 
@@ -118,9 +118,10 @@ pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<Stri
 	assembled.push(NeoConstants::NEP_HEADER_2);
 	assembled.push(NeoConstants::NEP_FLAG);
 	assembled.extend(addresshash.to_vec());
-	assembled.extend(encrypted);
+	assembled.extend(&encrypted[0..32]);
 
 	// # Finally, encode with Base58Check
+	//Ok(assembled.to_base58())
 	Ok(base58check_encode(&assembled))
 }
 
@@ -177,8 +178,10 @@ pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>
 	// kp_new_address_hash_tmp = hashlib.sha256(kp_new_address.encode("utf-8")).digest()
 	// kp_new_address_hash_tmp2 = hashlib.sha256(kp_new_address_hash_tmp).digest()
 	// kp_new_address_hash = kp_new_address_hash_tmp2[:4]
+	assert_eq!(kp_addresshash, address_hash);
 	if kp_addresshash != address_hash {
-		println!("Wrong Passphrase");
+		println!("Calculated address hash does not match the one in the provided encrypted address.");
+		//return Err(ProviderError::CustomError("Calculated address hash does not match the one in the provided encrypted address.".to_string()));
 	}
 
 	Ok(pri_key.to_vec())
@@ -212,7 +215,7 @@ mod tests {
 			TestConstants::DEFAULT_ACCOUNT_PASSWORD,
 		) {
 			Ok(key_pair) => key_pair,
-			Err(_) => panic!("Decryption failed"),
+			Err(e) => panic!("{}", e),
 		};
 		assert_eq!(
 			decrypted_key_pair,
