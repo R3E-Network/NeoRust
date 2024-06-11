@@ -109,7 +109,6 @@ impl ScriptHashExtension for H160 {
 
 		let mut rev = [0u8; 20];
 		rev.clone_from_slice(hash);
-		rev.reverse();
 		Ok(Self::from_slice(&rev))
 	}
 
@@ -130,8 +129,7 @@ impl ScriptHashExtension for H160 {
 	}
 
 	fn to_le_vec(&self) -> Vec<u8> {
-		let mut vec = self.0.to_vec();
-		vec.reverse();
+		let vec = self.0.to_vec();
 		vec
 	}
 

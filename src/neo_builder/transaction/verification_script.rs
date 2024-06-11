@@ -9,8 +9,8 @@ use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
-	var_size, BuilderError, Bytes, Decoder, Encoder, HashableForVec, InteropService,
-	NeoSerializable, OpCode, ScriptBuilder, Secp256r1PublicKey, Secp256r1Signature,
+	var_size, BuilderError, Bytes, Decoder, Encoder, HashableForVec, InteropService, NeoSerializable, NeoConstants, OpCode,
+	ScriptBuilder, Secp256r1PublicKey, Secp256r1Signature,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
@@ -83,7 +83,7 @@ impl VerificationScript {
 			Ok(n) => n,
 			Err(_) => return false,
 		};
-		if !(1..=16).contains(&(threshold.to_i32().unwrap())) {
+		if !(1..=NeoConstants::MAX_PUBLIC_KEYS_PER_MULTI_SIG).contains(&(threshold.to_u32().unwrap())) {
 			return false
 		}
 
@@ -98,7 +98,7 @@ impl VerificationScript {
 			reader.mark();
 		}
 
-		if !(m >= threshold && m <= BigInt::from(16)) {
+		if !(m >=threshold && m <= BigInt::from(NeoConstants::MAX_PUBLIC_KEYS_PER_MULTI_SIG)) {
 			return false
 		}
 
@@ -110,11 +110,28 @@ impl VerificationScript {
 			return false
 		}
 
-		let service_bytes = &reader.read_bytes(4).unwrap();
-		let hash = &InteropService::SystemCryptoCheckMultiSig.hash().from_hex().unwrap();
+		
+
+		let service_bytes = &reader.read_bytes(4).unwrap().to_hex();
+		let hash = &InteropService::SystemCryptoCheckMultiSig.hash();//.from_hex().unwrap();
+		//assert_eq!(service_bytes, hash);
 		if service_bytes != hash {
 			return false
 		}
+
+
+		// match reader.by_ref().read_var_int() {
+		// 	Ok(v) =>
+		// 		if BigInt::from(v) != m {
+		// 			return false
+		// 		},
+		// 	Err(_) => return false,
+		// }
+
+		// if reader.by_ref().read_u8() != OpCode::Syscall as u8 {
+		// 	return false
+		// }
+
 		true
 	}
 
