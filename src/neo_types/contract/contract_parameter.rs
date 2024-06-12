@@ -240,7 +240,7 @@ impl ValueExtension for Vec<ContractParameter> {
 }
 
 #[derive(Display, EnumString, Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
+#[serde(tag = "type", content = "content")]
 pub enum ParameterValue {
 	Boolean(bool),
 	Integer(i64),
