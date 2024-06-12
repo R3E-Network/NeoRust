@@ -46,7 +46,7 @@ pub struct TransactionBuilder<P: JsonRpcClient + 'static> {
 	additional_system_fee: u64,
 	attributes: Vec<TransactionAttribute>,
 	script: Option<Bytes>,
-	fee_consumer: Option<Box<dyn Fn(u64, u64)>>,
+	fee_consumer: Option<Box<dyn Fn(i64, i64)>>,
 	fee_error: Option<TransactionError>,
 }
 
@@ -223,10 +223,31 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 		}
 
 		// Get fees
-		let system_fee = Box::pin(self.get_system_fee()).await?;
-		let network_fee = Box::pin(self.get_network_fee()).await?;
+		let script = self.script.as_ref().unwrap();
+		let response = self
+			.provider
+			.unwrap()
+			.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
+			.await?;
+		let system_fee = i64::from_str(response.gas_consumed.as_str()).unwrap();
 
 		// Check sender balance if needed
+		let mut tx = Transaction {
+			network: Some(self.provider.unwrap().network().await),
+			version: self.version,
+			nonce: self.nonce as i32,
+			valid_until_block: self.valid_until_block.unwrap() as i32,
+			size: 0,
+			sys_fee: system_fee,
+			net_fee: 0,
+			signers: self.signers.clone(),
+			attributes: self.attributes.clone(),
+			script: self.script.clone().unwrap(), // We've already checked for None case above
+			witnesses: vec![],
+			block_time: None,
+		};
+
+		let network_fee = Box::pin(self.provider.unwrap().calculate_network_fee(base64::encode(tx.to_array()))).await?;
 		if let Some(fee_consumer) = &self.fee_consumer {
 			let sender_balance = 0; // self.get_sender_balance().await.unwrap();
 			if network_fee + system_fee > sender_balance {
@@ -234,20 +255,8 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 			}
 		}
 
-		Ok(Transaction {
-			network: Some(self.provider.unwrap().network().await),
-			version: self.version,
-			nonce: self.nonce as i32,
-			valid_until_block: self.valid_until_block.unwrap() as i32,
-			size: 0,
-			sys_fee: 0,
-			net_fee: 0,
-			signers: self.signers.clone(),
-			attributes: self.attributes.clone(),
-			script: self.script.clone().unwrap(), // We've already checked for None case above
-			witnesses: vec![],
-			block_time: None,
-		})
+		tx.set_net_fee(network_fee);
+		Ok(tx)
 	}
 
 	async fn get_system_fee(&self) -> Result<u64, TransactionError> {
@@ -261,7 +270,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 		Ok(u64::from_str(response.gas_consumed.as_str()).unwrap()) // example
 	}
 
-	async fn get_network_fee(&mut self) -> Result<u64, TransactionError> {
+	async fn get_network_fee(&mut self) -> Result<i64, TransactionError> {
 		let fee = self
 			.provider
 			.unwrap()

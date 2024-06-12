@@ -5,7 +5,7 @@ use std::collections::HashMap;
 /// `MapEntry` is a simple struct that represents a key-value pair in a `StackItem::Map`.
 /// The `StackItem` enum also provides several utility methods for converting between different types and formats.
 use primitive_types::{H160, H256};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use neo::prelude::{Address, ScriptHashExtension, Secp256r1PublicKey};
 
@@ -19,7 +19,10 @@ pub enum StackItem {
 
 	/// Represents a pointer to another stack item.
 	#[serde(rename = "Pointer")]
-	Pointer { value: i64 },
+	Pointer {
+		#[serde(deserialize_with = "deserialize_integer_from_string")]
+		value: i64
+	},
 
 	/// Represents a boolean value.
 	#[serde(rename = "Boolean")]
@@ -27,7 +30,10 @@ pub enum StackItem {
 
 	/// Represents an integer value.
 	#[serde(rename = "Integer")]
-	Integer { value: i64 },
+	Integer {
+		#[serde(deserialize_with = "deserialize_integer_from_string")]
+		value: i64
+	},
 
 	/// Represents a byte string value.
 	#[serde(rename = "ByteString")]
@@ -56,6 +62,14 @@ pub enum StackItem {
 	/// Represents an interop interface.
 	#[serde(rename = "InteropInterface")]
 	InteropInterface { id: String, interface: String },
+}
+
+fn deserialize_integer_from_string<'de, D>(deserializer: D) -> Result<i64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value_str = String::deserialize(deserializer)?;
+    value_str.parse::<i64>().map_err(serde::de::Error::custom)
 }
 
 /// The `MapEntry` struct represents a key-value pair in a `StackItem::Map`.

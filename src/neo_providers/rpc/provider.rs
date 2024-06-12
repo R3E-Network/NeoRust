@@ -148,12 +148,13 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	}
 
 	async fn network(&self) -> u32 {
-		if self.config().network == None {
-			let network = self.inner().get_version().await.unwrap().protocol.unwrap().network;
-			network
-		} else {
-			self.config().network.unwrap()
-		}
+		self.get_version().await.unwrap().protocol.unwrap().network
+		// if self.config().network == None {
+		// 	let network = self.inner().get_version().await.unwrap().protocol.unwrap().network;
+		// 	network
+		// } else {
+		// 	self.config().network.unwrap()
+		// }
 	}
 
 	//////////////////////// Neo methods////////////////////////////
@@ -480,10 +481,10 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	}
 
 	/// Calculates the network fee for the specified transaction.
-	/// - Parameter transactionHex: The transaction in hexadecimal
+	/// - Parameter txBase64: The transaction in hexadecimal
 	/// - Returns: The request object
-	async fn calculate_network_fee(&self, hex: String) -> Result<u64, ProviderError> {
-		self.request("calculatenetworkfee", vec![hex.to_value()]).await
+	async fn calculate_network_fee(&self, txBase64: String) -> Result<i64, ProviderError> {
+		self.request("calculatenetworkfee", vec![txBase64.to_value()]).await
 	}
 
 	/// Lists all the addresses in the current wallet.

@@ -14,6 +14,7 @@ use neo::prelude::{deserialize_script_hash, serialize_script_hash, ContractParam
 pub struct InvocationResult {
 	pub script: String,
 	pub state: NeoVMStateType,
+	#[serde(rename = "gasconsumed")]
 	pub gas_consumed: String,
 	pub exception: Option<String>,
 	pub notifications: Option<Vec<Notification>>,

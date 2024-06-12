@@ -356,7 +356,7 @@ pub trait Middleware: Sync + Send + Debug {
 		self.inner().import_priv_key(priv_key).await.map_err(MiddlewareError::from_err)
 	}
 
-	async fn calculate_network_fee(&self, hex: String) -> Result<u64, Self::Error> {
+	async fn calculate_network_fee(&self, hex: String) -> Result<i64, Self::Error> {
 		self.inner().calculate_network_fee(hex).await.map_err(MiddlewareError::from_err)
 	}
 
