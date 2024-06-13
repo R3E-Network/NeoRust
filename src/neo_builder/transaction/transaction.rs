@@ -27,11 +27,11 @@ pub struct Transaction {
 
 	#[serde(rename = "nonce")]
 	#[getset(get = "pub", set = "pub")]
-	pub nonce: i32,
+	pub nonce: u32,
 
 	#[serde(rename = "validuntilblock")]
 	#[getset(get = "pub", set = "pub")]
-	pub valid_until_block: i32,
+	pub valid_until_block: u32,
 
 	#[serde(rename = "signers")]
 	#[getset(get = "pub", set = "pub")]
@@ -99,8 +99,8 @@ impl<'de> Deserialize<'de> for Transaction {
 			.ok_or(DeError::custom("invalid type for version"))? as u8;
 
 		// Deserialize other fields similarly...
-		let nonce = value["nonce"].as_i64().unwrap() as i32; // Simplified for brevity
-		let valid_until_block = value["validuntilblock"].as_i64().unwrap() as i32;
+		let nonce = value["nonce"].as_i64().unwrap() as u32; // Simplified for brevity
+		let valid_until_block = value["validuntilblock"].as_i64().unwrap() as u32;
 		// Continue for other fields...
 
 		// For Vec<T> fields like signers, attributes, witnesses, you might deserialize them like this:
@@ -252,8 +252,8 @@ impl NeoSerializable for Transaction {
 		Ok(Self {
 			network: None,
 			version,
-			nonce: nonce as i32,
-			valid_until_block: valid_until_block as i32,
+			nonce: nonce,
+			valid_until_block: valid_until_block,
 			size: 0,
 			sys_fee: system_fee,
 			net_fee: network_fee,

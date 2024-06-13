@@ -164,7 +164,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 
 	pub fn nonce(&mut self, nonce: u32) -> Result<&mut Self, TransactionError> {
 		// Validate
-		if nonce >= u32::MAX {
+		if nonce > u32::MAX {
 			return Err(TransactionError::InvalidNonce)
 		}
 
@@ -235,8 +235,8 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 		let mut tx = Transaction {
 			network: Some(self.provider.unwrap().network().await),
 			version: self.version,
-			nonce: self.nonce as i32,
-			valid_until_block: self.valid_until_block.unwrap() as i32,
+			nonce: self.nonce,
+			valid_until_block: self.valid_until_block.unwrap(),
 			size: 0,
 			sys_fee: system_fee,
 			net_fee: 0,
@@ -460,7 +460,7 @@ use crate::prelude::TransactionError;
 			.await
 			.unwrap();
 
-		assert_eq!(tx.nonce(), &(nonce as i32));
+		assert_eq!(*tx.nonce(), nonce);
 
 		nonce = 0;
 		tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
@@ -473,7 +473,7 @@ use crate::prelude::TransactionError;
 			.get_unsigned_tx()
 			.await
 			.unwrap();
-		assert_eq!(tx.nonce(), &(nonce as i32));
+		assert_eq!(*tx.nonce(), nonce);
 
 		nonce = u32::MAX;
 		tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
@@ -486,7 +486,7 @@ use crate::prelude::TransactionError;
 			.get_unsigned_tx()
 			.await
 			.unwrap();
-		assert_eq!(tx.nonce(), &(nonce as i32));
+		assert_eq!(*tx.nonce(), nonce);
 	}
 
 	// #[tokio::test]
