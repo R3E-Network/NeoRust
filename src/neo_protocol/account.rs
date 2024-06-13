@@ -324,8 +324,8 @@ impl AccountTrait for Account {
 		let key_pair = self
 			.key_pair
 			.as_ref()
-			.ok_or(Self::Error::IllegalState("The account does not hold a decrypted private key.".to_string()))
-			.unwrap();
+			.ok_or(Self::Error::IllegalState("The account does not hold a decrypted private key.".to_string()))?;
+	
 		let encrypted_private_key = get_nep2_from_private_key(
 			key_pair.private_key.to_raw_bytes().to_hex().as_str(),
 			password,
@@ -370,7 +370,7 @@ impl AccountTrait for Account {
 
 		Ok(Self {
 			address_or_scripthash: AddressOrScriptHash::ScriptHash(address),
-			label: Some(ScriptHashExtension::to_bs58_string(&address)),
+			label:  Some(address.to_address()),
 			verification_script: Some(script.clone()),
 			signing_threshold: signing_threshold.map(|x| x as u32),
 			nr_of_participants: nr_of_participants.map(|x| x as u32),
@@ -384,7 +384,7 @@ impl AccountTrait for Account {
 
 		Ok(Self {
 			address_or_scripthash: AddressOrScriptHash::ScriptHash(address),
-			label: Some(ScriptHashExtension::to_bs58_string(&address)),
+			label:Some(address.to_address()),
 			verification_script: Some(script),
 			..Default::default()
 		})
@@ -462,10 +462,11 @@ impl PrehashSigner<Secp256r1Signature> for Account {
 #[cfg(test)]
 mod tests {
 	use neo::prelude::{
-		Account, AccountTrait, KeyPair, PrivateKeyExtension, ProviderError, ScriptHashExtension,
+		Account, AccountTrait, KeyPair, NeoSerializable, PrivateKeyExtension, ProviderError, ScriptHashExtension,
 		Secp256r1PublicKey, TestConstants, ToArray32, VerificationScript, Wallet, WalletTrait
 	};
-	use rustc_serialize::hex::FromHex;
+	use ring::aead::NONCE_LEN;
+use rustc_serialize::hex::FromHex;
 	use primitive_types::H160;
 
 use crate::neo_protocol::account::Base64Encode;
@@ -502,23 +503,6 @@ use crate::neo_protocol::account::Base64Encode;
 		assert_eq!(
 			account.verification_script.unwrap().script(),
 			&hex::decode(TestConstants::DEFAULT_ACCOUNT_VERIFICATION_SCRIPT).unwrap()
-		);
-	}
-
-	#[test]
-	fn test_from_verification_script() {
-		let verification_script = VerificationScript::from(
-			hex::decode(TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT).unwrap(),
-		);
-		let account = Account::from_verification_script(&verification_script).unwrap();
-
-		assert_eq!(
-			account.address_or_scripthash().address(),
-			TestConstants::COMMITTEE_ACCOUNT_ADDRESS
-		);
-		assert_eq!(
-			account.verification_script.unwrap().script(),
-			&hex::decode(TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT).unwrap()
 		);
 	}
 
@@ -561,6 +545,49 @@ use crate::neo_protocol::account::Base64Encode;
 	}
 
 	#[test]
+	fn test_create_multi_sig_account_account_with_address() {
+		let account = Account::multi_sig_from_addr(
+			TestConstants::COMMITTEE_ACCOUNT_ADDRESS.to_string(),
+			4,
+			7,
+		)
+		.unwrap();
+		assert_eq!(
+			account.get_signing_threshold().unwrap(),
+			4
+		);
+		assert_eq!(
+			account.get_nr_of_participants().unwrap(),
+			7
+		);
+		assert_eq!(
+			account.address_or_scripthash().address(),
+			TestConstants::COMMITTEE_ACCOUNT_ADDRESS
+		);
+		assert!(account.is_multi_sig());
+		assert_eq!(account.label, Some(TestConstants::COMMITTEE_ACCOUNT_ADDRESS.to_string()));
+		assert!(account.verification_script().is_none());
+	}
+
+	#[test]
+	fn test_create_multi_sig_account_account_from_verification_script() {
+		let account = Account::from_verification_script(&VerificationScript::from(
+			hex::decode(TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT).unwrap(),
+		)).unwrap();
+		assert!(account.is_multi_sig());
+		assert_eq!(
+			account.address_or_scripthash().address(),
+			TestConstants::COMMITTEE_ACCOUNT_ADDRESS
+		);
+		assert_eq!(account.label, Some(TestConstants::COMMITTEE_ACCOUNT_ADDRESS.to_string()));
+		assert_eq!(
+			account.verification_script.unwrap().script(),
+			&hex::decode(TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT).unwrap()
+		);
+	}
+
+
+	#[test]
 	fn test_nil_values_when_not_multi_sig() {
 		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
 		assert!(account.signing_threshold.is_none());
@@ -590,6 +617,20 @@ use crate::neo_protocol::account::Base64Encode;
 			TestConstants::DEFAULT_ACCOUNT_ENCRYPTED_PRIVATE_KEY
 		);
 	}
+
+	#[test]
+	fn test_fail_encrypt_account_without_private_key() {
+		let mut account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+
+		let err = account.encrypt_private_key("pwd").unwrap_err();
+		assert_eq!(
+			err,
+			ProviderError::IllegalState("The account does not hold a decrypted private key.".to_string())
+		);
+	}
+
+
+
 
 	// #[test]
 	// fn test_to_nep6_account_with_only_an_address() {

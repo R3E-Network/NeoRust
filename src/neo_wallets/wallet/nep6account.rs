@@ -261,5 +261,41 @@ mod tests {
 			account.address_or_scripthash().address(),
 			TestConstants::DEFAULT_ACCOUNT_ADDRESS
 		);
+		assert_eq!(
+			account.encrypted_private_key().clone().unwrap(),
+			TestConstants::DEFAULT_ACCOUNT_ENCRYPTED_PRIVATE_KEY
+		);
+
+		assert_eq!(
+			account.verification_script.unwrap().script(),
+			&hex::decode(TestConstants::DEFAULT_ACCOUNT_VERIFICATION_SCRIPT).unwrap()
+		);
+	}
+
+	#[test]
+	fn test_load_multi_sig_account_from_nep6() {
+		let data = include_str!("../../../test_resources/wallet/multiSigAccount.json");
+		let nep6_account: NEP6Account = serde_json::from_str(data).unwrap();
+
+		let account = nep6_account.to_account().unwrap();
+
+		assert!(!account.is_default);
+		assert!(!account.is_locked);
+		assert_eq!(
+			account.address_or_scripthash().address(),
+			TestConstants::COMMITTEE_ACCOUNT_ADDRESS
+		);
+		assert_eq!(
+			account.verification_script().clone().unwrap().script(),
+			&hex::decode(TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT).unwrap()
+		);
+		assert_eq!(
+			account.get_nr_of_participants().unwrap(),
+			1
+		);
+		assert_eq!(
+			account.get_signing_threshold().unwrap(),
+			1
+		);
 	}
 }
