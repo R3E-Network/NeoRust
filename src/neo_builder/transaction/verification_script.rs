@@ -192,7 +192,8 @@ impl VerificationScript {
 			Ok(1)
 		} else if self.is_multi_sig() {
 			let reader = &mut Decoder::new(&self.script);
-			Ok(reader.by_ref().read_var_int()? as usize)
+			Ok(reader.by_ref().read_push_int()?.to_usize().unwrap())
+			//Ok(reader.by_ref().read_bigint()?.to_usize().unwrap())
 		} else {
 			Err(BuilderError::InvalidScript("Invalid verification script".to_string()))
 		}
