@@ -33,7 +33,7 @@ impl Witness {
 	pub fn create(message_to_sign: Bytes, key_pair: &KeyPair) -> Result<Self, BuilderError> {
 		let invocation_script =
 			InvocationScript::from_message_and_key_pair(message_to_sign, key_pair).unwrap();
-		let verification_script = VerificationScript::from(key_pair.public_key().get_encoded(true));
+		let verification_script = VerificationScript::from_public_key(&key_pair.public_key());
 		Ok(Self { invocation: invocation_script, verification: verification_script })
 	}
 

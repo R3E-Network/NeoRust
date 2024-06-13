@@ -247,15 +247,16 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 			block_time: None,
 		};
 
-		let network_fee = Box::pin(self.provider.unwrap().calculate_network_fee(base64::encode(tx.to_array()))).await?;
-		if let Some(fee_consumer) = &self.fee_consumer {
-			let sender_balance = 0; // self.get_sender_balance().await.unwrap();
-			if network_fee + system_fee > sender_balance {
-				fee_consumer(network_fee + system_fee, sender_balance);
-			}
-		}
+		// It's impossible to calculate network fee when the tx is unsigned, because there is no witness
+		// let network_fee = Box::pin(self.provider.unwrap().calculate_network_fee(base64::encode(tx.to_array()))).await?;
+		// if let Some(fee_consumer) = &self.fee_consumer {
+		// 	let sender_balance = 0; // self.get_sender_balance().await.unwrap();
+		// 	if network_fee + system_fee > sender_balance {
+		// 		fee_consumer(network_fee + system_fee, sender_balance);
+		// 	}
+		// }
+		// tx.set_net_fee(network_fee);
 
-		tx.set_net_fee(network_fee);
 		Ok(tx)
 	}
 
