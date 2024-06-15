@@ -96,6 +96,12 @@ impl Base64Encode for &[u8] {
 	}
 }
 
+impl Base64Encode for String {
+	fn to_base64(&self) -> String {
+		base64::encode(&hex::decode(self).unwrap())
+	}
+}
+
 // pub fn secret_key_to_script_hash(secret_key: &Secp256r1PrivateKey) -> ScriptHash {
 // 	let public_key = secret_key.to_public_key();
 // 	public_key_to_script_hash(&public_key)
