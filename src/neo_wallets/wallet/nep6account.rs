@@ -12,35 +12,41 @@ use neo::prelude::{
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, Setters)]
 pub struct NEP6Account {
 	/// The address of the account.
-	#[getset(get = "pub", set = "pub")]
+	#[getset(get = "pub")]
 	#[serde(rename = "address")]
 	pub address: Address,
 
 	/// An optional label for the account.
+	#[getset(get = "pub")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[serde(rename = "label")]
 	pub label: Option<String>,
 
 	/// Indicates whether the account is set as default.
+	#[getset(get = "pub")]
 	#[serde(default)]
 	#[serde(rename = "isDefault")]
 	pub is_default: bool,
 
 	/// Indicates whether the account is locked.
+	#[getset(get = "pub")]
 	#[serde(rename = "lock")]
 	pub lock: bool,
 
 	/// An optional private key associated with the account.
+	#[getset(get = "pub")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[serde(rename = "key")]
 	pub key: Option<String>,
 
 	/// An optional NEP-6 contract associated with the account.
+	#[getset(get = "pub")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[serde(rename = "contract")]
 	pub contract: Option<NEP6Contract>,
 
 	/// An optional additional data associated with the account.
+	#[getset(get = "pub")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[serde(rename = "extra")]
 	pub extra: Option<HashMap<String, String>>,
@@ -194,6 +200,7 @@ impl NEP6Account {
 			..Default::default()
 		})
 	}
+
 }
 
 impl PartialEq for NEP6Account {
@@ -217,7 +224,7 @@ impl PartialEq for NEP6Account {
 #[cfg(test)]
 mod tests {
 	use neo::prelude::{
-		AccountTrait, NEP6Account, PrivateKeyExtension, Secp256r1PrivateKey, TestConstants,
+		AccountTrait, Account, NEP6Account, PrivateKeyExtension, Secp256r1PrivateKey, TestConstants, 
 	};
 
 	#[test]
@@ -297,5 +304,25 @@ mod tests {
 			account.get_signing_threshold().unwrap(),
 			1
 		);
+	}
+
+	#[test]
+	fn test_to_nep6_account_with_only_an_address() {
+		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+	
+		let nep6_account =  account.to_nep6_account().unwrap();
+	
+		assert!(nep6_account.contract().is_none());
+		assert!(!nep6_account.is_default());
+		assert!(!nep6_account.lock());
+		assert_eq!(
+			nep6_account.address(),
+			TestConstants::DEFAULT_ACCOUNT_ADDRESS
+		);
+		assert_eq!(
+			nep6_account.label().clone().unwrap(),
+			TestConstants::DEFAULT_ACCOUNT_ADDRESS
+		);
+		assert!(nep6_account.extra().is_none());
 	}
 }
