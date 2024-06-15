@@ -459,6 +459,62 @@ impl PrehashSigner<Secp256r1Signature> for Account {
 	}
 }
 
+impl Account {
+	pub fn to_nep6_account(&self) -> Result<NEP6Account, ProviderError> {
+        if self.key_pair.is_some() && self.encrypted_private_key.is_none() {
+            return Err(ProviderError::IllegalState(format!(
+				"Account private key is available but not encrypted."
+			)));
+        }
+
+        if self.verification_script.is_none() {
+            return Ok(NEP6Account::new(
+                self.address_or_scripthash.address().clone(),
+                self.label.clone(),
+                self.is_default,
+                self.is_locked,
+                self.encrypted_private_key.clone(),
+                None,
+				None,
+            ));
+        }
+
+        let mut parameters = Vec::new();
+        let script_data = self.verification_script.as_ref().unwrap();
+
+        if script_data.is_multi_sig() {
+            for i in 0..script_data.get_nr_of_accounts().unwrap() {
+                parameters.push(NEP6Parameter {
+                    param_name: format!("signature{}", i),
+                    param_type: ContractParameterType::Signature,
+                });
+            }
+        } else if script_data.is_single_sig() {
+            parameters.push(NEP6Parameter {
+                param_name: "signature".to_string(),
+                param_type: ContractParameterType::Signature,
+            });
+        }
+
+        let script_encoded = script_data.script().to_base64();
+        let contract = NEP6Contract {
+            script: Some(script_encoded),
+            is_deployed: false, // Assuming a simple setup; might need actual logic
+			nep6_parameters: parameters,
+        };
+
+        Ok(NEP6Account::new(
+            self.address_or_scripthash.address().clone(),
+            self.label.clone(),
+            self.is_default,
+            self.is_locked,
+            self.encrypted_private_key.clone(),
+            Some(contract),
+			None,
+        ))
+    }
+}
+
 #[cfg(test)]
 mod tests {
 	use neo::prelude::{
