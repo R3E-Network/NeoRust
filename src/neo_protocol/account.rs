@@ -14,6 +14,7 @@ use std::{
 	sync::Arc,
 	ptr::null_mut,
 };
+use std::collections::HashMap;
 
 pub trait AccountTrait: Sized + PartialEq + Send + Sync + Debug + Clone {
 	type Error: Sync + Send + Debug + Sized;
@@ -513,6 +514,20 @@ impl Account {
 			None,
         ))
     }
+
+	pub async fn get_nep17_balances<P> (&self, provider: &Provider<P>, address: H160) -> Result<HashMap<H160, u64>, ProviderError>
+	where
+        P: JsonRpcClient,
+	{
+        let response = provider.get_nep17_balances(self.address_or_scripthash().script_hash()).await?;
+        let mut balances = HashMap::new();
+        for balance in response.balances {
+            let asset_hash =balance.asset_hash;
+            let amount = balance.amount.parse::<u64>().unwrap();
+            balances.insert(asset_hash, amount);
+        }
+        Ok(balances)
+    }
 }
 
 #[cfg(test)]
@@ -522,10 +537,10 @@ mod tests {
 		Secp256r1PublicKey, TestConstants, ToArray32, VerificationScript, Wallet, WalletTrait
 	};
 	use ring::aead::NONCE_LEN;
-use rustc_serialize::hex::FromHex;
+	use rustc_serialize::hex::FromHex;
 	use primitive_types::H160;
-
-use crate::neo_protocol::account::Base64Encode;
+	use serde_json::Value;
+	use crate::neo_protocol::account::Base64Encode;
 
 	#[test]
 	fn test_create_generic_account() {
@@ -686,19 +701,6 @@ use crate::neo_protocol::account::Base64Encode;
 	}
 
 
-
-
-	// #[test]
-	// fn test_to_nep6_account_with_only_an_address() {
-	// 	let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
-	//
-	// 	let nep6_account =  account.to_nep6_account().unwrap();
-	//
-	// 	assert!(nep6_account.contract.is_none());
-	// 	assert!(!nep6_account.is_default);
-	// 	// ...
-	// }
-
 	#[test]
 	fn test_create_account_from_wif() {
 		let account = Account::from_wif(TestConstants::DEFAULT_ACCOUNT_WIF).unwrap();
@@ -755,6 +757,8 @@ use crate::neo_protocol::account::Base64Encode;
 
 	#[test]
 	fn test_get_nep17_balances() {
+		let data = include_str!("../../test_resources/responses/getnep17balances_ofDefaultAccount.json");
+		let json_response: Value = serde_json::from_str(data).expect("Failed to parse JSON");
 		// Create mock HTTP client
 
 		// let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
