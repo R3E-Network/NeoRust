@@ -1,7 +1,4 @@
 /// Types for the admin api
-pub mod admin;
-pub use admin::{NodeInfo, PeerInfo};
-
 pub mod nns;
 
 #[cfg(feature = "dev-rpc")]
