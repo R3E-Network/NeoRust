@@ -22,6 +22,15 @@
             },
             "args": [],
             "cwd": "${workspaceFolder}"
-        }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Doctests in NeoRust",
+            "program": "",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "NeoRust doctest"
+        },
    ]
 }

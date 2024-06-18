@@ -19,6 +19,9 @@ exclude = [
     "scripts/",
 ]
 
+[lib]
+doctest = false
+
 # https://docs.rs/about/metadata
 [metadata.docs.rs]
 all-features = true

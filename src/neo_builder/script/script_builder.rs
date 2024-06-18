@@ -113,7 +113,7 @@ impl ScriptBuilder {
 	/// use NeoRust::prelude::ScriptBuilder;
 	///
 	/// let mut builder = ScriptBuilder::new();
-	/// builder.push_int(&BigInt::from(15))?;
+	/// builder.push_integer(BigInt::from(15));
 	/// ```
 	pub fn push_integer(&mut self, i: BigInt) -> &mut Self {
 		if i >= BigInt::from(-1) && i <= BigInt::from(16) {
