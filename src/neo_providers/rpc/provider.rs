@@ -570,7 +570,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// - Parameter scriptHash: The account's script hash
 	/// - Returns: The request object
 	async fn get_nep17_balances(&self, script_hash: H160) -> Result<Nep17Balances, ProviderError> {
-		self.request("getnep17balances", [script_hash.to_value()].to_vec()).await
+		self.request("getnep17balances", [script_hash.to_address().to_value()].to_vec()).await
 	}
 
 	/// Gets all the NEP-17 transaction information occurred in the specified script hash.

@@ -12,35 +12,41 @@ use neo::prelude::{
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, Setters)]
 pub struct NEP6Account {
 	/// The address of the account.
-	#[getset(get = "pub", set = "pub")]
+	#[getset(get = "pub")]
 	#[serde(rename = "address")]
 	pub address: Address,
 
 	/// An optional label for the account.
+	#[getset(get = "pub")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[serde(rename = "label")]
 	pub label: Option<String>,
 
 	/// Indicates whether the account is set as default.
+	#[getset(get = "pub")]
 	#[serde(default)]
 	#[serde(rename = "isDefault")]
 	pub is_default: bool,
 
 	/// Indicates whether the account is locked.
+	#[getset(get = "pub")]
 	#[serde(rename = "lock")]
 	pub lock: bool,
 
 	/// An optional private key associated with the account.
+	#[getset(get = "pub")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[serde(rename = "key")]
 	pub key: Option<String>,
 
 	/// An optional NEP-6 contract associated with the account.
+	#[getset(get = "pub")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[serde(rename = "contract")]
 	pub contract: Option<NEP6Contract>,
 
 	/// An optional additional data associated with the account.
+	#[getset(get = "pub")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[serde(rename = "extra")]
 	pub extra: Option<HashMap<String, String>>,
@@ -194,6 +200,7 @@ impl NEP6Account {
 			..Default::default()
 		})
 	}
+
 }
 
 impl PartialEq for NEP6Account {
@@ -217,8 +224,10 @@ impl PartialEq for NEP6Account {
 #[cfg(test)]
 mod tests {
 	use neo::prelude::{
-		AccountTrait, NEP6Account, PrivateKeyExtension, Secp256r1PrivateKey, TestConstants,
+		AccountTrait, Account, ContractParameterType, NEP6Account, PrivateKeyExtension, ProviderError, Secp256r1PrivateKey, Secp256r1PublicKey, TestConstants, 
 	};
+
+use crate::neo_types::Base64Encode;
 
 	#[test]
 	fn test_decrypt_with_standard_scrypt_params() {
@@ -296,6 +305,98 @@ mod tests {
 		assert_eq!(
 			account.get_signing_threshold().unwrap(),
 			1
+		);
+	}
+
+	#[test]
+	fn test_to_nep6_account_with_only_an_address() {
+		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+	
+		let nep6_account =  account.to_nep6_account().unwrap();
+	
+		assert!(nep6_account.contract().is_none());
+		assert!(!nep6_account.is_default());
+		assert!(!nep6_account.lock());
+		assert_eq!(
+			nep6_account.address(),
+			TestConstants::DEFAULT_ACCOUNT_ADDRESS
+		);
+		assert_eq!(
+			nep6_account.label().clone().unwrap(),
+			TestConstants::DEFAULT_ACCOUNT_ADDRESS
+		);
+		assert!(nep6_account.extra().is_none());
+	}
+
+	#[test]
+	fn test_to_nep6_account_with_unecrypted_private_key() {
+		let account = Account::from_wif(TestConstants::DEFAULT_ACCOUNT_WIF).unwrap();
+	
+		let err =  account.to_nep6_account().unwrap_err();
+	
+		assert_eq!(
+			err,
+			ProviderError::IllegalState("Account private key is available but not encrypted.".to_string())
+		);
+	}
+
+	#[test]
+	fn test_to_nep6_account_with_ecrypted_private_key() {
+		let mut account = Account::from_wif(TestConstants::DEFAULT_ACCOUNT_WIF).unwrap();
+		account.encrypt_private_key("neo").unwrap();
+	
+		let nep6_account =  account.to_nep6_account().unwrap();
+	
+		assert_eq!(
+			nep6_account.contract().clone().unwrap().script().clone().unwrap(),
+			TestConstants::DEFAULT_ACCOUNT_VERIFICATION_SCRIPT.to_string().to_base64()
+		);
+		assert_eq!(
+			nep6_account.key().clone().unwrap(),
+			TestConstants::DEFAULT_ACCOUNT_ENCRYPTED_PRIVATE_KEY
+		);
+		assert!(!nep6_account.is_default());
+		assert!(!nep6_account.lock());
+		assert_eq!(
+			nep6_account.address(),
+			TestConstants::DEFAULT_ACCOUNT_ADDRESS
+		);
+		assert_eq!(
+			nep6_account.label().clone().unwrap(),
+			TestConstants::DEFAULT_ACCOUNT_ADDRESS
+		);
+	}
+
+	#[test]
+	fn test_to_nep6_account_with_muliti_sig_account() {
+		let public_key = Secp256r1PublicKey::from_bytes(
+			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
+		).unwrap();
+		let account = Account::multi_sig_from_public_keys(&mut vec![public_key], 1).unwrap();
+		let nep6_account =  account.to_nep6_account().unwrap();
+	
+		assert_eq!(
+			nep6_account.contract().clone().unwrap().script().clone().unwrap(),
+			TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT.to_string().to_base64()
+		);
+		assert!(!nep6_account.is_default());
+		assert!(!nep6_account.lock());
+		assert_eq!(
+			nep6_account.address(),
+			TestConstants::COMMITTEE_ACCOUNT_ADDRESS
+		);
+		assert_eq!(
+			nep6_account.label().clone().unwrap(),
+			TestConstants::COMMITTEE_ACCOUNT_ADDRESS
+		);
+		assert!(nep6_account.key().is_none());
+		assert_eq!(
+			nep6_account.contract().clone().unwrap().nep6_parameters()[0].param_name(),
+			"signature0"
+		);
+		assert_eq!(
+			nep6_account.contract().clone().unwrap().nep6_parameters()[0].param_type(),
+			&ContractParameterType::Signature
 		);
 	}
 }

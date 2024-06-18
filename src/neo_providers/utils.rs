@@ -1,4 +1,6 @@
-use std::{future::Future, pin::Pin, str::FromStr};
+use std::{future::Future, pin::Pin, str::FromStr, sync::Arc};
+use wiremock::{Request, Match};
+use regex::Regex;
 
 use futures_timer::Delay;
 use futures_util::{stream, FutureExt, StreamExt};
@@ -124,4 +126,24 @@ pub fn address_to_hex(address: &str) -> Result<String, ProviderError> {
 pub fn hex_to_address(hex: &str) -> Result<String, ProviderError> {
 	let script_hash = H160::from_str(hex).map_err(|_| ProviderError::InvalidAddress)?;
 	Ok(script_hash.to_address())
+}
+
+pub struct BodyRegexMatcher {
+    pattern: Arc<Regex>,
+}
+
+impl BodyRegexMatcher {
+    pub fn new(pattern: &str) -> Self {
+        BodyRegexMatcher {
+            pattern: Arc::new(Regex::new(pattern).expect("Invalid regex pattern")),
+        }
+    }
+}
+
+impl Match for BodyRegexMatcher {
+    fn matches(&self, request: &Request) -> bool {
+        std::str::from_utf8(&request.body)
+            .map(|body_str| self.pattern.is_match(body_str))
+            .unwrap_or(false)
+    }
 }

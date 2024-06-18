@@ -14,6 +14,7 @@ use std::{
 	sync::Arc,
 	ptr::null_mut,
 };
+use std::collections::HashMap;
 
 pub trait AccountTrait: Sized + PartialEq + Send + Sync + Debug + Clone {
 	type Error: Sync + Send + Debug + Sized;
@@ -459,17 +460,92 @@ impl PrehashSigner<Secp256r1Signature> for Account {
 	}
 }
 
+impl Account {
+	pub fn to_nep6_account(&self) -> Result<NEP6Account, ProviderError> {
+        if self.key_pair.is_some() && self.encrypted_private_key.is_none() {
+            return Err(ProviderError::IllegalState(format!(
+				"Account private key is available but not encrypted."
+			)));
+        }
+
+        if self.verification_script.is_none() {
+            return Ok(NEP6Account::new(
+                self.address_or_scripthash.address().clone(),
+                self.label.clone(),
+                self.is_default,
+                self.is_locked,
+                self.encrypted_private_key.clone(),
+                None,
+				None,
+            ));
+        }
+
+        let mut parameters = Vec::new();
+        let script_data = self.verification_script.as_ref().unwrap();
+
+        if script_data.is_multi_sig() {
+            for i in 0..script_data.get_nr_of_accounts().unwrap() {
+                parameters.push(NEP6Parameter {
+                    param_name: format!("signature{}", i),
+                    param_type: ContractParameterType::Signature,
+                });
+            }
+        } else if script_data.is_single_sig() {
+            parameters.push(NEP6Parameter {
+                param_name: "signature".to_string(),
+                param_type: ContractParameterType::Signature,
+            });
+        }
+
+        let script_encoded = script_data.script().to_base64();
+        let contract = NEP6Contract {
+            script: Some(script_encoded),
+            is_deployed: false, // Assuming a simple setup; might need actual logic
+			nep6_parameters: parameters,
+        };
+
+        Ok(NEP6Account::new(
+            self.address_or_scripthash.address().clone(),
+            self.label.clone(),
+            self.is_default,
+            self.is_locked,
+            self.encrypted_private_key.clone(),
+            Some(contract),
+			None,
+        ))
+    }
+
+	pub async fn get_nep17_balances<P> (&self, provider: &Provider<P>) -> Result<HashMap<H160, u64>, ProviderError>
+	where
+        P: JsonRpcClient,
+	{
+        let response = provider.get_nep17_balances(self.address_or_scripthash().script_hash()).await?;
+        let mut balances = HashMap::new();
+        for balance in response.balances {
+            let asset_hash =balance.asset_hash;
+            let amount = balance.amount.parse::<u64>().unwrap();
+            balances.insert(asset_hash, amount);
+        }
+        Ok(balances)
+    }
+}
+
 #[cfg(test)]
 mod tests {
 	use neo::prelude::{
-		Account, AccountTrait, KeyPair, NeoSerializable, PrivateKeyExtension, ProviderError, ScriptHashExtension,
+		Account, AccountTrait, BodyRegexMatcher, HttpProvider, KeyPair, MockProvider, NeoSerializable, PrivateKeyExtension, Provider, ProviderError, ScriptHashExtension,
 		Secp256r1PublicKey, TestConstants, ToArray32, VerificationScript, Wallet, WalletTrait
 	};
 	use ring::aead::NONCE_LEN;
-use rustc_serialize::hex::FromHex;
+	use rustc_serialize::hex::FromHex;
 	use primitive_types::H160;
+	use serde_json::Value;
+	use crate::neo_protocol::account::Base64Encode;
+	use wiremock::{MockServer, Mock, ResponseTemplate};
+	use wiremock::matchers::{method, path};
+	use url::Url;
 
-use crate::neo_protocol::account::Base64Encode;
+use super::Middleware;
 
 	#[test]
 	fn test_create_generic_account() {
@@ -630,19 +706,6 @@ use crate::neo_protocol::account::Base64Encode;
 	}
 
 
-
-
-	// #[test]
-	// fn test_to_nep6_account_with_only_an_address() {
-	// 	let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
-	//
-	// 	let nep6_account =  account.to_nep6_account().unwrap();
-	//
-	// 	assert!(nep6_account.contract.is_none());
-	// 	assert!(!nep6_account.is_default);
-	// 	// ...
-	// }
-
 	#[test]
 	fn test_create_account_from_wif() {
 		let account = Account::from_wif(TestConstants::DEFAULT_ACCOUNT_WIF).unwrap();
@@ -697,19 +760,39 @@ use crate::neo_protocol::account::Base64Encode;
 		assert!(account.verification_script.is_none());
 	}
 
-	#[test]
-	fn test_get_nep17_balances() {
-		// Create mock HTTP client
+	#[tokio::test]
+	async fn test_get_nep17_balances() {
+		let data = include_str!("../../test_resources/responses/getnep17balances_ofDefaultAccount.json");
+		let json_response: Value = serde_json::from_str(data).expect("Failed to parse JSON");
+		let call = "getnep17balances"; 
+    	let param = TestConstants::DEFAULT_ACCOUNT_ADDRESS;
+		let pattern = format!(
+			".*\"method\":\"{}\".*.*\"params\":.*.*\"{}\".*",
+			call, param
+		);
+		let body_matcher = BodyRegexMatcher::new(&pattern);
 
-		// let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+		let mock_server = MockServer::start().await;
+		Mock::given(method("POST"))
+        .and(path("/"))
+        .and(body_matcher)
+        .respond_with(ResponseTemplate::new(200).set_body_json(json_response))
+        .mount(&mock_server)
+        .await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
 		//
-		// let balances = account.get_nep17_balances(&mock_client).await.unwrap();
+		let balances = account.get_nep17_balances(&provider).await.unwrap();
 		//
-		// assert_eq!(balances.len(), 2);
-		// assert!(balances.contains_key(&TestConstants::GAS_TOKEN_HASH));
-		// assert!(balances.contains_key(&TestConstants::NEO_TOKEN_HASH));
-		// assert!(balances.values().contains(&300000000));
-		// assert!(balances.values().contains(&5));
+		assert_eq!(balances.len(), 2);
+		assert!(balances.contains_key(&H160::from_hex(TestConstants::GAS_TOKEN_HASH).unwrap()));
+		assert!(balances.contains_key(&H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap()));
+		assert!(balances.values().any(|&v| v == 300000000));
+		assert!(balances.values().any(|&v| v == 5));
 	}
 
 	#[test]

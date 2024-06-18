@@ -1,31 +1,36 @@
 use serde::{Deserialize, Serialize};
-
+use getset::{Getters, Setters};
 use neo::prelude::ContractParameterType;
 
 /// Represents a NEP-6 contract.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Getters)]
 pub struct NEP6Contract {
 	/// The script associated with the contract.
+	#[getset(get = "pub")]
 	#[serde(rename = "script")]
 	pub script: Option<String>,
 
 	/// Indicates whether the contract is deployed.
+	#[getset(get = "pub")]
 	#[serde(rename = "deployed")]
 	pub is_deployed: bool,
 
 	/// The NEP-6 parameters associated with the contract.
+	#[getset(get = "pub")]
 	#[serde(rename = "parameters")]
 	pub nep6_parameters: Vec<NEP6Parameter>,
 }
 
 /// Represents a NEP-6 parameter.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Getters)]
 pub struct NEP6Parameter {
 	/// The name of the parameter.
+	#[getset(get = "pub")]
 	#[serde(rename = "name")]
 	pub param_name: String,
 
 	/// The type of the parameter.
+	#[getset(get = "pub")]
 	#[serde(rename = "type")]
 	pub param_type: ContractParameterType,
 }
