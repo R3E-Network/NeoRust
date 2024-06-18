@@ -515,7 +515,7 @@ impl Account {
         ))
     }
 
-	pub async fn get_nep17_balances<P> (&self, provider: &Provider<P>, address: H160) -> Result<HashMap<H160, u64>, ProviderError>
+	pub async fn get_nep17_balances<P> (&self, provider: &Provider<P>) -> Result<HashMap<H160, u64>, ProviderError>
 	where
         P: JsonRpcClient,
 	{
@@ -533,7 +533,7 @@ impl Account {
 #[cfg(test)]
 mod tests {
 	use neo::prelude::{
-		Account, AccountTrait, KeyPair, NeoSerializable, PrivateKeyExtension, ProviderError, ScriptHashExtension,
+		Account, AccountTrait, BodyRegexMatcher, HttpProvider, KeyPair, MockProvider, NeoSerializable, PrivateKeyExtension, Provider, ProviderError, ScriptHashExtension,
 		Secp256r1PublicKey, TestConstants, ToArray32, VerificationScript, Wallet, WalletTrait
 	};
 	use ring::aead::NONCE_LEN;
@@ -541,6 +541,11 @@ mod tests {
 	use primitive_types::H160;
 	use serde_json::Value;
 	use crate::neo_protocol::account::Base64Encode;
+	use wiremock::{MockServer, Mock, ResponseTemplate};
+	use wiremock::matchers::{method, path};
+	use url::Url;
+
+use super::Middleware;
 
 	#[test]
 	fn test_create_generic_account() {
@@ -755,21 +760,39 @@ mod tests {
 		assert!(account.verification_script.is_none());
 	}
 
-	#[test]
-	fn test_get_nep17_balances() {
+	#[tokio::test]
+	async fn test_get_nep17_balances() {
 		let data = include_str!("../../test_resources/responses/getnep17balances_ofDefaultAccount.json");
 		let json_response: Value = serde_json::from_str(data).expect("Failed to parse JSON");
-		// Create mock HTTP client
+		let call = "getnep17balances"; 
+    	let param = TestConstants::DEFAULT_ACCOUNT_ADDRESS;
+		let pattern = format!(
+			".*\"method\":\"{}\".*.*\"params\":.*.*\"{}\".*",
+			call, param
+		);
+		let body_matcher = BodyRegexMatcher::new(&pattern);
 
-		// let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+		let mock_server = MockServer::start().await;
+		Mock::given(method("POST"))
+        .and(path("/"))
+        .and(body_matcher)
+        .respond_with(ResponseTemplate::new(200).set_body_json(json_response))
+        .mount(&mock_server)
+        .await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
 		//
-		// let balances = account.get_nep17_balances(&mock_client).await.unwrap();
+		let balances = account.get_nep17_balances(&provider).await.unwrap();
 		//
-		// assert_eq!(balances.len(), 2);
-		// assert!(balances.contains_key(&TestConstants::GAS_TOKEN_HASH));
-		// assert!(balances.contains_key(&TestConstants::NEO_TOKEN_HASH));
-		// assert!(balances.values().contains(&300000000));
-		// assert!(balances.values().contains(&5));
+		assert_eq!(balances.len(), 2);
+		assert!(balances.contains_key(&H160::from_hex(TestConstants::GAS_TOKEN_HASH).unwrap()));
+		assert!(balances.contains_key(&H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap()));
+		assert!(balances.values().any(|&v| v == 300000000));
+		assert!(balances.values().any(|&v| v == 5));
 	}
 
 	#[test]
