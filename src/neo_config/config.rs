@@ -9,7 +9,7 @@ use tokio::runtime::Handle;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub enum NeoNetwork {
-	MainNet = 0x00746e41,
+	MainNet = 0x334f454e,
 	TestNet = 0x74746e41,
 	PrivateNet = 0x4e454e,
 }
@@ -17,14 +17,14 @@ pub enum NeoNetwork {
 impl NeoNetwork {
 	pub fn to_magic(&self) -> u32 {
 		match self {
-			NeoNetwork::MainNet => 0x00746e41,
+			NeoNetwork::MainNet => 0x334f454e,
 			NeoNetwork::TestNet => 0x74746e41,
 			NeoNetwork::PrivateNet => 0x4e454e,
 		}
 	}
 	pub fn from_magic(magic: u32) -> Option<NeoNetwork> {
 		match magic {
-			0x00746e41 => Some(NeoNetwork::MainNet),
+			0x334f454e => Some(NeoNetwork::MainNet),
 			0x74746e41 => Some(NeoNetwork::TestNet),
 			0x4e454e => Some(NeoNetwork::PrivateNet),
 			_ => None,
