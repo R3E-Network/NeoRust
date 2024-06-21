@@ -9,7 +9,8 @@
 use rand::rngs::OsRng;
 
 use neo::prelude::{
-	wif_from_private_key, CryptoError, PublicKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey,
+	private_key_from_wif, wif_from_private_key, CryptoError, PublicKeyExtension,
+	Secp256r1PrivateKey, Secp256r1PublicKey,
 };
 
 use crate::{
@@ -92,6 +93,21 @@ impl KeyPair {
 		Ok(Self::from_secret_key(&secret_key))
 	}
 
+	/// Creates an `KeyPair` from a given Wallet Import Format (WIF) string.
+	/// This will use the private key encoded in the WIF to generate the key pair.
+	///
+	///  # Arguments
+	///
+	/// * `wif` - A Wallet Import Format (WIF) string.
+	///
+	/// The WIF string should be in the format `Kx...` or `Lx...`.
+	/// The key pair will be generated from the private key encoded in the WIF.
+	/// The public key will be derived from the private key.
+	pub fn from_wif(wif: &str) -> Result<Self, CryptoError> {
+		let private_key = private_key_from_wif(wif)?;
+		Ok(Self::from_secret_key(&private_key))
+	}
+
 	/// Creates an `KeyPair` from a given 65-byte public key.
 	/// This will use a dummy private key internally.
 	///
@@ -129,15 +145,8 @@ impl PartialEq for KeyPair {
 
 #[cfg(test)]
 mod tests {
-	use ethereum_types::H160;
-	use hex_literal::hex;
-	use neo::prelude::{
-		CryptoError, KeyPair, ScriptHash, ScriptHashExtension, Secp256r1PublicKey, TestConstants,
-	};
-	use p256::EncodedPoint;
+	use neo::prelude::{KeyPair, ScriptHash, ScriptHashExtension, TestConstants};
 	use rustc_serialize::hex::FromHex;
-
-	use crate::neo_codec::NeoSerializable;
 
 	#[test]
 	fn test_public_key_wif() {
