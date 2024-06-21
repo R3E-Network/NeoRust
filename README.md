@@ -3,6 +3,13 @@
 neo-rs is an integral component of our initiative to introduce Rust to the Neo ecosystem. neo-rs is currently in an
 active development phase.
 
+# Usage
+
+```rust
+ use NeoRust::prelude::*;
+```
+
+
 We will leverage neo-rs for the creation of various projects, including a `TEE-secured Neo wallet`,
 a `Secure Neo node`, `Neo middleware`, `Neo-ZK rollup` solutions, and more.
 
