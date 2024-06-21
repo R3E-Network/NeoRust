@@ -179,7 +179,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Gets the hash of the latest block in the blockchain.
 	/// - Returns: The request object
 	async fn get_best_block_hash(&self) -> Result<H256, ProviderError> {
-		self.request("getbestblockhash", ()).await
+		self.request("getbestblockhash",  Vec::<H256>::new()).await
 	}
 
 	/// Gets the block hash of the corresponding block based on the specified block index.
@@ -1130,4 +1130,98 @@ pub fn is_local_endpoint(endpoint: &str) -> bool {
 		}
 	}
 	false
+}
+
+#[cfg(test)]
+mod tests {
+	use neo::prelude::{
+		BodyRegexMatcher, HttpProvider, Middleware, Provider, ProviderError, TestConstants
+	};
+	use url::Url;
+    use lazy_static::lazy_static;
+    use serde_json::Value;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+    use reqwest::Client;
+    use tokio;
+
+    #[tokio::test]
+    async fn test_get_best_block_hash() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getbestblockhash",
+            "params": [],
+            "id": 1
+        }"#;
+
+        provider.get_best_block_hash().await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_block_hash() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getblockhash",
+            "params": [16293],
+            "id": 1
+        }"#;
+
+        provider.get_block_hash(16293).await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	async fn setup_mock_server() -> MockServer {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("hello"))
+            .mount(&server)
+            .await;
+        server
+    }
+
+    async fn verify_result(mock_server: &MockServer, expected: &str) -> Result<(), Box<dyn std::error::Error>> {
+        // Retrieve the request body from the mock server
+        let received_requests = mock_server.received_requests().await.unwrap();
+        assert!(!received_requests.is_empty(), "No requests received");
+
+        // Assuming we only have one request
+        let request = &received_requests[0];
+        let request_body = String::from_utf8_lossy(&request.body);
+
+        // Normalize JSON by removing whitespace and comparing
+        let request_json: Value = serde_json::from_str(&request_body)?;
+        let expected_json: Value = serde_json::from_str(expected)?;
+
+        assert_eq!(request_json, expected_json, "The request body does not match the expected body");
+
+		// mock_server.reset().await;
+
+		// Mock::given(method("POST"))
+		// .and(path("/"))
+		// .respond_with(ResponseTemplate::new(200).set_body_string("hello"))
+		// .mount(&mock_server)
+		// .await;
+
+        Ok(())
+    }
 }
