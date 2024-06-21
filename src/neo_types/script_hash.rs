@@ -134,7 +134,10 @@ impl ScriptHashExtension for H160 {
 	}
 
 	fn from_script(script: &[u8]) -> Self {
-		let hash: [u8; 20] = script.sha256_ripemd160().as_byte_slice().try_into()
+		let hash: [u8; 20] = script
+			.sha256_ripemd160()
+			.as_byte_slice()
+			.try_into()
 			.expect("script does not have exactly 20 elements");
 		Self(hash)
 	}

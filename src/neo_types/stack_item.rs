@@ -21,7 +21,7 @@ pub enum StackItem {
 	#[serde(rename = "Pointer")]
 	Pointer {
 		#[serde(deserialize_with = "deserialize_integer_from_string")]
-		value: i64
+		value: i64,
 	},
 
 	/// Represents a boolean value.
@@ -32,7 +32,7 @@ pub enum StackItem {
 	#[serde(rename = "Integer")]
 	Integer {
 		#[serde(deserialize_with = "deserialize_integer_from_string")]
-		value: i64
+		value: i64,
 	},
 
 	/// Represents a byte string value.
@@ -66,10 +66,10 @@ pub enum StackItem {
 
 fn deserialize_integer_from_string<'de, D>(deserializer: D) -> Result<i64, D::Error>
 where
-    D: Deserializer<'de>,
+	D: Deserializer<'de>,
 {
-    let value_str = String::deserialize(deserializer)?;
-    value_str.parse::<i64>().map_err(serde::de::Error::custom)
+	let value_str = String::deserialize(deserializer)?;
+	value_str.parse::<i64>().map_err(serde::de::Error::custom)
 }
 
 /// The `MapEntry` struct represents a key-value pair in a `StackItem::Map`.

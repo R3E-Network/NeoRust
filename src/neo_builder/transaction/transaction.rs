@@ -252,8 +252,8 @@ impl NeoSerializable for Transaction {
 		Ok(Self {
 			network: None,
 			version,
-			nonce: nonce,
-			valid_until_block: valid_until_block,
+			nonce,
+			valid_until_block,
 			size: 0,
 			sys_fee: system_fee,
 			net_fee: network_fee,

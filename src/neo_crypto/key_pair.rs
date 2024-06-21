@@ -131,7 +131,9 @@ impl PartialEq for KeyPair {
 mod tests {
 	use ethereum_types::H160;
 	use hex_literal::hex;
-	use neo::prelude::{CryptoError, KeyPair, Secp256r1PublicKey, ScriptHash, ScriptHashExtension, TestConstants};
+	use neo::prelude::{
+		CryptoError, KeyPair, ScriptHash, ScriptHashExtension, Secp256r1PublicKey, TestConstants,
+	};
 	use p256::EncodedPoint;
 	use rustc_serialize::hex::FromHex;
 
@@ -152,22 +154,15 @@ mod tests {
 
 	#[test]
 	fn test_address() {
-		let private_key = TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY
-			.from_hex()
-			.unwrap();
+		let private_key = TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY.from_hex().unwrap();
 		let private_key_arr: &[u8; 32] = private_key.as_slice().try_into().unwrap();
 		let key_pair = KeyPair::from_private_key(private_key_arr).unwrap();
-		assert_eq!(
-			key_pair.get_address(),
-			TestConstants::DEFAULT_ACCOUNT_ADDRESS
-		);
+		assert_eq!(key_pair.get_address(), TestConstants::DEFAULT_ACCOUNT_ADDRESS);
 	}
 
 	#[test]
 	fn test_script_hash() {
-		let private_key = TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY
-			.from_hex()
-			.unwrap();
+		let private_key = TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY.from_hex().unwrap();
 		let private_key_arr: &[u8; 32] = private_key.as_slice().try_into().unwrap();
 		let key_pair = KeyPair::from_private_key(private_key_arr).unwrap();
 		assert_eq!(

@@ -75,7 +75,6 @@ use signature::{SignerMut, Verifier};
 // use zeroize::Zeroize;
 use elliptic_curve::zeroize::Zeroize;
 
-
 use neo::prelude::{CryptoError, Decoder, Encoder, NeoConstants, NeoSerializable};
 
 #[cfg_attr(feature = "substrate", serde(crate = "serde_substrate"))]
@@ -278,10 +277,10 @@ impl Secp256r1PrivateKey {
 
 	pub fn erase(&mut self) {
 		// let mut bytes = self.inner.to_bytes();
-        // bytes.zeroize();
+		// bytes.zeroize();
 		let bytes = [1u8; 32];
-        // Recreate the SecretKey from zeroized bytes
-        self.inner = SecretKey::from_bytes(&bytes.into()).unwrap();
+		// Recreate the SecretKey from zeroized bytes
+		self.inner = SecretKey::from_bytes(&bytes.into()).unwrap();
 	}
 
 	/// Signs a transaction with the private key.
@@ -675,12 +674,12 @@ mod tests {
 
 	#[test]
 	fn test_private_key_should_be_zero_after_erasing() {
-		let mut key = Secp256r1PrivateKey::from_bytes(
-			&hex!("a7038726c5a127989d78593c423e3dad93b2d74db90a16c0a58468c9e6617a87"),
-		)
+		let mut key = Secp256r1PrivateKey::from_bytes(&hex!(
+			"a7038726c5a127989d78593c423e3dad93b2d74db90a16c0a58468c9e6617a87"
+		))
 		.unwrap();
 		key.erase();
-		assert_eq!(key.to_raw_bytes(), [1u8;32]);
+		assert_eq!(key.to_raw_bytes(), [1u8; 32]);
 	}
 
 	#[test]

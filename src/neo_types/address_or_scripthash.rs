@@ -107,7 +107,7 @@ impl AddressOrScriptHash {
 	/// ```
 	pub fn script_hash(&self) -> H160 {
 		match self {
-			AddressOrScriptHash::Address(a) => H160::from_address(&a).unwrap(),//a.address_to_script_hash().unwrap(),
+			AddressOrScriptHash::Address(a) => H160::from_address(&a).unwrap(), //a.address_to_script_hash().unwrap(),
 			AddressOrScriptHash::ScriptHash(s) => s.clone(),
 		}
 	}

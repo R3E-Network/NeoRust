@@ -4,17 +4,15 @@ use rustc_serialize::hex::ToHex;
 use serde_derive::{Deserialize, Serialize};
 use signature::{hazmat::PrehashSigner, Error};
 use std::{
+	cell::RefCell,
+	collections::HashMap,
 	fmt::Debug,
 	hash::{Hash, Hasher},
-	str::FromStr,
-	rc::Rc,
-	cell::RefCell,
-	sync::Weak,
-	sync::Mutex,
-	sync::Arc,
 	ptr::null_mut,
+	rc::Rc,
+	str::FromStr,
+	sync::{Arc, Mutex, Weak},
 };
-use std::collections::HashMap;
 
 pub trait AccountTrait: Sized + PartialEq + Send + Sync + Debug + Clone {
 	type Error: Sync + Send + Debug + Sized;
@@ -271,7 +269,7 @@ impl AccountTrait for Account {
 			encrypted_private_key: None,
 			signing_threshold,
 			nr_of_participants,
-			wallet:None,
+			wallet: None,
 		})
 	}
 
@@ -296,7 +294,7 @@ impl AccountTrait for Account {
 			encrypted_private_key,
 			signing_threshold,
 			nr_of_participants,
-			wallet:None,
+			wallet: None,
 		}
 	}
 
@@ -322,11 +320,10 @@ impl AccountTrait for Account {
 	}
 
 	fn encrypt_private_key(&mut self, password: &str) -> Result<(), Self::Error> {
-		let key_pair = self
-			.key_pair
-			.as_ref()
-			.ok_or(Self::Error::IllegalState("The account does not hold a decrypted private key.".to_string()))?;
-	
+		let key_pair = self.key_pair.as_ref().ok_or(Self::Error::IllegalState(
+			"The account does not hold a decrypted private key.".to_string(),
+		))?;
+
 		let encrypted_private_key = get_nep2_from_private_key(
 			key_pair.private_key.to_raw_bytes().to_hex().as_str(),
 			password,
@@ -342,19 +339,21 @@ impl AccountTrait for Account {
 	}
 
 	fn get_signing_threshold(&self) -> Result<u32, Self::Error> {
-		self.signing_threshold
-			.ok_or_else(|| Self::Error::IllegalState(format!(
+		self.signing_threshold.ok_or_else(|| {
+			Self::Error::IllegalState(format!(
 				"Cannot get signing threshold from account {}",
 				self.address_or_scripthash().address()
-			)))
+			))
+		})
 	}
 
 	fn get_nr_of_participants(&self) -> Result<u32, Self::Error> {
-		self.nr_of_participants
-			.ok_or_else(|| Self::Error::IllegalState(format!(
+		self.nr_of_participants.ok_or_else(|| {
+			Self::Error::IllegalState(format!(
 				"Cannot get signing threshold from account {}",
 				self.address_or_scripthash().address()
-			)))
+			))
+		})
 	}
 
 	fn from_verification_script(script: &VerificationScript) -> Result<Self, Self::Error> {
@@ -371,7 +370,7 @@ impl AccountTrait for Account {
 
 		Ok(Self {
 			address_or_scripthash: AddressOrScriptHash::ScriptHash(address),
-			label:  Some(address.to_address()),
+			label: Some(address.to_address()),
 			verification_script: Some(script.clone()),
 			signing_threshold: signing_threshold.map(|x| x as u32),
 			nr_of_participants: nr_of_participants.map(|x| x as u32),
@@ -385,7 +384,7 @@ impl AccountTrait for Account {
 
 		Ok(Self {
 			address_or_scripthash: AddressOrScriptHash::ScriptHash(address),
-			label:Some(address.to_address()),
+			label: Some(address.to_address()),
 			verification_script: Some(script),
 			..Default::default()
 		})
@@ -446,12 +445,12 @@ impl AccountTrait for Account {
 	}
 
 	fn set_wallet(&mut self, wallet: Option<Weak<Wallet>>) {
-        self.wallet = wallet;
-    }
+		self.wallet = wallet;
+	}
 
-    fn get_wallet(&self) -> Option<Arc<Wallet>> {
-        self.wallet.as_ref().and_then(|w| w.upgrade())
-    }
+	fn get_wallet(&self) -> Option<Arc<Wallet>> {
+		self.wallet.as_ref().and_then(|w| w.upgrade())
+	}
 }
 
 impl PrehashSigner<Secp256r1Signature> for Account {
@@ -462,90 +461,97 @@ impl PrehashSigner<Secp256r1Signature> for Account {
 
 impl Account {
 	pub fn to_nep6_account(&self) -> Result<NEP6Account, ProviderError> {
-        if self.key_pair.is_some() && self.encrypted_private_key.is_none() {
-            return Err(ProviderError::IllegalState(format!(
+		if self.key_pair.is_some() && self.encrypted_private_key.is_none() {
+			return Err(ProviderError::IllegalState(format!(
 				"Account private key is available but not encrypted."
 			)));
-        }
+		}
 
-        if self.verification_script.is_none() {
-            return Ok(NEP6Account::new(
-                self.address_or_scripthash.address().clone(),
-                self.label.clone(),
-                self.is_default,
-                self.is_locked,
-                self.encrypted_private_key.clone(),
-                None,
+		if self.verification_script.is_none() {
+			return Ok(NEP6Account::new(
+				self.address_or_scripthash.address().clone(),
+				self.label.clone(),
+				self.is_default,
+				self.is_locked,
+				self.encrypted_private_key.clone(),
 				None,
-            ));
-        }
+				None,
+			));
+		}
 
-        let mut parameters = Vec::new();
-        let script_data = self.verification_script.as_ref().unwrap();
+		let mut parameters = Vec::new();
+		let script_data = self.verification_script.as_ref().unwrap();
 
-        if script_data.is_multi_sig() {
-            for i in 0..script_data.get_nr_of_accounts().unwrap() {
-                parameters.push(NEP6Parameter {
-                    param_name: format!("signature{}", i),
-                    param_type: ContractParameterType::Signature,
-                });
-            }
-        } else if script_data.is_single_sig() {
-            parameters.push(NEP6Parameter {
-                param_name: "signature".to_string(),
-                param_type: ContractParameterType::Signature,
-            });
-        }
+		if script_data.is_multi_sig() {
+			for i in 0..script_data.get_nr_of_accounts().unwrap() {
+				parameters.push(NEP6Parameter {
+					param_name: format!("signature{}", i),
+					param_type: ContractParameterType::Signature,
+				});
+			}
+		} else if script_data.is_single_sig() {
+			parameters.push(NEP6Parameter {
+				param_name: "signature".to_string(),
+				param_type: ContractParameterType::Signature,
+			});
+		}
 
-        let script_encoded = script_data.script().to_base64();
-        let contract = NEP6Contract {
-            script: Some(script_encoded),
-            is_deployed: false, // Assuming a simple setup; might need actual logic
+		let script_encoded = script_data.script().to_base64();
+		let contract = NEP6Contract {
+			script: Some(script_encoded),
+			is_deployed: false, // Assuming a simple setup; might need actual logic
 			nep6_parameters: parameters,
-        };
+		};
 
-        Ok(NEP6Account::new(
-            self.address_or_scripthash.address().clone(),
-            self.label.clone(),
-            self.is_default,
-            self.is_locked,
-            self.encrypted_private_key.clone(),
-            Some(contract),
+		Ok(NEP6Account::new(
+			self.address_or_scripthash.address().clone(),
+			self.label.clone(),
+			self.is_default,
+			self.is_locked,
+			self.encrypted_private_key.clone(),
+			Some(contract),
 			None,
-        ))
-    }
+		))
+	}
 
-	pub async fn get_nep17_balances<P> (&self, provider: &Provider<P>) -> Result<HashMap<H160, u64>, ProviderError>
+	pub async fn get_nep17_balances<P>(
+		&self,
+		provider: &Provider<P>,
+	) -> Result<HashMap<H160, u64>, ProviderError>
 	where
-        P: JsonRpcClient,
+		P: JsonRpcClient,
 	{
-        let response = provider.get_nep17_balances(self.address_or_scripthash().script_hash()).await?;
-        let mut balances = HashMap::new();
-        for balance in response.balances {
-            let asset_hash =balance.asset_hash;
-            let amount = balance.amount.parse::<u64>().unwrap();
-            balances.insert(asset_hash, amount);
-        }
-        Ok(balances)
-    }
+		let response =
+			provider.get_nep17_balances(self.address_or_scripthash().script_hash()).await?;
+		let mut balances = HashMap::new();
+		for balance in response.balances {
+			let asset_hash = balance.asset_hash;
+			let amount = balance.amount.parse::<u64>().unwrap();
+			balances.insert(asset_hash, amount);
+		}
+		Ok(balances)
+	}
 }
 
 #[cfg(test)]
 mod tests {
+	use crate::neo_protocol::account::Base64Encode;
 	use neo::prelude::{
-		Account, AccountTrait, BodyRegexMatcher, HttpProvider, KeyPair, MockProvider, NeoSerializable, PrivateKeyExtension, Provider, ProviderError, ScriptHashExtension,
-		Secp256r1PublicKey, TestConstants, ToArray32, VerificationScript, Wallet, WalletTrait
+		Account, AccountTrait, BodyRegexMatcher, HttpProvider, KeyPair, MockProvider,
+		NeoSerializable, PrivateKeyExtension, Provider, ProviderError, ScriptHashExtension,
+		Secp256r1PublicKey, TestConstants, ToArray32, VerificationScript, Wallet, WalletTrait,
 	};
+	use primitive_types::H160;
 	use ring::aead::NONCE_LEN;
 	use rustc_serialize::hex::FromHex;
-	use primitive_types::H160;
 	use serde_json::Value;
-	use crate::neo_protocol::account::Base64Encode;
-	use wiremock::{MockServer, Mock, ResponseTemplate};
-	use wiremock::matchers::{method, path};
 	use url::Url;
+	use wiremock::{
+		matchers::{method, path},
+		Mock, MockServer, ResponseTemplate,
+	};
 
-use super::Middleware;
+	use super::Middleware;
 
 	#[test]
 	fn test_create_generic_account() {
@@ -628,14 +634,8 @@ use super::Middleware;
 			7,
 		)
 		.unwrap();
-		assert_eq!(
-			account.get_signing_threshold().unwrap(),
-			4
-		);
-		assert_eq!(
-			account.get_nr_of_participants().unwrap(),
-			7
-		);
+		assert_eq!(account.get_signing_threshold().unwrap(), 4);
+		assert_eq!(account.get_nr_of_participants().unwrap(), 7);
 		assert_eq!(
 			account.address_or_scripthash().address(),
 			TestConstants::COMMITTEE_ACCOUNT_ADDRESS
@@ -649,7 +649,8 @@ use super::Middleware;
 	fn test_create_multi_sig_account_account_from_verification_script() {
 		let account = Account::from_verification_script(&VerificationScript::from(
 			hex::decode(TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT).unwrap(),
-		)).unwrap();
+		))
+		.unwrap();
 		assert!(account.is_multi_sig());
 		assert_eq!(
 			account.address_or_scripthash().address(),
@@ -661,7 +662,6 @@ use super::Middleware;
 			&hex::decode(TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT).unwrap()
 		);
 	}
-
 
 	#[test]
 	fn test_nil_values_when_not_multi_sig() {
@@ -701,10 +701,11 @@ use super::Middleware;
 		let err = account.encrypt_private_key("pwd").unwrap_err();
 		assert_eq!(
 			err,
-			ProviderError::IllegalState("The account does not hold a decrypted private key.".to_string())
+			ProviderError::IllegalState(
+				"The account does not hold a decrypted private key.".to_string()
+			)
 		);
 	}
-
 
 	#[test]
 	fn test_create_account_from_wif() {
@@ -718,10 +719,7 @@ use super::Middleware;
 		)
 		.unwrap();
 
-		assert_eq!(
-			account.key_pair.clone().unwrap(),
-			expected_key_pair.clone()
-		);
+		assert_eq!(account.key_pair.clone().unwrap(), expected_key_pair.clone());
 		// assert_eq!(
 		// 	account.key_pair.clone().unwrap().private_key.to_vec(),
 		// 	expected_key_pair.private_key.to_vec()
@@ -762,27 +760,25 @@ use super::Middleware;
 
 	#[tokio::test]
 	async fn test_get_nep17_balances() {
-		let data = include_str!("../../test_resources/responses/getnep17balances_ofDefaultAccount.json");
+		let data =
+			include_str!("../../test_resources/responses/getnep17balances_ofDefaultAccount.json");
 		let json_response: Value = serde_json::from_str(data).expect("Failed to parse JSON");
-		let call = "getnep17balances"; 
-    	let param = TestConstants::DEFAULT_ACCOUNT_ADDRESS;
-		let pattern = format!(
-			".*\"method\":\"{}\".*.*\"params\":.*.*\"{}\".*",
-			call, param
-		);
+		let call = "getnep17balances";
+		let param = TestConstants::DEFAULT_ACCOUNT_ADDRESS;
+		let pattern = format!(".*\"method\":\"{}\".*.*\"params\":.*.*\"{}\".*", call, param);
 		let body_matcher = BodyRegexMatcher::new(&pattern);
 
 		let mock_server = MockServer::start().await;
 		Mock::given(method("POST"))
-        .and(path("/"))
-        .and(body_matcher)
-        .respond_with(ResponseTemplate::new(200).set_body_json(json_response))
-        .mount(&mock_server)
-        .await;
+			.and(path("/"))
+			.and(body_matcher)
+			.respond_with(ResponseTemplate::new(200).set_body_json(json_response))
+			.mount(&mock_server)
+			.await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
+		let http_client = HttpProvider::new(url);
+		let provider = Provider::new(http_client);
 
 		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
 		//

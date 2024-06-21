@@ -6,7 +6,7 @@ impl TestConstants {
 	// Default Account
 	pub const DEFAULT_ACCOUNT_ADDRESS: &'static str = "NM7Aky765FG8NhhwtxjXRx7jEL1cnw7PBP";
 	pub const DEFAULT_ACCOUNT_SCRIPT_HASH: &'static str =
-		"0d165c9899c38bbf5991c5e47b04937258caec69";  // little-endian
+		"0d165c9899c38bbf5991c5e47b04937258caec69"; // little-endian
 	pub const DEFAULT_ACCOUNT_VERIFICATION_SCRIPT: &'static str =
 		"0c21033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b4156e7b327";
 	pub const DEFAULT_ACCOUNT_PUBLIC_KEY: &'static str =

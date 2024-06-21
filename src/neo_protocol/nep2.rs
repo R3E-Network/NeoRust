@@ -45,8 +45,8 @@
 
 use aes::cipher::{block_padding::NoPadding, BlockDecryptMut, BlockEncryptMut, KeyInit};
 use neo::prelude::{
-	base58check_encode, base58check_decode, public_key_to_address, vec_to_array32, HashableForVec, KeyPair,
-	NeoConstants, ProviderError, Secp256r1PublicKey, ToBase58,
+	base58check_decode, base58check_encode, public_key_to_address, vec_to_array32, HashableForVec,
+	KeyPair, NeoConstants, ProviderError, Secp256r1PublicKey, ToBase58,
 };
 use rustc_serialize::hex::FromHex;
 use scrypt::{scrypt, Params};
@@ -180,7 +180,9 @@ pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>
 	// kp_new_address_hash = kp_new_address_hash_tmp2[:4]
 	assert_eq!(kp_addresshash, address_hash);
 	if kp_addresshash != address_hash {
-		println!("Calculated address hash does not match the one in the provided encrypted address.");
+		println!(
+			"Calculated address hash does not match the one in the provided encrypted address."
+		);
 		//return Err(ProviderError::CustomError("Calculated address hash does not match the one in the provided encrypted address.".to_string()));
 	}
 

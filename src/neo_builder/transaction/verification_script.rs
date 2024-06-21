@@ -9,8 +9,8 @@ use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
-	var_size, BuilderError, Bytes, Decoder, Encoder, HashableForVec, InteropService, NeoSerializable, NeoConstants, OpCode,
-	ScriptBuilder, Secp256r1PublicKey, Secp256r1Signature,
+	var_size, BuilderError, Bytes, Decoder, Encoder, HashableForVec, InteropService, NeoConstants,
+	NeoSerializable, OpCode, ScriptBuilder, Secp256r1PublicKey, Secp256r1Signature,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
@@ -83,7 +83,9 @@ impl VerificationScript {
 			Ok(n) => n,
 			Err(_) => return false,
 		};
-		if !(1..=NeoConstants::MAX_PUBLIC_KEYS_PER_MULTI_SIG).contains(&(threshold.to_u32().unwrap())) {
+		if !(1..=NeoConstants::MAX_PUBLIC_KEYS_PER_MULTI_SIG)
+			.contains(&(threshold.to_u32().unwrap()))
+		{
 			return false
 		}
 
@@ -98,7 +100,7 @@ impl VerificationScript {
 			reader.mark();
 		}
 
-		if !(m >=threshold && m <= BigInt::from(NeoConstants::MAX_PUBLIC_KEYS_PER_MULTI_SIG)) {
+		if !(m >= threshold && m <= BigInt::from(NeoConstants::MAX_PUBLIC_KEYS_PER_MULTI_SIG)) {
 			return false
 		}
 
@@ -110,15 +112,12 @@ impl VerificationScript {
 			return false
 		}
 
-		
-
 		let service_bytes = &reader.read_bytes(4).unwrap().to_hex();
-		let hash = &InteropService::SystemCryptoCheckMultiSig.hash();//.from_hex().unwrap();
-		//assert_eq!(service_bytes, hash);
+		let hash = &InteropService::SystemCryptoCheckMultiSig.hash(); //.from_hex().unwrap();
+															  //assert_eq!(service_bytes, hash);
 		if service_bytes != hash {
 			return false
 		}
-
 
 		// match reader.by_ref().read_var_int() {
 		// 	Ok(v) =>
@@ -193,7 +192,7 @@ impl VerificationScript {
 		} else if self.is_multi_sig() {
 			let reader = &mut Decoder::new(&self.script);
 			Ok(reader.by_ref().read_push_int()?.to_usize().unwrap())
-			//Ok(reader.by_ref().read_bigint()?.to_usize().unwrap())
+		//Ok(reader.by_ref().read_bigint()?.to_usize().unwrap())
 		} else {
 			Err(BuilderError::InvalidScript("Invalid verification script".to_string()))
 		}

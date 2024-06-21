@@ -373,10 +373,14 @@ impl Into<AccountSigner> for Signer {
 impl Into<TransactionSigner> for Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::Account(account_signer) =>
-				TransactionSigner::new(account_signer.account.get_script_hash(), account_signer.scopes),
-			Signer::Contract(contract_signer) =>
-				TransactionSigner::new(*contract_signer.get_signer_hash(), contract_signer.get_scopes().to_vec()),
+			Signer::Account(account_signer) => TransactionSigner::new(
+				account_signer.account.get_script_hash(),
+				account_signer.scopes,
+			),
+			Signer::Contract(contract_signer) => TransactionSigner::new(
+				*contract_signer.get_signer_hash(),
+				contract_signer.get_scopes().to_vec(),
+			),
 			Signer::Transaction(transaction_signer) => transaction_signer,
 		}
 	}

@@ -5,8 +5,8 @@ use std::{
 
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString, AsRefStr};
 use strum;
+use strum_macros::{AsRefStr, Display, EnumString};
 
 use neo::prelude::{deserialize_script_hash, serialize_script_hash, ContractParameter, StackItem};
 

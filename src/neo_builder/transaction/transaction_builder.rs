@@ -409,7 +409,7 @@ mod tests {
 		ScriptBuilder, Secp256r1PrivateKey, TransactionBuilder,
 	};
 
-use crate::prelude::TransactionError;
+	use crate::prelude::TransactionError;
 
 	lazy_static! {
 		pub static ref ACCOUNT1: Account = Account::from_key_pair(
@@ -448,7 +448,7 @@ use crate::prelude::TransactionError;
 	#[tokio::test]
 	async fn test_build_transaction_with_correct_nonce() {
 		let mut nonce = 1;
-		
+
 		let mut tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
 			.valid_until_block(1)
 			.unwrap()
