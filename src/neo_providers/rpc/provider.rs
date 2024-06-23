@@ -198,7 +198,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		return Ok(if full_tx {
 			self.request("getblock", [block_hash.to_value(), 1.to_value()].to_vec()).await?
 		} else {
-			self.get_block_header_hash(block_hash).await?
+			self.get_block_header(block_hash).await?
 		})
 	}
 
@@ -213,13 +213,13 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Gets the block header count of the blockchain.
 	/// - Returns: The request object
 	async fn get_block_header_count(&self) -> Result<u32, ProviderError> {
-		self.request("getblockheadercount", ()).await
+		self.request("getblockheadercount", Vec::<u32>::new()).await
 	}
 
 	/// Gets the block count of the blockchain.
 	/// - Returns: The request object
 	async fn get_block_count(&self) -> Result<u32, ProviderError> {
-		self.request("getblockcount", ()).await
+		self.request("getblockcount",  Vec::<u32>::new()).await
 	}
 
 	/// Gets the corresponding block header information according to the specified block hash.
@@ -253,14 +253,21 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Gets the native contracts list, which includes the basic information of native contracts and the contract descriptive file `manifest.json`.
 	/// - Returns: The request object
 	async fn get_native_contracts(&self) -> Result<Vec<NativeContractState>, ProviderError> {
-		self.request("getnativecontracts", ()).await
+		self.request("getnativecontracts", Vec::<NativeContractState>::new()).await
 	}
 
 	/// Gets the contract information.
 	/// - Parameter contractHash: The contract script hash
 	/// - Returns: The request object
 	async fn get_contract_state(&self, hash: H160) -> Result<ContractState, ProviderError> {
-		self.request("getcontractstate", vec![hash.to_value()]).await
+		self.request("getcontractstate", vec![hash.to_hex()]).await
+	}
+
+	/// Gets the contract information.
+	/// - Parameter contractHash: The contract script hash
+	/// - Returns: The request object
+	async fn get_contract_state_by_id(&self, id: i64) -> Result<ContractState, ProviderError> {
+		self.request("getcontractstate", vec![id.to_value()]).await
 	}
 
 	/// Gets the native contract information by its name.
@@ -780,8 +787,13 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		index: u32,
 		full_tx: bool,
 	) -> Result<NeoBlock, ProviderError> {
-		let full_tx = if full_tx { 1 } else { 0 };
-		self.request("getblock", vec![index.to_value(), full_tx.to_value()]).await
+		// let full_tx = if full_tx { 1 } else { 0 };
+		// self.request("getblock", vec![index.to_value(), 1.to_value()]).await
+		return Ok(if full_tx {
+			self.request("getblock", vec![index.to_value(), 1.to_value()]).await?
+		} else {
+			self.get_block_header_by_index(index).await?
+		})
 	}
 
 	async fn get_raw_block_by_index(&self, index: u32) -> Result<String, ProviderError> {
@@ -1134,8 +1146,11 @@ pub fn is_local_endpoint(endpoint: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::{
-		BodyRegexMatcher, HttpProvider, Middleware, Provider, ProviderError, TestConstants
+	use std::str::FromStr;
+
+use ethereum_types::H256;
+use neo::prelude::{
+		BodyRegexMatcher, HttpProvider, Middleware, Provider, ProviderError, ScriptHashExtension, TestConstants
 	};
 	use url::Url;
     use lazy_static::lazy_static;
@@ -1144,6 +1159,7 @@ mod tests {
     use wiremock::{Mock, MockServer, ResponseTemplate};
     use reqwest::Client;
     use tokio;
+	use primitive_types::H160;
 
     #[tokio::test]
     async fn test_get_best_block_hash() {
@@ -1188,6 +1204,297 @@ mod tests {
 
         verify_result(&mock_server, expected_request_body).await.unwrap();
     }
+
+	#[tokio::test]
+    async fn test_get_block_index() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getblock",
+            "params": [12345,1],
+            "id": 1
+        }"#;
+
+        provider.get_block_by_index(12345, true).await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_block_index_only_header() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getblockheader",
+            "params": [12345,1],
+            "id": 1
+        }"#;
+
+        provider.get_block_by_index(12345, false).await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_block_by_hash() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getblock",
+            "params": ["2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d",1],
+            "id": 1
+        }"#;
+
+        provider.get_block(H256::from_str("0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d").unwrap(), true).await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_block_not_full_Tx_objects() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getblockheader",
+            "params": ["2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d",1],
+            "id": 1
+        }"#;
+
+        provider.get_block(H256::from_str("0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d").unwrap(), false).await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_raw_block_index() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getblock",
+            "params": [12345,0],
+            "id": 1
+        }"#;
+
+        provider.get_raw_block_by_index(12345).await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_block_header_count() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getblockheadercount",
+            "params": [],
+            "id": 1
+        }"#;
+
+        provider.get_block_header_count().await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_block_count() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getblockcount",
+            "params": [],
+            "id": 1
+        }"#;
+
+        provider.get_block_count().await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_native_contracts() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getnativecontracts",
+            "params": [],
+            "id": 1
+        }"#;
+
+        provider.get_native_contracts().await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	
+	#[tokio::test]
+    async fn test_get_block_header_index() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getblockheader",
+            "params": [12345,1],
+            "id": 1
+        }"#;
+
+        provider.get_block_header_by_index(12345).await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_raw_block_header_index() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getblockheader",
+            "params": [12345,0],
+            "id": 1
+        }"#;
+
+        provider.get_raw_block_header_by_index(12345).await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_contract_state() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getcontractstate",
+            "params": ["dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f"],
+            "id": 1
+        }"#;
+
+        provider.get_contract_state(H160::from_str("dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f").unwrap()).await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_contract_state_by_name() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getcontractstate",
+            "params": ["NeoToken"],
+            "id": 1
+        }"#;
+
+        provider.get_native_contract_state("NeoToken").await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_contract_state_by_Id() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getcontractstate",
+            "params": [-6],
+            "id": 1
+        }"#;
+
+        provider.get_contract_state_by_id(-6).await;
+
+        verify_result(&mock_server, expected_request_body).await.unwrap();
+    }
+
+
+
+
 
 	async fn setup_mock_server() -> MockServer {
         let server = MockServer::start().await;

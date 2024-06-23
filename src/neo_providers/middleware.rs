@@ -212,6 +212,10 @@ pub trait Middleware: Sync + Send + Debug {
 		self.inner().get_contract_state(hash).await.map_err(MiddlewareError::from_err)
 	}
 
+	async fn get_contract_state_by_id(&self, id: i64) -> Result<ContractState, Self::Error> {
+		self.inner().get_contract_state_by_id(id).await.map_err(MiddlewareError::from_err)
+	}
+
 	async fn get_native_contract_state(&self, name: &str) -> Result<ContractState, Self::Error> {
 		self.inner()
 			.get_native_contract_state(name)
