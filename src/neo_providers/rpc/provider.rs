@@ -17,6 +17,8 @@ use url::{Host, ParseError, Url};
 use neo::prelude::*;
 
 use crate::neo_providers::rpc::provider::sealed::Sealed;
+use crate::prelude::Base64Encode;
+use serde_json::json;
 
 /// Node Clients
 #[derive(Copy, Clone)]
@@ -288,7 +290,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Gets a list of confirmed transactions in memory.
 	/// - Returns: The request object
 	async fn get_raw_mem_pool(&self) -> Result<Vec<H256>, ProviderError> {
-		self.request("getrawmempool", ()).await
+		self.request("getrawmempool", Vec::<H256>::new()).await
 	}
 
 	/// Gets the corresponding transaction information based on the specified transaction hash.
@@ -314,9 +316,42 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	///   - keyHexString: The key to look up in storage as a hexadecimal string
 	/// - Returns: The request object
 	async fn get_storage(&self, contract_hash: H160, key: &str) -> Result<String, ProviderError> {
-		let params = [contract_hash.to_value(), key.to_value()];
+		let params: [String; 2] = [contract_hash.to_hex(), Base64Encode::to_base64(&key.to_string())];
 		self.request("getstorage", params.to_vec()).await
 	}
+
+	/// Finds the storage entries of a contract based on the prefix and  start index.
+	/// - Parameters:
+	///   - contractHash: The contract hash
+	///   - prefix_hex_string: The prefix to filter the storage entries
+	///   - start_index: the start index
+	/// - Returns: The request object
+	async fn find_storage(&self, contract_hash: H160, prefix_hex_string: &str, start_index: u64) -> Result<String, ProviderError> {
+		//let params = [contract_hash.to_hex(), Base64Encode::to_base64(&prefix_hex_string.to_string()), start_index.to_value()];
+		let params = json!([
+			contract_hash.to_hex(),
+			Base64Encode::to_base64(&prefix_hex_string.to_string()),
+			start_index
+		]);
+		self.request("findstorage", params).await
+	}
+
+	/// Finds the storage entries of a contract based on the prefix and  start index.
+	/// - Parameters:
+	///   - contract_id: The contract id
+	///   - prefix_hex_string: The prefix to filter the storage entries
+	///   - start_index: the start index
+	/// - Returns: The request object
+	async fn find_storage_with_id(&self, contract_id: i64, prefix_hex_string: &str, start_index: u64) -> Result<String, ProviderError> {
+		//let params = [contract_hash.to_hex(), Base64Encode::to_base64(&prefix_hex_string.to_string()), start_index.to_value()];
+		let params = json!([
+			contract_id,
+			Base64Encode::to_base64(&prefix_hex_string.to_string()),
+			start_index
+		]);
+		self.request("findstorage", params).await
+	}
+
 
 	/// Gets the transaction height with the specified transaction hash.
 	/// - Parameter txHash: The transaction hash
@@ -1160,6 +1195,7 @@ use neo::prelude::{
     use reqwest::Client;
     use tokio;
 	use primitive_types::H160;
+	use crate::neo_types::Base64Encode;
 
     #[tokio::test]
     async fn test_get_best_block_hash() {
@@ -1180,7 +1216,7 @@ use neo::prelude::{
 
         provider.get_best_block_hash().await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
     }
 
 	#[tokio::test]
@@ -1202,7 +1238,7 @@ use neo::prelude::{
 
         provider.get_block_hash(16293).await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
     }
 
 	#[tokio::test]
@@ -1224,7 +1260,7 @@ use neo::prelude::{
 
         provider.get_block_by_index(12345, true).await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
     }
 
 	#[tokio::test]
@@ -1246,7 +1282,7 @@ use neo::prelude::{
 
         provider.get_block_by_index(12345, false).await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
     }
 
 	#[tokio::test]
@@ -1268,7 +1304,7 @@ use neo::prelude::{
 
         provider.get_block(H256::from_str("0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d").unwrap(), true).await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
     }
 
 	#[tokio::test]
@@ -1290,7 +1326,7 @@ use neo::prelude::{
 
         provider.get_block(H256::from_str("0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d").unwrap(), false).await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
     }
 
 	#[tokio::test]
@@ -1312,7 +1348,7 @@ use neo::prelude::{
 
         provider.get_raw_block_by_index(12345).await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
     }
 
 	#[tokio::test]
@@ -1334,7 +1370,7 @@ use neo::prelude::{
 
         provider.get_block_header_count().await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
     }
 
 	#[tokio::test]
@@ -1356,7 +1392,7 @@ use neo::prelude::{
 
         provider.get_block_count().await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
     }
 
 	#[tokio::test]
@@ -1378,7 +1414,7 @@ use neo::prelude::{
 
         provider.get_native_contracts().await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
     }
 
 	
@@ -1401,7 +1437,7 @@ use neo::prelude::{
 
         provider.get_block_header_by_index(12345).await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
     }
 
 	#[tokio::test]
@@ -1423,7 +1459,7 @@ use neo::prelude::{
 
         provider.get_raw_block_header_by_index(12345).await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
     }
 
 	#[tokio::test]
@@ -1445,7 +1481,7 @@ use neo::prelude::{
 
         provider.get_contract_state(H160::from_str("dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f").unwrap()).await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
     }
 
 	#[tokio::test]
@@ -1467,7 +1503,7 @@ use neo::prelude::{
 
         provider.get_native_contract_state("NeoToken").await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
     }
 
 	#[tokio::test]
@@ -1489,7 +1525,168 @@ use neo::prelude::{
 
         provider.get_contract_state_by_id(-6).await;
 
-        verify_result(&mock_server, expected_request_body).await.unwrap();
+        verify_request(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_mem_pool() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getrawmempool",
+            "params": [1],
+            "id": 1
+        }"#;
+
+        provider.get_mem_pool().await;
+
+        verify_request(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_raw_mem_pool() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getrawmempool",
+            "params": [],
+            "id": 1
+        }"#;
+
+        provider.get_raw_mem_pool().await;
+
+        verify_request(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_transaction() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getrawtransaction",
+            "params": ["1f31821787b0a53df0ff7d6e0e7ecba3ac19dd517d6d2ea5aaf00432c20831d6", 1],
+            "id": 1
+        }"#;
+
+        provider.get_transaction(H256::from_str("0x1f31821787b0a53df0ff7d6e0e7ecba3ac19dd517d6d2ea5aaf00432c20831d6").unwrap()).await;
+
+        verify_request(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_raw_transaction() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+        // Expected request body
+        let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getrawtransaction",
+            "params": ["1f31821787b0a53df0ff7d6e0e7ecba3ac19dd517d6d2ea5aaf00432c20831d6", 0],
+            "id": 1
+        }"#;
+
+        provider.get_raw_transaction(H256::from_str("0x1f31821787b0a53df0ff7d6e0e7ecba3ac19dd517d6d2ea5aaf00432c20831d6").unwrap()).await;
+
+        verify_request(&mock_server, expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_storge() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+		let key = "616e797468696e67";
+		let key_base64 = key.to_string().to_base64();
+
+        // Expected request body
+        let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getstorage",
+			"params": ["03febccf81ac85e3d795bc5cbd4e84e907812aa3", "{}"],
+			"id": 1
+		}}"#, key_base64);
+
+        provider.get_storage(H160::from_str("03febccf81ac85e3d795bc5cbd4e84e907812aa3").unwrap(), key).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_find_storge() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+		let prefix_base64 = "c3".to_string().to_base64();
+
+        // Expected request body
+        let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "findstorage",
+			"params": ["1b468f207a5c5c3ee94e41b4cc606e921b33d160", "{}", 2],
+			"id": 1
+		}}"#, prefix_base64);
+
+        provider.find_storage(H160::from_str("1b468f207a5c5c3ee94e41b4cc606e921b33d160").unwrap(), "c3", 2).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_find_storge_with_id() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client); 
+
+		let prefix_base64 = "0b".to_string().to_base64();
+
+        // Expected request body
+        let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "findstorage",
+			"params": [-1, "{}", 10],
+			"id": 1
+		}}"#, prefix_base64);
+
+        provider.find_storage_with_id(-1, "0b", 10).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
     }
 
 
@@ -1506,7 +1703,7 @@ use neo::prelude::{
         server
     }
 
-    async fn verify_result(mock_server: &MockServer, expected: &str) -> Result<(), Box<dyn std::error::Error>> {
+    async fn verify_request(mock_server: &MockServer, expected: &str) -> Result<(), Box<dyn std::error::Error>> {
         // Retrieve the request body from the mock server
         let received_requests = mock_server.received_requests().await.unwrap();
         assert!(!received_requests.is_empty(), "No requests received");

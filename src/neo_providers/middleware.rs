@@ -252,6 +252,20 @@ pub trait Middleware: Sync + Send + Debug {
 			.await
 			.map_err(MiddlewareError::from_err)
 	}
+
+	async fn find_storage(&self, contract_hash: H160, prefix_hex_string: &str, start_index: u64) -> Result<String, ProviderError> {
+		self.inner()
+			.find_storage(contract_hash, prefix_hex_string, start_index)
+			.await
+			.map_err(MiddlewareError::from_err)
+	}
+
+	async fn find_storage_with_id(&self, contract_id: i64, prefix_hex_string: &str, start_index: u64) -> Result<String, ProviderError> {
+		self.inner()
+			.find_storage_with_id(contract_id, prefix_hex_string, start_index)
+			.await
+			.map_err(MiddlewareError::from_err)
+	}
 	// Blockchain methods
 
 	async fn get_transaction_height(&self, tx_hash: H256) -> Result<u32, Self::Error> {
