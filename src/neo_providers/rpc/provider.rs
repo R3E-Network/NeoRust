@@ -364,38 +364,38 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Gets the validators of the next block.
 	/// - Returns: The request object
 	async fn get_next_block_validators(&self) -> Result<Vec<Validator>, ProviderError> {
-		self.request("getnextblockvalidators", ()).await
+		self.request("getnextblockvalidators",  Vec::<Validator>::new()).await
 	}
 
 	/// Gets the public key list of current Neo committee members.
 	/// - Returns: The request object
 	async fn get_committee(&self) -> Result<Vec<String>, ProviderError> {
-		self.request("getcommittee", ()).await
+		self.request("getcommittee", Vec::<String>::new()).await
 	}
 
 	/// Gets the current number of connections for the node.
 	/// - Returns: The request object
 	async fn get_connection_count(&self) -> Result<u32, ProviderError> {
-		self.request("getconnectioncount", ()).await
+		self.request("getconnectioncount", Vec::<u32>::new()).await
 	}
 
 	/// Gets a list of nodes that the node is currently connected or disconnected from.
 	/// - Returns: The request object
 	async fn get_peers(&self) -> Result<Peers, ProviderError> {
-		self.request("getpeers", ()).await
+		self.request("getpeers", Vec::<Peers>::new()).await
 	}
 
 	/// Gets the version information of the node.
 	/// - Returns: The request object
 	async fn get_version(&self) -> Result<NeoVersion, ProviderError> {
-		self.request("getversion", ()).await
+		self.request("getversion", Vec::<NeoVersion>::new()).await
 	}
 
 	/// Broadcasts a transaction over the NEO network.
 	/// - Parameter rawTransactionHex: The raw transaction in hexadecimal
 	/// - Returns: The request object
 	async fn send_raw_transaction(&self, hex: String) -> Result<RawTransaction, ProviderError> {
-		self.request("sendrawtransaction", vec![hex.to_value()]).await
+		self.request("sendrawtransaction", vec![Base64Encode::to_base64(&hex)]).await
 	}
 
 	/// Broadcasts a new block over the NEO network.
@@ -1185,7 +1185,7 @@ mod tests {
 
 use ethereum_types::H256;
 use neo::prelude::{
-		BodyRegexMatcher, HttpProvider, Middleware, Provider, ProviderError, ScriptHashExtension, TestConstants
+		AccountSigner, BodyRegexMatcher, HttpProvider, Middleware, Provider, ProviderError, ScriptHashExtension, Secp256r1PublicKey , Signer::Account, SignerTrait, TestConstants, WitnessAction, WitnessCondition, WitnessRule, 
 	};
 	use url::Url;
     use lazy_static::lazy_static;
@@ -1689,6 +1689,252 @@ use neo::prelude::{
         verify_request(&mock_server, &expected_request_body).await.unwrap();
     }
 
+	#[tokio::test]
+    async fn test_get_transaction_height() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+        let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "gettransactionheight",
+			"params": ["793f560ae7058a50c672890e69c9292391dd159ce963a33462059d03b9573d6a"],
+			"id": 1
+		}}"#);
+
+        provider.get_transaction_height(H256::from_str("0x793f560ae7058a50c672890e69c9292391dd159ce963a33462059d03b9573d6a").unwrap()).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_next_block_validators() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+        let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getnextblockvalidators",
+			"params": [],
+			"id": 1
+		}}"#);
+
+        provider.get_next_block_validators().await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_committe() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+        let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getcommittee",
+			"params": [],
+			"id": 1
+		}}"#);
+
+        provider.get_committee().await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	// Node Methods
+
+	#[tokio::test]
+    async fn test_get_connection_count() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+        let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getconnectioncount",
+			"params": [],
+			"id": 1
+		}}"#);
+
+        provider.get_connection_count().await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_peers() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+        let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getpeers",
+			"params": [],
+			"id": 1
+		}}"#);
+
+        provider.get_peers().await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_version() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+        let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getversion",
+			"params": [],
+			"id": 1
+		}}"#);
+
+        provider.get_version().await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_send_raw_transaction() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+        let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "sendrawtransaction",
+			"params": ["gAAAAdQFqwPnNqAconfZSxN3ETx+lhu0VQUR/h1AjzDHeoJlAAACm3z/2qZ0vq4Pkw6+YIWvkJPl/lazSlwiDM3Pbvwzb8UAypo7AAAAACO6JwPFMmPo1uUi3DIgMznc2O7pm3z/2qZ0vq4Pkw6+YIWvkJPl/lazSlwiDM3Pbvwzb8UAGnEYAgAAAClfg/g/xDn1bm4fsGLYnG9TgmPXAUFANxHjZvyZ53oRC2yWtfiCjvlWptXPpctjJzQZFJARsPMNxUWPqlnkhn0Kx1N+MkyYEku2kf7KXF3fbtIPStt3giMhAmW/kGvzhfvz93eDLlWoeZG8++GbCX+3xcouQCWk1eXWrA=="],
+			"id": 1
+		}}"#);
+
+        provider.send_raw_transaction("80000001d405ab03e736a01ca277d94b1377113c7e961bb4550511fe1d408f30c77a82650000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500ca9a3b0000000023ba2703c53263e8d6e522dc32203339dcd8eee99b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc5001a711802000000295f83f83fc439f56e6e1fb062d89c6f538263d70141403711e366fc99e77a110b6c96b5f8828ef956a6d5cfa5cb63273419149011b0f30dc5458faa59e4867d0ac7537e324c98124bb691feca5c5ddf6ed20f4adb778223210265bf906bf385fbf3f777832e55a87991bcfbe19b097fb7c5ca2e4025a4d5e5d6ac".to_string()).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_submit_block() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+        let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "submitblock",
+			"params": ["00000000000000000000000000000000"],
+			"id": 1
+		}}"#);
+
+        provider.submit_block("00000000000000000000000000000000".to_string()).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	// SmartContract Methods
+
+	#[tokio::test]
+    async fn test_invoke_function() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "invokefunction",
+			"params": [
+				"af7c7328eee5a275a3bcaee2bf0cf662b5e739be",
+				"balanceOf",
+				[
+					{{
+						"type": "Hash160",
+						"value": "91b83e96f2a7c4fdf0c1688441ec61986c7cae26"
+					}}
+				],
+				[
+					{{
+						"account": "cadb3dc2faa3ef14a13b619c9a43124755aa2569",
+						"scopes": "CalledByEntry,CustomContracts,CustomGroups,WitnessRules",
+						"allowedcontracts": ["ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"],
+						"allowedgroups": [
+							"033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b"
+						],
+						"rules": [
+							{{
+								"action": "Allow",
+								"condition": {{
+									"type": "CalledByContract",
+									"hash": "{}"
+								}}
+							}}
+						]
+					}}
+				]
+			],
+			"id": 1
+		}}"#, TestConstants::NEO_TOKEN_HASH);
+
+		let public_key = Secp256r1PublicKey::from_bytes(
+			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
+		)
+		.unwrap();
+		let rule = WitnessRule::new(
+			WitnessAction::Allow,
+			WitnessCondition::CalledByContract(H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap()),
+		);
+
+		let mut signer = AccountSigner::called_by_entry_hash160(H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap()).unwrap();
+		signer.set_allowed_contracts(vec![H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap()]);
+		signer.set_allowed_groups(vec![public_key]);
+		signer.set_rules(vec![rule]);
+
+        provider.invoke_function(&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(), 
+								 "balanceOf".to_string(), 
+								 vec![H160::from_str("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()], Some(vec![Account(signer)])).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
 
 
 
@@ -1717,14 +1963,6 @@ use neo::prelude::{
         let expected_json: Value = serde_json::from_str(expected)?;
 
         assert_eq!(request_json, expected_json, "The request body does not match the expected body");
-
-		// mock_server.reset().await;
-
-		// Mock::given(method("POST"))
-		// .and(path("/"))
-		// .respond_with(ResponseTemplate::new(200).set_body_string("hello"))
-		// .mount(&mock_server)
-		// .await;
 
         Ok(())
     }
