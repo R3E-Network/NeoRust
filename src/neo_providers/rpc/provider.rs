@@ -426,12 +426,18 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 				let signers: Vec<TransactionSigner> = signers.iter().map(|f| f.into()).collect();
 				self.request(
 					"invokefunction",
-					[
-						contract_hash.to_value(),
+					json!([
+						contract_hash.to_hex(),
 						method.to_value(),
 						params.to_value(),
 						signers.to_value(),
-					],
+					])
+					// [
+					// 	contract_hash.to_hex(),
+					// 	method.to_value(),
+					// 	params.to_value(),
+					// 	signers.to_value(),
+					// ],
 				)
 				.await
 			},
@@ -1189,7 +1195,7 @@ use neo::prelude::{
 	};
 	use url::Url;
     use lazy_static::lazy_static;
-    use serde_json::Value;
+    use serde_json::{json, Value};
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
     use reqwest::Client;
@@ -1913,6 +1919,7 @@ use neo::prelude::{
 			],
 			"id": 1
 		}}"#, TestConstants::NEO_TOKEN_HASH);
+		
 
 		let public_key = Secp256r1PublicKey::from_bytes(
 			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
@@ -1961,6 +1968,23 @@ use neo::prelude::{
         // Normalize JSON by removing whitespace and comparing
         let request_json: Value = serde_json::from_str(&request_body)?;
         let expected_json: Value = serde_json::from_str(expected)?;
+
+        assert_eq!(request_json, expected_json, "The request body does not match the expected body");
+
+        Ok(())
+    }
+
+	async fn verify_request_json(mock_server: &MockServer, expected_json: Value) -> Result<(), Box<dyn std::error::Error>> {
+        // Retrieve the request body from the mock server
+        let received_requests = mock_server.received_requests().await.unwrap();
+        assert!(!received_requests.is_empty(), "No requests received");
+
+        // Assuming we only have one request
+        let request = &received_requests[0];
+        let request_body = String::from_utf8_lossy(&request.body);
+
+        // Normalize JSON by removing whitespace and comparing
+        let request_json: Value = serde_json::from_str(&request_body)?;
 
         assert_eq!(request_json, expected_json, "The request body does not match the expected body");
 
