@@ -551,30 +551,16 @@ use rustc_serialize::hex::ToHex;
 		assert!(signers.contains(&ACCOUNT2.deref().clone().key_pair.unwrap().public_key()));
 	}
 
-	// 	#[tokio::test]
-	// 	async fn test_send_invoke_function() {
-	// 		let script = ScriptBuilder::new()
-	// 			.contract_call(
-	// 				H160::from_str("f46719e2d16bf50cddcef9d4bbfece901f73cbb6").unwrap(),
-	// 				"transfer",
-	// 				vec![
-	// 					ACCOUNT1.into(),
-	// 					2_000_000u32.into(),
-	// 					None.into(),
-	// 				],
-	// 				None,
-	// 			)
-	// 			.to_array();
-	//
-	// 		let tx = TransactionBuilder::with_provider(TEST_PROVIDER.deref())
-	// 			.set_script(&script)
-	// 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
-	// 			.sign()
-	// 			.await
-	// 			.unwrap();
-	//
-	// 		tx.send().await.unwrap();
-	// 	}
+	#[tokio::test]
+	async fn test_send_invoke_function() {
+		let tb = TransactionBuilder::with_provider(TEST_PROVIDER.deref());
+		let response = tb.provider.unwrap()
+			.invoke_function(&H160::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(),
+				"symbol".to_string(), vec![], None)
+			.await.unwrap();
+	
+		assert_eq!(response.stack[0].as_string().unwrap(), "NEO");
+	}
 	//
 	// 	#[tokio::test]
 	// 	async fn test_transfer_neo_from_normal_account() {

@@ -8,6 +8,7 @@ use futures_util::lock::Mutex;
 use primitive_types::{H160, H256};
 use rustc_serialize::{base64, base64::ToBase64, hex::FromHex};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_json::value::Value;
 use tracing::trace;
 use tracing_futures::Instrument;
 use url::{Host, ParseError, Url};
@@ -383,7 +384,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 				self.request(
 					"invokefunction",
 					[
-						contract_hash.to_value(),
+						Value::String(ScriptHashExtension::to_hex_big_endian(contract_hash)),
 						method.to_value(),
 						params.to_value(),
 						signers.to_value(),
@@ -394,7 +395,8 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 			None =>
 				self.request(
 					"invokefunction",
-					[contract_hash.to_value(), method.to_value(), params.to_value()],
+					[Value::String(ScriptHashExtension::to_hex_big_endian(contract_hash)),
+						method.to_value(), params.to_value()],
 				)
 				.await,
 		}

@@ -49,6 +49,9 @@ where
 	/// Converts the object into its hex string representation.
 	fn to_hex(&self) -> String;
 
+	/// Converts the object into its hex string representation.
+	fn to_hex_big_endian(&self) -> String;
+
 	/// Converts the object into a byte vector.
 	fn to_vec(&self) -> Vec<u8>;
 
@@ -122,6 +125,12 @@ impl ScriptHashExtension for H160 {
 
 	fn to_hex(&self) -> String {
 		self.0.to_hex()
+	}
+
+	fn to_hex_big_endian(&self) -> String {
+		let mut cloned = self.0.clone();
+		cloned.reverse();
+		"0x".to_string() + &cloned.to_hex()
 	}
 
 	fn to_vec(&self) -> Vec<u8> {
