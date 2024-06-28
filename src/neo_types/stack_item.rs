@@ -38,13 +38,13 @@ pub enum StackItem {
 	/// Represents a byte string value.
 	#[serde(rename = "ByteString")]
 	ByteString {
-		value: String, // hex encoded
+		value: String, // base64 encoded
 	},
 
 	/// Represents a buffer value.
 	#[serde(rename = "Buffer")]
 	Buffer {
-		value: String, // hex encoded
+		value: String, // base64 encoded
 	},
 
 	/// Represents an array of stack items.
@@ -153,7 +153,7 @@ impl StackItem {
 	pub fn as_string(&self) -> Option<String> {
 		match self {
 			StackItem::ByteString { value } | StackItem::Buffer { value } =>
-				hex::decode(value).ok().map(|bytes| String::from_utf8(bytes).ok()).unwrap(),
+				Some(String::from_utf8_lossy(&base64::decode(value).unwrap()).to_string()),
 			StackItem::Integer { value } => Some(value.to_string()),
 			StackItem::Boolean { value } => Some(value.to_string()),
 			_ => None,
@@ -167,7 +167,7 @@ impl StackItem {
 			StackItem::Pointer { value: pointer } => format!("Pointer{{value={}}}", pointer),
 			StackItem::Boolean { value: boolean } => format!("Boolean{{value={}}}", boolean),
 			StackItem::Integer { value: integer } => format!("Integer{{value={}}}", integer),
-			StackItem::ByteString { value: string } => format!("ByteString{{value={:?}}}", string),
+			StackItem::ByteString { value: byteString } => format!("ByteString{{value={:?}}}", byteString),
 			StackItem::Buffer { value: buffer } => format!("Buffer{{value={:?}}}", buffer),
 			StackItem::Array { value: array } => {
 				let values = array.iter().map(StackItem::to_string).collect::<Vec<_>>().join(", ");

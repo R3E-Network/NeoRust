@@ -29,6 +29,7 @@ use std::{
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use once_cell::sync::Lazy;
 use primitive_types::H160;
+use neo::neo_types::ScriptHashExtension;
 use rustc_serialize::hex::ToHex;
 
 use neo::prelude::*;
@@ -408,8 +409,9 @@ mod tests {
 		Account, AccountSigner, AccountTrait, Http, KeyPair, Middleware, NeoConstants, Provider,
 		ScriptBuilder, Secp256r1PrivateKey, TransactionBuilder,
 	};
+use rustc_serialize::hex::ToHex;
 
-	use crate::prelude::TransactionError;
+	use crate::{neo_types::ScriptHashExtension, prelude::TransactionError};
 
 	lazy_static! {
 		pub static ref ACCOUNT1: Account = Account::from_key_pair(
@@ -489,26 +491,25 @@ mod tests {
 		assert_eq!(*tx.nonce(), nonce);
 	}
 
-	// #[tokio::test]
-	// async fn test_invoke_script() {
-	// 	let script = ScriptBuilder::new()
-	// 		.contract_call(
-	// 			&H160::from_str("86d58778c8d29e03182f38369f0d97782d303cc0").unwrap(),
-	// 			"symbol",
-	// 			&[],
-	// 			None,
-	// 		)
-	// 		.unwrap()
-	// 		.to_bytes();
-	//
-	// 	let result = TransactionBuilder::new()
-	// 		.set_script(script)
-	// 		.ca
-	// 		.invocation_result
-	// 		.unwrap();
-	//
-	// 	assert_eq!(result.stack()[0].as_str().unwrap(), "NEO");
-	// }
+	#[tokio::test]
+	async fn test_invoke_script() {
+		let script = ScriptBuilder::new()
+			.contract_call(
+				&ScriptHashExtension::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(),
+				"symbol",
+				&[],
+				None,
+			)
+			.unwrap()
+			.to_bytes();
+	
+		let tb = TransactionBuilder::with_provider(TEST_PROVIDER.deref());
+		let response = tb.provider.unwrap()
+			.invoke_script((&script).to_hex(), vec![])
+			.await.unwrap();
+	
+		assert_eq!(response.stack[0].as_string().unwrap(), "NEO");
+	}
 
 	#[tokio::test]
 	async fn test_build_without_setting_script() {
