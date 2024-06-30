@@ -389,10 +389,18 @@ impl Into<TransactionSigner> for Signer {
 impl Into<TransactionSigner> for &Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::Account(_account_signer) =>
-				panic!("Cannot convert AccountSigner into TransactionSigner"),
-			Signer::Contract(_contract_signer) =>
-				panic!("Cannot convert ContractSigner into AccountSigner"),
+			Signer::Account(account_signer) =>
+				TransactionSigner::new_full(account_signer.account.get_script_hash(), 
+											 account_signer.get_scopes().to_vec(), 
+								  account_signer.get_allowed_contracts().to_vec(), 
+								  	 account_signer.get_allowed_groups().to_vec(), 
+									          account_signer.get_rules().to_vec()),
+			Signer::Contract(contract_signer) =>
+				TransactionSigner::new(*contract_signer.get_signer_hash(), contract_signer.get_scopes().to_vec()),
+			// Signer::Account(_account_signer) =>
+			// 	panic!("Cannot convert AccountSigner into TransactionSigner"),
+			// Signer::Contract(_contract_signer) =>
+			// 	panic!("Cannot convert ContractSigner into AccountSigner"),
 			Signer::Transaction(transaction_signer) => transaction_signer.clone(),
 		}
 	}
