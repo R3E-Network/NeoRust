@@ -9,6 +9,7 @@ use rustc_serialize::{
 	hex::{FromHex, ToHex},
 };
 use serde::{Deserialize, Serialize};
+use serde::ser::{SerializeStruct, Serializer, SerializeMap, SerializeSeq};
 use serde_json::Value;
 use sha3::Digest;
 use strum_macros::{Display, EnumString};
@@ -27,6 +28,13 @@ pub struct ContractParameter {
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub value: Option<ParameterValue>,
 }
+
+// #[derive(Debug, PartialEq, Eq, Hash, Deserialize, Clone)]
+// pub struct ContractParameter {
+// 	name: Option<String>,
+// 	typ: ContractParameterType,
+// 	pub value: Option<ParameterValue>,
+// }
 
 impl From<&H160> for ContractParameter {
 	fn from(value: &H160) -> Self {
@@ -239,8 +247,26 @@ impl ValueExtension for Vec<ContractParameter> {
 	}
 }
 
+// impl Serialize for ContractParameter {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: Serializer,
+//     {
+//         let mut state = serializer.serialize_struct("ContractParameter", 3)?;
+// 		if let Some(ref name) = self.name {
+//             state.serialize_field("name", name)?;
+//         }
+//         state.serialize_field("type", &self.typ)?;
+//         if let Some(ref value) = self.value {
+//             state.serialize_field("value", value)?;
+//         }
+//         state.end()
+//     }
+// }
+
 #[derive(Display, EnumString, Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-#[serde(tag = "type", content = "content")]
+// #[serde(tag = "type", content = "content")]
+#[serde(untagged)]
 pub enum ParameterValue {
 	Boolean(bool),
 	Integer(i64),
@@ -254,6 +280,60 @@ pub enum ParameterValue {
 	Map(ContractParameterMap),
 	Any,
 }
+
+// #[derive(Display, EnumString, Debug, PartialEq, Eq, Deserialize, Clone)]
+// // #[serde(tag = "type", content = "content")]
+// // #[serde(untagged)]
+// pub enum ParameterValue {
+// 	Boolean(bool),
+// 	Integer(i64),
+// 	ByteArray(String),
+// 	String(String),
+// 	H160(String),
+// 	H256(String),
+// 	PublicKey(String),
+// 	Signature(String),
+// 	Array(Vec<ContractParameter>),
+// 	Map(ContractParameterMap),
+// 	Any,
+// }
+
+// impl Serialize for ParameterValue {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: Serializer,
+//     {
+//         match *self {
+//             ParameterValue::Boolean(b) => serializer.serialize_bool(b),
+//             ParameterValue::Integer(i) => serializer.serialize_i64(i),
+//             ParameterValue::ByteArray(ref s) => serializer.serialize_str(s),
+//             ParameterValue::String(ref s) => serializer.serialize_str(s),
+//             ParameterValue::H160(ref s) => serializer.serialize_str(s),
+//             ParameterValue::H256(ref s) => serializer.serialize_str(s),
+//             ParameterValue::PublicKey(ref s) => serializer.serialize_str(s),
+//             ParameterValue::Signature(ref s) => serializer.serialize_str(s),
+//             ParameterValue::Array(ref vec) => {
+//                 let mut seq = serializer.serialize_seq(Some(vec.len()))?;
+//                 for element in vec {
+//                     seq.serialize_element(element)?;
+//                 }
+//                 seq.end()
+//             },
+//             ParameterValue::Map(ref map) => {
+//                 // Use the custom serialization function directly
+//                 serialize_map(&map.0, serializer)
+//             },
+// 			// ParameterValue::Map(ref map) => {
+//             //     let mut map_ser = serializer.serialize_map(Some(map.0.len()))?;
+//             //     for (k, v) in &map.0 {
+//             //         map_ser.serialize_entry(&k, &v)?;
+//             //     }
+//             //     map_ser.end()
+//             // },
+//             ParameterValue::Any => serializer.serialize_unit(),
+//         }
+//     }
+// }
 
 impl Hash for ParameterValue {
 	fn hash<H: Hasher>(&self, state: &mut H) {
@@ -680,6 +760,7 @@ mod tests {
 
 		// Serialize
 		let json = serde_json::to_string(&param).unwrap();
+		println!("{}", json);
 
 		// Deserialize
 		let deserialized: ContractParameter = serde_json::from_str(&json).unwrap();
