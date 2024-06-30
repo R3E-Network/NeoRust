@@ -9,7 +9,8 @@
 use rand::rngs::OsRng;
 
 use neo::prelude::{
-	wif_from_private_key, CryptoError, PublicKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey,
+	private_key_from_wif, wif_from_private_key, CryptoError, PublicKeyExtension,
+	Secp256r1PrivateKey, Secp256r1PublicKey,
 };
 
 use crate::{
@@ -92,6 +93,21 @@ impl KeyPair {
 		Ok(Self::from_secret_key(&secret_key))
 	}
 
+	/// Creates an `KeyPair` from a given Wallet Import Format (WIF) string.
+	/// This will use the private key encoded in the WIF to generate the key pair.
+	///
+	///  # Arguments
+	///
+	/// * `wif` - A Wallet Import Format (WIF) string.
+	///
+	/// The WIF string should be in the format `Kx...` or `Lx...`.
+	/// The key pair will be generated from the private key encoded in the WIF.
+	/// The public key will be derived from the private key.
+	pub fn from_wif(wif: &str) -> Result<Self, CryptoError> {
+		let private_key = private_key_from_wif(wif)?;
+		Ok(Self::from_secret_key(&private_key))
+	}
+
 	/// Creates an `KeyPair` from a given 65-byte public key.
 	/// This will use a dummy private key internally.
 	///
@@ -129,13 +145,8 @@ impl PartialEq for KeyPair {
 
 #[cfg(test)]
 mod tests {
-	use ethereum_types::H160;
-	use hex_literal::hex;
-	use neo::prelude::{CryptoError, KeyPair, Secp256r1PublicKey, ScriptHash, ScriptHashExtension, TestConstants};
-	use p256::EncodedPoint;
+	use neo::prelude::{KeyPair, ScriptHash, ScriptHashExtension, TestConstants};
 	use rustc_serialize::hex::FromHex;
-
-	use crate::neo_codec::NeoSerializable;
 
 	#[test]
 	fn test_public_key_wif() {
@@ -152,22 +163,15 @@ mod tests {
 
 	#[test]
 	fn test_address() {
-		let private_key = TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY
-			.from_hex()
-			.unwrap();
+		let private_key = TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY.from_hex().unwrap();
 		let private_key_arr: &[u8; 32] = private_key.as_slice().try_into().unwrap();
 		let key_pair = KeyPair::from_private_key(private_key_arr).unwrap();
-		assert_eq!(
-			key_pair.get_address(),
-			TestConstants::DEFAULT_ACCOUNT_ADDRESS
-		);
+		assert_eq!(key_pair.get_address(), TestConstants::DEFAULT_ACCOUNT_ADDRESS);
 	}
 
 	#[test]
 	fn test_script_hash() {
-		let private_key = TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY
-			.from_hex()
-			.unwrap();
+		let private_key = TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY.from_hex().unwrap();
 		let private_key_arr: &[u8; 32] = private_key.as_slice().try_into().unwrap();
 		let key_pair = KeyPair::from_private_key(private_key_arr).unwrap();
 		assert_eq!(

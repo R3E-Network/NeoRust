@@ -222,7 +222,9 @@ mod tests {
 	async fn composes_with_provider() {
 		let (provider, mock) = Provider::mocked();
 		let mock_response = r#"{"tcpport": 10333, "nonce": 388190803, "useragent": "/Neo:3.7.4+44c8cd9669beffd8460a56aedf81a53b47ff5b5f/", "rpc": {"maxiteratorresultitems": 100, "sessionenabled": true}, "protocol": {"addressversion": 53, "network": 860833102, "validatorscount": 7, "msperblock": 15000, "maxtraceableblocks": 2102400, "maxvaliduntilblockincrement": 5760, "maxtransactionsperblock": 512, "memorypoolmaxtransactions": 50000, "initialgasdistribution": 5200000000000000, "hardforks": [{"name": "Aspidochelone", "blockheight": 1730000}, {"name": "Basilisk", "blockheight": 4120000}, {"name": "Cockatrice", "blockheight": 5450000}]}}"#;
-		mock.push_response(MockResponse::Value(serde_json::from_str(&mock_response).expect("Invalid mock response")));
+		mock.push_response(MockResponse::Value(
+			serde_json::from_str(&mock_response).expect("Invalid mock response"),
+		));
 		let version = provider.get_version().await.unwrap();
 		assert_eq!(version.protocol.unwrap().network, NeoNetwork::MainNet.to_magic());
 	}

@@ -1,7 +1,10 @@
+use hex::ToHexExt;
 use primitive_types::{H160, H256};
 use serde_json::Value;
 
 use neo::prelude::{Bytes, Secp256r1PublicKey};
+
+use super::ScriptHashExtension;
 
 pub trait ValueExtension {
 	fn to_value(&self) -> Value;
@@ -27,7 +30,7 @@ impl ValueExtension for &str {
 
 impl ValueExtension for H160 {
 	fn to_value(&self) -> Value {
-		Value::String(bs58::encode(self.0).into_string())
+		Value::String(ScriptHashExtension::to_hex(self))
 	}
 }
 

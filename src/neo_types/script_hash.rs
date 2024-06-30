@@ -49,6 +49,9 @@ where
 	/// Converts the object into its hex string representation.
 	fn to_hex(&self) -> String;
 
+	/// Converts the object into its hex string representation.
+	fn to_hex_big_endian(&self) -> String;
+
 	/// Converts the object into a byte vector.
 	fn to_vec(&self) -> Vec<u8>;
 
@@ -124,6 +127,12 @@ impl ScriptHashExtension for H160 {
 		self.0.to_hex()
 	}
 
+	fn to_hex_big_endian(&self) -> String {
+		let mut cloned = self.0.clone();
+		cloned.reverse();
+		"0x".to_string() + &cloned.to_hex()
+	}
+
 	fn to_vec(&self) -> Vec<u8> {
 		self.0.to_vec()
 	}
@@ -134,7 +143,10 @@ impl ScriptHashExtension for H160 {
 	}
 
 	fn from_script(script: &[u8]) -> Self {
-		let hash: [u8; 20] = script.sha256_ripemd160().as_byte_slice().try_into()
+		let hash: [u8; 20] = script
+			.sha256_ripemd160()
+			.as_byte_slice()
+			.try_into()
 			.expect("script does not have exactly 20 elements");
 		Self(hash)
 	}

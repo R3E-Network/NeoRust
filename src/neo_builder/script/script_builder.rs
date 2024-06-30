@@ -43,7 +43,7 @@ impl ScriptBuilder {
 		call_flags: Option<CallFlags>,
 	) -> Result<&mut Self, BuilderError> {
 		if params.is_empty() {
-			self.op_code(&[OpCode::NewArray]);
+			self.op_code(&[OpCode::NewArray0]);
 		} else {
 			self.push_params(params);
 		}

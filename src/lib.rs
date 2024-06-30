@@ -14,7 +14,7 @@
 //! ```
 //!
 //! Examples on how you can use the types imported by the prelude can be found in the
-//! [`examples` directory of the repository](https://github.com/R3E-Network/neo-rs/tree/master/examples)
+//! [`examples` directory of the repository](https://github.com/R3E-Network/NeoRust/tree/master/examples)
 //! and in the `tests/` directories of each crate.
 //!
 //! ## Modules
@@ -58,7 +58,6 @@
 //! along with the arguments of the called function. This module provides the
 //! [`Contract`] and [`ContractFactory`] abstractions so that you do not have to worry about that.
 //!
-//! It also provides typesafe bindings via the [`abigen`] macro and the [`Abigen`] builder.
 //!
 //! ### `middleware`
 //!
@@ -75,8 +74,6 @@
 //! [`Signer`]: signers::SignerTrait
 //! [`ContractFactory`]: contract::ContractFactory
 //! [`Contract`]: contract::Contract
-//! [`abigen`]: contract::abigen
-//! [`Abigen`]: contract::Abigen
 //! [`utils`]: core::utils
 //! [`abi`]: core::abi
 //! [`types`]: core::types

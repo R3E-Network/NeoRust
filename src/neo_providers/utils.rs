@@ -1,6 +1,6 @@
-use std::{future::Future, pin::Pin, str::FromStr, sync::Arc};
-use wiremock::{Request, Match};
 use regex::Regex;
+use std::{future::Future, pin::Pin, str::FromStr, sync::Arc};
+use wiremock::{Match, Request};
 
 use futures_timer::Delay;
 use futures_util::{stream, FutureExt, StreamExt};
@@ -129,21 +129,19 @@ pub fn hex_to_address(hex: &str) -> Result<String, ProviderError> {
 }
 
 pub struct BodyRegexMatcher {
-    pattern: Arc<Regex>,
+	pattern: Arc<Regex>,
 }
 
 impl BodyRegexMatcher {
-    pub fn new(pattern: &str) -> Self {
-        BodyRegexMatcher {
-            pattern: Arc::new(Regex::new(pattern).expect("Invalid regex pattern")),
-        }
-    }
+	pub fn new(pattern: &str) -> Self {
+		BodyRegexMatcher { pattern: Arc::new(Regex::new(pattern).expect("Invalid regex pattern")) }
+	}
 }
 
 impl Match for BodyRegexMatcher {
-    fn matches(&self, request: &Request) -> bool {
-        std::str::from_utf8(&request.body)
-            .map(|body_str| self.pattern.is_match(body_str))
-            .unwrap_or(false)
-    }
+	fn matches(&self, request: &Request) -> bool {
+		std::str::from_utf8(&request.body)
+			.map(|body_str| self.pattern.is_match(body_str))
+			.unwrap_or(false)
+	}
 }
