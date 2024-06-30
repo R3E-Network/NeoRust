@@ -18,8 +18,9 @@ use serde::{
 use neo::prelude::{
 	encode_string_h160, encode_string_h256, encode_string_u256, parse_address, parse_string_h256,
 	parse_string_u256, parse_string_u64, Address, AddressOrScriptHash, ContractParameter,
-	ScriptHash, Secp256r1PrivateKey, Secp256r1PublicKey,
+	ScriptHash, ScriptHashExtension, Secp256r1PrivateKey, Secp256r1PublicKey,
 };
+
 #[cfg(feature = "substrate")]
 use serde_big_array_substrate::big_array;
 
@@ -285,7 +286,7 @@ where
 {
 	let mut seq = serializer.serialize_seq(Some(item.len()))?;
 	for i in item {
-		seq.serialize_element(&i)?;
+		seq.serialize_element(&i.to_hex())?;
 	}
 	seq.end()
 }
@@ -318,7 +319,7 @@ where
 	match item {
 		Some(addr) => {
 			let mut seq = serializer.serialize_seq(Some(addr.len()))?;
-			for i in item {
+			for i in addr {
 				seq.serialize_element(&i)?;
 			}
 			seq.end()

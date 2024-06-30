@@ -425,18 +425,18 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 				let signers: Vec<TransactionSigner> = signers.iter().map(|f| f.into()).collect();
 				self.request(
 					"invokefunction",
-					[
-						Value::String(ScriptHashExtension::to_hex_big_endian(contract_hash)),
-						method.to_value(),
-						params.to_value(),
-						signers.to_value(),
-					]
 					// [
-					// 	contract_hash.to_hex(),
+					// 	Value::String(ScriptHashExtension::to_hex_big_endian(contract_hash)),
 					// 	method.to_value(),
 					// 	params.to_value(),
 					// 	signers.to_value(),
-					// ],
+					// ]
+					json!([
+						contract_hash.to_hex(),
+						method,
+						params,
+						signers,
+					])
 				)
 				.await
 			},
@@ -1968,6 +1968,11 @@ use neo::prelude::{
 		// Normalize JSON by removing whitespace and comparing
 		let request_json: Value = serde_json::from_str(&request_body)?;
 		let expected_json: Value = serde_json::from_str(expected)?;
+
+		// assert_eq!(
+		// 	request_json, expected_json,
+		// 	"The request body does not match the expected body"
+		// );
 
 		assert_eq!(
 			request_json, expected_json,
