@@ -430,7 +430,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 						method.to_value(),
 						params.to_value(),
 						signers.to_value(),
-					])
+					]
 					// [
 					// 	contract_hash.to_hex(),
 					// 	method.to_value(),
@@ -1197,8 +1197,7 @@ use neo::prelude::{
 	use url::Url;
     use lazy_static::lazy_static;
     use serde_json::{json, Value};
-    use wiremock::matchers::{method, path};
-    use wiremock::{Mock, MockServer, ResponseTemplate};
+    use wiremock::{matchers::{method, path}, Mock, MockServer, ResponseTemplate};
     use reqwest::Client;
     use tokio;
 	use primitive_types::H160;
