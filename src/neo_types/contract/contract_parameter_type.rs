@@ -16,6 +16,7 @@ use strum_macros::{Display, EnumString};
 	Deserialize,
 )]
 #[repr(u8)]
+#[serde(rename_all = "PascalCase")]
 pub enum ContractParameterType {
 	#[strum(serialize = "Any")]
 	Any = 0x00,
@@ -27,9 +28,11 @@ pub enum ContractParameterType {
 	ByteArray = 0x12,
 	#[strum(serialize = "String")]
 	String = 0x13,
-	#[strum(serialize = "H160")]
+	#[strum(serialize = "Hash160")]
+	#[serde(rename = "Hash160")]
 	H160 = 0x14,
-	#[strum(serialize = "H256")]
+	#[strum(serialize = "Hash256")]
+	#[serde(rename = "Hash256")]
 	H256 = 0x15,
 	#[strum(serialize = "PublicKey")]
 	PublicKey = 0x16,

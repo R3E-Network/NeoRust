@@ -76,11 +76,11 @@ impl Serialize for WitnessCondition {
 			},
 			WitnessCondition::CalledByContract(ref hash) => {
 				state.serialize_field("type", "CalledByContract")?;
-				state.serialize_field("hash", &hash.to_string())?;
+				state.serialize_field("hash", &hash.to_hex())?;
 			},
 			WitnessCondition::CalledByGroup(ref key) => {
 				state.serialize_field("type", "CalledByGroup")?;
-				state.serialize_field("group", &key.to_string())?;
+				state.serialize_field("group", &key.get_encoded_compressed_hex())?;
 			},
 		}
 		state.end()

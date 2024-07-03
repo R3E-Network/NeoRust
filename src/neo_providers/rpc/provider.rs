@@ -1937,7 +1937,7 @@ use neo::prelude::{
 
         provider.invoke_function(&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(), 
 								 "balanceOf".to_string(), 
-								 vec![H160::from_str("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()], Some(vec![Account(signer)])).await;
+								 vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()], Some(vec![Account(signer)])).await;
 
         verify_request(&mock_server, &expected_request_body).await.unwrap();
     }
