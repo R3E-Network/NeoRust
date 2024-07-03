@@ -18,7 +18,7 @@ use serde::{
 use neo::prelude::{
 	encode_string_h160, encode_string_h256, encode_string_u256, parse_address, parse_string_h256,
 	parse_string_u256, parse_string_u64, Address, AddressOrScriptHash, ContractParameter,
-	ScriptHash, ScriptHashExtension, Secp256r1PrivateKey, Secp256r1PublicKey,
+	ScriptHash, ScriptHashExtension, Secp256r1PrivateKey, Secp256r1PublicKey, WitnessScope
 };
 
 #[cfg(feature = "substrate")]
@@ -26,6 +26,27 @@ use serde_big_array_substrate::big_array;
 
 #[cfg(feature = "substrate")]
 use serde_substrate as serde;
+
+pub fn serialize_h160_without_0x<S>(h160: &H160, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let hex_str = format!("{:x}", h160);
+    serializer.serialize_str(&hex_str)
+}
+
+
+pub fn serialize_scopes<S>(scopes: &Vec<WitnessScope>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let scopes_str = scopes
+        .iter()
+        .map(ToString::to_string) // Using strum's ToString implementation
+        .collect::<Vec<String>>()
+        .join(",");
+    serializer.serialize_str(&scopes_str)
+}
 
 pub fn serialize_boolean_expression<S>(value: &bool, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -238,7 +259,9 @@ pub fn serialize_script_hash<S>(item: &ScriptHash, serializer: S) -> Result<S::O
 where
 	S: Serializer,
 {
-	let item_str = encode_string_h160(item);
+	// let item_str = encode_string_h160(item);
+	let binding = encode_string_h160(item);
+	let item_str = binding.trim_start_matches("0x");
 	serializer.serialize_str(&item_str)
 }
 
@@ -320,7 +343,7 @@ where
 		Some(addr) => {
 			let mut seq = serializer.serialize_seq(Some(addr.len()))?;
 			for i in addr {
-				seq.serialize_element(&i)?;
+				seq.serialize_element(&i.to_hex().trim_start_matches("0x"))?;
 			}
 			seq.end()
 		},
@@ -448,6 +471,26 @@ where
 	Ok(vec)
 }
 
+pub fn deserialize_vec_public_key_option<'de, D>(
+	deserializer: D,
+) -> Result<Option<Vec<Secp256r1PublicKey>>, D::Error>
+where
+	D: Deserializer<'de>,
+{
+	let string_seq =<Vec<String>>::deserialize(deserializer)?;
+	// match string_seq {
+	// 	Some(s) => Ok(Some(s)),
+	// 	None => Ok(None),
+	// }
+	let mut vec: Vec<Secp256r1PublicKey> = Vec::new();
+	for v_str in string_seq {
+		let v = parse_string_h256(&v_str);
+		let key = Secp256r1PublicKey::from_bytes(v.as_bytes()).unwrap();
+		vec.push(key);
+	}
+	Ok(Some(vec))
+}
+
 pub fn serialize_vec_public_key<S>(
 	item: &Vec<Secp256r1PublicKey>,
 	serializer: S,
@@ -457,9 +500,29 @@ where
 {
 	let mut seq = serializer.serialize_seq(Some(item.len()))?;
 	for i in item {
-		seq.serialize_element(&encode_string_h256(&H256::from_slice(&i.get_encoded(true))))?;
+		seq.serialize_element(&i.get_encoded_compressed_hex())?;
 	}
 	seq.end()
+}
+
+pub fn serialize_vec_public_key_option<S>(
+	item: &Option<Vec<Secp256r1PublicKey>>,
+	serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+	S: Serializer,
+{
+	match item {
+		Some(key) => {
+			let mut seq = serializer.serialize_seq(Some(key.len()))?;
+			for i in key {
+				seq.serialize_element(&i.get_encoded_compressed_hex())?;
+			}
+	seq.end()
+		},
+		None => serializer.serialize_none(),
+	}
+	
 }
 
 // impl serialize_public_key_option
@@ -472,7 +535,7 @@ where
 {
 	match item {
 		Some(key) => {
-			let key_str = encode_string_h256(&H256::from_slice(&key.get_encoded(true)));
+			let key_str = key.get_encoded_compressed_hex();
 			serializer.serialize_str(&key_str)
 		},
 		None => serializer.serialize_none(),

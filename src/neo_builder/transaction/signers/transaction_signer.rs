@@ -4,8 +4,8 @@ use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
-	deserialize_script_hash, deserialize_vec_script_hash_option, serialize_script_hash,
-	serialize_vec_script_hash_option, Decoder, Encoder, NeoConstants, NeoSerializable,
+	deserialize_script_hash, deserialize_vec_script_hash_option, deserialize_vec_public_key_option, serialize_scopes, serialize_script_hash,
+	serialize_vec_script_hash_option, serialize_vec_public_key_option, Decoder, Encoder, NeoConstants, NeoSerializable,
 	Secp256r1PublicKey, SignerTrait, SignerType, TransactionError, VarSizeTrait, WitnessRule,
 	WitnessScope,
 };
@@ -18,6 +18,7 @@ pub struct TransactionSigner {
 	pub account: H160,
 
 	#[serde(rename = "scopes")]
+	#[serde(serialize_with = "serialize_scopes")]
 	pub scopes: Vec<WitnessScope>,
 
 	#[serde(rename = "allowedcontracts")]
@@ -27,6 +28,9 @@ pub struct TransactionSigner {
 	pub allowed_contracts: Option<Vec<H160>>,
 
 	#[serde(rename = "allowedgroups")]
+	#[serde(serialize_with = "serialize_vec_public_key_option")]
+	#[serde(deserialize_with = "deserialize_vec_public_key_option")]
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub allowed_groups: Option<Vec<Secp256r1PublicKey>>,
 
 	#[serde(rename = "rules")]

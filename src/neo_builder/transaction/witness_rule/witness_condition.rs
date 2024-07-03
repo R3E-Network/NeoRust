@@ -6,7 +6,7 @@ use serde::{ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializ
 use serde_json::Value;
 
 use neo::prelude::{
-	Decoder, Encoder, NeoSerializable, ScriptHashExtension, Secp256r1PublicKey, TransactionError,
+	Decoder, Encoder, NeoSerializable, ScriptHashExtension, Secp256r1PublicKey, TransactionError, deserialize_script_hash, serialize_script_hash
 };
 
 use crate::neo_codec::VarSizeTrait;
