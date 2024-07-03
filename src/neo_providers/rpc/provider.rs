@@ -1927,7 +1927,7 @@ use neo::prelude::{
 		.unwrap();
 		let rule = WitnessRule::new(
 			WitnessAction::Allow,
-			WitnessCondition::CalledByContract(H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap()),
+			WitnessCondition::CalledByContract(H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap()),
 		);
 
 		let mut signer = AccountSigner::called_by_entry_hash160(H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap()).unwrap();
