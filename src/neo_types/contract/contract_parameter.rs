@@ -8,9 +8,11 @@ use rustc_serialize::{
 	base64::FromBase64,
 	hex::{FromHex, ToHex},
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde::ser::{SerializeStruct, Serializer, SerializeMap, SerializeSeq};
 use serde_json::Value;
+use serde::de::{Visitor, MapAccess};
+use std::fmt;
 use sha3::Digest;
 use strum_macros::{Display, EnumString};
 
@@ -28,6 +30,82 @@ pub struct ContractParameter {
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub value: Option<ParameterValue>,
 }
+
+// impl<'de> Deserialize<'de> for ContractParameter {
+//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//     where
+//         D: Deserializer<'de>,
+//     {
+//         enum Field { Name, Typ, Value }
+
+//         struct ContractParameterVisitor;
+
+//         impl<'de> Visitor<'de> for ContractParameterVisitor {
+//             type Value = ContractParameter;
+
+//             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+//                 formatter.write_str("struct ContractParameter")
+//             }
+
+//             fn visit_map<V>(self, mut map: V) -> Result<ContractParameter, V::Error>
+//             where
+//                 V: MapAccess<'de>,
+//             {
+//                 let mut name = None;
+//                 let mut typ = None;
+//                 let mut value = None;
+
+//                 while let Some(key) = map.next_key()? {
+//                     match key {
+//                         Field::Name => {
+//                             if name.is_some() {
+//                                 return Err(de::Error::duplicate_field("name"));
+//                             }
+//                             name = Some(map.next_value()?);
+//                         }
+//                         Field::Typ => {
+//                             if typ.is_some() {
+//                                 return Err(de::Error::duplicate_field("type"));
+//                             }
+//                             typ = Some(map.next_value()?);
+//                         }
+//                         Field::Value => {
+//                             if value.is_some() {
+//                                 return Err(de::Error::duplicate_field("value"));
+//                             }
+//                             value = Some(map.next_value()?);
+//                         }
+//                     }
+//                 }
+
+//                 let typ: ContractParameterType = typ.ok_or_else(|| de::Error::missing_field("type"))?;
+//                 let value: Option<ParameterValue> = match typ {
+//                     ContractParameterType::Boolean => Some(ParameterValue::Boolean(value.unwrap_or_default())),
+//                     ContractParameterType::Integer => Some(ParameterValue::Integer(value.unwrap_or_default())),
+//                     ContractParameterType::ByteArray => Some(ParameterValue::ByteArray(value.unwrap_or_default())),
+//                     ContractParameterType::String => Some(ParameterValue::String(value.unwrap_or_default())),
+//                     ContractParameterType::H160 => Some(ParameterValue::H160(value.unwrap_or_default())),
+//                     ContractParameterType::H256 => Some(ParameterValue::H256(value.unwrap_or_default())),
+//                     ContractParameterType::PublicKey => Some(ParameterValue::PublicKey(value.unwrap_or_default())),
+//                     ContractParameterType::Signature => Some(ParameterValue::Signature(value.unwrap_or_default())),
+//                     ContractParameterType::Array => Some(ParameterValue::Array(value.unwrap_or_default())),
+//                     ContractParameterType::Map => Some(ParameterValue::Map(value.unwrap_or_default())),
+//                     ContractParameterType::Any => Some(ParameterValue::Any),
+//                     _ => None,
+//                 };
+
+//                 Ok(ContractParameter {
+//                     name,
+//                     typ,
+//                     value,
+//                 })
+//             }
+//         }
+
+//         const FIELDS: &[&str] = &["name", "type", "value"];
+//         deserializer.deserialize_struct("ContractParameter", FIELDS, ContractParameterVisitor)
+//     }
+// }
 
 // #[derive(Debug, PartialEq, Eq, Hash, Deserialize, Clone)]
 // pub struct ContractParameter {
