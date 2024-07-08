@@ -425,12 +425,6 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 				let signers: Vec<TransactionSigner> = signers.iter().map(|f| f.into()).collect();
 				self.request(
 					"invokefunction",
-					// [
-					// 	Value::String(ScriptHashExtension::to_hex_big_endian(contract_hash)),
-					// 	method.to_value(),
-					// 	params.to_value(),
-					// 	signers.to_value(),
-					// ]
 					json!([
 						contract_hash.to_hex(),
 						method,
@@ -440,13 +434,19 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 				)
 				.await
 			},
-			None =>
+			None => {
+				let signers: Vec<TransactionSigner> = vec![];
 				self.request(
 					"invokefunction",
-					[Value::String(ScriptHashExtension::to_hex_big_endian(contract_hash)),
-						method.to_value(), params.to_value()],
+					json!([
+							ScriptHashExtension::to_hex_big_endian(contract_hash),
+							method,
+							params,
+							signers
+					])
 				)
-				.await,
+				.await
+			},
 		}
 	}
 
@@ -858,13 +858,14 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		params: Vec<ContractParameter>,
 		signers: Vec<Signer>,
 	) -> Result<InvocationResult, ProviderError> {
-		let params = vec![
-			contract_hash.to_value(),
-			function_name.to_value(),
-			serde_json::to_string(&params).unwrap().to_value(),
-			serde_json::to_string(&signers).unwrap().to_value(),
-			true.to_value(),
-		];
+		let signers: Vec<TransactionSigner> = signers.iter().map(|f| f.into()).collect();
+		let params = json!([
+			contract_hash.to_hex(),
+			function_name,
+			params,
+			signers,
+			true
+		]);
 		self.request("invokefunction", params).await
 	}
 
@@ -1942,6 +1943,177 @@ use neo::prelude::{
         verify_request(&mock_server, &expected_request_body).await.unwrap();
     }
 
+	#[tokio::test]
+    async fn test_invoke_function_witnessrules() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "invokefunction",
+			"params": [
+				"af7c7328eee5a275a3bcaee2bf0cf662b5e739be",
+				"balanceOf",
+				[
+					{{
+						"type": "Hash160",
+						"value": "91b83e96f2a7c4fdf0c1688441ec61986c7cae26"
+					}}
+				],
+				[
+					{{
+						"account": "cadb3dc2faa3ef14a13b619c9a43124755aa2569",
+						"scopes": "CalledByEntry,CustomContracts,CustomGroups,WitnessRules",
+						"allowedcontracts": ["ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"],
+						"allowedgroups": [
+							"033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b"
+						],
+						"rules": [
+                    		{{
+                        		"action": "Deny",
+                        		"condition": {{
+                           			"type": "And",
+                            		"expressions": [
+                                	{{
+                                    	"type": "Boolean",
+                                    	"expression": true
+                                	}},
+                                	{{
+                                    	"type": "CalledByContract",
+                                    	"hash": "{}"
+                                	}},
+                                	{{
+                                    	"type": "CalledByGroup",
+                                    	"group": "{}"
+                                	}},
+                                	{{
+                                    	"type": "Group",
+                                    	"group": "{}"
+                                	}}
+                        			]
+                        		}}
+                    		}},
+                    		{{
+                        		"action": "Deny",
+                        		"condition": {{
+                            		"type": "Or",
+                            		"expressions": [
+                                	{{
+                                    	"type": "CalledByGroup",
+                                    	"group": "{}"
+                                	}},
+                                	{{
+                                    	"type": "ScriptHash",
+                                    	"hash": "{}"
+                                	}}
+                            		]
+                        		}}
+                    		}},
+                    		{{
+                        		"action": "Allow",
+                        		"condition": {{
+                            		"type": "Not",
+                            		"expression": {{
+                                		"type": "CalledByEntry"
+                            		}}
+                        		}}
+                    		}}
+                		]
+					}}
+				]
+			],
+			"id": 1
+		}}"#, TestConstants::NEO_TOKEN_HASH, TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY, TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY, TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY, TestConstants::COMMITTEE_ACCOUNT_SCRIPT_HASH);
+		
+
+		let public_key = Secp256r1PublicKey::from_bytes(
+			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
+		)
+		.unwrap();
+		let rule1 = WitnessRule::new(
+			WitnessAction::Deny,
+			WitnessCondition::And(vec![
+				WitnessCondition::Boolean(true),
+				WitnessCondition::CalledByContract(H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap()),
+				WitnessCondition::CalledByGroup(public_key.clone()),
+				WitnessCondition::Group(public_key.clone()),
+			]),
+		);
+		let rule2 = WitnessRule::new(
+			WitnessAction::Deny,
+			WitnessCondition::Or(vec![
+				WitnessCondition::CalledByGroup(public_key.clone()),
+				WitnessCondition::ScriptHash(H160::from_hex(TestConstants::COMMITTEE_ACCOUNT_SCRIPT_HASH).unwrap()),
+			]),
+		);
+		let rule3 = WitnessRule::new(
+			WitnessAction::Allow,
+			WitnessCondition::Not(Box::new(WitnessCondition::CalledByEntry)),
+		);
+
+		let mut signer = AccountSigner::called_by_entry_hash160(H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap()).unwrap();
+		signer.set_allowed_contracts(vec![H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap()]);
+		signer.set_allowed_groups(vec![public_key]);
+		signer.set_rules(vec![rule1, rule2, rule3]);
+
+        provider.invoke_function(&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(), 
+								 "balanceOf".to_string(), 
+								 vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()], Some(vec![Account(signer)])).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_invoke_function_diagnostics() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "invokefunction",
+			"params": [
+				"af7c7328eee5a275a3bcaee2bf0cf662b5e739be",
+				"balanceOf",
+				[
+					{{
+						"type": "Hash160",
+						"value": "91b83e96f2a7c4fdf0c1688441ec61986c7cae26"
+					}}
+				],
+				[],
+				true
+			],
+			"id": 1
+		}}"#);
+		
+
+		let public_key = Secp256r1PublicKey::from_bytes(
+			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
+		)
+		.unwrap();
+		let rule = WitnessRule::new(
+			WitnessAction::Allow,
+			WitnessCondition::CalledByContract(H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap()),
+		);
+
+        provider.invoke_function_diagnostics(H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(), 
+								 "balanceOf".to_string(), 
+								 vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()], vec![]).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+
 
 
 
@@ -1966,8 +2138,8 @@ use neo::prelude::{
 		let request_body = String::from_utf8_lossy(&request.body);
 
 		// Normalize JSON by removing whitespace and comparing
-		let request_json: Value = serde_json::from_str(&request_body)?;
-		let expected_json: Value = serde_json::from_str(expected)?;
+		let request_json: Value = serde_json::from_str(&request_body).unwrap();
+		let expected_json: Value = serde_json::from_str(expected).unwrap();
 
 		// assert_eq!(
 		// 	request_json, expected_json,
@@ -1992,7 +2164,7 @@ use neo::prelude::{
         let request_body = String::from_utf8_lossy(&request.body);
 
         // Normalize JSON by removing whitespace and comparing
-        let request_json: Value = serde_json::from_str(&request_body)?;
+        let request_json: Value = serde_json::from_str(&request_body).unwrap();
 
         assert_eq!(request_json, expected_json, "The request body does not match the expected body");
 
