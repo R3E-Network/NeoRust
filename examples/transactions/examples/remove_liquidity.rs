@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use eyre::Result;
-
 use ethers::{
     contract::abigen,
     core::types::{Address, U256},
@@ -9,6 +7,7 @@ use ethers::{
     providers::{Http, Middleware, Provider},
     signers::{LocalWallet, Signer},
 };
+use eyre::Result;
 
 abigen!(
     UniswapV2Router,

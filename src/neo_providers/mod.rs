@@ -9,6 +9,7 @@ use lazy_static::lazy_static;
 
 pub use errors::{ProviderError, RpcError};
 pub use ext::*;
+pub use middleware::*;
 use neo::prelude::NeoConstants;
 pub use rpc::*;
 #[allow(deprecated)]
@@ -19,7 +20,6 @@ pub use utils::*;
 mod errors;
 mod ext;
 mod middleware;
-pub use middleware::*;
 mod rpc;
 /// Crate utilities and type aliases
 mod utils;
@@ -35,50 +35,50 @@ lazy_static! {
 /// Pre-instantiated Infura HTTP clients which rotate through multiple API keys
 /// to prevent rate limits
 mod test_provider {
-	use std::{convert::TryFrom, iter::Cycle, slice::Iter, sync::Mutex};
+    use std::{convert::TryFrom, iter::Cycle, slice::Iter, sync::Mutex};
 
-	use once_cell::sync::Lazy;
+    use once_cell::sync::Lazy;
 
-	use super::*;
+    use super::*;
 
-	// List of infura keys to rotate through so we don't get rate limited
-	const INFURA_KEYS: &[&str] = &["15e8aaed6f894d63a0f6a0206c006cdd"];
+    // List of infura keys to rotate through so we don't get rate limited
+    const INFURA_KEYS: &[&str] = &["15e8aaed6f894d63a0f6a0206c006cdd"];
 
-	pub static MAINNET: Lazy<TestProvider> =
-		Lazy::new(|| TestProvider::new(INFURA_KEYS, "mainnet"));
+    pub static MAINNET: Lazy<TestProvider> =
+        Lazy::new(|| TestProvider::new(INFURA_KEYS, "mainnet"));
 
-	pub static TESTNET: Lazy<TestProvider> =
-		Lazy::new(|| TestProvider::new(INFURA_KEYS, "testnet"));
+    pub static TESTNET: Lazy<TestProvider> =
+        Lazy::new(|| TestProvider::new(INFURA_KEYS, "testnet"));
 
-	#[derive(Debug)]
-	pub struct TestProvider {
-		network: String,
-		keys: Mutex<Cycle<Iter<'static, &'static str>>>,
-	}
+    #[derive(Debug)]
+    pub struct TestProvider {
+        network: String,
+        keys: Mutex<Cycle<Iter<'static, &'static str>>>,
+    }
 
-	impl TestProvider {
-		pub fn new(keys: &'static [&'static str], network: impl Into<String>) -> Self {
-			Self { keys: keys.iter().cycle().into(), network: network.into() }
-		}
+    impl TestProvider {
+        pub fn new(keys: &'static [&'static str], network: impl Into<String>) -> Self {
+            Self { keys: keys.iter().cycle().into(), network: network.into() }
+        }
 
-		pub fn url(&self) -> String {
-			let Self { network, keys } = self;
-			let key = keys.lock().unwrap().next().unwrap();
-			format!("https://{network}.infura.io/v3/{key}")
-		}
+        pub fn url(&self) -> String {
+            let Self { network, keys } = self;
+            let key = keys.lock().unwrap().next().unwrap();
+            format!("https://{network}.infura.io/v3/{key}")
+        }
 
-		pub fn provider(&self) -> Provider<Http> {
-			Provider::try_from(self.url().as_str()).unwrap()
-		}
+        pub fn provider(&self) -> Provider<Http> {
+            Provider::try_from(self.url().as_str()).unwrap()
+        }
 
-		#[cfg(feature = "ws")]
-		pub async fn ws(&self) -> Provider<crate::Ws> {
-			let url = format!(
-				"wss://{}.infura.neo.io/ws/v3/{}",
-				self.network,
-				self.keys.lock().unwrap().next().unwrap()
-			);
-			Provider::connect(url.as_str()).await.unwrap()
-		}
-	}
+        #[cfg(feature = "ws")]
+        pub async fn ws(&self) -> Provider<crate::Ws> {
+            let url = format!(
+                "wss://{}.infura.neo.io/ws/v3/{}",
+                self.network,
+                self.keys.lock().unwrap().next().unwrap()
+            );
+            Provider::connect(url.as_str()).await.unwrap()
+        }
+    }
 }

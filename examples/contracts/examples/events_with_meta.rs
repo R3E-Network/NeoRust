@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use eyre::Result;
-
 use ethers::{
     contract::abigen,
     core::types::Address,
     providers::{Provider, StreamExt, Ws},
 };
+use eyre::Result;
 
 // Generate the type-safe contract bindings by providing the ABI
 // definition in human readable format

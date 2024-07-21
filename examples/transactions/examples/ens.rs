@@ -1,9 +1,8 @@
-use eyre::Result;
-
 use ethers::{
     core::{types::TransactionRequest, utils::Anvil},
     providers::{Http, Middleware, Provider},
 };
+use eyre::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {

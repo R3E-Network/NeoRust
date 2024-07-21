@@ -1,6 +1,5 @@
-use eyre::Result;
-
 use ethers::{prelude::Abigen, solc::Solc};
+use eyre::Result;
 
 fn main() -> Result<()> {
     let mut args = std::env::args();

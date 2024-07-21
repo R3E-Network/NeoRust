@@ -1,7 +1,5 @@
 use std::{convert::TryFrom, path::Path, sync::Arc, time::Duration};
 
-use eyre::Result;
-
 use ethers::{
     contract::{abigen, ContractFactory},
     core::utils::Anvil,
@@ -12,6 +10,7 @@ use ethers::{
     types::{Address, U256},
     utils::AnvilInstance,
 };
+use eyre::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {

@@ -3,8 +3,6 @@ use std::{
     sync::Arc,
 };
 
-use eyre::Result;
-
 use ethers::{
     contract::abigen,
     core::{
@@ -13,6 +11,7 @@ use ethers::{
     },
     providers::{call_raw::RawCall, Http, Provider},
 };
+use eyre::Result;
 
 abigen!(Greeter, "ethers-contract/tests/solidity-contracts/greeter.json",);
 
@@ -25,7 +24,7 @@ async fn main() -> Result<()> {
                 eprint!(": {e}");
             }
             eprintln!();
-            return Ok(())
+            return Ok(());
         }
         Ok(true) => {}
     }
