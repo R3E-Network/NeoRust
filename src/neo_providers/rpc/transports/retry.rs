@@ -298,8 +298,8 @@ where
 					Ok(ret) => {
 						self.requests_enqueued.fetch_sub(1, Ordering::SeqCst);
 						return Ok(ret)
-					}
-                    Err(err_) => err = err_,
+					},
+					Err(err_) => err = err_,
 				}
 			}
 
@@ -410,8 +410,8 @@ impl RetryPolicy<ClientError> for HttpRateLimitRetryPolicy {
 					return should_retry_json_rpc_error(&resp.error)
 				}
 				false
-			}
-        }
+			},
+		}
 	}
 
 	fn backoff_hint(&self, error: &ClientError) -> Option<Duration> {

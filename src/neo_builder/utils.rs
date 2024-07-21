@@ -15,12 +15,12 @@ use neo::prelude::*;
 ///
 /// A `ScriptHash` instance representing the script hash of the MultiSig script.
 pub fn public_keys_to_scripthash(
-    public_keys: &mut [Secp256r1PublicKey],
-    threshold: usize,
+	public_keys: &mut [Secp256r1PublicKey],
+	threshold: usize,
 ) -> ScriptHash {
-    let script = ScriptBuilder::build_multi_sig_script(public_keys, threshold as u8).unwrap();
-    // Self::from_script(&script)
-    ScriptHash::from_slice(&script)
+	let script = ScriptBuilder::build_multi_sig_script(public_keys, threshold as u8).unwrap();
+	// Self::from_script(&script)
+	ScriptHash::from_slice(&script)
 }
 
 /// Converts a public key to a script hash.
@@ -33,57 +33,57 @@ pub fn public_keys_to_scripthash(
 ///
 /// A `ScriptHash` instance representing the script hash of the verification script.
 pub fn pubkey_to_scripthash(public_key: &Secp256r1PublicKey) -> ScriptHash {
-    let script = ScriptBuilder::build_verification_script(public_key);
-    ScriptHash::from_script(&script)
+	let script = ScriptBuilder::build_verification_script(public_key);
+	ScriptHash::from_script(&script)
 }
 
 pub trait VecValueExtension {
-    fn to_value(&self) -> Value;
+	fn to_value(&self) -> Value;
 }
 
 impl ValueExtension for TransactionAttribute {
-    fn to_value(&self) -> Value {
-        Value::String(self.to_json())
-    }
+	fn to_value(&self) -> Value {
+		Value::String(self.to_json())
+	}
 }
 
 impl ValueExtension for TransactionSendToken {
-    fn to_value(&self) -> Value {
-        Value::String(serde_json::to_string(self).unwrap())
-    }
+	fn to_value(&self) -> Value {
+		Value::String(serde_json::to_string(self).unwrap())
+	}
 }
 
 impl VecValueExtension for Vec<TransactionSendToken> {
-    fn to_value(&self) -> Value {
-        self.iter().map(|x| x.to_value()).collect()
-    }
+	fn to_value(&self) -> Value {
+		self.iter().map(|x| x.to_value()).collect()
+	}
 }
 
 impl VecValueExtension for Vec<TransactionAttribute> {
-    fn to_value(&self) -> Value {
-        self.iter().map(|x| x.to_value()).collect()
-    }
+	fn to_value(&self) -> Value {
+		self.iter().map(|x| x.to_value()).collect()
+	}
 }
 impl ValueExtension for Signer {
-    fn to_value(&self) -> Value {
-        Value::String(serde_json::to_string(self).unwrap())
-    }
+	fn to_value(&self) -> Value {
+		Value::String(serde_json::to_string(self).unwrap())
+	}
 }
 
 impl VecValueExtension for Vec<Signer> {
-    fn to_value(&self) -> Value {
-        self.iter().map(|x| x.to_value()).collect()
-    }
+	fn to_value(&self) -> Value {
+		self.iter().map(|x| x.to_value()).collect()
+	}
 }
 
 impl ValueExtension for TransactionSigner {
-    fn to_value(&self) -> Value {
-        Value::String(serde_json::to_string(self).unwrap())
-    }
+	fn to_value(&self) -> Value {
+		Value::String(serde_json::to_string(self).unwrap())
+	}
 }
 
 impl VecValueExtension for Vec<TransactionSigner> {
-    fn to_value(&self) -> Value {
-        self.iter().map(|x| x.to_value()).collect()
-    }
+	fn to_value(&self) -> Value {
+		self.iter().map(|x| x.to_value()).collect()
+	}
 }

@@ -111,8 +111,8 @@ impl JsonRpcClient for HttpProvider {
 					text: String::from_utf8_lossy(&body).to_string(),
 				};
 				return Err(err)
-			}
-            Err(err) =>
+			},
+			Err(err) =>
 				return Err(ClientError::SerdeJson {
 					err,
 					text: String::from_utf8_lossy(&body).to_string(),

@@ -55,47 +55,47 @@ use neo::prelude::{BuilderError, CryptoError, TypeError, WalletError};
 /// ```
 #[derive(Debug, Error)]
 pub enum SignerError {
-    /// Represents an error when an invalid passphrase is provided.
-    /// This could happen during the decryption of a private key or any operation
-    /// that requires passphrase verification.
-    #[error("Invalid passphrase: {0}")]
-    InvalidPassphrase(String),
+	/// Represents an error when an invalid passphrase is provided.
+	/// This could happen during the decryption of a private key or any operation
+	/// that requires passphrase verification.
+	#[error("Invalid passphrase: {0}")]
+	InvalidPassphrase(String),
 
-    /// Indicates that the provided address is not valid.
-    /// This error might occur if an address does not comply with expected formats or checksums.
-    #[error("Invalid address")]
-    InvalidAddress,
+	/// Indicates that the provided address is not valid.
+	/// This error might occur if an address does not comply with expected formats or checksums.
+	#[error("Invalid address")]
+	InvalidAddress,
 
-    /// Wraps errors related to building or configuring objects, possibly during
-    /// the setup of cryptographic operations or when constructing complex objects
-    /// that have specific requirements.
-    #[error(transparent)]
-    BuilderError(#[from] BuilderError),
+	/// Wraps errors related to building or configuring objects, possibly during
+	/// the setup of cryptographic operations or when constructing complex objects
+	/// that have specific requirements.
+	#[error(transparent)]
+	BuilderError(#[from] BuilderError),
 
-    /// Encapsulates errors that originate from wallet operations.
-    /// This can include issues with creating, loading, or performing transactions with wallets.
-    #[error(transparent)]
-    WalletError(#[from] WalletError),
+	/// Encapsulates errors that originate from wallet operations.
+	/// This can include issues with creating, loading, or performing transactions with wallets.
+	#[error(transparent)]
+	WalletError(#[from] WalletError),
 
-    /// Represents errors that occur when converting from hexadecimal strings to binary data.
-    /// This could be used when parsing keys, addresses, or any other data represented in hex format.
-    #[error(transparent)]
-    FromHexError(#[from] FromHexError),
+	/// Represents errors that occur when converting from hexadecimal strings to binary data.
+	/// This could be used when parsing keys, addresses, or any other data represented in hex format.
+	#[error(transparent)]
+	FromHexError(#[from] FromHexError),
 
-    /// Covers general cryptographic errors such as failures in hashing, signature generation,
-    /// or encryption/decryption processes.
-    #[error(transparent)]
-    CryptoError(#[from] CryptoError),
+	/// Covers general cryptographic errors such as failures in hashing, signature generation,
+	/// or encryption/decryption processes.
+	#[error(transparent)]
+	CryptoError(#[from] CryptoError),
 
-    /// Error that occurs when decoding from hexadecimal representation fails using
-    /// `rustc_serialize` library. It specifically indicates a problem with hex decoding,
-    /// likely due to an invalid character or incorrect string length.
-    #[error(transparent)]
-    RustcFromHexError(#[from] rustc_serialize::hex::FromHexError),
+	/// Error that occurs when decoding from hexadecimal representation fails using
+	/// `rustc_serialize` library. It specifically indicates a problem with hex decoding,
+	/// likely due to an invalid character or incorrect string length.
+	#[error(transparent)]
+	RustcFromHexError(#[from] rustc_serialize::hex::FromHexError),
 
-    /// Indicates a failure related to type conversion or coercion.
-    /// This variant is useful for signaling issues when trying to convert between incompatible types,
-    /// such as when deserializing data into a specific structure.
-    #[error(transparent)]
-    TypeError(#[from] TypeError),
+	/// Indicates a failure related to type conversion or coercion.
+	/// This variant is useful for signaling issues when trying to convert between incompatible types,
+	/// such as when deserializing data into a specific structure.
+	#[error(transparent)]
+	TypeError(#[from] TypeError),
 }

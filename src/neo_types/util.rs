@@ -24,11 +24,11 @@ use crate::prelude::ScriptHash;
 /// assert_eq!(parse_string_u64(hex), 12345);
 /// ```
 pub fn parse_string_u64(u64_str: &str) -> u64 {
-    if u64_str.starts_with("0x") {
-        u64::from_str_radix(u64_str, 16).unwrap()
-    } else {
-        u64::from_str_radix(u64_str, 10).unwrap()
-    }
+	if u64_str.starts_with("0x") {
+		u64::from_str_radix(u64_str, 16).unwrap()
+	} else {
+		u64::from_str_radix(u64_str, 10).unwrap()
+	}
 }
 
 /// Parses a string into a `U256`, accepting both decimal and hex (prefixed with "0x") formats.
@@ -45,11 +45,11 @@ pub fn parse_string_u64(u64_str: &str) -> u64 {
 /// assert_eq!(parse_string_u256(hex), U256::from(123456789));
 /// ```
 pub fn parse_string_u256(u256_str: &str) -> U256 {
-    if u256_str.starts_with("0x") {
-        U256::from_str_radix(u256_str, 16).unwrap()
-    } else {
-        U256::from_str_radix(u256_str, 10).unwrap()
-    }
+	if u256_str.starts_with("0x") {
+		U256::from_str_radix(u256_str, 16).unwrap()
+	} else {
+		U256::from_str_radix(u256_str, 10).unwrap()
+	}
 }
 
 /// Converts a hexadecimal string representation of an address into a `ScriptHash`.
@@ -63,10 +63,10 @@ pub fn parse_string_u256(u256_str: &str) -> U256 {
 /// assert_eq!(script_hash, ScriptHash::from_slice(&[0xab, 0xcd, 0xef, 0x12, 0x34, 0x56, 0x78, 0x90]));
 /// ```
 pub fn parse_address(address: &str) -> ScriptHash {
-    let bytes = hex::decode(address.trim_start_matches("0x")).unwrap();
-    let mut padded_bytes = [0_u8; 20];
-    padded_bytes[20 - bytes.len()..].copy_from_slice(&bytes);
-    ScriptHash::from_slice(&padded_bytes)
+	let bytes = hex::decode(address.trim_start_matches("0x")).unwrap();
+	let mut padded_bytes = [0_u8; 20];
+	padded_bytes[20 - bytes.len()..].copy_from_slice(&bytes);
+	ScriptHash::from_slice(&padded_bytes)
 }
 
 /// Encodes an `H160` hash into a string representation.
@@ -81,7 +81,7 @@ pub fn parse_address(address: &str) -> ScriptHash {
 /// assert!(encoded.starts_with("H160"));
 /// ```
 pub fn encode_string_h160(h160: &H160) -> String {
-    format!("{:?}", h160).to_owned()
+	format!("{:?}", h160).to_owned()
 }
 
 /// Parses a hexadecimal string into an `H256` hash, padding with zeros if necessary.
@@ -96,12 +96,12 @@ pub fn encode_string_h160(h160: &H160) -> String {
 /// assert_eq!(h256, H256::from_low_u64_be(0x123456));
 /// ```
 pub fn parse_string_h256(h256_str: &str) -> H256 {
-    let bytes = hex::decode(h256_str.trim_start_matches("0x")).unwrap();
-    // pad the bytes to 32bytes
-    let mut padded_bytes = [0_u8; 32];
-    padded_bytes[32 - bytes.len()..].copy_from_slice(&bytes);
+	let bytes = hex::decode(h256_str.trim_start_matches("0x")).unwrap();
+	// pad the bytes to 32bytes
+	let mut padded_bytes = [0_u8; 32];
+	padded_bytes[32 - bytes.len()..].copy_from_slice(&bytes);
 
-    H256::from_slice(&padded_bytes)
+	H256::from_slice(&padded_bytes)
 }
 
 /// Encodes an `H256` hash into a string representation.
@@ -116,7 +116,7 @@ pub fn parse_string_h256(h256_str: &str) -> H256 {
 /// assert!(encoded.starts_with("H256"));
 /// ```
 pub fn encode_string_h256(h256: &H256) -> String {
-    format!("{:?}", h256).to_owned()
+	format!("{:?}", h256).to_owned()
 }
 
 /// Encodes a `U256` value into a hexadecimal string prefixed with "0x".
@@ -131,7 +131,7 @@ pub fn encode_string_h256(h256: &H256) -> String {
 /// assert_eq!(encoded, "0xff");
 /// ```
 pub fn encode_string_u256(u256: &U256) -> String {
-    format!("0x{:x}", u256).to_owned()
+	format!("0x{:x}", u256).to_owned()
 }
 
 /// Encodes a vector of `U256` values into a vector of hexadecimal strings.
@@ -146,7 +146,7 @@ pub fn encode_string_u256(u256: &U256) -> String {
 /// assert_eq!(encoded_values, vec!["0x1", "0x2"]);
 /// ```
 pub fn encode_vec_string_vec_u256(item: Vec<U256>) -> Vec<String> {
-    item.iter().map(|x| encode_string_u256(&x)).collect()
+	item.iter().map(|x| encode_string_u256(&x)).collect()
 }
 
 /// Parses a vector of hexadecimal string representations into a vector of `U256` values.
@@ -161,7 +161,7 @@ pub fn encode_vec_string_vec_u256(item: Vec<U256>) -> Vec<String> {
 /// assert_eq!(u256_values, vec![U256::from(1), U256::from(2)]);
 /// ```
 pub fn parse_vec_string_vec_u256(item: Vec<String>) -> Vec<U256> {
-    item.iter().map(|x| parse_string_u256(&x)).collect()
+	item.iter().map(|x| parse_string_u256(&x)).collect()
 }
 
 /// Converts an `H256` hash into a `U256` value.
@@ -176,7 +176,7 @@ pub fn parse_vec_string_vec_u256(item: Vec<String>) -> Vec<U256> {
 /// assert_eq!(u256, U256::from_big_endian(&[0x01; 32]));
 /// ```
 pub fn h256_to_u256(item: H256) -> U256 {
-    U256::from_big_endian(item.as_bytes())
+	U256::from_big_endian(item.as_bytes())
 }
 
 /// Converts a byte slice into a hexadecimal string prefixed with "0x".
@@ -190,7 +190,7 @@ pub fn h256_to_u256(item: H256) -> U256 {
 /// assert_eq!(hex_string, "0xdeadbeef");
 /// ```
 pub fn bytes_to_string(mybytes: &[u8]) -> String {
-    format!("0x{}", hex::encode(mybytes))
+	format!("0x{}", hex::encode(mybytes))
 }
 
 /// Attempts to convert a hexadecimal string (optionally prefixed with "0x") into a byte vector.
@@ -207,16 +207,16 @@ pub fn bytes_to_string(mybytes: &[u8]) -> String {
 /// assert!(string_to_bytes(invalid_hex).is_none());
 /// ```
 pub fn string_to_bytes(mystring: &str) -> Option<Vec<u8>> {
-    if mystring.starts_with("0x") {
-        let mystring = mystring.trim_start_matches("0x");
-        let mybytes = match hex::decode(mystring) {
-            Ok(mybytes) => Some(mybytes),
-            Err(_) => None,
-        };
-        mybytes
-    } else {
-        None
-    }
+	if mystring.starts_with("0x") {
+		let mystring = mystring.trim_start_matches("0x");
+		let mybytes = match hex::decode(mystring) {
+			Ok(mybytes) => Some(mybytes),
+			Err(_) => None,
+		};
+		mybytes
+	} else {
+		None
+	}
 }
 
 /// Calculates the square root of a `U256` value, returning another `U256`.
@@ -231,16 +231,16 @@ pub fn string_to_bytes(mystring: &str) -> Option<Vec<u8>> {
 /// assert_eq!(sqrt, U256::from(4));
 /// ```
 pub fn u256_sqrt(input: &U256) -> U256 {
-    if *input < 2.into() {
-        return input.clone();
-    }
-    let mut x: U256 = (input + U256::one()) >> 1;
-    let mut y = input.clone();
-    while x < y {
-        y = x;
-        x = (input / x + x) >> 1;
-    }
-    y
+	if *input < 2.into() {
+		return input.clone();
+	}
+	let mut x: U256 = (input + U256::one()) >> 1;
+	let mut y = input.clone();
+	while x < y {
+		y = x;
+		x = (input / x + x) >> 1;
+	}
+	y
 }
 
 /// Returns the minimum of two `U256` values.
@@ -254,11 +254,11 @@ pub fn u256_sqrt(input: &U256) -> U256 {
 /// let b = U256::from(2);
 /// assert_eq!(u256_min(a, b), U256::from(1));
 pub fn u256_min(x: U256, y: U256) -> U256 {
-    if x > y {
-        y
-    } else {
-        x
-    }
+	if x > y {
+		y
+	} else {
+		x
+	}
 }
 
 /// Converts a vector of bytes into an array of 32 bytes. Returns an error if the vector is not exactly 32 bytes long.
@@ -272,16 +272,16 @@ pub fn u256_min(x: U256, y: U256) -> U256 {
 /// assert_eq!(array.len(), 32);
 /// ```
 pub fn vec_to_array32(vec: Vec<u8>) -> Result<[u8; 32], TypeError> {
-    if vec.len() != 32 {
-        return Err(TypeError::InvalidData(
-            "Vector does not contain exactly 32 elements".to_string(),
-        ));
-    }
+	if vec.len() != 32 {
+		return Err(TypeError::InvalidData(
+			"Vector does not contain exactly 32 elements".to_string(),
+		));
+	}
 
-    let mut array = [0u8; 32];
-    let bytes = &vec[..array.len()]; // Take a slice of the vec
-    array.copy_from_slice(bytes); // Copy the slice into the array
-    Ok(array)
+	let mut array = [0u8; 32];
+	let bytes = &vec[..array.len()]; // Take a slice of the vec
+	array.copy_from_slice(bytes); // Copy the slice into the array
+	Ok(array)
 }
 
 /// Calculates the size of a variable as the number of bytes required to represent it.
@@ -294,81 +294,81 @@ pub fn vec_to_array32(vec: Vec<u8>) -> Result<[u8; 32], TypeError> {
 /// assert_eq!(var_size(1), 1); // Smallest non-zero values require at least 1 byte.
 /// ```
 pub fn var_size(value: usize) -> usize {
-    let mut v = value;
-    let mut bytes = 0;
-    while v > 0 {
-        v >>= 8;
-        bytes += 1;
-    }
-    if bytes == 0 {
-        1
-    } else {
-        bytes
-    }
+	let mut v = value;
+	let mut bytes = 0;
+	while v > 0 {
+		v >>= 8;
+		bytes += 1;
+	}
+	if bytes == 0 {
+		1
+	} else {
+		bytes
+	}
 }
 
 pub trait ToBase58 {
-    /// Encodes a byte slice into a Base58 string.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use NeoRust::prelude::ToBase58;
-    /// let bytes = [1, 2, 3];
-    /// assert_eq!(bytes.to_base58(), "Ldp");
-    /// ```
-    fn to_base58(&self) -> String;
+	/// Encodes a byte slice into a Base58 string.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use NeoRust::prelude::ToBase58;
+	/// let bytes = [1, 2, 3];
+	/// assert_eq!(bytes.to_base58(), "Ldp");
+	/// ```
+	fn to_base58(&self) -> String;
 }
 
 impl ToBase58 for [u8] {
-    fn to_base58(&self) -> String {
-        bs58::encode(self).into_string()
-    }
+	fn to_base58(&self) -> String {
+		bs58::encode(self).into_string()
+	}
 }
 
 pub trait ToBase64 {
-    /// Encodes a byte slice into a Base64 string.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use NeoRust::prelude::ToBase64;
-    /// let bytes = [1, 2, 3];
-    /// assert_eq!(bytes.to_base64(), "AQID");
-    /// ```
-    fn to_base64(&self) -> String;
+	/// Encodes a byte slice into a Base64 string.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use NeoRust::prelude::ToBase64;
+	/// let bytes = [1, 2, 3];
+	/// assert_eq!(bytes.to_base64(), "AQID");
+	/// ```
+	fn to_base64(&self) -> String;
 }
 
 impl ToBase64 for [u8] {
-    fn to_base64(&self) -> String {
-        base64::encode(self)
-    }
+	fn to_base64(&self) -> String {
+		base64::encode(self)
+	}
 }
 
 #[cfg(test)]
 mod test {
-    use super::*;
+	use super::*;
 
-    // #[test]
-    // pub fn test_blake2var_hash() {
-    //     let mut data = [0_u8; 24];
-    //     data[0..4].copy_from_slice(b"evm:");
-    //     data[4..24].copy_from_slice(&hex::decode("7EF99B0E5bEb8ae42DbF126B40b87410a440a32a").unwrap());
-    //     let hash = blake2_hash(&data);
-    //     let actual = hex::decode("65f5fbd10250447019bb8b9e06f6918d033b2feb6478470137b1a552656e2911").unwrap();
-    //     assert_eq!(&hash, actual.as_slice());
-    // }
+	// #[test]
+	// pub fn test_blake2var_hash() {
+	//     let mut data = [0_u8; 24];
+	//     data[0..4].copy_from_slice(b"evm:");
+	//     data[4..24].copy_from_slice(&hex::decode("7EF99B0E5bEb8ae42DbF126B40b87410a440a32a").unwrap());
+	//     let hash = blake2_hash(&data);
+	//     let actual = hex::decode("65f5fbd10250447019bb8b9e06f6918d033b2feb6478470137b1a552656e2911").unwrap();
+	//     assert_eq!(&hash, actual.as_slice());
+	// }
 
-    #[test]
-    pub fn test_bytes_to_string() {
-        let mybytes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-        let bytestring = bytes_to_string(&mybytes);
-        let orig_bytestring = "0x0102030405060708090a";
-        assert_eq!(&bytestring, orig_bytestring);
-        let error_bytestring = "0102030405060708090a";
-        let error_mybytes = string_to_bytes(error_bytestring);
-        assert_eq!(None, error_mybytes);
-        let ok_mybytes = string_to_bytes(orig_bytestring).unwrap();
-        assert_eq!(&mybytes[..], &ok_mybytes[..]);
-    }
+	#[test]
+	pub fn test_bytes_to_string() {
+		let mybytes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+		let bytestring = bytes_to_string(&mybytes);
+		let orig_bytestring = "0x0102030405060708090a";
+		assert_eq!(&bytestring, orig_bytestring);
+		let error_bytestring = "0102030405060708090a";
+		let error_mybytes = string_to_bytes(error_bytestring);
+		assert_eq!(None, error_mybytes);
+		let ok_mybytes = string_to_bytes(orig_bytestring).unwrap();
+		assert_eq!(&mybytes[..], &ok_mybytes[..]);
+	}
 }

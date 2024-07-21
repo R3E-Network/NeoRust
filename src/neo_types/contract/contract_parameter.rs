@@ -72,20 +72,20 @@ impl<'de> Deserialize<'de> for ContractParameter {
 								return Err(de::Error::duplicate_field("name"));
 							}
 							name = Some(map.next_value()?);
-						}
-                        Field::Typ => {
+						},
+						Field::Typ => {
 							if typ.is_some() {
 								return Err(de::Error::duplicate_field("type"));
 							}
 							typ = Some(map.next_value()?);
-						}
-                        Field::Value => {
+						},
+						Field::Value => {
 							if value.is_some() {
 								return Err(de::Error::duplicate_field("value"));
 							}
 							value = Some(map.next_value()?);
-						}
-                    }
+						},
+					}
 				}
 
 				let typ: ContractParameterType =
@@ -473,8 +473,8 @@ impl ContractParameter {
 			ParameterValue::PublicKey(p) => {
 				let bytes = hex::decode(p).unwrap();
 				Secp256r1PublicKey::from_bytes(&bytes).unwrap()
-			}
-            _ => panic!("Cannot convert {:?} to PublicKey", self.clone()),
+			},
+			_ => panic!("Cannot convert {:?} to PublicKey", self.clone()),
 		}
 	}
 
@@ -592,8 +592,8 @@ impl ParameterValue {
 			ParameterValue::PublicKey(p) => {
 				let bytes = hex::decode(p).unwrap();
 				Secp256r1PublicKey::from_bytes(&bytes).unwrap()
-			}
-            _ => panic!("Cannot convert {:?} to PublicKey", self.clone()),
+			},
+			_ => panic!("Cannot convert {:?} to PublicKey", self.clone()),
 		}
 	}
 

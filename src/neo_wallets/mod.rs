@@ -9,8 +9,8 @@ pub use yubihsm;
 pub use error::*;
 #[cfg(all(feature = "ledger", not(target_arch = "wasm32")))]
 pub use ledger::{
-    app::LedgerNeo as Ledger,
-    types::{DerivationType as HDPath, LedgerError},
+	app::LedgerNeo as Ledger,
+	types::{DerivationType as HDPath, LedgerError},
 };
 use neo::prelude::Account;
 pub use wallet::*;

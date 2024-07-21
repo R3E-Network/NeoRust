@@ -445,16 +445,16 @@ impl RequestManager {
 			Instruction::Request { method, params, sender } => {
 				let id = self.next_id();
 				self.service_request(id, method, params, sender)?;
-			}
-            Instruction::Unsubscribe { id } => {
+			},
+			Instruction::Unsubscribe { id } => {
 				if let Some(req) = self.subs.end_subscription(id.low_u64()) {
 					self.backend
 						.dispatcher
 						.unbounded_send(req)
 						.map_err(|_| WsClientError::DeadChannel)?;
 				}
-			}
-        }
+			},
+		}
 		Ok(())
 	}
 

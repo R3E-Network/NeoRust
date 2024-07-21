@@ -439,8 +439,8 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 					json!([contract_hash.to_hex(), method, params, signers,]),
 				)
 				.await
-			}
-            None => {
+			},
+			None => {
 				let signers: Vec<TransactionSigner> = vec![];
 				self.request(
 					"invokefunction",
@@ -452,8 +452,8 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 					]),
 				)
 				.await
-			}
-        }
+			},
+		}
 	}
 
 	/// Invokes a script.
@@ -1189,29 +1189,37 @@ pub fn is_local_endpoint(endpoint: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-	use std::str::FromStr;
-
 	use crate::neo_types::Base64Encode;
-	use lazy_static::lazy_static;
+	use log::debug;
 	use neo::prelude::{
-		AccountSigner, BodyRegexMatcher, HttpProvider, Middleware, Provider, ProviderError,
-		ScriptHashExtension, Secp256r1PublicKey, Signer::Account, SignerTrait, TestConstants,
-		WitnessAction, WitnessCondition, WitnessRule,
+		AccountSigner, HttpProvider, Middleware, Provider, ScriptHashExtension, Secp256r1PublicKey,
+		Signer::Account, SignerTrait, TestConstants, WitnessAction, WitnessCondition, WitnessRule,
 	};
 	use primitive_types::{H160, H256};
-	use reqwest::Client;
 	use serde_json::{json, Value};
+	use std::str::FromStr;
 	use tokio;
 	use url::Url;
 	use wiremock::{
-		matchers::{method, path},
+		matchers::{body_json, method as http_method, method, path},
 		Mock, MockServer, ResponseTemplate,
 	};
 
 	#[tokio::test]
 	async fn test_get_best_block_hash() {
-		// Access the global mock server
-		let mock_server = setup_mock_server().await;
+		env_logger::init();
+		let _ = env_logger::builder().is_test(true).try_init();
+
+		// Start the mock server
+		let mock_server = MockServer::start().await;
+
+		mock_rpc_response(
+			&mock_server,
+			"getbestblockhash",
+			json!([]),
+			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+		)
+		.await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
@@ -1220,13 +1228,21 @@ mod tests {
 		// Expected request body
 		let expected_request_body = r#"{
             "jsonrpc": "2.0",
+            "method": "getblockhash",
+            "params": [16293],
+            "id": 1
+        }"#;
+
+		let result = provider.get_best_block_hash().await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+
+		// Expected request body
+		let expected_request_body = r#"{
+            "jsonrpc": "2.0",
             "method": "getbestblockhash",
             "params": [],
             "id": 1
         }"#;
-
-		provider.get_best_block_hash().await;
-
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
@@ -1247,7 +1263,8 @@ mod tests {
             "id": 1
         }"#;
 
-		provider.get_block_hash(16293).await;
+		let result = provider.get_block_hash(16293).await;
+		assert!(result.is_ok());
 
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1291,8 +1308,9 @@ mod tests {
             "id": 1
         }"#;
 
-		provider.get_block_by_index(12345, false).await;
+		let result = provider.get_block_by_index(12345, false).await;
 
+		assert!(result.is_ok());
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
@@ -1313,7 +1331,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider
+		let result = provider
 			.get_block(
 				H256::from_str(
 					"0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d",
@@ -1322,6 +1340,8 @@ mod tests {
 				true,
 			)
 			.await;
+
+		assert!(result.is_ok());
 
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1343,7 +1363,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider
+		let result = provider
 			.get_block(
 				H256::from_str(
 					"0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d",
@@ -1373,7 +1393,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider.get_raw_block_by_index(12345).await;
+		let result = provider.get_raw_block_by_index(12345).await;
 
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1395,7 +1415,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider.get_block_header_count().await;
+		let result = provider.get_block_header_count().await;
 
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1417,7 +1437,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider.get_block_count().await;
+		let result = provider.get_block_count().await;
 
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1439,7 +1459,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider.get_native_contracts().await;
+		let result = provider.get_native_contracts().await;
 
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1461,7 +1481,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider.get_block_header_by_index(12345).await;
+		let result = provider.get_block_header_by_index(12345).await;
 
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1483,7 +1503,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider.get_raw_block_header_by_index(12345).await;
+		let result = provider.get_raw_block_header_by_index(12345).await;
 
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1505,7 +1525,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider
+		let result = provider
 			.get_contract_state(H160::from_str("dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f").unwrap())
 			.await;
 
@@ -1529,7 +1549,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider.get_native_contract_state("NeoToken").await;
+		let result = provider.get_native_contract_state("NeoToken").await;
 
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1551,7 +1571,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider.get_contract_state_by_id(-6).await;
+		let result = provider.get_contract_state_by_id(-6).await;
 
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1573,7 +1593,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider.get_mem_pool().await;
+		let result = provider.get_mem_pool().await;
 
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1595,7 +1615,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider.get_raw_mem_pool().await;
+		let result = provider.get_raw_mem_pool().await;
 
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1617,7 +1637,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider
+		let result = provider
 			.get_transaction(
 				H256::from_str(
 					"0x1f31821787b0a53df0ff7d6e0e7ecba3ac19dd517d6d2ea5aaf00432c20831d6",
@@ -1646,7 +1666,7 @@ mod tests {
             "id": 1
         }"#;
 
-		provider
+		let result = provider
 			.get_raw_transaction(
 				H256::from_str(
 					"0x1f31821787b0a53df0ff7d6e0e7ecba3ac19dd517d6d2ea5aaf00432c20831d6",
@@ -1681,7 +1701,7 @@ mod tests {
 			key_base64
 		);
 
-		provider
+		let result = provider
 			.get_storage(H160::from_str("03febccf81ac85e3d795bc5cbd4e84e907812aa3").unwrap(), key)
 			.await;
 
@@ -1710,7 +1730,7 @@ mod tests {
 			prefix_base64
 		);
 
-		provider
+		let result = provider
 			.find_storage(
 				H160::from_str("1b468f207a5c5c3ee94e41b4cc606e921b33d160").unwrap(),
 				"c3",
@@ -1743,7 +1763,7 @@ mod tests {
 			prefix_base64
 		);
 
-		provider.find_storage_with_id(-1, "0b", 10).await;
+		let result = provider.find_storage_with_id(-1, "0b", 10).await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
@@ -1767,7 +1787,7 @@ mod tests {
 		}}"#
 		);
 
-		provider
+		let result = provider
 			.get_transaction_height(
 				H256::from_str(
 					"0x793f560ae7058a50c672890e69c9292391dd159ce963a33462059d03b9573d6a",
@@ -1798,7 +1818,7 @@ mod tests {
 		}}"#
 		);
 
-		provider.get_next_block_validators().await;
+		let result = provider.get_next_block_validators().await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
@@ -1822,7 +1842,7 @@ mod tests {
 		}}"#
 		);
 
-		provider.get_committee().await;
+		let result = provider.get_committee().await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
@@ -1848,7 +1868,7 @@ mod tests {
 		}}"#
 		);
 
-		provider.get_connection_count().await;
+		let result = provider.get_connection_count().await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
@@ -1872,7 +1892,7 @@ mod tests {
 		}}"#
 		);
 
-		provider.get_peers().await;
+		let result = provider.get_peers().await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
@@ -1896,7 +1916,7 @@ mod tests {
 		}}"#
 		);
 
-		provider.get_version().await;
+		let result = provider.get_version().await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
@@ -1920,7 +1940,7 @@ mod tests {
 		}}"#
 		);
 
-		provider.send_raw_transaction("80000001d405ab03e736a01ca277d94b1377113c7e961bb4550511fe1d408f30c77a82650000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500ca9a3b0000000023ba2703c53263e8d6e522dc32203339dcd8eee99b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc5001a711802000000295f83f83fc439f56e6e1fb062d89c6f538263d70141403711e366fc99e77a110b6c96b5f8828ef956a6d5cfa5cb63273419149011b0f30dc5458faa59e4867d0ac7537e324c98124bb691feca5c5ddf6ed20f4adb778223210265bf906bf385fbf3f777832e55a87991bcfbe19b097fb7c5ca2e4025a4d5e5d6ac".to_string()).await.expect("TODO: panic message");
+		let result = provider.send_raw_transaction("80000001d405ab03e736a01ca277d94b1377113c7e961bb4550511fe1d408f30c77a82650000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500ca9a3b0000000023ba2703c53263e8d6e522dc32203339dcd8eee99b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc5001a711802000000295f83f83fc439f56e6e1fb062d89c6f538263d70141403711e366fc99e77a110b6c96b5f8828ef956a6d5cfa5cb63273419149011b0f30dc5458faa59e4867d0ac7537e324c98124bb691feca5c5ddf6ed20f4adb778223210265bf906bf385fbf3f777832e55a87991bcfbe19b097fb7c5ca2e4025a4d5e5d6ac".to_string()).await.expect("TODO: panic message");
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
@@ -1944,7 +1964,7 @@ mod tests {
 		}}"#
 		);
 
-		provider
+		let result = provider
 			.submit_block("00000000000000000000000000000000".to_string())
 			.await
 			.expect("TODO: panic message");
@@ -2023,7 +2043,7 @@ mod tests {
 		signer.set_allowed_groups(vec![public_key]).expect("TODO: panic message");
 		signer.set_rules(vec![rule]).expect("TODO: panic message");
 
-		let _ = provider
+		let result = provider
 			.invoke_function(
 				&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
 				"balanceOf".to_string(),
@@ -2168,7 +2188,7 @@ mod tests {
 		signer.set_allowed_groups(vec![public_key]).expect("TODO: panic message");
 		signer.set_rules(vec![rule1, rule2, rule3]).expect("TODO: panic message");
 
-		let _ = provider
+		let result = provider
 			.invoke_function(
 				&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
 				"balanceOf".to_string(),
@@ -2221,7 +2241,7 @@ mod tests {
 			),
 		);
 
-		let _ = provider
+		let result = provider
 			.invoke_function_diagnostics(
 				H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
 				"balanceOf".to_string(),
@@ -2233,14 +2253,53 @@ mod tests {
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
 
+	// async fn setup_mock_server() -> MockServer {
+	// 	let server = MockServer::start().await;
+	// 	Mock::given(method("POST"))
+	// 		.and(path("/"))
+	// 		.respond_with(ResponseTemplate::new(200).set_body_string("hello"))
+	// 		.mount(&server)
+	// 		.await;
+	// 	server
+	// }
+
 	async fn setup_mock_server() -> MockServer {
 		let server = MockServer::start().await;
-		Mock::given(method("POST"))
-			.and(path("/"))
-			.respond_with(ResponseTemplate::new(200).set_body_string("hello"))
-			.mount(&server)
-			.await;
 		server
+	}
+
+	async fn mock_rpc_response(
+		server: &MockServer,
+		rpc_method: &str,
+		params: Value,
+		result: Value,
+	) {
+		let mock = Mock::given(http_method("POST"))
+			.and(path("/"))
+			.and(body_json(json!({
+				"jsonrpc": "2.0",
+				"method": rpc_method,
+				"params": params,
+				"id": 1
+			})))
+			.respond_with(ResponseTemplate::new(200).set_body_json(json!({
+				"jsonrpc": "2.0",
+				"id": 1,
+				"result": result
+			})));
+
+		debug!("Setting up mock for method: {}", rpc_method);
+		debug!(
+			"Mock response body: {}",
+			serde_json::to_string_pretty(&json!({
+				"jsonrpc": "2.0",
+				"id": 1,
+				"result": result
+			}))
+			.unwrap()
+		);
+
+		server.register(mock).await;
 	}
 
 	async fn verify_request(

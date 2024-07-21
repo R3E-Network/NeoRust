@@ -95,8 +95,8 @@ where
 					Err(err) => {
 						error!("failed to deserialize item {:?}", err);
 						continue
-					}
-                },
+					},
+				},
 				None => Poll::Ready(None),
 			}
 		}
