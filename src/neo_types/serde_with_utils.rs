@@ -23,6 +23,7 @@ use neo::prelude::{
 #[cfg(feature = "substrate")]
 use serde_big_array_substrate::big_array;
 
+use crate::prelude::parse_string_h160;
 #[cfg(feature = "substrate")]
 use serde_substrate as serde;
 
@@ -32,6 +33,21 @@ where
 {
 	let hex_str = format!("{:x}", h160);
 	serializer.serialize_str(&hex_str)
+}
+
+pub fn serialize_h160<S>(item: &H160, serializer: S) -> Result<S::Ok, S::Error>
+where
+	S: Serializer,
+{
+	serializer.serialize_str(&encode_string_h160(item))
+}
+
+pub fn deserialize_h160<'de, D>(deserializer: D) -> Result<H160, D::Error>
+where
+	D: Deserializer<'de>,
+{
+	let s: String = Deserialize::deserialize(deserializer)?;
+	Ok(parse_string_h160(&s))
 }
 
 pub fn serialize_scopes<S>(scopes: &Vec<WitnessScope>, serializer: S) -> Result<S::Ok, S::Error>

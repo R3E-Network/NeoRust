@@ -24,6 +24,13 @@ use neo::prelude::{
 	NeoSerializable, Role, ScriptHashExtension, Secp256r1PublicKey, ValueExtension,
 };
 
+#[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Clone)]
+pub struct ContractParameter2 {
+	name: String,
+	#[serde(rename = "type")]
+	typ: ContractParameterType,
+}
+
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone)]
 pub struct ContractParameter {
 	#[serde(skip_serializing_if = "Option::is_none")]

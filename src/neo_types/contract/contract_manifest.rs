@@ -5,11 +5,12 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+use crate::prelude::ContractParameter2;
 use neo::prelude::{
 	deserialize_wildcard, serialize_wildcard, ContractParameter, ContractParameterType,
 };
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ContractManifest {
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub name: Option<String>,
@@ -17,18 +18,18 @@ pub struct ContractManifest {
 	pub groups: Vec<ContractGroup>,
 	#[serde(skip_serializing)]
 	pub features: Option<HashMap<String, serde_json::Value>>,
-	#[serde(default)]
-	#[serde(serialize_with = "serialize_wildcard")]
-	#[serde(deserialize_with = "deserialize_wildcard")]
+	// #[serde(default)]
+	// #[serde(serialize_with = "serialize_wildcard")]
+	// #[serde(deserialize_with = "deserialize_wildcard")]
 	#[serde(rename = "supportedstandards")]
 	pub supported_standards: Vec<String>,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub abi: Option<ContractABI>,
 	#[serde(default)]
 	pub permissions: Vec<ContractPermission>,
-	#[serde(skip_serializing)]
-	#[serde(serialize_with = "serialize_wildcard")]
-	#[serde(deserialize_with = "deserialize_wildcard")]
+	// #[serde(skip_serializing)]
+	// #[serde(serialize_with = "serialize_wildcard")]
+	// #[serde(deserialize_with = "deserialize_wildcard")]
 	pub trusts: Vec<String>,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub extra: Option<HashMap<String, serde_json::Value>>,
@@ -77,8 +78,9 @@ pub struct ContractABI {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
 pub struct ContractMethod {
 	pub name: String,
-	pub parameters: Vec<ContractParameter>,
+	pub parameters: Vec<ContractParameter2>,
 	pub offset: usize,
+	#[serde(rename = "returntype")]
 	pub return_type: ContractParameterType,
 	pub safe: bool,
 }

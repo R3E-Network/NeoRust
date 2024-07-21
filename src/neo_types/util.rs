@@ -84,6 +84,25 @@ pub fn encode_string_h160(h160: &H160) -> String {
 	format!("{:?}", h160).to_owned()
 }
 
+/// Parses a hexadecimal string into an `H160` hash, padding with zeros if necessary.
+///
+/// # Examples
+///
+/// ```
+/// use primitive_types::H160;
+/// use NeoRust::prelude::parse_string_h160;
+/// let hex_str = "0x123456";
+///
+/// let h160 = parse_string_h160(hex_str);
+/// assert_eq!(h160, H160::from_low_u64_be(0x123456));
+/// ```
+pub fn parse_string_h160(h160_str: &str) -> H160 {
+	let bytes = hex::decode(h160_str.trim_start_matches("0x")).unwrap();
+	let mut padded_bytes = [0_u8; 20];
+	padded_bytes[20 - bytes.len()..].copy_from_slice(&bytes);
+	H160::from_slice(&padded_bytes)
+}
+
 /// Parses a hexadecimal string into an `H256` hash, padding with zeros if necessary.
 ///
 /// # Examples
