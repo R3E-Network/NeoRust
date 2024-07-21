@@ -6,12 +6,10 @@
 //! rate-limiting errors. In addition to the RetryPolicy, errors caused by connectivity issues such
 //! as timed out connections or responses in the 5xx range can also be retried separately.
 
-use std::time::Duration;
-
+use NeoRust::prelude::*;
 use primitive_types::H256;
 use reqwest::Url;
 
-use NeoRust::prelude::*;
 const RPC_URL: &str = NeoConstants::SEED_1;
 
 #[tokio::main]

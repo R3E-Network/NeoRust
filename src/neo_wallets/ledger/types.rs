@@ -48,7 +48,8 @@ pub enum LedgerError {
 	#[error("Ledger neo app requires at least version: {0:?}")]
 	UnsupportedAppVersion(String),
 	/// Got a response, but it didn't contain as much data as expected
-	#[error("Cannot deserialize ledger response, insufficient bytes. Got {got} expected at least {at_least}")]
+	#[error("Cannot deserialize ledger response, insufficient bytes. Got {got} expected at least {at_least}"
+    )]
 	ShortResponse { got: usize, at_least: usize },
 	/// Payload is empty
 	#[error("Payload must not be empty")]

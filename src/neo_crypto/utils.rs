@@ -56,7 +56,7 @@ macro_rules! impl_to_array32 {
 				if self.len() != 32 {
 					return Err(CryptoError::InvalidFormat(
 						"Vector does not contain exactly 32 elements".to_string(),
-					))
+					));
 				}
 
 				let mut array = [0u8; 32];

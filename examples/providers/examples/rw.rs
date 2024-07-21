@@ -1,9 +1,9 @@
 //! The RwClient wraps two data transports: the first is used for read operations, and the second
 //! one is used for write operations, that consume gas like sending transactions.
 
+use NeoRust::prelude::*;
 use url::Url;
 
-use NeoRust::prelude::*;
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     let anvil = Anvil::new().spawn();

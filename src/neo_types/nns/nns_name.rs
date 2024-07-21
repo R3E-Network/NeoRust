@@ -18,16 +18,16 @@ impl NNSName {
 
 	pub fn is_valid(name: &str, allow_multi_fragments: bool) -> Result<(), TypeError> {
 		if name.len() < 3 || name.len() > 255 {
-			return Err(TypeError::InvalidNeoName("Invalid name length".to_string()))
+			return Err(TypeError::InvalidNeoName("Invalid name length".to_string()));
 		}
 
 		let fragments: Vec<&str> = name.split('.').collect();
 		if fragments.len() < 2 || fragments.len() > 8 {
-			return Err(TypeError::InvalidNeoName("Invalid fragment count".to_string()))
+			return Err(TypeError::InvalidNeoName("Invalid fragment count".to_string()));
 		}
 
 		if fragments.len() > 2 && !allow_multi_fragments {
-			return Err(TypeError::InvalidNeoName("Multiple fragments not allowed".to_string()))
+			return Err(TypeError::InvalidNeoName("Multiple fragments not allowed".to_string()));
 		}
 
 		for fragment in &fragments {
@@ -40,27 +40,27 @@ impl NNSName {
 	fn validate_fragment(fragment: &str, is_root: bool) -> Result<(), TypeError> {
 		let max_len = if is_root { 16 } else { 63 };
 		if fragment.is_empty() || fragment.len() > max_len {
-			return Err(TypeError::InvalidNeoName("Invalid fragment length".to_string()))
+			return Err(TypeError::InvalidNeoName("Invalid fragment length".to_string()));
 		}
 
 		let first = fragment.chars().next().unwrap();
 		if is_root && !first.is_ascii_alphabetic() {
-			return Err(TypeError::InvalidNeoName("Root must start with letter".to_string()))
+			return Err(TypeError::InvalidNeoName("Root must start with letter".to_string()));
 		} else if !is_root && !(first.is_ascii_alphanumeric() || first == '-'.into()) {
-			return Err(TypeError::InvalidNeoName("Invalid start character".to_string()))
+			return Err(TypeError::InvalidNeoName("Invalid start character".to_string()));
 		}
 
 		if fragment.len() == 1 {
-			return Ok(())
+			return Ok(());
 		}
 
 		if fragment[1..].chars().any(|c| !(c.is_ascii_alphanumeric() || c == '-'.into())) {
-			return Err(TypeError::InvalidNeoName("Invalid character in fragment".to_string()))
+			return Err(TypeError::InvalidNeoName("Invalid character in fragment".to_string()));
 		}
 
 		let last = fragment.chars().last().unwrap();
 		if !(last.is_ascii_alphanumeric()) {
-			return Err(TypeError::InvalidNeoName("Must end with alphanumeric".to_string()))
+			return Err(TypeError::InvalidNeoName("Must end with alphanumeric".to_string()));
 		}
 
 		Ok(())

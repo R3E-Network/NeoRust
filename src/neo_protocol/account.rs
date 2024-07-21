@@ -1,18 +1,17 @@
-use neo::prelude::*;
+use std::{
+	collections::HashMap,
+	fmt::Debug,
+	hash::{Hash, Hasher},
+	str::FromStr,
+	sync::{Arc, Weak},
+};
+
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
 use serde_derive::{Deserialize, Serialize};
 use signature::{hazmat::PrehashSigner, Error};
-use std::{
-	cell::RefCell,
-	collections::HashMap,
-	fmt::Debug,
-	hash::{Hash, Hasher},
-	ptr::null_mut,
-	rc::Rc,
-	str::FromStr,
-	sync::{Arc, Mutex, Weak},
-};
+
+use neo::prelude::*;
 
 pub trait AccountTrait: Sized + PartialEq + Send + Sync + Debug + Clone {
 	type Error: Sync + Send + Debug + Sized;
@@ -305,7 +304,7 @@ impl AccountTrait for Account {
 
 	fn decrypt_private_key(&mut self, password: &str) -> Result<(), Self::Error> {
 		if self.key_pair.is_some() {
-			return Ok(())
+			return Ok(());
 		}
 
 		let encrypted_private_key = self
@@ -535,20 +534,19 @@ impl Account {
 
 #[cfg(test)]
 mod tests {
-	use crate::neo_protocol::account::Base64Encode;
-	use neo::prelude::{
-		Account, AccountTrait, BodyRegexMatcher, HttpProvider, KeyPair, MockProvider,
-		NeoSerializable, PrivateKeyExtension, Provider, ProviderError, ScriptHashExtension,
-		Secp256r1PublicKey, TestConstants, ToArray32, VerificationScript, Wallet, WalletTrait,
-	};
 	use primitive_types::H160;
-	use ring::aead::NONCE_LEN;
 	use rustc_serialize::hex::FromHex;
 	use serde_json::Value;
 	use url::Url;
 	use wiremock::{
 		matchers::{method, path},
 		Mock, MockServer, ResponseTemplate,
+	};
+
+	use neo::prelude::{
+		Account, AccountTrait, BodyRegexMatcher, HttpProvider, KeyPair, NeoSerializable, Provider,
+		ProviderError, ScriptHashExtension, Secp256r1PublicKey, TestConstants, ToArray32,
+		VerificationScript, Wallet, WalletTrait,
 	};
 
 	use super::Middleware;

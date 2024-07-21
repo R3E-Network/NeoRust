@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use eyre::Result;
-
 use ethers::{
     contract::abigen,
     core::types::Address,
     providers::{Provider, StreamExt, Ws},
 };
+use eyre::Result;
 
 abigen!(
     IERC20,

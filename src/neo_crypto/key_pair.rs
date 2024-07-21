@@ -19,7 +19,6 @@ use crate::{
 };
 
 /// Represents an Elliptic Curve Key Pair containing both a private and a public key.
-
 #[derive(Debug, Clone)]
 pub struct KeyPair {
 	/// The private key component of the key pair.
@@ -145,8 +144,9 @@ impl PartialEq for KeyPair {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::{KeyPair, ScriptHash, ScriptHashExtension, TestConstants};
 	use rustc_serialize::hex::FromHex;
+
+	use neo::prelude::{KeyPair, ScriptHash, ScriptHashExtension, TestConstants};
 
 	#[test]
 	fn test_public_key_wif() {

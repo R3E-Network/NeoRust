@@ -120,7 +120,7 @@ impl<'a> Decoder<'a> {
 			if let Some(byte) = bytes.to_owned().get_mut(len - 1) {
 				*byte ^= 0x80;
 			} else {
-				return Err(CodecError::InvalidFormat)
+				return Err(CodecError::InvalidFormat);
 			}
 			// bytes.get_mut()[len - 1] ^= 0x80;
 		}
@@ -140,7 +140,7 @@ impl<'a> Decoder<'a> {
 	/// Reads a byte slice of the given length from the byte slice.
 	pub fn read_bytes(&mut self, length: usize) -> Result<Vec<u8>, CodecError> {
 		if self.pointer + length > self.data.len() {
-			return Err(CodecError::IndexOutOfBounds("Read beyond end of buffer".to_string()))
+			return Err(CodecError::IndexOutOfBounds("Read beyond end of buffer".to_string()));
 		}
 		let result = self.data[self.pointer..self.pointer + length].to_vec();
 		self.pointer += length;
@@ -199,7 +199,7 @@ impl<'a> Decoder<'a> {
 		let byte = self.read_u8();
 
 		if (OpCode::PushM1 as u8..=OpCode::Push16 as u8).contains(&byte) {
-			return Ok(BigInt::from(byte as i8 - OpCode::Push0 as i8))
+			return Ok(BigInt::from(byte as i8 - OpCode::Push0 as i8));
 		}
 
 		let count = match OpCode::try_from(byte)? {

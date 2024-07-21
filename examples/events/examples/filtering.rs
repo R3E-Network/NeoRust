@@ -1,11 +1,8 @@
-use std::sync::Arc;
-
-use eyre::Result;
-
 use ethers::{
     core::types::{Address, Filter, H160, H256, U256},
     providers::{Http, Middleware, Provider},
 };
+use eyre::Result;
 
 const HTTP_URL: &str = "https://rpc.flashbots.net";
 const V3FACTORY_ADDRESS: &str = "0x1F98431c8aD98523631AE4a59f267346ea31F984";

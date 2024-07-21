@@ -44,7 +44,7 @@ pub trait SmartContractTrait<'a>: Send + Sync {
 		params: Vec<ContractParameter>,
 	) -> Result<Bytes, ContractError> {
 		if function.is_empty() {
-			return Err(ContractError::InvalidNeoName("Function name cannot be empty".to_string()))
+			return Err(ContractError::InvalidNeoName("Function name cannot be empty".to_string()));
 		}
 
 		let script = ScriptBuilder::new()
@@ -111,7 +111,7 @@ pub trait SmartContractTrait<'a>: Send + Sync {
 		if function.is_empty() {
 			return Err(ContractError::from(ContractError::InvalidNeoName(
 				"Function cannot be empty".to_string(),
-			)))
+			)));
 		}
 
 		let res = self

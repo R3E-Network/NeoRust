@@ -96,7 +96,7 @@ impl Encoder {
 	) -> Result<(), CodecError> {
 		let bytes = v.as_deref().unwrap_or_default().as_bytes();
 		if bytes.len() > length {
-			return Err(CodecError::InvalidEncoding("String too long".to_string()))
+			return Err(CodecError::InvalidEncoding("String too long".to_string()));
 		}
 		let mut padded = vec![0; length];
 		padded[0..bytes.len()].copy_from_slice(bytes);

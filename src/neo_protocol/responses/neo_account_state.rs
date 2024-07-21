@@ -1,9 +1,11 @@
+use std::hash::{Hash, Hasher};
+
+use serde::{Deserialize, Serialize};
+
 use neo::prelude::{
 	deserialize_public_key_option, serialize_public_key_option, PublicKeyExtension,
 	Secp256r1PublicKey,
 };
-use serde::{Deserialize, Serialize};
-use std::hash::{Hash, Hasher};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct AccountState {

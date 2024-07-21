@@ -1,9 +1,8 @@
-use eyre::Result;
-
 use ethers::{
     contract::abigen,
     core::{abi::AbiDecode, types::Bytes},
 };
+use eyre::Result;
 
 // Abigen creates a SwapExactTokensForTokensCall struct that can be used to decode
 // the call data for the swapExactTokensForTokens function in the IUniswapV2Router02 contract

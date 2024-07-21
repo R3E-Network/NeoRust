@@ -55,7 +55,7 @@ impl Witness {
 		if signatures.len() < threshold {
 			return Err(BuilderError::SignerConfiguration(
 				"Not enough signatures provided for the required signing threshold.".to_string(),
-			))
+			));
 		}
 
 		let invocation_script =
@@ -65,7 +65,7 @@ impl Witness {
 
 	pub fn create_contract_witness(params: Vec<ContractParameter>) -> Result<Self, BuilderError> {
 		if params.is_empty() {
-			return Ok(Self::new())
+			return Ok(Self::new());
 		}
 
 		let mut builder = ScriptBuilder::new();

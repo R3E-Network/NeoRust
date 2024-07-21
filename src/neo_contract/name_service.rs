@@ -1,15 +1,17 @@
 #![feature(const_trait_impl)]
+use std::{string::ToString, sync::Arc};
+
 use async_trait::async_trait;
 use futures::FutureExt;
+use primitive_types::H160;
+use serde::{Deserialize, Serialize};
+
 use neo::prelude::{
 	deserialize_script_hash, deserialize_script_hash_option, serialize_script_hash,
 	serialize_script_hash_option, AddressOrScriptHash, ContractError, ContractParameter,
 	JsonRpcClient, Middleware, NNSName, NeoIterator, NonFungibleTokenTrait, Provider, ScriptHash,
 	SmartContractTrait, StackItem, TokenTrait, TransactionBuilder,
 };
-use primitive_types::H160;
-use serde::{Deserialize, Serialize};
-use std::{string::ToString, sync::Arc};
 
 #[repr(u8)]
 enum RecordType {
@@ -223,11 +225,11 @@ impl<'a, P: JsonRpcClient + 'static> NeoNameService<'a, P> {
 		if should_be_available && !is_available {
 			return Err(ContractError::DomainNameNotAvailable(
 				"Domain name already taken".to_string(),
-			))
+			));
 		} else if !should_be_available && is_available {
 			return Err(ContractError::DomainNameNotRegistered(
 				"Domain name not registered".to_string(),
-			))
+			));
 		}
 
 		Ok(())

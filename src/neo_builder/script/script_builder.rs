@@ -201,8 +201,7 @@ impl ScriptBuilder {
 				self.op_code(&[OpCode::PushData4]);
 				self.script.write_u32(data.len() as u32);
 				let _ = self.script.write_bytes(&data);
-			},
-			// _ => return Err(BuilderError::IllegalArgument("Data too long".to_string())),
+			}, // _ => return Err(BuilderError::IllegalArgument("Data too long".to_string())),
 		}
 		self
 	}

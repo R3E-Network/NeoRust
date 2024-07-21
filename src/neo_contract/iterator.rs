@@ -1,5 +1,6 @@
-use neo::prelude::*;
 use std::{fmt, sync::Arc};
+
+use neo::prelude::*;
 
 pub struct NeoIterator<'a, T, P: JsonRpcClient> {
 	session_id: String,

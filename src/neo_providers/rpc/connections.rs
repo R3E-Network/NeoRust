@@ -6,7 +6,7 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use neo::prelude::{ProviderError, RpcError};
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(target_arch = "wasm32", async_trait(? Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 #[auto_impl(&, Box, Arc)]
 /// Trait which must be implemented by data transports to be used with the Neo

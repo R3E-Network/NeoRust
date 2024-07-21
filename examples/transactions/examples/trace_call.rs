@@ -1,7 +1,3 @@
-use std::str::FromStr;
-
-use eyre::Result;
-
 use ethers::{
     core::types::GethDebugTracingOptions,
     providers::{Http, Middleware, Provider},
@@ -10,6 +6,7 @@ use ethers::{
         GethDebugTracingCallOptions, TransactionRequest,
     },
 };
+use eyre::Result;
 
 /// use `debug_traceCall` to fetch traces
 /// requires, a valid endpoint in `RPC_URL` env var that supports `debug_traceCall`

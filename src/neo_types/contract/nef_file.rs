@@ -70,7 +70,7 @@ impl NefFile {
 	fn read_from_file(file: &str) -> Result<Self, TypeError> {
 		let file_bytes = std::fs::read(file).unwrap();
 		if file_bytes.len() > 0x100000 {
-			return Err(TypeError::InvalidArgError("NEF file is too large".to_string()))
+			return Err(TypeError::InvalidArgError("NEF file is too large".to_string()));
 		}
 
 		let mut reader = Decoder::new(&file_bytes);
@@ -120,7 +120,7 @@ impl NeoSerializable for NefFile {
 	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
 		let magic = reader.read_u32();
 		if magic != Self::MAGIC {
-			return Err(TypeError::InvalidEncoding("Invalid magic".to_string()))
+			return Err(TypeError::InvalidEncoding("Invalid magic".to_string()));
 		}
 
 		let compiler_bytes = reader.read_bytes(Self::COMPILER_SIZE)?;
@@ -129,22 +129,22 @@ impl NeoSerializable for NefFile {
 
 		let source_url = reader.read_var_string()?;
 		if source_url.len() > Self::MAX_SOURCE_URL_SIZE {
-			return Err(TypeError::InvalidEncoding("Invalid source url".to_string()))
+			return Err(TypeError::InvalidEncoding("Invalid source url".to_string()));
 		}
 
 		if reader.read_u8() != 0 {
-			return Err(TypeError::InvalidEncoding("Invalid reserve bytes".to_string()))
+			return Err(TypeError::InvalidEncoding("Invalid reserve bytes".to_string()));
 		}
 
 		let method_tokens = reader.read_serializable_list()?;
 
 		if reader.read_u16() != 0 {
-			return Err(TypeError::InvalidEncoding("Invalid reserve bytes".to_string()))
+			return Err(TypeError::InvalidEncoding("Invalid reserve bytes".to_string()));
 		}
 
 		let script = reader.read_var_bytes()?;
 		if script.is_empty() {
-			return Err(TypeError::InvalidEncoding("Invalid script".to_string()))
+			return Err(TypeError::InvalidEncoding("Invalid script".to_string()));
 		}
 
 		let file =
@@ -152,7 +152,7 @@ impl NeoSerializable for NefFile {
 
 		let checksum = reader.read_bytes(Self::CHECKSUM_SIZE)?;
 		if checksum != Self::compute_checksum(&file) {
-			return Err(TypeError::InvalidEncoding("Invalid checksum".to_string()))
+			return Err(TypeError::InvalidEncoding("Invalid checksum".to_string()));
 		}
 
 		Ok(file)

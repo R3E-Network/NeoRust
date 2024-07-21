@@ -1,7 +1,8 @@
 use async_trait::async_trait;
-use neo::prelude::*;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
+
+use neo::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GasToken<'a, P: JsonRpcClient> {

@@ -1,7 +1,5 @@
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
-use eyre::Result;
-
 use ethers::{
     contract::{abigen, ContractFactory},
     core::utils::Anvil,
@@ -10,6 +8,7 @@ use ethers::{
     signers::{LocalWallet, Signer},
     solc::{Artifact, Project, ProjectPathsConfig},
 };
+use eyre::Result;
 
 // Generate the type-safe contract bindings by providing the ABI
 // definition in human readable format

@@ -24,12 +24,12 @@ pub fn private_key_from_wif(wif: &str) -> Result<Secp256r1PrivateKey, CryptoErro
 		.into_vec()
 		.map_err(|_| CryptoError::InvalidFormat("Incorrect WIF format.".to_string()))?;
 	if data.len() != 38 || data[0] != 0x80 || data[33] != 0x01 {
-		return Err(CryptoError::InvalidFormat("Incorrect WIF format.".to_string()))
+		return Err(CryptoError::InvalidFormat("Incorrect WIF format.".to_string()));
 	}
 
 	let checksum_calculated = Sha256::digest(&Sha256::digest(&data[..34]));
 	if checksum_calculated[..4] != data[34..] {
-		return Err(CryptoError::InvalidFormat("Incorrect WIF checksum.".to_string()))
+		return Err(CryptoError::InvalidFormat("Incorrect WIF checksum.".to_string()));
 	}
 
 	Secp256r1PrivateKey::from_bytes(&data[1..33].to_vec())
