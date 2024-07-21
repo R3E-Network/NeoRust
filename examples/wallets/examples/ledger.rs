@@ -1,4 +1,4 @@
-extern crate neo -rs;
+extern crate NeoRust;
 
 use NeoRust::prelude::*;
 
@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create and broadcast a transaction (ENS enabled!)
     // (this will require confirming the tx on the device)
-    let tx = TransactionRequest::new().to("vitalik.eth").value(parse_ether(10)?);
+    let tx = TransactionRequest::new().to("erik.neo").value(parse_ether(10)?);
     let pending_tx = client.send_transaction(tx, None).await?;
 
     // Get the receipt

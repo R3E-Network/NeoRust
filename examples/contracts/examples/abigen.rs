@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use eyre::Result;
-
 use ethers::{
     prelude::{abigen, Abigen},
     providers::{Http, Provider},
     types::Address,
 };
+use eyre::Result;
 
 /// Abigen is used to generate Rust code to interact with smart contracts on the blockchain.
 /// It provides a way to encode and decode data that is passed to and from smart contracts.

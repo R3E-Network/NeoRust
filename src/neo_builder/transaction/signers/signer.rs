@@ -48,7 +48,7 @@ pub trait SignerTrait {
 		if self.get_scopes().contains(&WitnessScope::Global) {
 			return Err(BuilderError::SignerConfiguration(
 				"Trying to set allowed contracts on a Signer with global scope.".to_string(),
-			))
+			));
 		}
 
 		if self.get_allowed_contracts().len() + contracts.len()
@@ -57,7 +57,7 @@ pub trait SignerTrait {
 			return Err(BuilderError::SignerConfiguration(format!(
 				"Trying to set more than {} allowed contracts on a signer.",
 				NeoConstants::MAX_SIGNER_SUBITEMS
-			)))
+			)));
 		}
 
 		// Update state
@@ -86,7 +86,7 @@ pub trait SignerTrait {
 		if self.get_scopes().contains(&WitnessScope::Global) {
 			return Err(BuilderError::SignerConfiguration(
 				"Trying to set allowed contract groups on a Signer with global scope.".to_string(),
-			))
+			));
 		}
 
 		if self.get_allowed_groups().len() + groups.len()
@@ -95,7 +95,7 @@ pub trait SignerTrait {
 			return Err(BuilderError::SignerConfiguration(format!(
 				"Trying to set more than {} allowed contract groups on a signer.",
 				NeoConstants::MAX_SIGNER_SUBITEMS
-			)))
+			)));
 		}
 
 		self.get_scopes_mut().retain(|scope| *scope != WitnessScope::None);
@@ -114,14 +114,14 @@ pub trait SignerTrait {
 			if self.get_scopes().contains(&WitnessScope::Global) {
 				return Err(BuilderError::SignerConfiguration(
 					"Trying to set witness rules on a Signer with global scope.".to_string(),
-				))
+				));
 			}
 
 			if self.get_rules().len() + rules.len() > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
 				return Err(BuilderError::SignerConfiguration(format!(
 					"Trying to set more than {} allowed witness rules on a signer.",
 					NeoConstants::MAX_SIGNER_SUBITEMS
-				)))
+				)));
 			}
 
 			for rule in &rules {
@@ -143,7 +143,7 @@ pub trait SignerTrait {
 			return Err(BuilderError::IllegalState(format!(
 				"A maximum nesting depth of {} is allowed for witness conditions",
 				WitnessCondition::MAX_NESTING_DEPTH
-			))) // ::)
+			))); // ::)
 		}
 
 		match condition {
@@ -160,7 +160,7 @@ pub trait SignerTrait {
 
 	fn validate_subitems(&self, count: usize, _name: &str) -> Result<(), BuilderError> {
 		if count > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
-			return Err(BuilderError::TooManySigners("".to_string()))
+			return Err(BuilderError::TooManySigners("".to_string()));
 		}
 		Ok(())
 	}
@@ -373,18 +373,20 @@ impl Into<AccountSigner> for Signer {
 impl Into<TransactionSigner> for Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::Account(account_signer) =>
-				TransactionSigner::new_full(account_signer.account.get_script_hash(), 
-											 account_signer.get_scopes().to_vec(), 
-								  account_signer.get_allowed_contracts().to_vec(), 
-								  	 account_signer.get_allowed_groups().to_vec(), 
-									          account_signer.get_rules().to_vec()),
-			Signer::Contract(contract_signer) =>
-				TransactionSigner::new_full(*contract_signer.get_signer_hash(), 
-											  contract_signer.get_scopes().to_vec(), 
-								   contract_signer.get_allowed_contracts().to_vec(), 
-									  contract_signer.get_allowed_groups().to_vec(), 
-											   contract_signer.get_rules().to_vec()),
+			Signer::Account(account_signer) => TransactionSigner::new_full(
+				account_signer.account.get_script_hash(),
+				account_signer.get_scopes().to_vec(),
+				account_signer.get_allowed_contracts().to_vec(),
+				account_signer.get_allowed_groups().to_vec(),
+				account_signer.get_rules().to_vec(),
+			),
+			Signer::Contract(contract_signer) => TransactionSigner::new_full(
+				*contract_signer.get_signer_hash(),
+				contract_signer.get_scopes().to_vec(),
+				contract_signer.get_allowed_contracts().to_vec(),
+				contract_signer.get_allowed_groups().to_vec(),
+				contract_signer.get_rules().to_vec(),
+			),
 			Signer::Transaction(transaction_signer) => transaction_signer,
 		}
 	}
@@ -393,18 +395,20 @@ impl Into<TransactionSigner> for Signer {
 impl Into<TransactionSigner> for &Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::Account(account_signer) =>
-				TransactionSigner::new_full(account_signer.account.get_script_hash(), 
-											 account_signer.get_scopes().to_vec(), 
-								  account_signer.get_allowed_contracts().to_vec(), 
-								  	 account_signer.get_allowed_groups().to_vec(), 
-									          account_signer.get_rules().to_vec()),
-			Signer::Contract(contract_signer) =>
-				TransactionSigner::new_full(*contract_signer.get_signer_hash(), 
-											  contract_signer.get_scopes().to_vec(), 
-								   contract_signer.get_allowed_contracts().to_vec(), 
-									  contract_signer.get_allowed_groups().to_vec(), 
-											   contract_signer.get_rules().to_vec()),
+			Signer::Account(account_signer) => TransactionSigner::new_full(
+				account_signer.account.get_script_hash(),
+				account_signer.get_scopes().to_vec(),
+				account_signer.get_allowed_contracts().to_vec(),
+				account_signer.get_allowed_groups().to_vec(),
+				account_signer.get_rules().to_vec(),
+			),
+			Signer::Contract(contract_signer) => TransactionSigner::new_full(
+				*contract_signer.get_signer_hash(),
+				contract_signer.get_scopes().to_vec(),
+				contract_signer.get_allowed_contracts().to_vec(),
+				contract_signer.get_allowed_groups().to_vec(),
+				contract_signer.get_rules().to_vec(),
+			),
 			// Signer::Account(_account_signer) =>
 			// 	panic!("Cannot convert AccountSigner into TransactionSigner"),
 			// Signer::Contract(_contract_signer) =>
@@ -520,18 +524,19 @@ impl NeoSerializable for Signer {
 
 #[cfg(test)]
 mod tests {
-	use std::ops::Deref;
+	use std::{collections::HashSet, ops::Deref};
 
 	use lazy_static::lazy_static;
-	use neo::builder::Signer;
 	use primitive_types::H160;
 	use rustc_serialize::hex::{FromHex, ToHex};
-	use std::collections::HashSet;
 
-	use neo::prelude::{
-		Account, AccountSigner, AccountTrait, BuilderError, ContractSigner, Encoder, NeoConstants,
-		NeoSerializable, ScriptHash, ScriptHashExtension, Secp256r1PublicKey, SignerTrait,
-		WitnessAction, WitnessCondition, WitnessRule, WitnessScope,
+	use neo::{
+		builder::Signer,
+		prelude::{
+			Account, AccountSigner, AccountTrait, BuilderError, ContractSigner, Encoder,
+			NeoConstants, NeoSerializable, ScriptHash, ScriptHashExtension, Secp256r1PublicKey,
+			SignerTrait, WitnessAction, WitnessCondition, WitnessRule, WitnessScope,
+		},
 	};
 
 	// const script_hash:ScriptHash = Account::from_wif("Kzt94tAAiZSgH7Yt4i25DW6jJFprZFPSqTgLr5dWmWgKDKCjXMfZ").unwrap().get_script_hash();
@@ -1070,26 +1075,26 @@ mod tests {
 		signer.set_rules(vec![rule.clone(), rule]).expect("");
 
 		let expected_size = 20 // Account script hash
-    							+ 1 // Scope byte
-    							+ 1 // length byte of allowed contracts list
-    							+ 20 + 20 // Script hashes of two allowed contracts
-    							+ 1 // length byte of allowed groups list
-    							+ 33 + 33 // Public keys of two allowed groups
-    							+ 1 // length byte of rules list
-    							+ 1 // byte for WitnessRuleAction Allow
-    							+ 1 // byte for WitnessCondition type (AndCondition)
-    							+ 1 // length of AND condition list
-    							+ 1 // byte for WitnessCondition type (BooleanCondition)
-    							+ 1 // byte for value of BooleanCondition
-   								+ 1 // byte for WitnessCondition type (BooleanCondition)
-    							+ 1 // byte for value of BooleanCondition
-    							+ 1 // byte for WitnessRuleAction Allow
-    							+ 1 // byte for WitnessCondition type (AndCondition)
-    							+ 1 // length of AND condition list
-    							+ 1 // byte for WitnessCondition type (BooleanCondition)
-    							+ 1 // byte for value of BooleanCondition
-   								+ 1 // byte for WitnessCondition type (BooleanCondition)
-    							+ 1; // byte for value of BooleanCondition
+            + 1 // Scope byte
+            + 1 // length byte of allowed contracts list
+            + 20 + 20 // Script hashes of two allowed contracts
+            + 1 // length byte of allowed groups list
+            + 33 + 33 // Public keys of two allowed groups
+            + 1 // length byte of rules list
+            + 1 // byte for WitnessRuleAction Allow
+            + 1 // byte for WitnessCondition type (AndCondition)
+            + 1 // length of AND condition list
+            + 1 // byte for WitnessCondition type (BooleanCondition)
+            + 1 // byte for value of BooleanCondition
+            + 1 // byte for WitnessCondition type (BooleanCondition)
+            + 1 // byte for value of BooleanCondition
+            + 1 // byte for WitnessRuleAction Allow
+            + 1 // byte for WitnessCondition type (AndCondition)
+            + 1 // length of AND condition list
+            + 1 // byte for WitnessCondition type (BooleanCondition)
+            + 1 // byte for value of BooleanCondition
+            + 1 // byte for WitnessCondition type (BooleanCondition)
+            + 1; // byte for value of BooleanCondition
 
 		assert_eq!(signer.size(), expected_size);
 	}

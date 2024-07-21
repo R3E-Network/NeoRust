@@ -58,7 +58,7 @@ pub trait FungibleTokenTrait<'a, P: JsonRpcClient>: TokenTrait<'a, P> {
 		if amount < 0 {
 			return Err(ContractError::InvalidArgError(
 				"The amount must be greater than or equal to 0.".to_string(),
-			))
+			));
 		}
 
 		let transfer_script = self.build_transfer_script(from, to, amount, data).await.unwrap();

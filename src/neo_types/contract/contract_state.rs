@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
 	deserialize_script_hash, serialize_script_hash, ContractManifest, ContractNef,
-	InvocationResult, StackItem,
+	InvocationResult, StackItem, *,
 };
 
 #[derive(Clone, Debug, Hash, Serialize, Deserialize)]
@@ -11,8 +11,8 @@ pub struct ContractState {
 	pub id: i32,
 	pub nef: ContractNef,
 	pub update_counter: i32,
-	#[serde(deserialize_with = "deserialize_script_hash")]
-	#[serde(serialize_with = "serialize_script_hash")]
+	#[serde(serialize_with = "serialize_h160")]
+	#[serde(deserialize_with = "deserialize_h160")]
 	pub hash: H160,
 	pub manifest: ContractManifest,
 }

@@ -44,7 +44,7 @@ impl Default for MockProvider {
 	}
 }
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(target_arch = "wasm32", async_trait(? Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl JsonRpcClient for MockProvider {
 	type Error = MockError;
@@ -161,8 +161,9 @@ impl From<MockError> for ProviderError {
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]
 mod tests {
-	use crate::{config::NeoNetwork, neo_providers::middleware::Middleware};
 	use neo::prelude::{JsonRpcError, Provider};
+
+	use crate::{config::NeoNetwork, neo_providers::middleware::Middleware};
 
 	use super::*;
 

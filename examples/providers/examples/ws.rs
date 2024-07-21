@@ -4,7 +4,7 @@
 //! This allows to interact with the network in real-time without the need for HTTP
 //! polling.
 
-use ethers::prelude::*;
+use NeoRust::prelude::*;
 
 const WSS_URL: &str = "wss://mainnet.infura.io/ws/v3/c60b0bb42f8a4c6481ecd229eddaca27";
 

@@ -1,6 +1,7 @@
+use std::hash::Hash;
+
 use primitive_types::{H160, H256};
 use serde::{Deserialize, Serialize};
-use std::hash::Hash;
 
 pub trait TokenTransfers<'a>: Serialize + Deserialize<'a> + Clone + PartialEq + Eq + Hash {
 	type Transfer: TokenTransfer<'a>;

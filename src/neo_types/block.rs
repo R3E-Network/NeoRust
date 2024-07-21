@@ -70,11 +70,11 @@ where
 		if let Some(transactions) = &self.transactions {
 			if let Some(other_transactions) = &other.transactions {
 				if transactions.len() != other_transactions.len() {
-					return false
+					return false;
 				}
 				for i in 0..transactions.len() {
 					if transactions[i].hash() != other_transactions[i].hash() {
-						return false
+						return false;
 					}
 				}
 			}
@@ -158,13 +158,13 @@ impl<'de> Deserialize<'de> for BlockId {
 					match key.as_str() {
 						"blockNumber" => {
 							if number.is_some() || hash.is_some() {
-								return Err(serde::de::Error::duplicate_field("blockNumber"))
+								return Err(serde::de::Error::duplicate_field("blockNumber"));
 							}
 							number = Some(BlockId::Number(map.next_value::<u64>()?))
 						},
 						"blockHash" => {
 							if number.is_some() || hash.is_some() {
-								return Err(serde::de::Error::duplicate_field("blockHash"))
+								return Err(serde::de::Error::duplicate_field("blockHash"));
 							}
 							hash = Some(BlockId::Hash(map.next_value::<H256>()?))
 						},

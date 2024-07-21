@@ -52,7 +52,7 @@ impl TransactionAttribute {
 			0x01 => Ok(TransactionAttribute::HighPriority),
 			0x11 => {
 				if bytes.len() < 9 {
-					return Err("Not enough bytes for OracleResponse")
+					return Err("Not enough bytes for OracleResponse");
 				}
 				let mut array = [0; 8];
 				let slice_len = bytes[1..9].len();

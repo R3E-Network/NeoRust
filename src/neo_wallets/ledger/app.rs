@@ -120,7 +120,7 @@ impl LedgerNeo {
 		let answer = block_on(transport.exchange(&command))?;
 		let result = answer.data().ok_or(LedgerError::UnexpectedNullResponse)?;
 		if result.len() < 4 {
-			return Err(LedgerError::ShortResponse { got: result.len(), at_least: 4 })
+			return Err(LedgerError::ShortResponse { got: result.len(), at_least: 4 });
 		}
 		let version = format!("{}.{}.{}", result[1], result[2], result[3]);
 		tracing::debug!(version, "Retrieved version from device");
@@ -146,7 +146,11 @@ impl LedgerNeo {
 		self.sign_payload(INS::SIGN_PERSONAL_MESSAGE, &payload).await
 	}
 
-	#[tracing::instrument(err, skip_all, fields(command = %command, payload = hex::encode(payload)))]
+	#[tracing::instrument(
+        err,
+        skip_all,
+        fields(command = % command, payload = hex::encode(payload))
+    )]
 	// structs
 	pub async fn sign_payload(
 		&self,
@@ -154,7 +158,7 @@ impl LedgerNeo {
 		payload: &Vec<u8>,
 	) -> Result<Secp256r1Signature, LedgerError> {
 		if payload.is_empty() {
-			return Err(LedgerError::EmptyPayload)
+			return Err(LedgerError::EmptyPayload);
 		}
 		let transport = self.transport.lock().await;
 		let mut command = APDUCommand {
@@ -184,7 +188,7 @@ impl LedgerNeo {
 
 			let data = answer.as_ref().expect("just assigned").data();
 			if data.is_none() {
-				return Err(LedgerError::UnexpectedNullResponse)
+				return Err(LedgerError::UnexpectedNullResponse);
 			}
 			tracing::debug!(
 				response = hex::encode(data.expect("just checked")),
@@ -198,12 +202,13 @@ impl LedgerNeo {
 		let answer = answer.expect("payload is non-empty, therefore loop ran");
 		let result = answer.data().expect("check in loop");
 		if result.len() < 65 {
-			return Err(LedgerError::ShortResponse { got: result.len(), at_least: 65 })
+			return Err(LedgerError::ShortResponse { got: result.len(), at_least: 65 });
 		}
 		let v = result[0] as u64;
 		let r = U256::from_big_endian(&result[1..33]);
 		let s = U256::from_big_endian(&result[33..]);
 		let sig = Secp256r1Signature { r, s, v };
+
 		tracing::debug!(sig = %sig, "Received signature from device");
 		Ok(sig)
 	}

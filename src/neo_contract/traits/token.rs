@@ -25,7 +25,7 @@ pub trait TokenTrait<'a, P: JsonRpcClient>: SmartContractTrait<'a, P = P> {
 
 	async fn get_total_supply(&mut self) -> Result<u64, ContractError> {
 		if let Some(supply) = &self.total_supply() {
-			return Ok(supply.clone().into())
+			return Ok(supply.clone().into());
 		}
 
 		let supply =
@@ -37,7 +37,7 @@ pub trait TokenTrait<'a, P: JsonRpcClient>: SmartContractTrait<'a, P = P> {
 
 	async fn get_decimals(&mut self) -> Result<u8, ContractError> {
 		if let Some(decimals) = &self.decimals() {
-			return Ok(decimals.clone().into())
+			return Ok(decimals.clone().into());
 		}
 
 		let decimals =
@@ -51,7 +51,7 @@ pub trait TokenTrait<'a, P: JsonRpcClient>: SmartContractTrait<'a, P = P> {
 
 	async fn get_symbol(&mut self) -> Result<String, ContractError> {
 		if let Some(symbol) = &self.symbol() {
-			return Ok(symbol.clone())
+			return Ok(symbol.clone());
 		}
 
 		let symbol = self.call_function_returning_string(Self::SYMBOL, vec![]).await.unwrap();
@@ -65,7 +65,7 @@ pub trait TokenTrait<'a, P: JsonRpcClient>: SmartContractTrait<'a, P = P> {
 		if scale > decimals {
 			return Err(ContractError::RuntimeError(
 				"Amount has too many decimal points".to_string(),
-			))
+			));
 		}
 
 		let scaled = Decimal::from(amount) * Decimal::from(10i32.pow(decimals));
@@ -76,7 +76,7 @@ pub trait TokenTrait<'a, P: JsonRpcClient>: SmartContractTrait<'a, P = P> {
 		if amount.scale() > decimals {
 			return Err(ContractError::RuntimeError(
 				"Amount has too many decimal places".to_string(),
-			))
+			));
 		}
 
 		let mut scaled = amount;

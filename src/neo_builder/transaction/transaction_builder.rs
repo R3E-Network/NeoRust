@@ -1,13 +1,12 @@
-use futures_util::TryFutureExt;
 use std::{
 	collections::HashSet,
 	fmt::Debug,
 	hash::{Hash, Hasher},
 	iter::Iterator,
-	mem,
 	str::FromStr,
 };
 
+use futures_util::TryFutureExt;
 /// This module contains the implementation of the `TransactionBuilder` struct, which is used to build and configure transactions.
 ///
 /// The `TransactionBuilder` struct has various fields that can be set using its methods. Once the fields are set, the `get_unsigned_tx` method can be called to obtain an unsigned transaction.
@@ -29,10 +28,9 @@ use std::{
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use once_cell::sync::Lazy;
 use primitive_types::H160;
-use neo::neo_types::ScriptHashExtension;
 use rustc_serialize::hex::ToHex;
 
-use neo::prelude::*;
+use neo::{neo_types::ScriptHashExtension, prelude::*};
 
 #[derive(Getters, Setters, MutGetters, CopyGetters, Default)]
 pub struct TransactionBuilder<P: JsonRpcClient + 'static> {
@@ -166,7 +164,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 	pub fn nonce(&mut self, nonce: u32) -> Result<&mut Self, TransactionError> {
 		// Validate
 		if nonce > u32::MAX {
-			return Err(TransactionError::InvalidNonce)
+			return Err(TransactionError::InvalidNonce);
 		}
 
 		self.nonce = nonce;
@@ -178,7 +176,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 	// Set valid until block
 	pub fn valid_until_block(&mut self, block: u32) -> Result<&mut Self, TransactionError> {
 		if block == 0 {
-			return Err(TransactionError::InvalidBlock)
+			return Err(TransactionError::InvalidBlock);
 		}
 
 		self.valid_until_block = Some(block);
@@ -195,32 +193,32 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 	pub async fn get_unsigned_tx(&mut self) -> Result<Transaction, TransactionError> {
 		// Validate configuration
 		if self.signers.is_empty() {
-			return Err(TransactionError::NoSigners)
+			return Err(TransactionError::NoSigners);
 		}
 
 		if self.script.is_none() {
-			return Err(TransactionError::NoScript)
+			return Err(TransactionError::NoScript);
 		}
 		let len = self.signers.len();
 		self.signers.dedup();
 
 		// Validate no duplicate signers
 		if len != self.signers.len() {
-			return Err(TransactionError::DuplicateSigner)
+			return Err(TransactionError::DuplicateSigner);
 		}
 
 		// Check signer limits
 		if self.signers.len() > NeoConstants::MAX_SIGNER_SUBITEMS as usize {
-			return Err(TransactionError::TooManySigners)
+			return Err(TransactionError::TooManySigners);
 		}
 
 		// Validate script
 		if let Some(script) = &self.script {
 			if script.is_empty() {
-				return Err(TransactionError::EmptyScript)
+				return Err(TransactionError::EmptyScript);
 			}
 		} else {
-			return Err(TransactionError::NoScript)
+			return Err(TransactionError::NoScript);
 		}
 
 		// Get fees
@@ -298,16 +296,16 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 				.await?
 				.stack[0]
 				.clone();
-			return Ok(balance.as_int().unwrap() as u64)
+			return Ok(balance.as_int().unwrap() as u64);
 		}
 		Err(TransactionError::InvalidSender)
 	}
 
 	fn is_account_signer(signer: &Signer) -> bool {
 		if signer.get_type() == SignerType::Account {
-			return true
+			return true;
 		}
-		return false
+		return false;
 	}
 
 	// Sign transaction
@@ -326,14 +324,14 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 					return Err(BuilderError::IllegalState(
 						"Transactions with multi-sig signers cannot be signed automatically."
 							.to_string(),
-					))
+					));
 				}
 
 				let key_pair = acc.key_pair().as_ref().ok_or_else(|| {
-					BuilderError::InvalidConfiguration(
-						"Cannot create transaction signature because account does not hold a private key.".to_string(),
-					)
-				})?;
+                    BuilderError::InvalidConfiguration(
+                        "Cannot create transaction signature because account does not hold a private key.".to_string(),
+                    )
+                })?;
 
 				witnesses_to_add.push(Witness::create(tx_bytes.clone(), key_pair)?);
 			} else {
@@ -358,7 +356,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 						for pubkey in script.get_public_keys().unwrap() {
 							let hash = public_key_to_script_hash(&pubkey);
 							if committee.contains(&hash) {
-								return true
+								return true;
 							}
 						}
 					}
@@ -400,16 +398,16 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 
 #[cfg(test)]
 mod tests {
-	use std::{ops::Deref, str::FromStr};
+	use std::ops::Deref;
 
 	use lazy_static::lazy_static;
 	use primitive_types::H160;
+	use rustc_serialize::hex::ToHex;
 
 	use neo::prelude::{
 		Account, AccountSigner, AccountTrait, Http, KeyPair, Middleware, NeoConstants, Provider,
 		ScriptBuilder, Secp256r1PrivateKey, TransactionBuilder,
 	};
-use rustc_serialize::hex::ToHex;
 
 	use crate::{neo_types::ScriptHashExtension, prelude::TransactionError};
 
@@ -495,19 +493,19 @@ use rustc_serialize::hex::ToHex;
 	async fn test_invoke_script() {
 		let script = ScriptBuilder::new()
 			.contract_call(
-				&ScriptHashExtension::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(),
+				&ScriptHashExtension::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")
+					.unwrap(),
 				"symbol",
 				&[],
 				None,
 			)
 			.unwrap()
 			.to_bytes();
-	
+
 		let tb = TransactionBuilder::with_provider(TEST_PROVIDER.deref());
-		let response = tb.provider.unwrap()
-			.invoke_script((&script).to_hex(), vec![])
-			.await.unwrap();
-	
+		let response =
+			tb.provider.unwrap().invoke_script((&script).to_hex(), vec![]).await.unwrap();
+
 		assert_eq!(response.stack[0].as_string().unwrap(), "NEO");
 	}
 
@@ -554,11 +552,18 @@ use rustc_serialize::hex::ToHex;
 	#[tokio::test]
 	async fn test_send_invoke_function() {
 		let tb = TransactionBuilder::with_provider(TEST_PROVIDER.deref());
-		let response = tb.provider.unwrap()
-			.invoke_function(&H160::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(),
-				"symbol".to_string(), vec![], None)
-			.await.unwrap();
-	
+		let response = tb
+			.provider
+			.unwrap()
+			.invoke_function(
+				&H160::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(),
+				"symbol".to_string(),
+				vec![],
+				None,
+			)
+			.await
+			.unwrap();
+
 		assert_eq!(response.stack[0].as_string().unwrap(), "NEO");
 	}
 	//

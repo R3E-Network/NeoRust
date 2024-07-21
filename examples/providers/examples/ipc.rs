@@ -6,7 +6,7 @@
 
 use std::sync::Arc;
 
-use ethers::prelude::*;
+use NeoRust::prelude::*;
 
 abigen!(
     IUniswapV2Pair,

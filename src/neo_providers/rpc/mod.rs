@@ -1,12 +1,10 @@
-mod provider;
-
+pub use connections::*;
 pub use provider::*;
-
-mod transports;
+pub use pubsub::{PubsubClient, SubscriptionStream};
 pub use transports::*;
 
-mod connections;
-pub use connections::*;
+mod provider;
 
+mod connections;
 mod pubsub;
-pub use pubsub::{PubsubClient, SubscriptionStream};
+mod transports;

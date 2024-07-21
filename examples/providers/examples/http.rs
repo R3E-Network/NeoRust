@@ -3,9 +3,8 @@
 
 use std::sync::Arc;
 
-use reqwest::header::{HeaderMap, HeaderValue};
-
 use ethers::prelude::*;
+use reqwest::header::{HeaderMap, HeaderValue};
 
 const RPC_URL: &str = "https://eth.llamarpc.com";
 

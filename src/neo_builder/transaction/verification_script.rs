@@ -55,7 +55,7 @@ impl VerificationScript {
 	/// Returns `true` if this script is from a single signature account, otherwise `false`.
 	pub fn is_single_sig(&self) -> bool {
 		if self.script.len() != 40 {
-			return false
+			return false;
 		}
 
 		let interop_service = &self.script[self.script.len() - 4..]; // Get the last 4 bytes
@@ -74,7 +74,7 @@ impl VerificationScript {
 	#[doc(hidden)]
 	pub fn is_multi_sig(&self) -> bool {
 		if self.script.len() < 42 {
-			return false
+			return false;
 		}
 
 		let mut reader = Decoder::new(&self.script);
@@ -86,14 +86,14 @@ impl VerificationScript {
 		if !(1..=NeoConstants::MAX_PUBLIC_KEYS_PER_MULTI_SIG)
 			.contains(&(threshold.to_u32().unwrap()))
 		{
-			return false
+			return false;
 		}
 
 		let mut m: BigInt = BigInt::zero();
 		while reader.by_ref().read_u8() == OpCode::PushData1.opcode() {
 			let len = reader.by_ref().read_u8();
 			if len != 33 {
-				return false
+				return false;
 			}
 			reader.by_ref().read_encoded_ec_point();
 			m += 1;
@@ -101,7 +101,7 @@ impl VerificationScript {
 		}
 
 		if !(m >= threshold && m <= BigInt::from(NeoConstants::MAX_PUBLIC_KEYS_PER_MULTI_SIG)) {
-			return false
+			return false;
 		}
 
 		reader.reset();
@@ -109,14 +109,14 @@ impl VerificationScript {
 		if BigInt::from(reader.read_push_int().unwrap()) != m
 			|| reader.read_u8() != OpCode::Syscall.opcode()
 		{
-			return false
+			return false;
 		}
 
 		let service_bytes = &reader.read_bytes(4).unwrap().to_hex();
 		let hash = &InteropService::SystemCryptoCheckMultiSig.hash(); //.from_hex().unwrap();
 															  //assert_eq!(service_bytes, hash);
 		if service_bytes != hash {
-			return false
+			return false;
 		}
 
 		// match reader.by_ref().read_var_int() {
@@ -165,7 +165,7 @@ impl VerificationScript {
 			point.copy_from_slice(&reader.by_ref().read_bytes(33).unwrap());
 
 			let key = Secp256r1PublicKey::from_bytes(&point).unwrap();
-			return Ok(vec![key])
+			return Ok(vec![key]);
 		}
 
 		if self.is_multi_sig() {
@@ -180,7 +180,7 @@ impl VerificationScript {
 				keys.push(Secp256r1PublicKey::from_bytes(&point).unwrap());
 			}
 
-			return Ok(keys)
+			return Ok(keys);
 		}
 
 		Err(BuilderError::InvalidScript("Invalid verification script".to_string()))
@@ -192,7 +192,7 @@ impl VerificationScript {
 		} else if self.is_multi_sig() {
 			let reader = &mut Decoder::new(&self.script);
 			Ok(reader.by_ref().read_push_int()?.to_usize().unwrap())
-		//Ok(reader.by_ref().read_bigint()?.to_usize().unwrap())
+			//Ok(reader.by_ref().read_bigint()?.to_usize().unwrap())
 		} else {
 			Err(BuilderError::InvalidScript("Invalid verification script".to_string()))
 		}
@@ -230,9 +230,10 @@ impl NeoSerializable for VerificationScript {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
 	use hex_literal::hex;
 	use rustc_serialize::hex::FromHex;
+
+	use super::*;
 
 	#[test]
 	fn test_from_public_key() {

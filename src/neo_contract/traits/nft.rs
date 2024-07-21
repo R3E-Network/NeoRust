@@ -135,7 +135,7 @@ pub trait NonFungibleTokenTrait<'a, P: JsonRpcClient>: TokenTrait<'a, P> + Send 
 		if self.get_decimals().await.unwrap() != 0 {
 			return Err(ContractError::InvalidStateError(
 				"This method is only intended for non-divisible NFTs.".to_string(),
-			))
+			));
 		}
 
 		Ok(())
@@ -150,7 +150,7 @@ pub trait NonFungibleTokenTrait<'a, P: JsonRpcClient>: TokenTrait<'a, P> + Send 
 		if token_owner != from {
 			return Err(ContractError::InvalidArgError(
 				"The provided from account is not the owner of this token.".to_string(),
-			))
+			));
 		}
 
 		Ok(())
@@ -267,7 +267,7 @@ pub trait NonFungibleTokenTrait<'a, P: JsonRpcClient>: TokenTrait<'a, P> + Send 
 		if self.get_decimals().await.unwrap() == 0 {
 			return Err(ContractError::InvalidStateError(
 				"This method is only intended for divisible NFTs.".to_string(),
-			))
+			));
 		}
 
 		Ok(())

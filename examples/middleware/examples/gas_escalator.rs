@@ -1,10 +1,9 @@
-use eyre::Result;
-
 use ethers::{
     core::{types::TransactionRequest, utils::Anvil},
     middleware::gas_escalator::*,
     providers::{Http, Middleware, Provider},
 };
+use eyre::Result;
 
 /// The gas escalator middleware in ethers-rs is designed to automatically increase the gas cost of
 /// transactions if they get stuck in the mempool. This can be useful if you want to

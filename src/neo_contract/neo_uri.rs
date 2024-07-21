@@ -1,9 +1,11 @@
+use std::str::FromStr;
+
 use getset::{Getters, Setters};
-use neo::prelude::*;
 use primitive_types::H160;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
+
+use neo::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Getters, Setters)]
 pub struct NeoURI<'a, P: JsonRpcClient> {
@@ -49,7 +51,7 @@ impl<'a, P: JsonRpcClient + 'static> NeoURI<'a, P> {
 			|| base_parts[0] != Self::NEO_SCHEME
 			|| uri_string.len() < Self::MIN_NEP9_URI_LENGTH
 		{
-			return Err(ContractError::InvalidNeoName("Invalid NEP-9 URI".to_string()))
+			return Err(ContractError::InvalidNeoName("Invalid NEP-9 URI".to_string()));
 		}
 
 		let mut neo_uri = Self::new(None);
@@ -59,7 +61,7 @@ impl<'a, P: JsonRpcClient + 'static> NeoURI<'a, P> {
 			for part in query_str.split("&") {
 				let kv: Vec<&str> = part.split("=").collect();
 				if kv.len() != 2 {
-					return Err(ContractError::InvalidNeoName("Invalid query".to_string()))
+					return Err(ContractError::InvalidNeoName("Invalid query".to_string()));
 				}
 
 				match kv[0] {
@@ -124,7 +126,7 @@ impl<'a, P: JsonRpcClient + 'static> NeoURI<'a, P> {
 		if Self::is_neo_token(&token_hash) && amount_scale > 0 {
 			return Err(ContractError::from(ContractError::InvalidArgError(
 				"NEO does not support decimals".to_string(),
-			)))
+			)));
 		}
 
 		if Self::is_gas_token(&token_hash)
@@ -132,14 +134,14 @@ impl<'a, P: JsonRpcClient + 'static> NeoURI<'a, P> {
 		{
 			return Err(ContractError::from(ContractError::InvalidArgError(
 				"Too many decimal places for GAS".to_string(),
-			)))
+			)));
 		}
 
 		let decimals = token.get_decimals().await.unwrap();
 		if amount_scale > decimals as u32 {
 			return Err(ContractError::from(ContractError::InvalidArgError(
 				"Too many decimal places for token".to_string(),
-			)))
+			)));
 		}
 
 		let amt = token.to_fractions(amount, 0).unwrap();

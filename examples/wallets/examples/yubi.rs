@@ -1,9 +1,8 @@
-extern crate neo -rs;
+extern crate NeoRust;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use neo
-    -rs::prelude::*;
+    use NeoRust::prelude::*;
     use yubihsm::{Connector, Credentials, UsbConfig};
     // Connect over websockets
     let provider = Provider::new(Ws::connect("ws://localhost:8545").await?);

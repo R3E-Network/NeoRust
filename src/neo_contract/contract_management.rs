@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use futures::{FutureExt, TryFutureExt};
-use neo::prelude::*;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
+
+use neo::prelude::*;
 
 /// A struct representing contract management functionalities
 #[derive(Debug, Clone, Serialize, Deserialize)]

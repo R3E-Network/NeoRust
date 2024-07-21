@@ -1,6 +1,7 @@
 use async_trait::async_trait;
-use neo::prelude::*;
 use primitive_types::H160;
+
+use neo::prelude::*;
 
 #[derive(Debug)]
 pub struct FungibleTokenContract<'a, P: JsonRpcClient> {

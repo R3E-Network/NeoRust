@@ -1,6 +1,5 @@
 use std::{collections::BTreeMap, fmt, str::FromStr};
 
-use ethereum_types::U64;
 use primitive_types::U256;
 use serde::{
 	de::{self, Deserializer, Visitor},
@@ -45,15 +44,15 @@ impl<'de> Visitor<'de> for TxPoolInspectSummaryVisitor {
 	{
 		let addr_split: Vec<&str> = value.split(": ").collect();
 		if addr_split.len() != 2 {
-			return Err(de::Error::custom("invalid format for TxpoolInspectSummary: to"))
+			return Err(de::Error::custom("invalid format for TxpoolInspectSummary: to"));
 		}
 		let value_split: Vec<&str> = addr_split[1].split(" wei + ").collect();
 		if value_split.len() != 2 {
-			return Err(de::Error::custom("invalid format for TxpoolInspectSummary: gasLimit"))
+			return Err(de::Error::custom("invalid format for TxpoolInspectSummary: gasLimit"));
 		}
 		let gas_split: Vec<&str> = value_split[1].split(" gas × ").collect();
 		if gas_split.len() != 2 {
-			return Err(de::Error::custom("invalid format for TxpoolInspectSummary: gas"))
+			return Err(de::Error::custom("invalid format for TxpoolInspectSummary: gas"));
 		}
 
 		let addr = match addr_split[0] {
@@ -139,7 +138,7 @@ pub struct TxpoolInspect {
 #[derive(Debug, Default, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct TxpoolStatus {
 	/// number of pending tx
-	pub pending: U64,
+	pub pending: u64,
 	/// number of queued tx
-	pub queued: U64,
+	pub queued: u64,
 }

@@ -1,7 +1,8 @@
 use async_trait::async_trait;
-use neo::prelude::*;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
+
+use neo::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NeoToken<'a, P: JsonRpcClient> {
@@ -189,7 +190,7 @@ impl<'a, P: JsonRpcClient + 'static> NeoToken<'a, P> {
 						balance,
 						balance_height: update_height,
 						public_key: None,
-					})
+					});
 				} else {
 					let pubkey =
 						Secp256r1PublicKey::from_bytes(public_key.as_bytes().unwrap().as_slice())

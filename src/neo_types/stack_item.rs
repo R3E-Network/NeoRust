@@ -167,7 +167,8 @@ impl StackItem {
 			StackItem::Pointer { value: pointer } => format!("Pointer{{value={}}}", pointer),
 			StackItem::Boolean { value: boolean } => format!("Boolean{{value={}}}", boolean),
 			StackItem::Integer { value: integer } => format!("Integer{{value={}}}", integer),
-			StackItem::ByteString { value: byteString } => format!("ByteString{{value={:?}}}", byteString),
+			StackItem::ByteString { value: byteString } =>
+				format!("ByteString{{value={:?}}}", byteString),
 			StackItem::Buffer { value: buffer } => format!("Buffer{{value={:?}}}", buffer),
 			StackItem::Array { value: array } => {
 				let values = array.iter().map(StackItem::to_string).collect::<Vec<_>>().join(", ");

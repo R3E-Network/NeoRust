@@ -1,4 +1,5 @@
 # Examples
+
 - [ ] Address book
 - [ ] Anvil
     - [ ] Boot anvil
@@ -22,61 +23,61 @@
     - [x] Events with meta
     - [ ] Methods
 - [ ] Events
-  - [x] Logs and filtering
-  - [ ] Solidity topics
+    - [x] Logs and filtering
+    - [ ] Solidity topics
 - [ ] Middleware
-  - [x] Builder
-  - [x] Create custom middleware
-  - [x] Gas escalator
-  - [x] Gas oracle
-  - [x] Nonce manager
-  - [x] Policy
-  - [x] Signer
-  - [ ] Time lag
-  - [ ] Transformer
+    - [x] Builder
+    - [x] Create custom middleware
+    - [x] Gas escalator
+    - [x] Gas oracle
+    - [x] Nonce manager
+    - [x] Policy
+    - [x] Signer
+    - [ ] Time lag
+    - [ ] Transformer
 - [x] Providers
-  - [x] Http
-  - [x] IPC
-  - [x] Mock 
-  - [x] Quorum
-  - [x] Retry
-  - [x] RW
-  - [x] WS
+    - [x] Http
+    - [x] IPC
+    - [x] Mock
+    - [x] Quorum
+    - [x] Retry
+    - [x] RW
+    - [x] WS
 - [ ] Queries
-  - [ ] Blocks
-  - [x] Contracts
-  - [ ] Events
-  - [x] Paginated logs
-  - [x] UniswapV2 pair
-  - [ ] Transactions
+    - [ ] Blocks
+    - [x] Contracts
+    - [ ] Events
+    - [x] Paginated logs
+    - [x] UniswapV2 pair
+    - [ ] Transactions
 - [x] Subscriptions
-  - [x] Watch blocks
-  - [x] Subscribe events by type
-  - [x] Subscribe logs
+    - [x] Watch blocks
+    - [x] Subscribe events by type
+    - [x] Subscribe logs
 - [ ] Transactions
-  - [x] Call override
-  - [ ] Create raw transaction
-  - [ ] Create typed transaction
-  - [x] Decode input
-  - [ ] EIP-1559
-  - [x] ENS
-  - [ ] Estimate gas
-  - [ ] Get gas price
-  - [x] Get gas price USD
-  - [x] Remove liquidity
-  - [ ] Set gas for a transaction
-  - [ ] Send raw transaction
-  - [ ] Send typed transaction
-  - [x] Trace
-  - [ ] Transaction receipt
-  - [ ] Transaction status
-  - [x] Transfer ETH
-  - [X] Transfer ERC20 token
+    - [x] Call override
+    - [ ] Create raw transaction
+    - [ ] Create typed transaction
+    - [x] Decode input
+    - [ ] EIP-1559
+    - [x] ENS
+    - [ ] Estimate gas
+    - [ ] Get gas price
+    - [x] Get gas price USD
+    - [x] Remove liquidity
+    - [ ] Set gas for a transaction
+    - [ ] Send raw transaction
+    - [ ] Send typed transaction
+    - [x] Trace
+    - [ ] Transaction receipt
+    - [ ] Transaction status
+    - [x] Transfer ETH
+    - [X] Transfer ERC20 token
 - [x] Wallets
-  - [x] Mnemonic
-  - [x] Ledger
-  - [x] Local
-  - [x] Permit hash
-  - [x] Sign message
-  - [x] Trezor
-  - [x] Yubi
+    - [x] Mnemonic
+    - [x] Ledger
+    - [x] Local
+    - [x] Permit hash
+    - [x] Sign message
+    - [x] Trezor
+    - [x] Yubi

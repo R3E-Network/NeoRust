@@ -6,13 +6,15 @@ use std::{
 };
 
 use async_trait::async_trait;
-use neo::config::NeoConstants;
 use reqwest::{header, Client, Error as ReqwestError};
 use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use url::Url;
 
-use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
+use neo::{
+	config::NeoConstants,
+	prelude::{JsonRpcClient, ProviderError, RpcError},
+};
 
 use super::common::{JsonRpcError, Request, Response};
 
@@ -86,7 +88,7 @@ impl RpcError for ClientError {
 	}
 }
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(target_arch = "wasm32", async_trait(? Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl JsonRpcClient for HttpProvider {
 	type Error = ClientError;
@@ -110,7 +112,7 @@ impl JsonRpcClient for HttpProvider {
 					err: serde::de::Error::custom("unexpected notification over HTTP transport"),
 					text: String::from_utf8_lossy(&body).to_string(),
 				};
-				return Err(err)
+				return Err(err);
 			},
 			Err(err) =>
 				return Err(ClientError::SerdeJson {

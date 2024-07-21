@@ -33,7 +33,7 @@ impl RecordState {
 					if let Some(byte) = vec[1].as_int() {
 						if let Some(record_type) = RecordType::try_from(byte as u8).ok() {
 							if let Some(data) = vec[2].as_string() {
-								return Ok(Self::new(name, record_type, data))
+								return Ok(Self::new(name, record_type, data));
 							}
 						}
 					}

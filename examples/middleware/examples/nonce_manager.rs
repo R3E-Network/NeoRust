@@ -1,5 +1,3 @@
-use eyre::Result;
-
 use ethers::{
     core::{
         types::{BlockNumber, TransactionRequest},
@@ -8,6 +6,7 @@ use ethers::{
     middleware::MiddlewareBuilder,
     providers::{Http, Middleware, Provider},
 };
+use eyre::Result;
 
 /// In Neo, the nonce of a transaction is a number that represents the number of transactions
 /// that have been sent from a particular account. The nonce is used to ensure that transactions are

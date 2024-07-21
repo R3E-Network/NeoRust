@@ -1,19 +1,18 @@
-use futures_util::TryFutureExt;
-use getset::{CopyGetters, Getters, MutGetters, Setters};
 use std::hash::{Hash, Hasher};
 
-use neo::config::NeoConstants;
+use futures_util::TryFutureExt;
+use getset::{CopyGetters, Getters, MutGetters, Setters};
 use primitive_types::U256;
-use rustc_serialize::hex::ToHex;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use serde_with::__private__::DeError;
 
-use crate::neo_providers::{JsonRpcClient, Provider};
 use neo::prelude::{
-	Bytes, Decoder, Encoder, HashableForVec, Middleware, NameOrAddress, NeoSerializable,
-	RawTransaction, Signer, TransactionAttribute, TransactionError, VarSizeTrait, Witness,
+	Bytes, Decoder, Encoder, HashableForVec, Middleware, NameOrAddress, NeoSerializable, Signer,
+	TransactionAttribute, TransactionError, VarSizeTrait, Witness,
 };
+
+use crate::neo_providers::JsonRpcClient;
 
 #[derive(Serialize, Getters, Setters, MutGetters, CopyGetters, Debug, Clone)]
 pub struct Transaction {

@@ -1,8 +1,9 @@
+use primitive_types::{H160, H256};
+use serde::{Deserialize, Serialize};
+
 use neo::prelude::{
 	NeoVMStateType, NeoWitness, TransactionAttribute, TransactionSigner, WitnessRule, WitnessScope,
 };
-use primitive_types::{H160, H256};
-use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Hash, Clone, Debug)]
 pub struct TransactionResult {
@@ -25,7 +26,7 @@ pub struct TransactionResult {
 	pub block_hash: Option<H256>,
 	pub confirmations: Option<i32>,
 	#[serde(rename = "blocktime")]
-	pub block_time: Option<i32>,
+	pub block_time: Option<u64>,
 	#[serde(rename = "vmstate")]
 	pub vm_state: Option<NeoVMStateType>,
 }

@@ -1,4 +1,4 @@
-use ethers::prelude::*;
+use NeoRust::prelude::*;
 
 const RPC_URL: &str = "http://localhost:8551";
 

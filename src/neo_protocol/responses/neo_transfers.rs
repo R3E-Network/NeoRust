@@ -1,8 +1,9 @@
+use primitive_types::H256;
+use serde::{Deserialize, Serialize};
+
 use neo::prelude::{
 	deserialize_h256, deserialize_script_hash, serialize_h256, serialize_script_hash, ScriptHash,
 };
-use primitive_types::H256;
-use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Nep11Transfers {
