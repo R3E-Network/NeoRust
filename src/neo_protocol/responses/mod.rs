@@ -60,4 +60,3 @@ mod neo_witness;
 mod notification;
 mod oracle_request;
 mod populated_blocks;
-

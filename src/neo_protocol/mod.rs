@@ -8,4 +8,3 @@ mod nep2;
 mod protocol_error;
 mod responses;
 mod role;
-

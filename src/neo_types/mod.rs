@@ -1,4 +1,4 @@
-use base64::{Engine, engine::general_purpose};
+use base64::{engine::general_purpose, Engine};
 pub use log::*;
 use primitive_types::H256;
 use serde_derive::{Deserialize, Serialize};
@@ -53,53 +53,53 @@ pub type Bytes = Vec<u8>;
 pub type TxHash = H256;
 
 pub trait ExternBase64 {
-    fn to_base64(&self) -> String;
+	fn to_base64(&self) -> String;
 }
 
 impl ExternBase64 for String {
-    fn to_base64(&self) -> String {
-        general_purpose::STANDARD.encode(self.as_bytes())
-    }
+	fn to_base64(&self) -> String {
+		general_purpose::STANDARD.encode(self.as_bytes())
+	}
 }
 
 // ScryptParams
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ScryptParamsDef {
-    #[serde(rename = "n")]
-    pub log_n: u8,
-    #[serde(rename = "r")]
-    pub r: u32,
-    #[serde(rename = "p")]
-    pub p: u32,
+	#[serde(rename = "n")]
+	pub log_n: u8,
+	#[serde(rename = "r")]
+	pub r: u32,
+	#[serde(rename = "p")]
+	pub p: u32,
 }
 
 impl Default for ScryptParamsDef {
-    fn default() -> Self {
-        Self { log_n: 14, r: 8, p: 8 }
-    }
+	fn default() -> Self {
+		Self { log_n: 14, r: 8, p: 8 }
+	}
 }
 
 // Extend Vec<u8> with a to_base64 method
 pub trait Base64Encode {
-    fn to_base64(&self) -> String;
+	fn to_base64(&self) -> String;
 }
 
 impl Base64Encode for Vec<u8> {
-    fn to_base64(&self) -> String {
-        base64::encode(&self)
-    }
+	fn to_base64(&self) -> String {
+		base64::encode(&self)
+	}
 }
 
 impl Base64Encode for &[u8] {
-    fn to_base64(&self) -> String {
-        base64::encode(&self)
-    }
+	fn to_base64(&self) -> String {
+		base64::encode(&self)
+	}
 }
 
 impl Base64Encode for String {
-    fn to_base64(&self) -> String {
-        general_purpose::STANDARD.encode(&hex::decode(self).unwrap())
-    }
+	fn to_base64(&self) -> String {
+		general_purpose::STANDARD.encode(&hex::decode(self).unwrap())
+	}
 }
 
 // pub fn secret_key_to_script_hash(secret_key: &Secp256r1PrivateKey) -> ScriptHash {
@@ -129,27 +129,27 @@ impl Base64Encode for String {
 // }
 
 pub fn to_checksum(addr: &ScriptHash, chain_id: Option<u8>) -> String {
-    // if !addr.is_valid_address(){
-    // 	panic!("invalid address");
-    // }
-    let prefixed_addr = match chain_id {
-        Some(chain_id) => format!("{chain_id}0x{addr:x}"),
-        None => format!("{addr:x}"),
-    };
-    let hash = hex::encode(prefixed_addr);
-    let hash = hash.as_bytes();
+	// if !addr.is_valid_address(){
+	// 	panic!("invalid address");
+	// }
+	let prefixed_addr = match chain_id {
+		Some(chain_id) => format!("{chain_id}0x{addr:x}"),
+		None => format!("{addr:x}"),
+	};
+	let hash = hex::encode(prefixed_addr);
+	let hash = hash.as_bytes();
 
-    let addr_hex = hex::encode(addr.as_bytes());
-    let addr_hex = addr_hex.as_bytes();
+	let addr_hex = hex::encode(addr.as_bytes());
+	let addr_hex = addr_hex.as_bytes();
 
-    addr_hex.iter().zip(hash).fold("0x".to_owned(), |mut encoded, (addr, hash)| {
-        encoded.push(if *hash >= 56 {
-            addr.to_ascii_uppercase() as char
-        } else {
-            addr.to_ascii_lowercase() as char
-        });
-        encoded
-    })
+	addr_hex.iter().zip(hash).fold("0x".to_owned(), |mut encoded, (addr, hash)| {
+		encoded.push(if *hash >= 56 {
+			addr.to_ascii_uppercase() as char
+		} else {
+			addr.to_ascii_lowercase() as char
+		});
+		encoded
+	})
 }
 
 #[cfg(test)]
@@ -160,23 +160,23 @@ mod tests {
 	use super::*;
 
 	#[test]
-    fn test_base64_encode_bytes() {
-        let input = hex::decode("150c14242dbf5e2f6ac2568b59b7822278d571b75f17be0c14242dbf5e2f6ac2568b59b7822278d571b75f17be13c00c087472616e736665720c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b5238").unwrap();
-        let expected = "FQwUJC2/Xi9qwlaLWbeCInjVcbdfF74MFCQtv14vasJWi1m3giJ41XG3Xxe+E8AMCHRyYW5zZmVyDBSJdyDYzXb08Aq/o3wO3YicII/em0FifVtSOA==";
+	fn test_base64_encode_bytes() {
+		let input = hex::decode("150c14242dbf5e2f6ac2568b59b7822278d571b75f17be0c14242dbf5e2f6ac2568b59b7822278d571b75f17be13c00c087472616e736665720c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b5238").unwrap();
+		let expected = "FQwUJC2/Xi9qwlaLWbeCInjVcbdfF74MFCQtv14vasJWi1m3giJ41XG3Xxe+E8AMCHRyYW5zZmVyDBSJdyDYzXb08Aq/o3wO3YicII/em0FifVtSOA==";
 
-        let encoded = input.to_base64();
+		let encoded = input.to_base64();
 
-        assert_eq!(encoded, expected);
-    }
+		assert_eq!(encoded, expected);
+	}
 
-    #[test]
-    fn test_base64_decode() {
-        let encoded = "FQwUJC2/Xi9qwlaLWbeCInjVcbdfF74MFCQtv14vasJWi1m3giJ41XG3Xxe+E8AMCHRyYW5zZmVyDBSJdyDYzXb08Aq/o3wO3YicII/em0FifVtSOA==";
-        let expected = "150c14242dbf5e2f6ac2568b59b7822278d571b75f17be0c14242dbf5e2f6ac2568b59b7822278d571b75f17be13c00c087472616e736665720c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b5238";
+	#[test]
+	fn test_base64_decode() {
+		let encoded = "FQwUJC2/Xi9qwlaLWbeCInjVcbdfF74MFCQtv14vasJWi1m3giJ41XG3Xxe+E8AMCHRyYW5zZmVyDBSJdyDYzXb08Aq/o3wO3YicII/em0FifVtSOA==";
+		let expected = "150c14242dbf5e2f6ac2568b59b7822278d571b75f17be0c14242dbf5e2f6ac2568b59b7822278d571b75f17be13c00c087472616e736665720c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b5238";
 
-        let decoded = encoded.from_base64().unwrap();
-        let decoded_hex = hex::encode(decoded);
+		let decoded = encoded.from_base64().unwrap();
+		let decoded_hex = hex::encode(decoded);
 
-        assert_eq!(decoded_hex, expected);
-    }
+		assert_eq!(decoded_hex, expected);
+	}
 }

@@ -5,6 +5,6 @@ pub use transports::*;
 
 mod provider;
 
-mod transports;
 mod connections;
 mod pubsub;
+mod transports;
