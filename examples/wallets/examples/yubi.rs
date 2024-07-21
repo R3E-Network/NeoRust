@@ -1,4 +1,4 @@
-extern crate neo -rs;
+extern crate neo - rs;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

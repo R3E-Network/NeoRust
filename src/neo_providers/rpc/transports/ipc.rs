@@ -330,8 +330,8 @@ async fn run_ipc_server(mut stream: Stream, request_rx: mpsc::UnboundedReceiver<
 	// run both loops concurrently, until either encounts an error
 	if let Err(e) = futures_util::try_join!(read, write) {
 		match e {
-			IpcError::ServerExit => {},
-			err => tracing::error!(?err, "exiting IPC server due to error"),
+			IpcError::ServerExit => {}
+            err => tracing::error!(?err, "exiting IPC server due to error"),
 		}
 	}
 }
@@ -380,8 +380,8 @@ impl Shared {
 						tracing::error!("IPC connection error: {:?}", err);
 						self.pending.borrow_mut().remove(&id);
 					}
-				},
-				Subscribe { id, sink } =>
+				}
+                Subscribe { id, sink } =>
 					if self.subs.borrow_mut().insert(id, sink).is_some() {
 						tracing::warn!(
 							%id,
@@ -426,8 +426,8 @@ impl Shared {
 			None => {
 				tracing::warn!(%id, "no pending request exists for the response ID");
 				return
-			},
-		};
+			}
+        };
 
 		// a failure to send the response indicates that the pending request has
 		// been dropped in the mean time
@@ -447,8 +447,8 @@ impl Shared {
 					"no subscription exists for the notification ID"
 				);
 				return
-			},
-		};
+			}
+        };
 
 		// a failure to send the response indicates that the pending request has
 		// been dropped in the mean time (and should have been unsubscribed!)

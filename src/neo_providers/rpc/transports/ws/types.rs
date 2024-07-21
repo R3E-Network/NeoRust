@@ -77,48 +77,48 @@ impl<'de> Deserialize<'de> for PubSubItem {
 							}
 
 							jsonrpc = true;
-						},
-						"id" => {
+						}
+                        "id" => {
 							if id.is_some() {
 								return Err(de::Error::duplicate_field("id"))
 							}
 
 							let value: u64 = map.next_value()?;
 							id = Some(value);
-						},
-						"result" => {
+						}
+                        "result" => {
 							if result.is_some() {
 								return Err(de::Error::duplicate_field("result"))
 							}
 
 							let value: Box<RawValue> = map.next_value()?;
 							result = Some(value);
-						},
-						"error" => {
+						}
+                        "error" => {
 							if error.is_some() {
 								return Err(de::Error::duplicate_field("error"))
 							}
 
 							let value: JsonRpcError = map.next_value()?;
 							error = Some(value);
-						},
-						"method" => {
+						}
+                        "method" => {
 							if method.is_some() {
 								return Err(de::Error::duplicate_field("method"))
 							}
 
 							let value: String = map.next_value()?;
 							method = Some(value);
-						},
-						"params" => {
+						}
+                        "params" => {
 							if params.is_some() {
 								return Err(de::Error::duplicate_field("params"))
 							}
 
 							let value: Notification = map.next_value()?;
 							params = Some(value);
-						},
-						key =>
+						}
+                        key =>
 							return Err(de::Error::unknown_field(
 								key,
 								&["id", "jsonrpc", "result", "error", "params", "method"],
@@ -158,8 +158,8 @@ impl std::fmt::Display for PubSubItem {
 			PubSubItem::Error { id, .. } => write!(f, "Req error. ID: {id}"),
 			PubSubItem::Notification { params } => {
 				write!(f, "Notification for sub: {:?}", params.subscription)
-			},
-		}
+			}
+        }
 	}
 }
 

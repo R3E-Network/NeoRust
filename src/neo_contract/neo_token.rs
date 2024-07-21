@@ -200,8 +200,8 @@ impl<'a, P: JsonRpcClient + 'static> NeoToken<'a, P> {
 						public_key: Some(pubkey),
 					})
 				}
-			},
-			_ => Err(ContractError::InvalidNeoName("Account state malformed".to_string())),
+			}
+            _ => Err(ContractError::InvalidNeoName("Account state malformed".to_string())),
 		}
 	}
 

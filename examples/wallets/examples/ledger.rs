@@ -1,4 +1,4 @@
-extern crate neo -rs;
+extern crate neo - rs;
 
 use NeoRust::prelude::*;
 

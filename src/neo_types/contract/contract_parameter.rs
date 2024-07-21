@@ -8,12 +8,15 @@ use rustc_serialize::{
 	base64::FromBase64,
 	hex::{FromHex, ToHex},
 };
-use serde::{de, Deserialize, Deserializer, Serialize};
-use serde::ser::{SerializeStruct, Serializer, SerializeMap, SerializeSeq};
+use serde::{
+	de,
+	de::{MapAccess, Visitor},
+	ser::{SerializeMap, SerializeSeq, SerializeStruct, Serializer},
+	Deserialize, Deserializer, Serialize,
+};
 use serde_json::Value;
-use serde::de::{Visitor, MapAccess};
-use std::fmt;
 use sha3::Digest;
+use std::fmt;
 use strum_macros::{Display, EnumString};
 
 use neo::prelude::{
@@ -32,86 +35,93 @@ pub struct ContractParameter {
 }
 
 impl<'de> Deserialize<'de> for ContractParameter {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
 		#[derive(Deserialize)]
-        #[serde(field_identifier, rename_all = "lowercase")]
-        enum Field { 
+		#[serde(field_identifier, rename_all = "lowercase")]
+		enum Field {
 			Name,
 			#[serde(rename = "type")]
-			Typ, 
-			Value 
+			Typ,
+			Value,
 		}
 
-        struct ContractParameterVisitor;
+		struct ContractParameterVisitor;
 
-        impl<'de> Visitor<'de> for ContractParameterVisitor {
-            type Value = ContractParameter;
+		impl<'de> Visitor<'de> for ContractParameterVisitor {
+			type Value = ContractParameter;
 
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("struct ContractParameter")
-            }
+			fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+				formatter.write_str("struct ContractParameter")
+			}
 
-            fn visit_map<V>(self, mut map: V) -> Result<ContractParameter, V::Error>
-            where
-                V: MapAccess<'de>,
-            {
-                let mut name = None;
-                let mut typ = None;
-                let mut value = None;
+			fn visit_map<V>(self, mut map: V) -> Result<ContractParameter, V::Error>
+			where
+				V: MapAccess<'de>,
+			{
+				let mut name = None;
+				let mut typ = None;
+				let mut value = None;
 
-                while let Some(key) = map.next_key()? {
-                    match key {
-                        Field::Name => {
-                            if name.is_some() {
-                                return Err(de::Error::duplicate_field("name"));
-                            }
-                            name = Some(map.next_value()?);
-                        }
+				while let Some(key) = map.next_key()? {
+					match key {
+						Field::Name => {
+							if name.is_some() {
+								return Err(de::Error::duplicate_field("name"));
+							}
+							name = Some(map.next_value()?);
+						}
                         Field::Typ => {
-                            if typ.is_some() {
-                                return Err(de::Error::duplicate_field("type"));
-                            }
-                            typ = Some(map.next_value()?);
-                        }
+							if typ.is_some() {
+								return Err(de::Error::duplicate_field("type"));
+							}
+							typ = Some(map.next_value()?);
+						}
                         Field::Value => {
-                            if value.is_some() {
-                                return Err(de::Error::duplicate_field("value"));
-                            }
-                            value = Some(map.next_value()?);
-                        }
+							if value.is_some() {
+								return Err(de::Error::duplicate_field("value"));
+							}
+							value = Some(map.next_value()?);
+						}
                     }
-                }
+				}
 
-                let typ: ContractParameterType = typ.ok_or_else(|| de::Error::missing_field("type"))?;
-                let value: Option<ParameterValue> = match typ {
-                    ContractParameterType::Boolean => value.map(|v| ParameterValue::Boolean(serde_json::from_value(v).unwrap())),
-                    ContractParameterType::Integer => value.map(|v| ParameterValue::Integer(serde_json::from_value(v).unwrap())),
-                    ContractParameterType::ByteArray => value.map(|v| ParameterValue::ByteArray(serde_json::from_value(v).unwrap())),
-                    ContractParameterType::String => value.map(|v| ParameterValue::String(serde_json::from_value(v).unwrap())),
-                    ContractParameterType::H160 => value.map(|v| ParameterValue::H160(serde_json::from_value(v).unwrap())),
-                    ContractParameterType::H256 => value.map(|v| ParameterValue::H256(serde_json::from_value(v).unwrap())),
-                    ContractParameterType::PublicKey => value.map(|v| ParameterValue::PublicKey(serde_json::from_value(v).unwrap())),
-                    ContractParameterType::Signature => value.map(|v| ParameterValue::Signature(serde_json::from_value(v).unwrap())),
-                    ContractParameterType::Array => value.map(|v| ParameterValue::Array(serde_json::from_value(v).unwrap())),
-                    ContractParameterType::Map => value.map(|v| ParameterValue::Map(serde_json::from_value(v).unwrap())),
-                    ContractParameterType::Any => Some(ParameterValue::Any),
-                    _ => None,
-                };
+				let typ: ContractParameterType =
+					typ.ok_or_else(|| de::Error::missing_field("type"))?;
+				let value: Option<ParameterValue> = match typ {
+					ContractParameterType::Boolean =>
+						value.map(|v| ParameterValue::Boolean(serde_json::from_value(v).unwrap())),
+					ContractParameterType::Integer =>
+						value.map(|v| ParameterValue::Integer(serde_json::from_value(v).unwrap())),
+					ContractParameterType::ByteArray =>
+						value.map(|v| ParameterValue::ByteArray(serde_json::from_value(v).unwrap())),
+					ContractParameterType::String =>
+						value.map(|v| ParameterValue::String(serde_json::from_value(v).unwrap())),
+					ContractParameterType::H160 =>
+						value.map(|v| ParameterValue::H160(serde_json::from_value(v).unwrap())),
+					ContractParameterType::H256 =>
+						value.map(|v| ParameterValue::H256(serde_json::from_value(v).unwrap())),
+					ContractParameterType::PublicKey =>
+						value.map(|v| ParameterValue::PublicKey(serde_json::from_value(v).unwrap())),
+					ContractParameterType::Signature =>
+						value.map(|v| ParameterValue::Signature(serde_json::from_value(v).unwrap())),
+					ContractParameterType::Array =>
+						value.map(|v| ParameterValue::Array(serde_json::from_value(v).unwrap())),
+					ContractParameterType::Map =>
+						value.map(|v| ParameterValue::Map(serde_json::from_value(v).unwrap())),
+					ContractParameterType::Any => Some(ParameterValue::Any),
+					_ => None,
+				};
 
-                Ok(ContractParameter {
-                    name,
-                    typ,
-                    value,
-                })
-            }
-        }
+				Ok(ContractParameter { name, typ, value })
+			}
+		}
 
-        const FIELDS: &[&str] = &["name", "type", "value"];
-        deserializer.deserialize_struct("ContractParameter", FIELDS, ContractParameterVisitor)
-    }
+		const FIELDS: &[&str] = &["name", "type", "value"];
+		deserializer.deserialize_struct("ContractParameter", FIELDS, ContractParameterVisitor)
+	}
 }
 
 impl From<&H160> for ContractParameter {
@@ -463,8 +473,8 @@ impl ContractParameter {
 			ParameterValue::PublicKey(p) => {
 				let bytes = hex::decode(p).unwrap();
 				Secp256r1PublicKey::from_bytes(&bytes).unwrap()
-			},
-			_ => panic!("Cannot convert {:?} to PublicKey", self.clone()),
+			}
+            _ => panic!("Cannot convert {:?} to PublicKey", self.clone()),
 		}
 	}
 
@@ -582,8 +592,8 @@ impl ParameterValue {
 			ParameterValue::PublicKey(p) => {
 				let bytes = hex::decode(p).unwrap();
 				Secp256r1PublicKey::from_bytes(&bytes).unwrap()
-			},
-			_ => panic!("Cannot convert {:?} to PublicKey", self.clone()),
+			}
+            _ => panic!("Cannot convert {:?} to PublicKey", self.clone()),
 		}
 	}
 

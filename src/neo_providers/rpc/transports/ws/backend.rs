@@ -99,12 +99,12 @@ impl WsBackend {
 				if res.is_err() {
 					return Err(WsClientError::DeadChannel)
 				}
-			},
-			Err(e) => {
+			}
+            Err(e) => {
 				error!(e = %e, "Failed to deserialize message");
 				return Err(WsClientError::JsonError(e))
-			},
-		}
+			}
+        }
 		Ok(())
 	}
 
@@ -124,13 +124,13 @@ impl WsBackend {
 						error!("Close frame: {}", frame.unwrap());
 					}
 					Err(WsClientError::UnexpectedClose)
-				},
-			},
+				}
+            },
 			Err(e) => {
 				error!(err = %e, "Error response from WS");
 				Err(e.into())
-			},
-		}
+			}
+        }
 	}
 
 	#[cfg(target_arch = "wasm32")]

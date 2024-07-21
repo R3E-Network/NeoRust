@@ -31,11 +31,11 @@ async fn main() -> Result<()> {
 
         // js tracer
         let options = GethDebugTracingOptions {
-                disable_storage: Some(true),
-                enable_memory: Some(false),
-                tracer: Some(GethDebugTracerType::JsTracer(String::from("{data: [], fault: function(log) {}, step: function(log) { if(log.op.toString() == \"DELEGATECALL\") this.data.push(log.stack.peek(0)); }, result: function() { return this.data; }}"))),
-                ..Default::default()
-            };
+            disable_storage: Some(true),
+            enable_memory: Some(false),
+            tracer: Some(GethDebugTracerType::JsTracer(String::from("{data: [], fault: function(log) {}, step: function(log) { if(log.op.toString() == \"DELEGATECALL\") this.data.push(log.stack.peek(0)); }, result: function() { return this.data; }}"))),
+            ..Default::default()
+        };
         let traces = client.debug_trace_transaction(h, options).await?;
         println!("{traces:?}");
     }

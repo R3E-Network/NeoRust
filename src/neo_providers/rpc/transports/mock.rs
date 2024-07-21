@@ -68,8 +68,8 @@ impl JsonRpcClient for MockProvider {
 			MockResponse::Value(value) => {
 				let res: R = serde_json::from_value(value)?;
 				Ok(res)
-			},
-			MockResponse::Error(error) => Err(MockError::JsonRpcError(error)),
+			}
+            MockResponse::Error(error) => Err(MockError::JsonRpcError(error)),
 		}
 	}
 }
@@ -202,8 +202,8 @@ mod tests {
 				assert_eq!(e.code, error.code);
 				assert_eq!(e.message, error.message);
 				assert_eq!(e.data, error.data);
-			},
-			_ => panic!("Expected JsonRpcError"),
+			}
+            _ => panic!("Expected JsonRpcError"),
 		}
 	}
 
@@ -213,8 +213,8 @@ mod tests {
 		// tries to assert a request without making one
 		let err = mock.assert_request("neo_blockNumber", ()).unwrap_err();
 		match err {
-			MockError::EmptyRequests => {},
-			_ => panic!("expected empty request"),
+			MockError::EmptyRequests => {}
+            _ => panic!("expected empty request"),
 		};
 	}
 
