@@ -236,7 +236,7 @@ pub trait Middleware: Sync + Send + Debug {
 
 	// Application logs
 
-	async fn get_transaction(&self, hash: H256) -> Result<Option<TransactionResult>, Self::Error> {
+	async fn get_transaction(&self, hash: H256) -> Result<TransactionResult, Self::Error> {
 		self.inner().get_transaction(hash).await.map_err(MiddlewareError::from_err)
 	}
 

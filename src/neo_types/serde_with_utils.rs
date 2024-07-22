@@ -63,6 +63,18 @@ where
 	serializer.serialize_str(&scopes_str)
 }
 
+pub fn deserialize_scopes<'de, D>(deserializer: D) -> Result<Vec<WitnessScope>, D::Error>
+where
+	D: Deserializer<'de>,
+{
+	let s: String = Deserialize::deserialize(deserializer)?;
+	let scopes = s
+		.split(",")
+		.map(|x| x.parse().unwrap())
+		.collect::<Vec<WitnessScope>>();
+	Ok(scopes)
+}
+
 pub fn serialize_boolean_expression<S>(value: &bool, serializer: S) -> Result<S::Ok, S::Error>
 where
 	S: Serializer,

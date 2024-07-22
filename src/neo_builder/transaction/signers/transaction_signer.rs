@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
 	deserialize_script_hash, deserialize_vec_public_key_option, deserialize_vec_script_hash_option,
-	serialize_scopes, serialize_script_hash, serialize_vec_public_key_option,
+	serialize_scopes, deserialize_scopes, serialize_script_hash, serialize_vec_public_key_option,
 	serialize_vec_script_hash_option, Decoder, Encoder, NeoConstants, NeoSerializable,
 	Secp256r1PublicKey, SignerTrait, SignerType, TransactionError, VarSizeTrait, WitnessRule,
 	WitnessScope,
@@ -20,21 +20,25 @@ pub struct TransactionSigner {
 
 	#[serde(rename = "scopes")]
 	#[serde(serialize_with = "serialize_scopes")]
+	#[serde(deserialize_with = "deserialize_scopes")]
 	pub scopes: Vec<WitnessScope>,
 
 	#[serde(rename = "allowedcontracts")]
 	#[serde(serialize_with = "serialize_vec_script_hash_option")]
 	#[serde(deserialize_with = "deserialize_vec_script_hash_option")]
 	#[serde(skip_serializing_if = "Option::is_none")]
+	#[serde(default)]
 	pub allowed_contracts: Option<Vec<H160>>,
 
 	#[serde(rename = "allowedgroups")]
 	#[serde(serialize_with = "serialize_vec_public_key_option")]
 	#[serde(deserialize_with = "deserialize_vec_public_key_option")]
 	#[serde(skip_serializing_if = "Option::is_none")]
+	#[serde(default)]
 	pub allowed_groups: Option<Vec<Secp256r1PublicKey>>,
 
 	#[serde(rename = "rules")]
+	#[serde(default)]
 	pub rules: Option<Vec<WitnessRule>>,
 }
 

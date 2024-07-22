@@ -300,7 +300,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	async fn get_transaction(
 		&self,
 		hash: H256,
-	) -> Result<Option<TransactionResult>, ProviderError> {
+	) -> Result<TransactionResult, ProviderError> {
 		self.request("getrawtransaction", vec![hash.to_value(), 1.to_value()]).await
 	}
 
@@ -1253,7 +1253,6 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_get_best_block_hash() {
-		env_logger::init();
 		let _ = env_logger::builder().is_test(true).try_init();
 
 		let mock_server = setup_mock_server().await;
@@ -2810,7 +2809,7 @@ mod tests {
 		let provider = mock_rpc_response(
             &mock_server,
             "getrawtransaction",
-            json!(["0x7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c", 1]),
+            json!(["7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c", 1]),
             json!({
         "hash": "0x7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c",
         "size": 386,
@@ -2851,7 +2850,7 @@ mod tests {
 		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getrawtransaction",
-            "params": ["0x7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c", 1],
+            "params": ["7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c", 1],
             "id": 1
         }"#;
 
@@ -2859,10 +2858,7 @@ mod tests {
 			.get_transaction(
 				H256::from_str(
 					"0x7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c",
-				)
-				.unwrap(),
-			)
-			.await;
+				).unwrap()).await;
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		verify_request(&mock_server, expected_request_body).await.unwrap();
@@ -3675,7 +3671,6 @@ mod tests {
 		mock_server: &MockServer,
 		expected: &str,
 	) -> Result<(), Box<dyn std::error::Error>> {
-		env_logger::init();
 		// Retrieve the request body from the mock server
 		let received_requests = mock_server.received_requests().await.unwrap();
 		assert!(!received_requests.is_empty(), "No requests received");
