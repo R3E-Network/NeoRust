@@ -1,5 +1,6 @@
 use std::{
 	collections::HashMap,
+	fmt,
 	hash::{Hash, Hasher},
 };
 
@@ -16,7 +17,6 @@ use serde::{
 };
 use serde_json::Value;
 use sha3::Digest;
-use std::fmt;
 use strum_macros::{Display, EnumString};
 
 use neo::prelude::{

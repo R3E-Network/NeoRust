@@ -39,7 +39,7 @@ impl FromStr for NodeClient {
 }
 
 /// An abstract provider for interacting with the [Neo JSON RPC
-/// API](https://github.com/neo/wiki/wiki/JSON-RPC). Must be instantiated
+/// API](https://github.com/neo/wiki/JSON-RPC). Must be instantiated
 /// with a data transport which implements the [`JsonRpcClient`](trait@crate::JsonRpcClient) trait
 /// (e.g. [HTTP](crate::Http), Websockets etc.)
 ///
@@ -121,6 +121,7 @@ impl<P: JsonRpcClient> Provider<P> {
 			trace!("tx");
 			let fetched = self.inner.fetch(method, params).await;
 			let res: R = fetched.map_err(Into::into)?;
+			debug!("{:?}", res);
 			trace!(rx = ?serde_json::to_string(&res)?);
 			Ok::<_, ProviderError>(res)
 		}
@@ -306,7 +307,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Gets the corresponding transaction information based on the specified transaction hash.
 	/// - Parameter txHash: The transaction hash
 	/// - Returns: The request object
-	async fn get_raw_transaction(&self, tx_hash: H256) -> Result<RawTransaction, ProviderError> {
+	async fn get_raw_transaction(&self, tx_hash: H256) -> Result<String, ProviderError> {
 		self.request("getrawtransaction", vec![tx_hash.to_value(), 0.to_value()]).await
 	}
 
@@ -411,7 +412,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Broadcasts a new block over the NEO network.
 	/// - Parameter serializedBlockAsHex: The block in hexadecimal
 	/// - Returns: The request object
-	async fn submit_block(&self, hex: String) -> Result<bool, ProviderError> {
+	async fn submit_block(&self, hex: String) -> Result<SubmitBlock, ProviderError> {
 		self.request("submitblock", vec![hex.to_value()]).await
 	}
 
@@ -602,14 +603,6 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		amount: u32,
 	) -> Result<Transaction, ProviderError> {
 		let params = [token_hash.to_value(), to.to_value(), amount.to_value()].to_vec();
-		self.request("sendtoaddress", params).await
-	}
-
-	async fn send_to_address_send_token(
-		&self,
-		send_token: &TransactionSendToken,
-	) -> Result<Transaction, ProviderError> {
-		let params = [send_token.to_value()].to_vec();
 		self.request("sendtoaddress", params).await
 	}
 
@@ -920,6 +913,14 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		.await
 	}
 
+	async fn send_to_address_send_token(
+		&self,
+		send_token: &TransactionSendToken,
+	) -> Result<Transaction, ProviderError> {
+		let params = [send_token.to_value()].to_vec();
+		self.request("sendtoaddress", params).await
+	}
+
 	async fn send_from_send_token(
 		&self,
 		send_token: &TransactionSendToken,
@@ -1196,8 +1197,13 @@ mod tests {
 	use lazy_static::lazy_static;
 	use log::debug;
 	use primitive_types::{H160, H256};
+	use rustc_serialize::{
+		base64::FromBase64,
+		hex::{FromHex, ToHex},
+	};
 	use serde_json::{json, Value};
 	use tokio::{self, sync::OnceCell};
+	use tracing::field::debug;
 	use url::Url;
 	use wiremock::{
 		matchers::{body_json, method as http_method, method, path},
@@ -1209,7 +1215,10 @@ mod tests {
 		Signer::Account, SignerTrait, TestConstants, WitnessAction, WitnessCondition, WitnessRule,
 	};
 
-	use crate::{neo_types::Base64Encode, prelude::NativeContractState};
+	use crate::{
+		neo_types::{Base64Encode, ToBase64},
+		prelude::NativeContractState,
+	};
 
 	async fn setup_mock_server() -> MockServer {
 		MockServer::start().await
@@ -1298,7 +1307,7 @@ mod tests {
 	async fn test_get_block_index() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
-        &mock_server,
+            &mock_server,
             "getblock",
             json!([12345, 1]),
             json!( {
@@ -1340,7 +1349,7 @@ mod tests {
 	async fn test_get_block_index_only_header() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
-        &mock_server,
+            &mock_server,
             "getblockheader",
             json!([12345,1]),
             json!({
@@ -1431,9 +1440,9 @@ mod tests {
 	async fn test_get_block_by_hash() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
-        &mock_server,
+            &mock_server,
             "getblock",
-            json!(["2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d"]),
+            json!(["2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d", 1]),
             json!({
         "hash": "0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d",
         "size": 1217,
@@ -1501,8 +1510,7 @@ mod tests {
         ],
         "confirmations": 7878,
         "nextblockhash": "0x4a97ca89199627f877b6bffe865b8327be84b368d62572ef20953829c3501643"
-    }),
-        ).await;
+    })).await;
 
 		// Expected request body
 		let expected_request_body = r#"{
@@ -1562,12 +1570,11 @@ mod tests {
 	async fn test_get_raw_block_index() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
-			&mock_server,
-			"getblock",
-			json!([12345, 0]),
-			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
-		)
-		.await;
+            &mock_server,
+            "getblock",
+            json!([12345, 0]),
+            json!("AAAAAM5doa+yo+aKrc8RO/Pfo96BYyedF2ed+jODYAzESzgvm458FX3T6b9rYw2KSBTWfttaeiA9McxN1LiWuQwI1O/6eEAaeAEAAKhnAAAG+CRl3iIpI2tQ6MaMSCq5GLum1uwB/UoBDEA2ZR0uduwN/5tFVCKoHJtAnSJINfqlRDcNXnYl0H0Jcb3YBy1M0G4Z1LB3PQMIb6J4kOtFm7TBL0B6vfPuDpigDEBLHKna+SPlL9vn755blCr3vxvc2HLP5dUch0isPARVDbg24QwVuvx3mbQ6awn0cQ/h+Jym/9xFo0MR0ddKXKzCDEAIcXyoqzFq4+3N9JtyK46LLeyx9ikidPLiXg9HWQk9Ps5wx9+XIe8zziS9dRAOqT4od7tW1SA6cRU3U8ZCexJ1DECxN+nyE15RaIvwpJ0JK3/RJvAM++YKou/ljVef5atDx9pce5nkuibfZzvzrjcoJF53qnP8ZSXBKThjrN2kGCxlDEBSVfUQAFNm4j4KihACjt5Kx1A9hN8RIDQkLw7udpcFm7Nf4PtDtucw7pS7WGEkmu3c+yt2BV3KeCzNBAreypb7/BUMIQMCJCsdztY+G/frFIdvfvAmt5Vn+cW+g94ZQ90YXsKOaAwhAg34hYtm/017Cmpo0R3e3MfZDSpk/6LNCHxMXav0FQtADCECF5VDAAGEeB5UR7Pw+6zmZOqSt+MSJ8jnG8Tnza/M244MIQJehJSQO5PcNp8Ior1+Ih9XTHXZZ1WR8EkHy6na7rg9EAwhA4QV0L6NwSth0+O3a5j0ZN+rf93udCccNeLeYku1ECOmDCEDybHInG4tSr1imi24t9A6ztUYpWeTvJD0mF737T8bSBoMIQPoq1GG4d6rzRDsDlCd7U//reb931NKw+BQYmi64/1EphdBe85spQEAKihGP0BY1TwAAAAAAKBVAAAAAAAnfgAAAW78pd5nDtnbpGznfCdo9+vKgwVMAAD9dBENSgh7Im5hbWUiOiJUb2tlbiBOYW1lIiwiZ3JvdXBzIjpbXSwic3VwcG9ydGVkc3RhbmRhcmRzIjpbIk5FUDE3IiwiTkVQMTAiXSwiYWJpIjp7Im1ldGhvZHMiOlt7Im5hbWUiOiJfZGVwbG95IiwicGFyYW1ldGVycyI6W3sibmFtZSI6ImRhdGEiLCJ0eXBlIjoiQW55In0seyJuYW1lIjoidXBkYXRlIiwidHlwZSI6IkJvb2xlYW4ifV0sInJldHVybnR5cGUiOiJWb2lkIiwib2Zmc2V0IjowLCJzYWZlIjpmYWxzZX0seyJuYW1lIjoiX2luaXRpYWxpemUiLCJwYXJhbWV0ZXJzIjpbXSwicmV0dXJudHlwZSI6IlZvaWQiLCJvZmZzZXQiOjI3Miwic2FmZSI6ZmFsc2V9LHsibmFtZSI6ImJhbGFuY2VPZiIsInBhcmFtZXRlcnMiOlt7Im5hbWUiOiJhY2NvdW50IiwidHlwZSI6Ikhhc2gxNjAifV0sInJldHVybnR5cGUiOiJJbnRlZ2VyIiwib2Zmc2V0IjozNjgsInNhZmUiOmZhbHNlfSx7Im5hbWUiOiJkZWNpbWFscyIsInBhcmFtZXRlcnMiOltdLCJyZXR1cm50eXBlIjoiSW50ZWdlciIsIm9mZnNldCI6NTE1LCJzYWZlIjpmYWxzZX0seyJuYW1lIjoiZGVzdHJveSIsInBhcmFtZXRlcnMiOltdLCJyZXR1cm50eXBlIjoiVm9pZCIsIm9mZnNldCI6NTM3LCJzYWZlIjpmYWxzZX0seyJuYW1lIjoiZGlzYWJsZVBheW1lbnQiLCJwYXJhbWV0ZXJzIjpbXSwicmV0dXJudHlwZSI6IlZvaWQiLCJvZmZzZXQiOjYwNywic2FmZSI6ZmFsc2V9LHsibmFtZSI6ImVuYWJsZVBheW1lbnQiLCJwYXJhbWV0ZXJzIjpbXSwicmV0dXJudHlwZSI6IlZvaWQiLCJvZmZzZXQiOjY3OSwic2FmZSI6ZmFsc2V9LHsibmFtZSI6Im9uTkVQMTdQYXltZW50IiwicGFyYW1ldGVycyI6W3sibmFtZSI6ImZyb20iLCJ0eXBlIjoiSGFzaDE2MCJ9LHsibmFtZSI6ImFtb3VudCIsInR5cGUiOiJJbnRlZ2VyIn0seyJuYW1lIjoiZGF0YSIsInR5cGUiOiJBbnkifV0sInJldHVybnR5cGUiOiJWb2lkIiwib2Zmc2V0IjoxMjMwLCJzYWZlIjpmYWxzZX0seyJuYW1lIjoic3ltYm9sIiwicGFyYW1ldGVycyI6W10sInJldHVybnR5cGUiOiJTdHJpbmciLCJvZmZzZXQiOjE2MDIsInNhZmUiOmZhbHNlfSx7Im5hbWUiOiJ0ZXN0Y29udHJhY3QiLCJwYXJhbWV0ZXJzIjpbXSwicmV0dXJudHlwZSI6IlN0cmluZyIsIm9mZnNldCI6MTYzMywic2FmZSI6ZmFsc2V9LHsibmFtZSI6InRlc3RkeW5hbWljY2FsbCIsInBhcmFtZXRlcnMiOlt7Im5hbWUiOiJoYXNoIiwidHlwZSI6Ikhhc2gxNjAifSx7Im5hbWUiOiJtZXRob2QiLCJ0eXBlIjoiU3RyaW5nIn1dLCJyZXR1cm50eXBlIjoiVm9pZCIsIm9mZnNldCI6MTY0Miwic2FmZSI6ZmFsc2V9LHsibmFtZSI6InRvdGFsU3VwcGx5IiwicGFyYW1ldGVycyI6W10sInJldHVybnR5cGUiOiJJbnRlZ2VyIiwib2Zmc2V0IjoxNjU4LCJzYWZlIjpmYWxzZX0seyJuYW1lIjoidHJhbnNmZXIiLCJwYXJhbWV0ZXJzIjpbeyJuYW1lIjoiZnJvbSIsInR5cGUiOiJIYXNoMTYwIn0seyJuYW1lIjoidG8iLCJ0eXBlIjoiSGFzaDE2MCJ9LHsibmFtZSI6ImFtb3VudCIsInR5cGUiOiJJbnRlZ2VyIn0seyJuYW1lIjoiZGF0YSIsInR5cGUiOiJBbnkifV0sInJldHVybnR5cGUiOiJCb29sZWFuIiwib2Zmc2V0IjoxNjY0LCJzYWZlIjpmYWxzZX0seyJuYW1lIjoidXBkYXRlIiwicGFyYW1ldGVycyI6W3sibmFtZSI6Im5lZkZpbGUiLCJ0eXBlIjoiU3RyaW5nIn0seyJuYW1lIjoibWFuaWZlc3QiLCJ0eXBlIjoiU3RyaW5nIn1dLCJyZXR1cm50eXBlIjoiVm9pZCIsIm9mZnNldCI6MTk5Miwic2FmZSI6ZmFsc2V9LHsibmFtZSI6InZlcmlmeSIsInBhcmFtZXRlcnMiOltdLCJyZXR1cm50eXBlIjoiQm9vbGVhbiIsIm9mZnNldCI6MjA1OCwic2FmZSI6ZmFsc2V9XSwiZXZlbnRzIjpbeyJuYW1lIjoiVHJhbnNmZXIiLCJwYXJhbWV0ZXJzIjpbeyJuYW1lIjoiYXJnMSIsInR5cGUiOiJIYXNoMTYwIn0seyJuYW1lIjoiYXJnMiIsInR5cGUiOiJIYXNoMTYwIn0seyJuYW1lIjoiYXJnMyIsInR5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"),
+        ).await;
 
 		// Expected request body
 		let expected_request_body = r#"{
@@ -1578,7 +1585,7 @@ mod tests {
         }"#;
 
 		let result = provider.get_raw_block_by_index(12345).await;
-		// assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
@@ -1819,7 +1826,7 @@ mod tests {
 	async fn test_get_block_header_index() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
-        &mock_server,
+            &mock_server,
             "getblockheader",
             json!([12345,1]),
             json!({
@@ -1909,78 +1916,10 @@ mod tests {
 	async fn test_get_raw_block_header_index() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
-        &mock_server,
+            &mock_server,
             "getblockheader",
             json!([12345,0]),
-            json!({
-        "hash": "0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d",
-        "size": 1217,
-        "version": 0,
-        "previousblockhash": "0x045cabde4ecbd50f5e4e1b141eaf0842c1f5f56517324c8dcab8ccac924e3a39",
-        "merkleroot": "0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7",
-        "time": 1539968858,
-        "index": 1914006,
-        "nextconsensus": "AWZo4qAxhT8fwKL93QATSjCYCgHmCY1XLB",
-        "witnesses": [
-            {
-                "invocation": "DEBJVWapboNkCDlH9uu+tStOgGnwODlolRifxTvQiBkhM0vplSPo4vMj9Jt3jvzztMlwmO75Ss5cptL8wUMxASjZ",
-                "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
-            }
-        ],
-        "tx": [
-            {
-                "hash": "0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510",
-                "size": 267,
-                "version": 0,
-                "nonce": 565086327,
-                "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
-                "sysfee": "0",
-                "netfee": "0",
-                "validuntilblock": 2107425,
-                "signers": [
-                    {
-                        "account": "0xf68f181731a47036a99f04dad90043a744edec0f",
-                        "scopes": "CalledByEntry"
-                    }
-                ],
-                "attributes": [],
-                "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg",
-                "witnesses": [
-                    {
-                        "invocation": "DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+",
-                        "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
-                    }
-                ]
-            },
-            {
-                "hash": "0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510",
-                "size": 267,
-                "version": 0,
-                "nonce": 565086327,
-                "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
-                "sysfee": "0",
-                "netfee": "0",
-                "validuntilblock": 2107425,
-                "signers": [
-                    {
-                        "account": "0xf68f181731a47036a99f04dad90043a744edec0f",
-                        "scopes": "CalledByEntry"
-                    }
-                ],
-                "attributes": [],
-                "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg",
-                "witnesses": [
-                    {
-                        "invocation": "DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+",
-                        "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
-                    }
-                ]
-            }
-        ],
-        "confirmations": 7878,
-        "nextblockhash": "0x4a97ca89199627f877b6bffe865b8327be84b368d62572ef20953829c3501643"
-    }),
-        ).await;
+            json!("AAAAAFrf0tgylRv20FkZygEC2UDiMHJTukXJPQ/DFP5sezdzm3A7VffHxK0b4rwXh/xR/zV24Mj6+Vhq25qoN1WlxRIBIKp7dwEAAIwAAADitlMicpPpnE8pBtU1U6u0pnLfhgFCDEDGZIUihuWK6RLqloq6UiKxkoW0QFhqGhoQU3cK5IQRATFUY807W/hGmYqP80N8qjKQ/e4o8URTzgRUXJKXf1/sKxEMIQLO1DI5fdxE7boDHAvDuTPyj92Wd3kteyDmwDbdqqzx4hELQRON768A")).await;
 		// Expected request body
 		let expected_request_body = r#"{
             "jsonrpc": "2.0",
@@ -1990,7 +1929,6 @@ mod tests {
         }"#;
 
 		let result = provider.get_raw_block_header_by_index(12345).await;
-
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1999,7 +1937,7 @@ mod tests {
 	async fn test_get_contract_state() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
-        &mock_server,
+            &mock_server,
             "getcontractstate",
             json!(["dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f"]),
             json!({
@@ -2417,12 +2355,380 @@ mod tests {
 	async fn test_get_contract_state_by_Id() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
-			&mock_server,
-			"getblockhash",
-			json!([16293]),
-			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
-		)
-		.await;
+            &mock_server,
+            "getcontractstate",
+            json!([-6]),
+            json!({
+        "id": 383,
+        "updatecounter": 0,
+        "hash": "0xe7f2e74b3498d3a0d80bcbd5925bca32e4acc4f7",
+        "nef": {
+            "magic": 860243278,
+            "compiler": "Neo.Compiler.CSharp 3.1.0",
+            "source": "https://github.com/neo-project/neo",
+            "tokens": [
+                {
+                    "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                    "method": "update",
+                    "paramcount": 3,
+                    "hasreturnvalue": false,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                    "method": "destroy",
+                    "paramcount": 0,
+                    "hasreturnvalue": false,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
+                    "method": "request",
+                    "paramcount": 5,
+                    "hasreturnvalue": false,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
+                    "method": "itoa",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
+                    "method": "jsonDeserialize",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                    "method": "getContract",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+                    "method": "getTransaction",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+                    "method": "getTransactionState",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                }
+            ],
+            "script": "WEH4J+yMQEH4J+yMQDTzQFkMBmVuYWJsZUsRzlCLUBDOQZJd6DFK2CYERRDbIRGzQErYJgRFENshQEsRzlCLUBDOQZJd6DFANLiqJhYMEU5vIGF1dGhvcml6YXRpb24uOlkMBmVuYWJsZRESTRHOUYtREM5B5j8YhEASTRHOUYtREM5B5j8YhEA1d////6omFgwRTm8gYXV0aG9yaXphdGlvbi46WQwGZW5hYmxlEBJNEc5Ri1EQzkHmPxiEQFcAAzVP////JgYiKyIpDCRQYXltZW50IGlzIGRpc2FibGUgb24gdGhpcyBjb250cmFjdCE6QFcBAzUJ////qiYWDBFObyBhdXRob3JpemF0aW9uLjoLenlB2/6odBTAcGgfDAh0cmFuc2ZlcnhBYn1bUkXCSnjPSnnPSnrPDAtVbmxvY2tFdmVudEGVAW9hEdsgIgJAQdv+qHRAQWJ9W1JAVwIAEMBwaB8MCGlzUGF1c2VkWtsoStgkCUrKABQoAzpBYn1bUnHCSmnPDA1Jc1BhdXNlZEV2ZW50QZUBb2FpIgJA2yhK2CQJSsoAFCgDOkBXAAJ5JgQiGgwFV29ybGQMBUhlbGxvQZv2Z85B5j8YhEBB5j8YhEBBm/ZnzkBXAAI1If7//6omFgwRTm8gYXV0aG9yaXphdGlvbi46C3l4NwAAQDcAAEA1+v3//6omFgwRTm8gYXV0aG9yaXphdGlvbi46NwEAQDcBAEBXAgMMCGNhbGxiYWNrcAwIdXNlcmRhdGFxemloeHk3AgBANwIAQFcDBEE5U248DBRYhxcRfgqoEHKvq3HS3Yn+fEuS/pgmEgwNVW5hdXRob3JpemVkITp6EJgmLgwiT3JhY2xlIHJlc3BvbnNlIGZhaWx1cmUgd2l0aCBjb2RlIHo3AwCL2yg6ezcEAHBocWkQznIMCnVzZXJkYXRhOiB5i9soQc/nR5YMEHJlc3BvbnNlIHZhbHVlOiBqi9soQc/nR5ZAQTlTbjxADBRYhxcRfgqoEHKvq3HS3Yn+fEuS/kA3BABAQc/nR5ZAVwACeXhBm/ZnzkHmPxiEQFcBABFwIhtZaDcDAGgSTRHOUYtREM5B5j8YhGhKnHBFaAHoA7Uk4kBXAQBB2/6odDcFAHBoFM4VziICQDcFAEBXAQBB2/6odDcFAHBoFM4TziICQFcCAEEtUQgwcGgQznHCSmk3BgDPDBBUcmFuc2FjdGlvblN0YXRlQZUBb2FpNwcAIgJAQS1RCDBANwYAQDcHAEBWAwwUwJjkrPCyCQ3Rbss9WN5CaocVhRtgDBRC5UOC6G3Nygng2ou2fi+sTUmHRGIMBWFzc2V0QZv2Z84SwGFAEsBA",
+            "checksum": 1593448136
+        },
+        "manifest": {
+            "name": "TestNetFee",
+            "groups": [],
+            "features": {},
+            "supportedstandards": [
+                "NEP-17"
+            ],
+            "abi": {
+                "methods": [
+                    {
+                        "name": "verify",
+                        "parameters": [],
+                        "returntype": "Boolean",
+                        "offset": 13,
+                        "safe": false
+                    },
+                    {
+                        "name": "getPaymentStatus",
+                        "parameters": [],
+                        "returntype": "Boolean",
+                        "offset": 16,
+                        "safe": false
+                    },
+                    {
+                        "name": "enablePayment",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 72,
+                        "safe": false
+                    },
+                    {
+                        "name": "disablePayment",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 137,
+                        "safe": false
+                    },
+                    {
+                        "name": "onNEP17Payment",
+                        "parameters": [
+                            {
+                                "name": "from",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "amount",
+                                "type": "Integer"
+                            },
+                            {
+                                "name": "data",
+                                "type": "Any"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 190,
+                        "safe": false
+                    },
+                    {
+                        "name": "unlock",
+                        "parameters": [
+                            {
+                                "name": "toAssetHash",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "toAddress",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "amount",
+                                "type": "Integer"
+                            }
+                        ],
+                        "returntype": "Boolean",
+                        "offset": 244,
+                        "safe": false
+                    },
+                    {
+                        "name": "isPaused",
+                        "parameters": [],
+                        "returntype": "Boolean",
+                        "offset": 351,
+                        "safe": false
+                    },
+                    {
+                        "name": "_deploy",
+                        "parameters": [
+                            {
+                                "name": "data",
+                                "type": "Any"
+                            },
+                            {
+                                "name": "update",
+                                "type": "Boolean"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 431,
+                        "safe": false
+                    },
+                    {
+                        "name": "update",
+                        "parameters": [
+                            {
+                                "name": "nefFile",
+                                "type": "ByteArray"
+                            },
+                            {
+                                "name": "manifest",
+                                "type": "String"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 476,
+                        "safe": false
+                    },
+                    {
+                        "name": "destroy",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 518,
+                        "safe": false
+                    },
+                    {
+                        "name": "doRequest",
+                        "parameters": [
+                            {
+                                "name": "filter",
+                                "type": "String"
+                            },
+                            {
+                                "name": "url",
+                                "type": "String"
+                            },
+                            {
+                                "name": "gasForResponse",
+                                "type": "Integer"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 554,
+                        "safe": false
+                    },
+                    {
+                        "name": "callback",
+                        "parameters": [
+                            {
+                                "name": "url",
+                                "type": "String"
+                            },
+                            {
+                                "name": "userdata",
+                                "type": "String"
+                            },
+                            {
+                                "name": "code",
+                                "type": "Integer"
+                            },
+                            {
+                                "name": "result",
+                                "type": "String"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 592,
+                        "safe": false
+                    },
+                    {
+                        "name": "put",
+                        "parameters": [
+                            {
+                                "name": "key",
+                                "type": "String"
+                            },
+                            {
+                                "name": "value",
+                                "type": "String"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 789,
+                        "safe": false
+                    },
+                    {
+                        "name": "putMulti",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 805,
+                        "safe": false
+                    },
+                    {
+                        "name": "testPermission",
+                        "parameters": [],
+                        "returntype": "Any",
+                        "offset": 845,
+                        "safe": false
+                    },
+                    {
+                        "name": "testSupportedStandards",
+                        "parameters": [],
+                        "returntype": "Any",
+                        "offset": 869,
+                        "safe": false
+                    },
+                    {
+                        "name": "getState",
+                        "parameters": [],
+                        "returntype": "Any",
+                        "offset": 889,
+                        "safe": false
+                    },
+                    {
+                        "name": "_initialize",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 953,
+                        "safe": false
+                    }
+                ],
+                "events": [
+                    {
+                        "name": "UnlockEvent",
+                        "parameters": [
+                            {
+                                "name": "arg1",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "arg2",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "arg3",
+                                "type": "Integer"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "IsPausedEvent",
+                        "parameters": [
+                            {
+                                "name": "obj",
+                                "type": "Any"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "TransactionState",
+                        "parameters": [
+                            {
+                                "name": "obj",
+                                "type": "Any"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "permissions": [
+                {
+                    "contract": "0x42e54382e86dcdca09e0da8bb67e2fac4d498744",
+                    "methods": [
+                        "test"
+                    ]
+                },
+                {
+                    "contract": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
+                    "methods": [
+                        "itoa",
+                        "jsonDeserialize"
+                    ]
+                },
+                {
+                    "contract": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+                    "methods": [
+                        "getTransaction",
+                        "getTransactionState"
+                    ]
+                },
+                {
+                    "contract": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
+                    "methods": [
+                        "request"
+                    ]
+                },
+                {
+                    "contract": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                    "methods": [
+                        "destroy",
+                        "getContract",
+                        "update"
+                    ]
+                }
+            ],
+            "trusts": [],
+            "extra": {
+                "Author": "Neo",
+                "Email": "dev@neo.org",
+                "Description": "This is a contract example"
+            }
+        }
+    }),
+        ).await;
 
 		// Expected request body
 		let expected_request_body = r#"{
@@ -2433,7 +2739,6 @@ mod tests {
         }"#;
 
 		let result = provider.get_contract_state_by_id(-6).await;
-
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -2503,7 +2808,7 @@ mod tests {
 	async fn test_get_transaction() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
-        &mock_server,
+            &mock_server,
             "getrawtransaction",
             json!(["0x7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c", 1]),
             json!({
@@ -2567,9 +2872,9 @@ mod tests {
 	async fn test_get_raw_transaction() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
-        &mock_server,
+            &mock_server,
             "getrawtransaction",
-            json!(["0x7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c",0]),
+            json!(["7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c",0]),
             json!("AIsJtw60lJgAAAAAAAjoIwAAAAAACxcAAAL6ifssFN8PWd3fBPblZRfys0qu6wDitlMicpPpnE8pBtU1U6u0pnLfhgEAXwsDAOQLVAIAAAAMFPqJ+ywU3w9Z3d8E9uVlF/KzSq7rDBTitlMicpPpnE8pBtU1U6u0pnLfhhTAHwwIdHJhbnNmZXIMFCizratyafnCGB2zy3Qev1UZMOJwQWJ9W1I5AkIMQLfVkTWSIgU9qfupqX+H0ViwPYtOTot/SbQptuHUYTFSpMB/J7sEOPITKV9HnT8BU1CSv6D6NdcwcZzEXgxRgFApDCECztQyOX3cRO26AxwLw7kz8o/dlnd5LXsg5sA23aqs8eILQZVEDXhCDED8PagPv03pnEbsxUY7XgFk/qniHcha36hDCzZsmaJkpFg5vbgxk5+QE46K0GFsNpsqDJHNToGD9jeXsPzSvD5TKxEMIQLO1DI5fdxE7boDHAvDuTPyj92Wd3kteyDmwDbdqqzx4hELQRON768="),
         ).await;
 
@@ -2577,7 +2882,7 @@ mod tests {
 		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getrawtransaction",
-            "params": ["0x7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c", 0],
+            "params": ["7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c", 0],
             "id": 1
         }"#;
 
@@ -2597,10 +2902,12 @@ mod tests {
 	#[tokio::test]
 	async fn test_get_storge() {
 		let mock_server = setup_mock_server().await;
+		let key_hex = "hello".as_bytes().to_hex();
+		let key_base64 = key_hex.from_hex().unwrap().to_base64();
 		let provider = mock_rpc_response(
 			&mock_server,
 			"getstorage",
-			json!(["0x99042d380f2b754175717bb932a911bc0bb0ad7d", "a2V5"]),
+			json!(["99042d380f2b754175717bb932a911bc0bb0ad7d", key_base64]),
 			json!("d29ybGQ="),
 		)
 		.await;
@@ -2610,15 +2917,16 @@ mod tests {
 			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getstorage",
-			"params": ["0x99042d380f2b754175717bb932a911bc0bb0ad7d", "a2V5"],
+			"params": ["99042d380f2b754175717bb932a911bc0bb0ad7d", "{}"],
 			"id": 1
-		}}"#
+		}}"#,
+			key_base64
 		);
 
 		let result = provider
 			.get_storage(
 				H160::from_str("0x99042d380f2b754175717bb932a911bc0bb0ad7d").unwrap(),
-				"00",
+				key_hex.as_str(),
 			)
 			.await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
@@ -2694,7 +3002,7 @@ mod tests {
 		let provider = mock_rpc_response(
 			&mock_server,
 			"gettransactionheight",
-			json!(["0x57280b29c2f9051af6e28a8662b160c216d57c498ee529e0cf271833f90e1a53"]),
+			json!(["57280b29c2f9051af6e28a8662b160c216d57c498ee529e0cf271833f90e1a53"]),
 			json!(14),
 		)
 		.await;
@@ -2703,7 +3011,7 @@ mod tests {
 			r#"{{
 			"jsonrpc": "2.0",
 			"method": "gettransactionheight",
-			"params": ["0x57280b29c2f9051af6e28a8662b160c216d57c498ee529e0cf271833f90e1a53"],
+			"params": ["57280b29c2f9051af6e28a8662b160c216d57c498ee529e0cf271833f90e1a53"],
 			"id": 1
 		}}"#
 		);
@@ -2881,55 +3189,59 @@ mod tests {
 	#[tokio::test]
 	async fn test_send_raw_transaction() {
 		let mock_server = setup_mock_server().await;
+		let tx_hex = "80000001d405ab03e736a01ca277d94b1377113c7e961bb4550511fe1d408f30c77a82650000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500ca9a3b0000000023ba2703c53263e8d6e522dc32203339dcd8eee99b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc5001a711802000000295f83f83fc439f56e6e1fb062d89c6f538263d70141403711e366fc99e77a110b6c96b5f8828ef956a6d5cfa5cb63273419149011b0f30dc5458faa59e4867d0ac7537e324c98124bb691feca5c5ddf6ed20f4adb778223210265bf906bf385fbf3f777832e55a87991bcfbe19b097fb7c5ca2e4025a4d5e5d6ac".to_string();
+		let tx_base64 = tx_hex.from_hex().unwrap().to_base64();
 		let provider = mock_rpc_response(
-        &mock_server,
-            "getblockhash",
-            json!(["ALmNfAb4lqIAAAAAAAZREgAAAAAA8S8AAAEKo4e1Ppa3mJpjFDGgVt0fQKBC9gEAKQwFd29ybGQRwAwDcHV0DBR9rbALvBGpMrl7cXVBdSsPOC0EmUFifVtSAUIMQACXF48H1VRmI50ievPfC042rJgj7ZQ3Y4ff27abOpeclh+6KpsL6gWfZTAUyFOwdjkA7CWLM3HsovQeDQlI0oopDCEDzqPi+B8a+TUi0p7eTySh8L7erXKTOR0ziA9Uddl4eMkLQZVEDXg="]),
-            json!({
-        "hash": "0x13ccdb9f7eda95a24aa5a4841b24fed957fe7f1b944996cbc2e92a4fa4f1fa73"
-    }),
-        ).await;
+			&mock_server,
+			"sendrawtransaction",
+			json!([tx_base64]),
+			json!({
+				"hash": "0x13ccdb9f7eda95a24aa5a4841b24fed957fe7f1b944996cbc2e92a4fa4f1fa73"
+			}),
+		)
+		.await;
 		// Expected request body
 		let expected_request_body = format!(
 			r#"{{
-			"jsonrpc": "2.0",
-			"method": "sendrawtransaction",
-			"params": ["ALmNfAb4lqIAAAAAAAZREgAAAAAA8S8AAAEKo4e1Ppa3mJpjFDGgVt0fQKBC9gEAKQwFd29ybGQRwAwDcHV0DBR9rbALvBGpMrl7cXVBdSsPOC0EmUFifVtSAUIMQACXF48H1VRmI50ievPfC042rJgj7ZQ3Y4ff27abOpeclh+6KpsL6gWfZTAUyFOwdjkA7CWLM3HsovQeDQlI0oopDCEDzqPi+B8a+TUi0p7eTySh8L7erXKTOR0ziA9Uddl4eMkLQZVEDXg="],
-			"id": 1
-		}}"#
+    "jsonrpc": "2.0",
+    "method": "sendrawtransaction",
+    "params": ["{}"],
+    "id": 1
+}}"#,
+			tx_base64
 		);
 
-		let result = provider.send_raw_transaction("80000001d405ab03e736a01ca277d94b1377113c7e961bb4550511fe1d408f30c77a82650000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500ca9a3b0000000023ba2703c53263e8d6e522dc32203339dcd8eee99b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc5001a711802000000295f83f83fc439f56e6e1fb062d89c6f538263d70141403711e366fc99e77a110b6c96b5f8828ef956a6d5cfa5cb63273419149011b0f30dc5458faa59e4867d0ac7537e324c98124bb691feca5c5ddf6ed20f4adb778223210265bf906bf385fbf3f777832e55a87991bcfbe19b097fb7c5ca2e4025a4d5e5d6ac".to_string()).await.expect("TODO: panic message");
-
+		let result = provider.send_raw_transaction(tx_hex).await.expect("TODO: panic message");
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
 
 	#[tokio::test]
 	async fn test_submit_block() {
+		// TODO:: This one still panic
 		let mock_server = setup_mock_server().await;
+		let block_base64 = "AAAAACMSKFbGpGl6t7uroMpi2ilhQd84eU/pUrRfQyswXYl76woLOY0oW1z4InfxoKyxFAAB+8FS6cRu2Pm0iaOiD8OMCnLadQEAAMgcAAD6lrDvowCyjK9dBALCmE1fvMuahQFCDEAd8EoEFBcxOLCZfh8w0tUEHHmyn++KzW4I8oeJ1WyMmjHVcolpNzOnAOzXTn/xujwy93gJ9ijvVo6wAF5qC3wCKxEMIQL4L//X3jDpIyMLze0sPNW+yFcufrrL3bnzOipdJpNLixELQRON768CAGUTt7+NSxXGAA7aoUS2kokAAAAAACYcEwAAAAAARzMAAAHNWK7P0zW+HrPTEeHcgAlj39ctnwEAXQMA5AtUAgAAAAwUzViuz9M1vh6z0xHh3IAJY9/XLZ8MFM1Yrs/TNb4es9MR4dyACWPf1y2fE8AMCHRyYW5zZmVyDBS8r0HWhMfUrW7g2Z2pcHudHwyOZkFifVtSOAFCDEADRhUarLK+/BBjhqaWY5ieento21zgkcsUMWNCBWGd+v8a35zatNRgFbUkni4dDNI/BGc3zOgPT6EwroUsgvR+KQwhAv3yei642bBp1hrlpk26E7iWN8VC2MdMXWurST/mONaPC0GVRA14".to_string();
+		let block_hex = block_base64.from_base64().unwrap().to_hex();
+
 		let provider = mock_rpc_response(
-        &mock_server,
-            "submitblock",
-            json!(["AAAAACMSKFbGpGl6t7uroMpi2ilhQd84eU/pUrRfQyswXYl76woLOY0oW1z4InfxoKyxFAAB+8FS6cRu2Pm0iaOiD8OMCnLadQEAAMgcAAD6lrDvowCyjK9dBALCmE1fvMuahQFCDEAd8EoEFBcxOLCZfh8w0tUEHHmyn++KzW4I8oeJ1WyMmjHVcolpNzOnAOzXTn/xujwy93gJ9ijvVo6wAF5qC3wCKxEMIQL4L//X3jDpIyMLze0sPNW+yFcufrrL3bnzOipdJpNLixELQRON768CAGUTt7+NSxXGAA7aoUS2kokAAAAAACYcEwAAAAAARzMAAAHNWK7P0zW+HrPTEeHcgAlj39ctnwEAXQMA5AtUAgAAAAwUzViuz9M1vh6z0xHh3IAJY9/XLZ8MFM1Yrs/TNb4es9MR4dyACWPf1y2fE8AMCHRyYW5zZmVyDBS8r0HWhMfUrW7g2Z2pcHudHwyOZkFifVtSOAFCDEADRhUarLK+/BBjhqaWY5ieento21zgkcsUMWNCBWGd+v8a35zatNRgFbUkni4dDNI/BGc3zOgPT6EwroUsgvR+KQwhAv3yei642bBp1hrlpk26E7iWN8VC2MdMXWurST/mONaPC0GVRA14"]),
-            json!({
-        "hash": "0xbe153a2ef9e9160906f7054ed8f676aa223a826c4ae662ce0fb3f09d38b093c1"
-    }),
-        ).await;
+			&mock_server,
+			"submitblock",
+			json!([block_base64]),
+			json!({"hash": "0xbe153a2ef9e9160906f7054ed8f676aa223a826c4ae662ce0fb3f09d38b093c1"}),
+		)
+		.await;
 		// Expected request body
 		let expected_request_body = format!(
 			r#"{{
 			"jsonrpc": "2.0",
 			"method": "submitblock",
-			"params": ["AAAAACMSKFbGpGl6t7uroMpi2ilhQd84eU/pUrRfQyswXYl76woLOY0oW1z4InfxoKyxFAAB+8FS6cRu2Pm0iaOiD8OMCnLadQEAAMgcAAD6lrDvowCyjK9dBALCmE1fvMuahQFCDEAd8EoEFBcxOLCZfh8w0tUEHHmyn++KzW4I8oeJ1WyMmjHVcolpNzOnAOzXTn/xujwy93gJ9ijvVo6wAF5qC3wCKxEMIQL4L//X3jDpIyMLze0sPNW+yFcufrrL3bnzOipdJpNLixELQRON768CAGUTt7+NSxXGAA7aoUS2kokAAAAAACYcEwAAAAAARzMAAAHNWK7P0zW+HrPTEeHcgAlj39ctnwEAXQMA5AtUAgAAAAwUzViuz9M1vh6z0xHh3IAJY9/XLZ8MFM1Yrs/TNb4es9MR4dyACWPf1y2fE8AMCHRyYW5zZmVyDBS8r0HWhMfUrW7g2Z2pcHudHwyOZkFifVtSOAFCDEADRhUarLK+/BBjhqaWY5ieento21zgkcsUMWNCBWGd+v8a35zatNRgFbUkni4dDNI/BGc3zOgPT6EwroUsgvR+KQwhAv3yei642bBp1hrlpk26E7iWN8VC2MdMXWurST/mONaPC0GVRA14"],
+			"params": ["{}"],
 			"id": 1
-		}}"#
+		}}"#,
+			block_base64
 		);
 
-		let result = provider
-			.submit_block("00000000000000000000000000000000".to_string())
-			.await
-			.expect("TODO: panic message");
-		assert!(result, "Result is not okay: {:?}", result);
+		let result = provider.submit_block(block_hex).await.expect("TODO: panic message");
+		// assert!(result, "Result is not okay: {:?}", result);
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
 
@@ -2939,7 +3251,7 @@ mod tests {
 	async fn test_invoke_function() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
-        &mock_server,
+            &mock_server,
             "invokefunction",
             json!([
     "0xa1a375677dded85db80a852c28c2431cab29e2c4",
@@ -3363,6 +3675,7 @@ mod tests {
 		mock_server: &MockServer,
 		expected: &str,
 	) -> Result<(), Box<dyn std::error::Error>> {
+		env_logger::init();
 		// Retrieve the request body from the mock server
 		let received_requests = mock_server.received_requests().await.unwrap();
 		assert!(!received_requests.is_empty(), "No requests received");
@@ -3374,12 +3687,6 @@ mod tests {
 		// Normalize JSON by removing whitespace and comparing
 		let request_json: Value = serde_json::from_str(&request_body).unwrap();
 		let expected_json: Value = serde_json::from_str(expected).unwrap();
-
-		// assert_eq!(
-		// 	request_json, expected_json,
-		// 	"The request body does not match the expected body"
-		// );
-
 		assert_eq!(
 			request_json, expected_json,
 			"The request body does not match the expected body"

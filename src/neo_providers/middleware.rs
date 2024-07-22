@@ -242,7 +242,7 @@ pub trait Middleware: Sync + Send + Debug {
 
 	// State service
 
-	async fn get_raw_transaction(&self, tx_hash: H256) -> Result<RawTransaction, Self::Error> {
+	async fn get_raw_transaction(&self, tx_hash: H256) -> Result<String, Self::Error> {
 		self.inner()
 			.get_raw_transaction(tx_hash)
 			.await
@@ -316,7 +316,7 @@ pub trait Middleware: Sync + Send + Debug {
 		self.inner().send_raw_transaction(hex).await.map_err(MiddlewareError::from_err)
 	}
 
-	async fn submit_block(&self, hex: String) -> Result<bool, Self::Error> {
+	async fn submit_block(&self, hex: String) -> Result<SubmitBlock, Self::Error> {
 		self.inner().submit_block(hex).await.map_err(MiddlewareError::from_err)
 	}
 

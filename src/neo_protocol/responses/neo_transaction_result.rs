@@ -3,10 +3,13 @@ use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
 	NeoVMStateType, NeoWitness, TransactionAttribute, TransactionSigner, WitnessRule, WitnessScope,
+	*,
 };
 
 #[derive(Serialize, Deserialize, Hash, Clone, Debug)]
 pub struct TransactionResult {
+	#[serde(serialize_with = "serialize_h256")]
+	#[serde(deserialize_with = "deserialize_h256")]
 	pub hash: H256,
 	pub size: i32,
 	pub version: i32,

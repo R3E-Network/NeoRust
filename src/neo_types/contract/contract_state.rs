@@ -10,6 +10,7 @@ use neo::prelude::{
 pub struct ContractState {
 	pub id: i32,
 	pub nef: ContractNef,
+	#[serde(rename = "updatecounter")]
 	pub update_counter: i32,
 	#[serde(serialize_with = "serialize_h160")]
 	#[serde(deserialize_with = "deserialize_h160")]

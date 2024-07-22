@@ -19,18 +19,12 @@ pub struct ContractManifest {
 	pub groups: Vec<ContractGroup>,
 	#[serde(skip_serializing)]
 	pub features: Option<HashMap<String, serde_json::Value>>,
-	// #[serde(default)]
-	// #[serde(serialize_with = "serialize_wildcard")]
-	// #[serde(deserialize_with = "deserialize_wildcard")]
 	#[serde(rename = "supportedstandards")]
 	pub supported_standards: Vec<String>,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub abi: Option<ContractABI>,
 	#[serde(default)]
 	pub permissions: Vec<ContractPermission>,
-	// #[serde(skip_serializing)]
-	// #[serde(serialize_with = "serialize_wildcard")]
-	// #[serde(deserialize_with = "deserialize_wildcard")]
 	pub trusts: Vec<String>,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub extra: Option<HashMap<String, serde_json::Value>>,
@@ -95,7 +89,7 @@ pub struct ContractEvent {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Debug, Clone)]
 pub struct ContractPermission {
 	pub contract: String,
-	#[serde(serialize_with = "serialize_wildcard")]
-	#[serde(deserialize_with = "deserialize_wildcard")]
+	// #[serde(serialize_with = "serialize_wildcard")]
+	// #[serde(deserialize_with = "deserialize_wildcard")]
 	pub methods: Vec<String>,
 }

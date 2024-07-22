@@ -1,19 +1,18 @@
 //! Helpers for creating wallets for YubiHSM2
-use crate::{crypto::HashableForVec, neo_types::Address};
 use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
+use p256::{NistP256, PublicKey};
+use signature::Verifier;
+use yubihsm::{
+	asymmetric::Algorithm::EcP256, ecdsa::Signer as YubiSigner, object, object::Label, Capability,
+	Client, Connector, Credentials, Domain,
+};
+
 use neo::{
 	neo_providers::public_key_to_address,
 	prelude::{Secp256r1PublicKey, WalletSigner},
 };
-use p256::{NistP256, PublicKey};
-use signature::Verifier;
-use yubihsm::{
-	asymmetric::Algorithm::EcP256,
-	ecdsa::{Signature, Signer as YubiSigner},
-	object,
-	object::Label,
-	Capability, Client, Connector, Credentials, Domain,
-};
+
+use crate::{crypto::HashableForVec, neo_types::Address};
 
 impl WalletSigner<YubiSigner<NistP256>> {
 	/// Connects to a yubi key's ECDSA account at the provided id
