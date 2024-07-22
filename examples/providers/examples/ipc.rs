@@ -15,28 +15,28 @@ abigen!(
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    let provider = Provider::connect_ipc("~/.ethereum/geth.ipc").await?;
-    let provider = Arc::new(provider);
+	let provider = Provider::connect_ipc("~/.neo/geth.ipc").await?;
+	let provider = Arc::new(provider);
 
-    let pair_address: Address = "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc".parse()?;
-    let weth_usdc = IUniswapV2Pair::new(pair_address, provider.clone());
+	let pair_address: Address = "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc".parse()?;
+	let weth_usdc = IUniswapV2Pair::new(pair_address, provider.clone());
 
-    let block = provider.get_block_number().await?;
-    println!("Current block: {block}");
+	let block = provider.get_block_number().await?;
+	println!("Current block: {block}");
 
-    let mut initial_reserves = weth_usdc.get_reserves().call().await?;
-    println!("Initial reserves: {initial_reserves:?}");
+	let mut initial_reserves = weth_usdc.get_reserves().call().await?;
+	println!("Initial reserves: {initial_reserves:?}");
 
-    let mut stream = provider.subscribe_blocks().await?;
-    while let Some(block) = stream.next().await {
-        println!("New block: {:?}", block.number);
+	let mut stream = provider.subscribe_blocks().await?;
+	while let Some(block) = stream.next().await {
+		println!("New block: {:?}", block.number);
 
-        let reserves = weth_usdc.get_reserves().call().await?;
-        if reserves != initial_reserves {
-            println!("Reserves changed: old {initial_reserves:?} - new {reserves:?}");
-            initial_reserves = reserves;
-        }
-    }
+		let reserves = weth_usdc.get_reserves().call().await?;
+		if reserves != initial_reserves {
+			println!("Reserves changed: old {initial_reserves:?} - new {reserves:?}");
+			initial_reserves = reserves;
+		}
+	}
 
-    Ok(())
+	Ok(())
 }

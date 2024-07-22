@@ -6,31 +6,31 @@
 //! rate-limiting errors. In addition to the RetryPolicy, errors caused by connectivity issues such
 //! as timed out connections or responses in the 5xx range can also be retried separately.
 
-use NeoRust::prelude::*;
 use primitive_types::H256;
 use reqwest::Url;
+use NeoRust::prelude::*;
 
 const RPC_URL: &str = NeoConstants::SEED_1;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    let provider = Http::new(Url::parse(RPC_URL)?);
+	let provider = Http::new(Url::parse(RPC_URL)?);
 
-    let client = RetryClientBuilder::default()
-        .rate_limit_retries(10)
-        .timeout_retries(3)
-        .initial_backoff(Duration::from_millis(500))
-        .build(provider, Box::<ethers::providers::HttpRateLimitRetryPolicy>::default());
+	let client = RetryClientBuilder::default()
+		.rate_limit_retries(10)
+		.timeout_retries(3)
+		.initial_backoff(Duration::from_millis(500))
+		.build(provider, Box::<HttpRateLimitRetryPolicy>::default());
 
-    // Send a JSON-RPC request for the latest block
-    let block_num = "latest".to_string();
-    let txn_details = false;
-    let params = (block_num, txn_details);
+	// Send a JSON-RPC request for the latest block
+	let block_num = "latest".to_string();
+	let txn_details = false;
+	let params = (block_num, txn_details);
 
-    let block: Block<H256> =
-        JsonRpcClient::request(&client, "eth_getBlockByNumber", params).await?;
+	let block: Block<H256> =
+		JsonRpcClient::request(&client, "eth_getBlockByNumber", params).await?;
 
-    println!("{block:?}");
+	println!("{block:?}");
 
-    Ok(())
+	Ok(())
 }
