@@ -12,12 +12,12 @@ use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use url::Url;
 
+use super::common::{JsonRpcError, Request, Response};
+use crate::prelude::Authorization;
 use neo::{
 	config::NeoConstants,
 	prelude::{JsonRpcClient, ProviderError, RpcError},
 };
-use crate::prelude::Authorization;
-use super::common::{JsonRpcError, Request, Response};
 
 /// A low-level JSON-RPC Client over HTTP.
 ///

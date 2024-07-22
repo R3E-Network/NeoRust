@@ -1,12 +1,9 @@
-use std::fmt;
-
+use neo::prelude::{Middleware, Transaction, WalletError};
+use p256::NistP256;
 use primitive_types::H256;
 use signature::hazmat::{PrehashSigner, PrehashVerifier};
-
-use neo::{
-	crypto::Secp256r1Signature,
-	prelude::{Middleware, Transaction, WalletError},
-};
+use std::fmt;
+use yubihsm::ecdsa::Signature;
 
 use crate::{neo_types::Address, prelude::HashableForVec};
 
@@ -16,7 +13,7 @@ use crate::{neo_types::Address, prelude::HashableForVec};
 ///
 /// ## Signing and Verifying a message
 ///
-/// The wallet can be used to produce ECDSA [`Secp256r1Signature`] objects, which can be
+/// The wallet can be used to produce ECDSA [`p256::NistP256`] objects, which can be
 /// then verified. Note that this uses [`hash_message`] under the hood which will
 /// prefix the message being hashed with the `Ethereum Signed Message` domain separator.
 ///
@@ -42,11 +39,10 @@ use crate::{neo_types::Address, prelude::HashableForVec};
 /// # }
 /// ```
 ///
-/// [`Secp256r1Signature`]: ethers_core::types::Secp256r1Signature
+/// [`p256::NistP256`]: ethers_core::types::p256::NistP256
 /// [`hash_message`]: fn@ethers_core::utils::hash_message
 #[derive(Clone)]
-pub struct WalletSigner<D: PrehashSigner<Secp256r1Signature> + PrehashVerifier<Secp256r1Signature>>
-{
+pub struct WalletSigner<D: PrehashSigner<Signature<NistP256>>> {
 	/// The WalletSigner's private Key
 	pub(crate) signer: D,
 	/// The wallet's address
@@ -54,7 +50,7 @@ pub struct WalletSigner<D: PrehashSigner<Secp256r1Signature> + PrehashVerifier<S
 	pub(crate) network: Option<u64>,
 }
 
-impl<D: PrehashSigner<Secp256r1Signature> + PrehashVerifier<Secp256r1Signature>> WalletSigner<D> {
+impl<D: PrehashSigner<Signature<NistP256>>> WalletSigner<D> {
 	/// Creates a new `WalletSigner` instance using an external `Signer` and associated Ethereum address.
 	///
 	/// # Arguments
@@ -70,9 +66,7 @@ impl<D: PrehashSigner<Secp256r1Signature> + PrehashVerifier<Secp256r1Signature>>
 	}
 }
 
-impl<D: Sync + Send + PrehashSigner<Secp256r1Signature> + PrehashVerifier<Secp256r1Signature>>
-	WalletSigner<D>
-{
+impl<D: Sync + Send + PrehashSigner<Signature<NistP256>>> WalletSigner<D> {
 	/// Signs a given `Transaction`, using the wallet's private key.
 	///
 	/// # Arguments
@@ -81,11 +75,11 @@ impl<D: Sync + Send + PrehashSigner<Secp256r1Signature> + PrehashVerifier<Secp25
 	///
 	/// # Returns
 	///
-	/// A `Result` containing the `Secp256r1Signature` of the transaction, or a `WalletError` on failure.
+	/// A `Result` containing the `p256::NistP256` of the transaction, or a `WalletError` on failure.
 	pub(crate) async fn sign_transaction(
 		&self,
 		tx: &Transaction,
-	) -> Result<Secp256r1Signature, WalletError> {
+	) -> Result<Signature<NistP256>, WalletError> {
 		let mut tx_with_network = tx.clone();
 		if tx_with_network.network().is_none() {
 			// in the case we don't have a network, let's use the signer chain id instead
@@ -104,8 +98,8 @@ impl<D: Sync + Send + PrehashSigner<Secp256r1Signature> + PrehashVerifier<Secp25
 	///
 	/// # Returns
 	///
-	/// A `Result` containing the `Secp256r1Signature` of the hash, or a `WalletError` on failure.
-	pub fn sign_hash(&self, hash: H256) -> Result<Secp256r1Signature, WalletError> {
+	/// A `Result` containing the `p256::NistP256` of the hash, or a `WalletError` on failure.
+	pub fn sign_hash(&self, hash: H256) -> Result<Signature<NistP256>, WalletError> {
 		self.signer.sign_prehash(hash.as_ref()).map_err(|_| WalletError::SignHashError)
 	}
 
@@ -118,31 +112,10 @@ impl<D: Sync + Send + PrehashSigner<Secp256r1Signature> + PrehashVerifier<Secp25
 	///
 	/// # Returns
 	///
-	/// A `Result` containing the `Secp256r1Signature` of the message, or a `WalletError` on failure.
-	pub async fn sign_message(&self, message: &[u8]) -> Result<Secp256r1Signature, WalletError> {
+	/// A `Result` containing the `p256::NistP256` of the message, or a `WalletError` on failure.
+	pub async fn sign_message(&self, message: &[u8]) -> Result<Signature<NistP256>, WalletError> {
 		let hash = message.hash256();
 		self.sign_hash(H256::from_slice(hash.as_slice()))
-	}
-
-	/// Verifies a given message and signature.
-	/// The message will be hashed using the `Sha256` algorithm before being verified.
-	/// If the signature is valid, the method will return `Ok(())`, otherwise it will return a `WalletError`.
-	/// # Arguments
-	/// * `message` - The message to be verified.
-	/// * `signature` - The signature to be verified.
-	/// # Returns
-	/// A `Result` containing `Ok(())` if the signature is valid, or a `WalletError` on failure.
-	pub async fn verify_message(
-		&self,
-		message: &[u8],
-		signature: &Secp256r1Signature,
-	) -> Result<(), WalletError> {
-		let hash = message.hash256();
-		let hash = H256::from_slice(hash.as_slice());
-		match self.signer.verify_prehash(hash.as_ref(), signature) {
-			Ok(_) => Ok(()),
-			Err(_) => Err(WalletError::VerifyError),
-		}
 	}
 
 	/// Returns a reference to the wallet's signer.
@@ -184,7 +157,7 @@ impl<D: Sync + Send + PrehashSigner<Secp256r1Signature> + PrehashVerifier<Secp25
 }
 
 // do not log the signer
-impl<D: PrehashSigner<Secp256r1Signature> + PrehashVerifier<Secp256r1Signature>> fmt::Debug
+impl<D: PrehashSigner<Signature<NistP256>> + PrehashVerifier<Signature<NistP256>>> fmt::Debug
 	for WalletSigner<D>
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

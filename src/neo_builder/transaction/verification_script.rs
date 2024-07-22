@@ -114,7 +114,7 @@ impl VerificationScript {
 
 		let service_bytes = &reader.read_bytes(4).unwrap().to_hex();
 		let hash = &InteropService::SystemCryptoCheckMultiSig.hash(); //.from_hex().unwrap();
-															  //assert_eq!(service_bytes, hash);
+																//assert_eq!(service_bytes, hash);
 		if service_bytes != hash {
 			return false;
 		}
