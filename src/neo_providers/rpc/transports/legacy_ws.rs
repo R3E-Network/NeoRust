@@ -173,7 +173,7 @@ impl Ws {
 	}
 }
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(target_arch = "wasm32", async_trait(? Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl JsonRpcClient for Ws {
 	type Error = ClientError;
@@ -260,13 +260,13 @@ where
 			loop {
 				if self.is_done() {
 					// debug!("work complete");
-					break
+					break;
 				}
 
 				if let Err(e) = self.tick().await {
 					// error!("Received a WebSocket error: {:?}", e);
 					self.close_all_subscriptions();
-					break
+					break;
 				}
 			}
 		};
@@ -362,7 +362,7 @@ where
 					// subscription channel was closed on the receiver end
 					stream.remove();
 				}
-				return Err(to_client_error(err))
+				return Err(to_client_error(err));
 			}
 		}
 

@@ -6,13 +6,18 @@ use std::{
 };
 
 use async_trait::async_trait;
-use neo::config::NeoConstants;
+use http::HeaderValue;
 use reqwest::{header, Client, Error as ReqwestError};
 use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use url::Url;
 
-use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
+use neo::{
+	config::NeoConstants,
+	prelude::{JsonRpcClient, ProviderError, RpcError},
+};
+
+use crate::prelude::Authorization;
 
 use super::common::{JsonRpcError, Request, Response};
 
@@ -86,7 +91,7 @@ impl RpcError for ClientError {
 	}
 }
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(target_arch = "wasm32", async_trait(? Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl JsonRpcClient for HttpProvider {
 	type Error = ClientError;
@@ -110,7 +115,7 @@ impl JsonRpcClient for HttpProvider {
 					err: serde::de::Error::custom("unexpected notification over HTTP transport"),
 					text: String::from_utf8_lossy(&body).to_string(),
 				};
-				return Err(err)
+				return Err(err);
 			},
 			Err(err) =>
 				return Err(ClientError::SerdeJson {
@@ -168,22 +173,22 @@ impl HttpProvider {
 	/// use NeoRust::prelude::Http;
 	///
 	/// let url = Url::parse("http://localhost:8545").unwrap();
-	/// let provider = Http::new(url);
+	/// let provider = Http::new_with_auth(url, Authorization::basic("admin", "good_password"));
 	/// ```
-	// pub fn new_with_auth(
-	// 	url: impl Into<Url>,
-	// 	auth: Authorization,
-	// ) -> Result<Self, HttpClientError> {
-	// 	let mut auth_value = HeaderValue::from_str(&auth.to_string())?;
-	// 	auth_value.set_sensitive(true);
-	//
-	// 	let mut headers = reqwest::header::HeaderMap::new();
-	// 	headers.insert(reqwest::header::AUTHORIZATION, auth_value);
-	//
-	// 	let client = Client::builder().default_headers(headers).build()?;
-	//
-	// 	Ok(Self::new_with_client(url, client))
-	// }
+	pub fn new_with_auth(
+		url: impl Into<Url>,
+		auth: Authorization,
+	) -> Result<Self, HttpClientError> {
+		let mut auth_value = HeaderValue::from_str(&auth.to_string())?;
+		auth_value.set_sensitive(true);
+
+		let mut headers = reqwest::header::HeaderMap::new();
+		headers.insert(reqwest::header::AUTHORIZATION, auth_value);
+
+		let client = Client::builder().default_headers(headers).build()?;
+
+		Ok(Self::new_with_client(url, client))
+	}
 
 	/// Allows to customize the provider by providing your own http client
 	///
@@ -219,7 +224,7 @@ impl Clone for HttpProvider {
 
 #[derive(Error, Debug)]
 /// Error thrown when dealing with Http clients
-pub(crate) enum HttpClientError {
+pub enum HttpClientError {
 	/// Thrown if unable to build headers for client
 	#[error(transparent)]
 	InvalidHeader(#[from] header::InvalidHeaderValue),

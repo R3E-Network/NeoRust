@@ -1,10 +1,13 @@
-use super::WsError;
-use crate::{JsonRpcError, ProviderError};
-use primitive_types::U256;
 use std::{
 	error::Error,
 	fmt::{Display, Formatter},
 };
+
+use primitive_types::U256;
+
+use crate::{JsonRpcError, ProviderError};
+
+use super::WsError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum WsClientError {

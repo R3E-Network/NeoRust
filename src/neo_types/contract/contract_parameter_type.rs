@@ -47,3 +47,46 @@ pub enum ContractParameterType {
 	#[strum(serialize = "Void")]
 	Void = 0xff,
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn test_contract_parameter_type_deserialization() {
+		let json = r#"
+        {
+            "type": "Boolean"
+        }
+        "#;
+
+		#[derive(Deserialize)]
+		struct Test {
+			#[serde(rename = "type")]
+			param_type: ContractParameterType,
+		}
+
+		let result: Test = serde_json::from_str(json).unwrap();
+		assert_eq!(result.param_type, ContractParameterType::Boolean);
+	}
+
+	#[test]
+	fn test_contract_parameter_type_serialization() {
+		assert_eq!(serde_json::to_string(&ContractParameterType::Boolean).unwrap(), "\"Boolean\"");
+		assert_eq!(serde_json::to_string(&ContractParameterType::Integer).unwrap(), "\"Integer\"");
+		assert_eq!(serde_json::to_string(&ContractParameterType::String).unwrap(), "\"String\"");
+
+		assert_eq!(serde_json::to_string(&ContractParameterType::H160).unwrap(), "\"Hash160\"");
+		assert_eq!(serde_json::to_string(&ContractParameterType::H256).unwrap(), "\"Hash256\"");
+
+		#[derive(Serialize)]
+		struct Test {
+			#[serde(rename = "type")]
+			param_type: ContractParameterType,
+		}
+
+		let test = Test { param_type: ContractParameterType::Array };
+		let json = serde_json::to_string(&test).unwrap();
+		assert_eq!(json, r#"{"type":"Array"}"#);
+	}
+}

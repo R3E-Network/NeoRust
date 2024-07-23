@@ -2,8 +2,8 @@
 //! one is used for write operations, that consume gas like sending transactions.
 
 use url::Url;
-
 use NeoRust::prelude::*;
+
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     let anvil = Anvil::new().spawn();

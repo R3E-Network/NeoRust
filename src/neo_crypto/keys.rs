@@ -59,6 +59,8 @@ use std::{
 	hash::{Hash, Hasher},
 };
 
+// use zeroize::Zeroize;
+use elliptic_curve::zeroize::Zeroize;
 use p256::{
 	ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey},
 	elliptic_curve::{
@@ -72,8 +74,6 @@ use rand_core::OsRng;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use signature::{SignerMut, Verifier};
-// use zeroize::Zeroize;
-use elliptic_curve::zeroize::Zeroize;
 
 use neo::prelude::{CryptoError, Decoder, Encoder, NeoConstants, NeoSerializable};
 
@@ -155,7 +155,7 @@ impl Secp256r1PublicKey {
 		let public_key = if PublicKey::from_encoded_point(&encoded_point).is_some().into() {
 			PublicKey::from_encoded_point(&encoded_point).unwrap()
 		} else {
-			return Err(CryptoError::InvalidPublicKey)
+			return Err(CryptoError::InvalidPublicKey);
 		};
 		Ok(Secp256r1PublicKey { inner: public_key })
 	}
@@ -254,7 +254,7 @@ impl Secp256r1PrivateKey {
 	/// - Returns: A `Result` with the private key or a `CryptoError`
 	pub fn from_bytes(bytes: &[u8]) -> Result<Self, CryptoError> {
 		if bytes.len() != 32 {
-			return Err(CryptoError::InvalidPrivateKey)
+			return Err(CryptoError::InvalidPrivateKey);
 		}
 		SecretKey::from_slice(bytes)
 			.map(|inner| Self { inner })
@@ -352,7 +352,7 @@ impl Secp256r1Signature {
 	/// - Returns: A `Result<Secp256r1Signature, CryptoError>`.
 	pub fn from_bytes(bytes: &[u8]) -> Result<Self, CryptoError> {
 		if bytes.len() != 64 {
-			return Err(CryptoError::InvalidFormat("Invalid signature length".to_string()))
+			return Err(CryptoError::InvalidFormat("Invalid signature length".to_string()));
 		}
 		Ok(Secp256r1Signature { inner: Signature::from_slice(bytes).unwrap() })
 	}
@@ -537,7 +537,7 @@ impl PrivateKeyExtension for Secp256r1PrivateKey {
 
 	fn from_slice(slice: &[u8]) -> Result<Self, CryptoError> {
 		if slice.len() != 32 {
-			return Err(CryptoError::InvalidPublicKey)
+			return Err(CryptoError::InvalidPublicKey);
 		}
 
 		let mut arr = [0u8; 32];
@@ -561,7 +561,7 @@ impl PublicKeyExtension for Secp256r1PublicKey {
 
 	fn from_slice(slice: &[u8]) -> Result<Self, CryptoError> {
 		if slice.len() != 64 && slice.len() != 33 {
-			return Err(CryptoError::InvalidPublicKey)
+			return Err(CryptoError::InvalidPublicKey);
 		}
 		Self::from_slice(slice).map_err(|_| CryptoError::InvalidPublicKey)
 	}

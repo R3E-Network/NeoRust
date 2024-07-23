@@ -6,7 +6,7 @@
 
 use std::sync::Arc;
 
-use ethers::prelude::*;
+use NeoRust::prelude::*;
 
 abigen!(
     IUniswapV2Pair,
@@ -15,7 +15,7 @@ abigen!(
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    let provider = Provider::connect_ipc("~/.ethereum/geth.ipc").await?;
+    let provider = Provider::connect_ipc("~/.neo/geth.ipc").await?;
     let provider = Arc::new(provider);
 
     let pair_address: Address = "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc".parse()?;

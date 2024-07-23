@@ -76,7 +76,7 @@ impl ScriptHashExtension for H160 {
 
 	fn from_slice(slice: &[u8]) -> Result<Self, TypeError> {
 		if slice.len() != 20 {
-			return Err(TypeError::InvalidAddress)
+			return Err(TypeError::InvalidAddress);
 		}
 
 		let mut arr = [0u8; 20];
@@ -108,7 +108,7 @@ impl ScriptHashExtension for H160 {
 		let sha = &bytes[..21].hash256().hash256();
 		let check = &sha[..4];
 		if checksum != check {
-			return Err(TypeError::InvalidAddress)
+			return Err(TypeError::InvalidAddress);
 		}
 
 		let mut rev = [0u8; 20];
@@ -165,9 +165,7 @@ mod tests {
 
 	use rustc_serialize::hex::{FromHex, ToHex};
 
-	use neo::prelude::{
-		Encoder, HashableForString, InteropService, NeoSerializable, OpCode, TestConstants,
-	};
+	use neo::prelude::{Encoder, InteropService, NeoSerializable, OpCode, TestConstants};
 
 	use super::*;
 
@@ -262,7 +260,7 @@ mod tests {
 	#[test]
 	fn test_from_contract_script() {
 		let script =
-			"110c21026aa8fe6b4360a67a530e23c08c6a72525afde34719c5436f9d3ced759f939a3d110b41138defaf";
+            "110c21026aa8fe6b4360a67a530e23c08c6a72525afde34719c5436f9d3ced759f939a3d110b41138defaf";
 		let hash = H160::from_script(&script.from_hex().unwrap());
 
 		assert_eq!(hash.to_hex(), "0898ea2197378f623a7670974454448576d0aeaf");

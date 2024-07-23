@@ -1,6 +1,7 @@
-use neo::prelude::{deserialize_vec_h256, serialize_vec_h256};
 use primitive_types::H256;
 use serde::{Deserialize, Serialize};
+
+use neo::prelude::{deserialize_vec_h256, serialize_vec_h256};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct MemPoolDetails {

@@ -1,5 +1,6 @@
-use neo::prelude::{ContractError, SignError, TransactionError, WalletError};
 use thiserror::Error;
+
+use neo::prelude::{ContractError, SignError, TransactionError, WalletError};
 
 #[derive(Error, Debug)]
 pub enum NeoError {

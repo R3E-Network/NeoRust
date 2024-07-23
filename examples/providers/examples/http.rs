@@ -1,13 +1,12 @@
 //! The Http transport is used to send JSON-RPC requests over HTTP to an Neo node.
 //! This is the most basic connection to a node.
 
-use std::sync::Arc;
-
+use primitive_types::H256;
 use reqwest::header::{HeaderMap, HeaderValue};
+use std::sync::Arc;
+use NeoRust::prelude::*;
 
-use ethers::prelude::*;
-
-const RPC_URL: &str = "https://eth.llamarpc.com";
+const RPC_URL: &str = NeoConstants::SEED_1;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -19,7 +18,7 @@ async fn main() -> eyre::Result<()> {
 async fn create_instance() -> eyre::Result<()> {
     // An Http provider can be created from an http(s) URI.
     // In case of https you must add the "rustls" or "openssl" feature
-    // to the ethers library dependency in `Cargo.toml`.
+    // to the library dependency in `Cargo.toml`.
     let _provider = Provider::<Http>::try_from(RPC_URL)?;
 
     // Instantiate with auth to append basic authorization headers across requests
@@ -54,13 +53,13 @@ async fn share_providers_across_tasks() -> eyre::Result<()> {
     let client_2 = Arc::clone(&client_1);
 
     let handle1 =
-        tokio::spawn(async move { client_1.get_block(BlockNumber::Latest).await.unwrap_or(None) });
+        tokio::spawn(async move { client_1.get_best_block_hash().await.unwrap_or(H256::zero()) });
 
     let handle2 =
-        tokio::spawn(async move { client_2.get_block(BlockNumber::Latest).await.unwrap_or(None) });
+        tokio::spawn(async move { client_2.get_best_block_hash().await.unwrap_or(H256::zero()) });
 
-    let block1: Option<Block<H256>> = handle1.await?;
-    let block2: Option<Block<H256>> = handle2.await?;
+    let block1: H256 = handle1.await?;
+    let block2: H256 = handle2.await?;
 
     println!("{block1:?} {block2:?}");
 

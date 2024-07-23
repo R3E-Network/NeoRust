@@ -1,4 +1,3 @@
-use hex::ToHexExt;
 use primitive_types::{H160, H256};
 use serde_json::Value;
 

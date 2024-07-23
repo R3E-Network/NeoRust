@@ -84,7 +84,8 @@ pub enum ProviderError {
 	#[error("unsupported node client")]
 	UnsupportedNodeClient,
 	/// Signer is not available to this provider.
-	#[error("Attempted to sign a transaction with no available signer. Hint: did you mean to use a SignerMiddleware?")]
+	#[error("Attempted to sign a transaction with no available signer. Hint: did you mean to use a SignerMiddleware?"
+    )]
 	SignerUnavailable,
 	#[error("Illegal state: {0}")]
 	IllegalState(String),

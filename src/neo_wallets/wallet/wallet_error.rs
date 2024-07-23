@@ -97,4 +97,6 @@ pub enum WalletError {
 	/// components, such as invalid parameters or configurations that cannot be applied.
 	#[error(transparent)]
 	BuilderError(#[from] BuilderError),
+	#[error("Invalid signature")]
+	VerifyError,
 }

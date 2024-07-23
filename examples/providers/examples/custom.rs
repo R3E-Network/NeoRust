@@ -38,7 +38,7 @@ pub enum WsOrIpcError {
 /// why the request failed. In order to make these accessible, we implement
 /// `as_error_response()`.
 impl RpcError for WsOrIpcError {
-    fn as_error_response(&self) -> Option<&ethers::providers::JsonRpcError> {
+    fn as_error_response(&self) -> Option<&JsonRpcError> {
         match self {
             WsOrIpcError::Ws(e) => e.as_error_response(),
             WsOrIpcError::Ipc(e) => e.as_error_response(),

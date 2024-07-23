@@ -1,9 +1,9 @@
-use primitive_types::H256;
-
 use neo::prelude::{deserialize_h256, serialize_h256};
+use primitive_types::H256;
+use serde_derive::{Deserialize, Serialize};
 
-#[derive(Debug, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize, Clone)]
-pub struct RawTransaction {
+#[derive(Serialize, Deserialize, Debug, Clone, Hash)]
+pub struct SubmitBlock {
 	#[serde(serialize_with = "serialize_h256")]
 	#[serde(deserialize_with = "deserialize_h256")]
 	pub hash: H256,

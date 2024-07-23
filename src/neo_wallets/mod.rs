@@ -23,13 +23,12 @@ mod wallet_trait;
 /// A wallet instantiated with a locally stored private key
 pub type LocalSigner = WalletSigner<Account>;
 
-#[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
 /// A wallet instantiated with a YubiHSM
 pub type YubiWallet = WalletSigner<yubihsm::ecdsa::Signer<NistP256>>;
 
 #[cfg(all(feature = "ledger", not(target_arch = "wasm32")))]
 mod ledger;
-#[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
+// #[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
 mod yubi;
 
 mod error;

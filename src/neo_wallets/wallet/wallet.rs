@@ -1,10 +1,4 @@
-use std::{
-	collections::HashMap,
-	fs::File,
-	io::Write,
-	path::PathBuf,
-	sync::{Arc, Mutex, Weak},
-};
+use std::{collections::HashMap, fs::File, io::Write, path::PathBuf};
 
 use primitive_types::H160;
 use serde_derive::{Deserialize, Serialize};

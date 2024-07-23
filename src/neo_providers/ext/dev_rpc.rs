@@ -32,12 +32,12 @@
 //! # Ok(()) }
 //! ```
 
-use crate::{Middleware, MiddlewareError, ProviderError};
-use async_trait::async_trait;
+use std::fmt::Debug;
 
+use async_trait::async_trait;
 use thiserror::Error;
 
-use std::fmt::Debug;
+use crate::{Middleware, MiddlewareError, ProviderError};
 
 /// `DevRpcMiddleware`
 #[derive(Clone, Debug)]
@@ -129,9 +129,9 @@ impl<M: Middleware> DevRpcMiddleware<M> {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
-	use crate::{Http, Provider};
 	use std::convert::TryFrom;
+
+	use crate::{Http, Provider};
 
 	#[tokio::test]
 	async fn test_snapshot() {

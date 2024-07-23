@@ -1,10 +1,17 @@
-extern crate neo -rs;
+extern crate NeoRust;
+
+use yubihsm::ecdsa::NistP256;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use neo
-    -rs::prelude::*;
-    use yubihsm::{Connector, Credentials, UsbConfig};
+    use yubihsm::{
+        asymmetric::Algorithm::EcP256,
+        ecdsa::{Signature, Signer as YubiSigner},
+        object,
+        object::Label,
+        Capability, Client, Connector, Credentials, Domain, UsbConfig,
+    };
+    use NeoRust::prelude::*;
     // Connect over websockets
     let provider = Provider::new(Ws::connect("ws://localhost:8545").await?);
 
@@ -22,6 +29,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let pending_tx = client.send_transaction(tx, None).await?;
 
     // Get the receipt
-    let _receipt = pending_tx.confirmations(3).await?;
+    // let _receipt = pending_tx.confirmations(3).await?;
     Ok(())
 }

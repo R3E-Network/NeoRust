@@ -1,7 +1,3 @@
-use std::sync::Arc;
-
-use eyre::Result;
-
 use ethers::{
     core::{
         abi::AbiDecode,
@@ -9,6 +5,7 @@ use ethers::{
     },
     providers::{Middleware, Provider, StreamExt, Ws},
 };
+use eyre::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {

@@ -1,16 +1,18 @@
-use futures_util::stream::Stream;
-use neo::prelude::{JsonRpcClient, Provider};
-use pin_project::{pin_project, pinned_drop};
-use primitive_types::U256;
-use serde::de::DeserializeOwned;
-use serde_json::value::RawValue;
 use std::{
 	collections::VecDeque,
 	marker::PhantomData,
 	pin::Pin,
 	task::{Context, Poll},
 };
+
+use futures_util::stream::Stream;
+use pin_project::{pin_project, pinned_drop};
+use primitive_types::U256;
+use serde::de::DeserializeOwned;
+use serde_json::value::RawValue;
 use tracing::error;
+
+use neo::prelude::{JsonRpcClient, Provider};
 
 /// A transport implementation supporting pub sub subscriptions.
 pub trait PubsubClient: JsonRpcClient {
@@ -84,7 +86,7 @@ where
 	fn poll_next(self: Pin<&mut Self>, ctx: &mut Context) -> Poll<Option<Self::Item>> {
 		if !self.loaded_elements.is_empty() {
 			let next_element = self.get_mut().loaded_elements.pop_front();
-			return Poll::Ready(next_element)
+			return Poll::Ready(next_element);
 		}
 
 		let mut this = self.project();
@@ -94,11 +96,11 @@ where
 					Ok(res) => Poll::Ready(Some(res)),
 					Err(err) => {
 						error!("failed to deserialize item {:?}", err);
-						continue
+						continue;
 					},
 				},
 				None => Poll::Ready(None),
-			}
+			};
 		}
 	}
 }

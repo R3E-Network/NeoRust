@@ -1,11 +1,5 @@
 #![allow(missing_docs)]
 
-mod backend;
-
-mod manager;
-
-use manager::{RequestManager, SharedChannelMap};
-use primitive_types::U256;
 use std::{
 	fmt,
 	fmt::{Debug, Formatter},
@@ -13,23 +7,27 @@ use std::{
 	pin::Pin,
 };
 
-mod types;
-pub use types::ConnectionDetails;
-use types::*;
-
-mod error;
-pub use error::*;
-
-use crate::{JsonRpcClient, ProviderError, PubsubClient};
 use async_trait::async_trait;
 use futures_channel::{mpsc, oneshot};
-
+use primitive_types::U256;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::value::{to_raw_value, RawValue};
 
+pub use error::*;
+use manager::{RequestManager, SharedChannelMap};
+pub use types::ConnectionDetails;
+use types::*;
+
 #[cfg(not(target_arch = "wasm32"))]
 use crate::Authorization;
+use crate::{JsonRpcClient, ProviderError, PubsubClient};
 
+mod backend;
+
+mod manager;
+
+mod error;
+mod types;
 #[derive(Clone)]
 pub struct WsClient {
 	// Used to send instructions to the `RequestManager`
@@ -111,7 +109,7 @@ impl fmt::Debug for WsClient {
 	}
 }
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(target_arch = "wasm32", async_trait(? Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl JsonRpcClient for WsClient {
 	type Error = WsClientError;

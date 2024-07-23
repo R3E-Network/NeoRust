@@ -8,16 +8,17 @@ use futures_util::lock::Mutex;
 use primitive_types::{H160, H256};
 use rustc_serialize::{base64, base64::ToBase64, hex::FromHex};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_json::value::Value;
+use serde_json::{json, value::Value};
 use tracing::trace;
 use tracing_futures::Instrument;
 use url::{Host, ParseError, Url};
 
 use neo::prelude::*;
 
-use crate::neo_providers::rpc::provider::sealed::Sealed;
-use crate::prelude::Base64Encode;
-use serde_json::json;
+use crate::{
+	neo_providers::rpc::provider::sealed::Sealed, neo_types::ScriptHashExtension,
+	prelude::Base64Encode,
+};
 
 /// Node Clients
 #[derive(Copy, Clone)]
@@ -38,7 +39,7 @@ impl FromStr for NodeClient {
 }
 
 /// An abstract provider for interacting with the [Neo JSON RPC
-/// API](https://github.com/neo/wiki/wiki/JSON-RPC). Must be instantiated
+/// API](https://github.com/neo/wiki/JSON-RPC). Must be instantiated
 /// with a data transport which implements the [`JsonRpcClient`](trait@crate::JsonRpcClient) trait
 /// (e.g. [HTTP](crate::Http), Websockets etc.)
 ///
@@ -120,6 +121,7 @@ impl<P: JsonRpcClient> Provider<P> {
 			trace!("tx");
 			let fetched = self.inner.fetch(method, params).await;
 			let res: R = fetched.map_err(Into::into)?;
+			debug!("{:?}", res);
 			trace!(rx = ?serde_json::to_string(&res)?);
 			Ok::<_, ProviderError>(res)
 		}
@@ -129,7 +131,7 @@ impl<P: JsonRpcClient> Provider<P> {
 	}
 }
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(target_arch = "wasm32", async_trait(? Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl<P: JsonRpcClient> Middleware for Provider<P> {
 	type Error = ProviderError;
@@ -200,7 +202,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 			self.request("getblock", [block_hash.to_value(), 1.to_value()].to_vec()).await?
 		} else {
 			self.get_block_header(block_hash).await?
-		})
+		});
 	}
 
 	/// Gets the corresponding block information for the specified block hash.
@@ -220,7 +222,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Gets the block count of the blockchain.
 	/// - Returns: The request object
 	async fn get_block_count(&self) -> Result<u32, ProviderError> {
-		self.request("getblockcount",  Vec::<u32>::new()).await
+		self.request("getblockcount", Vec::<u32>::new()).await
 	}
 
 	/// Gets the corresponding block header information according to the specified block hash.
@@ -298,14 +300,14 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	async fn get_transaction(
 		&self,
 		hash: H256,
-	) -> Result<Option<TransactionResult>, ProviderError> {
+	) -> Result<TransactionResult, ProviderError> {
 		self.request("getrawtransaction", vec![hash.to_value(), 1.to_value()]).await
 	}
 
 	/// Gets the corresponding transaction information based on the specified transaction hash.
 	/// - Parameter txHash: The transaction hash
 	/// - Returns: The request object
-	async fn get_raw_transaction(&self, tx_hash: H256) -> Result<RawTransaction, ProviderError> {
+	async fn get_raw_transaction(&self, tx_hash: H256) -> Result<String, ProviderError> {
 		self.request("getrawtransaction", vec![tx_hash.to_value(), 0.to_value()]).await
 	}
 
@@ -315,7 +317,8 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	///   - keyHexString: The key to look up in storage as a hexadecimal string
 	/// - Returns: The request object
 	async fn get_storage(&self, contract_hash: H160, key: &str) -> Result<String, ProviderError> {
-		let params: [String; 2] = [contract_hash.to_hex(), Base64Encode::to_base64(&key.to_string())];
+		let params: [String; 2] =
+			[contract_hash.to_hex(), Base64Encode::to_base64(&key.to_string())];
 		self.request("getstorage", params.to_vec()).await
 	}
 
@@ -325,7 +328,12 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	///   - prefix_hex_string: The prefix to filter the storage entries
 	///   - start_index: the start index
 	/// - Returns: The request object
-	async fn find_storage(&self, contract_hash: H160, prefix_hex_string: &str, start_index: u64) -> Result<String, ProviderError> {
+	async fn find_storage(
+		&self,
+		contract_hash: H160,
+		prefix_hex_string: &str,
+		start_index: u64,
+	) -> Result<String, ProviderError> {
 		//let params = [contract_hash.to_hex(), Base64Encode::to_base64(&prefix_hex_string.to_string()), start_index.to_value()];
 		let params = json!([
 			contract_hash.to_hex(),
@@ -341,7 +349,12 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	///   - prefix_hex_string: The prefix to filter the storage entries
 	///   - start_index: the start index
 	/// - Returns: The request object
-	async fn find_storage_with_id(&self, contract_id: i64, prefix_hex_string: &str, start_index: u64) -> Result<String, ProviderError> {
+	async fn find_storage_with_id(
+		&self,
+		contract_id: i64,
+		prefix_hex_string: &str,
+		start_index: u64,
+	) -> Result<String, ProviderError> {
 		//let params = [contract_hash.to_hex(), Base64Encode::to_base64(&prefix_hex_string.to_string()), start_index.to_value()];
 		let params = json!([
 			contract_id,
@@ -350,7 +363,6 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		]);
 		self.request("findstorage", params).await
 	}
-
 
 	/// Gets the transaction height with the specified transaction hash.
 	/// - Parameter txHash: The transaction hash
@@ -363,7 +375,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Gets the validators of the next block.
 	/// - Returns: The request object
 	async fn get_next_block_validators(&self) -> Result<Vec<Validator>, ProviderError> {
-		self.request("getnextblockvalidators",  Vec::<Validator>::new()).await
+		self.request("getnextblockvalidators", Vec::<Validator>::new()).await
 	}
 
 	/// Gets the public key list of current Neo committee members.
@@ -400,7 +412,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Broadcasts a new block over the NEO network.
 	/// - Parameter serializedBlockAsHex: The block in hexadecimal
 	/// - Returns: The request object
-	async fn submit_block(&self, hex: String) -> Result<bool, ProviderError> {
+	async fn submit_block(&self, hex: String) -> Result<SubmitBlock, ProviderError> {
 		self.request("submitblock", vec![hex.to_value()]).await
 	}
 
@@ -425,12 +437,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 				let signers: Vec<TransactionSigner> = signers.iter().map(|f| f.into()).collect();
 				self.request(
 					"invokefunction",
-					json!([
-						contract_hash.to_hex(),
-						method,
-						params,
-						signers,
-					])
+					json!([contract_hash.to_hex(), method, params, signers,]),
 				)
 				.await
 			},
@@ -439,12 +446,20 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 				self.request(
 					"invokefunction",
 					json!([
-							//ScriptHashExtension::to_hex_big_endian(contract_hash),
-							contract_hash.to_hex(),
-							method,
-							params,
-							signers
-					])
+// <<<<<<< Lichen2
+// 							//ScriptHashExtension::to_hex_big_endian(contract_hash),
+// 							contract_hash.to_hex(),
+// 							method,
+// 							params,
+// 							signers
+// 					])
+// =======
+						ScriptHashExtension::to_hex_big_endian(contract_hash),
+						method,
+						params,
+						signers
+					]),
+// >>>>>>> master
 				)
 				.await
 			},
@@ -597,14 +612,6 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		amount: u32,
 	) -> Result<Transaction, ProviderError> {
 		let params = [token_hash.to_value(), to.to_value(), amount.to_value()].to_vec();
-		self.request("sendtoaddress", params).await
-	}
-
-	async fn send_to_address_send_token(
-		&self,
-		send_token: &TransactionSendToken,
-	) -> Result<Transaction, ProviderError> {
-		let params = [send_token.to_value()].to_vec();
 		self.request("sendtoaddress", params).await
 	}
 
@@ -836,7 +843,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 			self.request("getblock", vec![index.to_value(), 1.to_value()]).await?
 		} else {
 			self.get_block_header_by_index(index).await?
-		})
+		});
 	}
 
 	async fn get_raw_block_by_index(&self, index: u32) -> Result<String, ProviderError> {
@@ -860,13 +867,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		signers: Vec<Signer>,
 	) -> Result<InvocationResult, ProviderError> {
 		let signers: Vec<TransactionSigner> = signers.iter().map(|f| f.into()).collect();
-		let params = json!([
-			contract_hash.to_hex(),
-			function_name,
-			params,
-			signers,
-			true
-		]);
+		let params = json!([contract_hash.to_hex(), function_name, params, signers, true]);
 		self.request("invokefunction", params).await
 	}
 
@@ -930,6 +931,14 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 			params,
 		)
 		.await
+	}
+
+	async fn send_to_address_send_token(
+		&self,
+		send_token: &TransactionSendToken,
+	) -> Result<Transaction, ProviderError> {
+		let params = [send_token.to_value()].to_vec();
+		self.request("sendtoaddress", params).await
 	}
 
 	async fn send_from_send_token(
@@ -1107,7 +1116,7 @@ mod sealed {
 /// use NeoRust::prelude::{Http, NeoNetwork, Provider, ProviderExt};
 /// let http_provider = Provider::<Http>::try_from("https://seed1.neo.org:10333").unwrap().set_network(NeoNetwork::MainNet.to_magic());
 /// ```
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(target_arch = "wasm32", async_trait(? Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 pub trait ProviderExt: Sealed {
 	/// The error type that can occur when creating a provider
@@ -1144,7 +1153,7 @@ pub trait ProviderExt: Sealed {
 	fn set_network(&mut self, network: u32) -> &mut Self;
 }
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(target_arch = "wasm32", async_trait(? Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl ProviderExt for Provider<Http> {
 	type Error = ParseError;
@@ -1190,10 +1199,11 @@ pub fn is_local_endpoint(endpoint: &str) -> bool {
 					domain.contains("localhost") || domain.contains("localdev.me"),
 				Host::Ipv4(ipv4) =>
 					ipv4 == Ipv4Addr::LOCALHOST
-						|| ipv4.is_link_local() || ipv4.is_loopback()
+						|| ipv4.is_link_local()
+						|| ipv4.is_loopback()
 						|| ipv4.is_private(),
 				Host::Ipv6(ipv6) => ipv6.is_loopback(),
-			}
+			};
 		}
 	}
 	false
@@ -1201,29 +1211,81 @@ pub fn is_local_endpoint(endpoint: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-	use std::str::FromStr;
+	use std::{str::FromStr, sync::Mutex};
 
-use ethereum_types::H256;
-use neo::prelude::{
-		AccountSigner, BodyRegexMatcher, HttpProvider, Middleware, Provider, ProviderError, ScriptHashExtension, Secp256r1PublicKey , Signer::Account, SignerTrait, TestConstants, WitnessAction, WitnessCondition, WitnessRule, 
+	use blake2::digest::Mac;
+	use lazy_static::lazy_static;
+	use log::debug;
+	use primitive_types::{H160, H256};
+	use rustc_serialize::{
+		base64::FromBase64,
+		hex::{FromHex, ToHex},
 	};
+	use serde_json::{json, Value};
+	use tokio::{self, sync::OnceCell};
+	use tracing::field::debug;
 	use url::Url;
-    use lazy_static::lazy_static;
-    use serde_json::{json, Value};
-    use wiremock::{matchers::{method, path}, Mock, MockServer, ResponseTemplate};
-    use reqwest::Client;
-    use tokio;
-	use primitive_types::H160;
-	use crate::neo_types::Base64Encode;
+	use wiremock::{
+		matchers::{body_json, method as http_method, method, path},
+		Mock, MockServer, ResponseTemplate,
+	};
 
-	#[tokio::test]
-	async fn test_get_best_block_hash() {
-		// Access the global mock server
-		let mock_server = setup_mock_server().await;
+	use neo::prelude::{
+		AccountSigner, HttpProvider, Middleware, Provider, ScriptHashExtension, Secp256r1PublicKey,
+		Signer::Account, SignerTrait, TestConstants, WitnessAction, WitnessCondition, WitnessRule,
+	};
+
+	use crate::{
+		neo_types::{Base64Encode, ToBase64},
+		prelude::NativeContractState,
+	};
+
+	async fn setup_mock_server() -> MockServer {
+		MockServer::start().await
+	}
+
+	async fn mock_rpc_response(
+		mock_server: &MockServer,
+		rpc_method: &str,
+		params: serde_json::Value,
+		result: serde_json::Value,
+	) -> Provider<HttpProvider> {
+		Mock::given(http_method("POST"))
+			.and(path("/"))
+			.and(body_json(json!({
+				"jsonrpc": "2.0",
+				"method": rpc_method,
+				"params": params,
+				"id": 1
+			})))
+			.respond_with(ResponseTemplate::new(200).set_body_json(json!({
+				"jsonrpc": "2.0",
+				"id": 1,
+				"result": result
+			})))
+			.mount(mock_server)
+			.await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
-		let provider = Provider::new(http_client);
+		Provider::new(http_client)
+	}
+
+	#[tokio::test]
+	async fn test_get_best_block_hash() {
+		let _ = env_logger::builder().is_test(true).try_init();
+
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getbestblockhash",
+			json!([]),
+			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+		)
+		.await;
+
+		let result = provider.get_best_block_hash().await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 
 		// Expected request body
 		let expected_request_body = r#"{
@@ -1232,20 +1294,20 @@ use neo::prelude::{
             "params": [],
             "id": 1
         }"#;
-
-		provider.get_best_block_hash().await;
-
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
 	async fn test_get_block_hash() {
-		// Access the global mock server
 		let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
-		let provider = Provider::new(http_client);
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getblockhash",
+			json!([16293]),
+			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = r#"{
@@ -1255,650 +1317,2096 @@ use neo::prelude::{
             "id": 1
         }"#;
 
-		provider.get_block_hash(16293).await;
-
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		let result = provider.get_block_hash(16293).await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_block_index() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_block_index() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+            &mock_server,
+            "getblock",
+            json!([12345, 1]),
+            json!( {
+        "hash": "0x1de7e5eaab0f74ac38f5191c038e009d3c93ef5c392d1d66fa95ab164ba308b8",
+        "size": 1217,
+        "version": 0,
+        "previousblockhash": "0x045cabde4ecbd50f5e4e1b141eaf0842c1f5f56517324c8dcab8ccac924e3a39",
+        "merkleroot": "0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7",
+        "time": 1539968858,
+        "index": 1914006,
+        "nextconsensus": "AWZo4qAxhT8fwKL93QATSjCYCgHmCY1XLB",
+        "witnesses": [
+            {
+                "invocation": "DEBJVWapboNkCDlH9uu+tStOgGnwODlolRifxTvQiBkhM0vplSPo4vMj9Jt3jvzztMlwmO75Ss5cptL8wUMxASjZ",
+                "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+            }
+        ],
+        "tx": [],
+        "confirmations": 7878,
+        "nextblockhash": "0x4a97ca89199627f877b6bffe865b8327be84b368d62572ef20953829c3501643"
+    }),
+        ).await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getblock",
             "params": [12345,1],
             "id": 1
         }"#;
 
-        provider.get_block_by_index(12345, true).await;
+		let result = provider.get_block_by_index(12345, true).await;
 
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_block_index_only_header() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_block_index_only_header() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+            &mock_server,
+            "getblockheader",
+            json!([12345,1]),
+            json!({
+        "hash": "0x1de7e5eaab0f74ac38f5191c038e009d3c93ef5c392d1d66fa95ab164ba308b8",
+        "size": 1217,
+        "version": 0,
+        "previousblockhash": "0x045cabde4ecbd50f5e4e1b141eaf0842c1f5f56517324c8dcab8ccac924e3a39",
+        "merkleroot": "0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7",
+        "time": 1539968858,
+        "index": 1914006,
+        "nextconsensus": "AWZo4qAxhT8fwKL93QATSjCYCgHmCY1XLB",
+        "witnesses": [
+            {
+                "invocation": "DEBJVWapboNkCDlH9uu+tStOgGnwODlolRifxTvQiBkhM0vplSPo4vMj9Jt3jvzztMlwmO75Ss5cptL8wUMxASjZ",
+                "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+            }
+        ],
+        "tx": [
+            {
+                "hash": "0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510",
+                "size": 267,
+                "version": 0,
+                "nonce": 565086327,
+                "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
+                "sysfee": "0",
+                "netfee": "0",
+                "validuntilblock": 2107425,
+                "signers": [
+                    {
+                        "account": "0xf68f181731a47036a99f04dad90043a744edec0f",
+                        "scopes": "CalledByEntry"
+                    }
+                ],
+                "attributes": [],
+                "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg",
+                "witnesses": [
+                    {
+                        "invocation": "DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+",
+                        "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+                    }
+                ]
+            },
+            {
+                "hash": "0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510",
+                "size": 267,
+                "version": 0,
+                "nonce": 565086327,
+                "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
+                "sysfee": "0",
+                "netfee": "0",
+                "validuntilblock": 2107425,
+                "signers": [
+                    {
+                        "account": "0xf68f181731a47036a99f04dad90043a744edec0f",
+                        "scopes": "CalledByEntry"
+                    }
+                ],
+                "attributes": [],
+                "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg",
+                "witnesses": [
+                    {
+                        "invocation": "DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+",
+                        "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+                    }
+                ]
+            }
+        ],
+        "confirmations": 7878,
+        "nextblockhash": "0x4a97ca89199627f877b6bffe865b8327be84b368d62572ef20953829c3501643"
+    }),
+        ).await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getblockheader",
             "params": [12345,1],
             "id": 1
         }"#;
 
-        provider.get_block_by_index(12345, false).await;
+		let result = provider.get_block_by_index(12345, false).await;
 
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_block_by_hash() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_block_by_hash() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+            &mock_server,
+            "getblock",
+            json!(["2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d", 1]),
+            json!({
+        "hash": "0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d",
+        "size": 1217,
+        "version": 0,
+        "previousblockhash": "0x045cabde4ecbd50f5e4e1b141eaf0842c1f5f56517324c8dcab8ccac924e3a39",
+        "merkleroot": "0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7",
+        "time": 1539968858,
+        "index": 1914006,
+        "nextconsensus": "AWZo4qAxhT8fwKL93QATSjCYCgHmCY1XLB",
+        "witnesses": [
+            {
+                "invocation": "DEBJVWapboNkCDlH9uu+tStOgGnwODlolRifxTvQiBkhM0vplSPo4vMj9Jt3jvzztMlwmO75Ss5cptL8wUMxASjZ",
+                "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+            }
+        ],
+        "tx": [
+            {
+                "hash": "0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510",
+                "size": 267,
+                "version": 0,
+                "nonce": 565086327,
+                "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
+                "sysfee": "0",
+                "netfee": "0",
+                "validuntilblock": 2107425,
+                "signers": [
+                    {
+                        "account": "0xf68f181731a47036a99f04dad90043a744edec0f",
+                        "scopes": "CalledByEntry"
+                    }
+                ],
+                "attributes": [],
+                "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg",
+                "witnesses": [
+                    {
+                        "invocation": "DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+",
+                        "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+                    }
+                ]
+            },
+            {
+                "hash": "0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510",
+                "size": 267,
+                "version": 0,
+                "nonce": 565086327,
+                "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
+                "sysfee": "0",
+                "netfee": "0",
+                "validuntilblock": 2107425,
+                "signers": [
+                    {
+                        "account": "0xf68f181731a47036a99f04dad90043a744edec0f",
+                        "scopes": "CalledByEntry"
+                    }
+                ],
+                "attributes": [],
+                "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg",
+                "witnesses": [
+                    {
+                        "invocation": "DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+",
+                        "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+                    }
+                ]
+            }
+        ],
+        "confirmations": 7878,
+        "nextblockhash": "0x4a97ca89199627f877b6bffe865b8327be84b368d62572ef20953829c3501643"
+    })).await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getblock",
             "params": ["2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d",1],
             "id": 1
         }"#;
 
-        provider.get_block(H256::from_str("0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d").unwrap(), true).await;
+		let result = provider
+			.get_block(
+				H256::from_str(
+					"0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d",
+				)
+				.unwrap(),
+				true,
+			)
+			.await;
 
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_block_not_full_Tx_objects() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_block_not_full_Tx_objects() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getblockhash",
+			json!([16293]),
+			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+		)
+		.await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getblockheader",
             "params": ["2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d",1],
             "id": 1
         }"#;
 
-        provider.get_block(H256::from_str("0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d").unwrap(), false).await;
-
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		let result = provider
+			.get_block(
+				H256::from_str(
+					"0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d",
+				)
+				.unwrap(),
+				false,
+			)
+			.await;
+		// assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_raw_block_index() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_raw_block_index() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+            &mock_server,
+            "getblock",
+            json!([12345, 0]),
+            json!("AAAAAM5doa+yo+aKrc8RO/Pfo96BYyedF2ed+jODYAzESzgvm458FX3T6b9rYw2KSBTWfttaeiA9McxN1LiWuQwI1O/6eEAaeAEAAKhnAAAG+CRl3iIpI2tQ6MaMSCq5GLum1uwB/UoBDEA2ZR0uduwN/5tFVCKoHJtAnSJINfqlRDcNXnYl0H0Jcb3YBy1M0G4Z1LB3PQMIb6J4kOtFm7TBL0B6vfPuDpigDEBLHKna+SPlL9vn755blCr3vxvc2HLP5dUch0isPARVDbg24QwVuvx3mbQ6awn0cQ/h+Jym/9xFo0MR0ddKXKzCDEAIcXyoqzFq4+3N9JtyK46LLeyx9ikidPLiXg9HWQk9Ps5wx9+XIe8zziS9dRAOqT4od7tW1SA6cRU3U8ZCexJ1DECxN+nyE15RaIvwpJ0JK3/RJvAM++YKou/ljVef5atDx9pce5nkuibfZzvzrjcoJF53qnP8ZSXBKThjrN2kGCxlDEBSVfUQAFNm4j4KihACjt5Kx1A9hN8RIDQkLw7udpcFm7Nf4PtDtucw7pS7WGEkmu3c+yt2BV3KeCzNBAreypb7/BUMIQMCJCsdztY+G/frFIdvfvAmt5Vn+cW+g94ZQ90YXsKOaAwhAg34hYtm/017Cmpo0R3e3MfZDSpk/6LNCHxMXav0FQtADCECF5VDAAGEeB5UR7Pw+6zmZOqSt+MSJ8jnG8Tnza/M244MIQJehJSQO5PcNp8Ior1+Ih9XTHXZZ1WR8EkHy6na7rg9EAwhA4QV0L6NwSth0+O3a5j0ZN+rf93udCccNeLeYku1ECOmDCEDybHInG4tSr1imi24t9A6ztUYpWeTvJD0mF737T8bSBoMIQPoq1GG4d6rzRDsDlCd7U//reb931NKw+BQYmi64/1EphdBe85spQEAKihGP0BY1TwAAAAAAKBVAAAAAAAnfgAAAW78pd5nDtnbpGznfCdo9+vKgwVMAAD9dBENSgh7Im5hbWUiOiJUb2tlbiBOYW1lIiwiZ3JvdXBzIjpbXSwic3VwcG9ydGVkc3RhbmRhcmRzIjpbIk5FUDE3IiwiTkVQMTAiXSwiYWJpIjp7Im1ldGhvZHMiOlt7Im5hbWUiOiJfZGVwbG95IiwicGFyYW1ldGVycyI6W3sibmFtZSI6ImRhdGEiLCJ0eXBlIjoiQW55In0seyJuYW1lIjoidXBkYXRlIiwidHlwZSI6IkJvb2xlYW4ifV0sInJldHVybnR5cGUiOiJWb2lkIiwib2Zmc2V0IjowLCJzYWZlIjpmYWxzZX0seyJuYW1lIjoiX2luaXRpYWxpemUiLCJwYXJhbWV0ZXJzIjpbXSwicmV0dXJudHlwZSI6IlZvaWQiLCJvZmZzZXQiOjI3Miwic2FmZSI6ZmFsc2V9LHsibmFtZSI6ImJhbGFuY2VPZiIsInBhcmFtZXRlcnMiOlt7Im5hbWUiOiJhY2NvdW50IiwidHlwZSI6Ikhhc2gxNjAifV0sInJldHVybnR5cGUiOiJJbnRlZ2VyIiwib2Zmc2V0IjozNjgsInNhZmUiOmZhbHNlfSx7Im5hbWUiOiJkZWNpbWFscyIsInBhcmFtZXRlcnMiOltdLCJyZXR1cm50eXBlIjoiSW50ZWdlciIsIm9mZnNldCI6NTE1LCJzYWZlIjpmYWxzZX0seyJuYW1lIjoiZGVzdHJveSIsInBhcmFtZXRlcnMiOltdLCJyZXR1cm50eXBlIjoiVm9pZCIsIm9mZnNldCI6NTM3LCJzYWZlIjpmYWxzZX0seyJuYW1lIjoiZGlzYWJsZVBheW1lbnQiLCJwYXJhbWV0ZXJzIjpbXSwicmV0dXJudHlwZSI6IlZvaWQiLCJvZmZzZXQiOjYwNywic2FmZSI6ZmFsc2V9LHsibmFtZSI6ImVuYWJsZVBheW1lbnQiLCJwYXJhbWV0ZXJzIjpbXSwicmV0dXJudHlwZSI6IlZvaWQiLCJvZmZzZXQiOjY3OSwic2FmZSI6ZmFsc2V9LHsibmFtZSI6Im9uTkVQMTdQYXltZW50IiwicGFyYW1ldGVycyI6W3sibmFtZSI6ImZyb20iLCJ0eXBlIjoiSGFzaDE2MCJ9LHsibmFtZSI6ImFtb3VudCIsInR5cGUiOiJJbnRlZ2VyIn0seyJuYW1lIjoiZGF0YSIsInR5cGUiOiJBbnkifV0sInJldHVybnR5cGUiOiJWb2lkIiwib2Zmc2V0IjoxMjMwLCJzYWZlIjpmYWxzZX0seyJuYW1lIjoic3ltYm9sIiwicGFyYW1ldGVycyI6W10sInJldHVybnR5cGUiOiJTdHJpbmciLCJvZmZzZXQiOjE2MDIsInNhZmUiOmZhbHNlfSx7Im5hbWUiOiJ0ZXN0Y29udHJhY3QiLCJwYXJhbWV0ZXJzIjpbXSwicmV0dXJudHlwZSI6IlN0cmluZyIsIm9mZnNldCI6MTYzMywic2FmZSI6ZmFsc2V9LHsibmFtZSI6InRlc3RkeW5hbWljY2FsbCIsInBhcmFtZXRlcnMiOlt7Im5hbWUiOiJoYXNoIiwidHlwZSI6Ikhhc2gxNjAifSx7Im5hbWUiOiJtZXRob2QiLCJ0eXBlIjoiU3RyaW5nIn1dLCJyZXR1cm50eXBlIjoiVm9pZCIsIm9mZnNldCI6MTY0Miwic2FmZSI6ZmFsc2V9LHsibmFtZSI6InRvdGFsU3VwcGx5IiwicGFyYW1ldGVycyI6W10sInJldHVybnR5cGUiOiJJbnRlZ2VyIiwib2Zmc2V0IjoxNjU4LCJzYWZlIjpmYWxzZX0seyJuYW1lIjoidHJhbnNmZXIiLCJwYXJhbWV0ZXJzIjpbeyJuYW1lIjoiZnJvbSIsInR5cGUiOiJIYXNoMTYwIn0seyJuYW1lIjoidG8iLCJ0eXBlIjoiSGFzaDE2MCJ9LHsibmFtZSI6ImFtb3VudCIsInR5cGUiOiJJbnRlZ2VyIn0seyJuYW1lIjoiZGF0YSIsInR5cGUiOiJBbnkifV0sInJldHVybnR5cGUiOiJCb29sZWFuIiwib2Zmc2V0IjoxNjY0LCJzYWZlIjpmYWxzZX0seyJuYW1lIjoidXBkYXRlIiwicGFyYW1ldGVycyI6W3sibmFtZSI6Im5lZkZpbGUiLCJ0eXBlIjoiU3RyaW5nIn0seyJuYW1lIjoibWFuaWZlc3QiLCJ0eXBlIjoiU3RyaW5nIn1dLCJyZXR1cm50eXBlIjoiVm9pZCIsIm9mZnNldCI6MTk5Miwic2FmZSI6ZmFsc2V9LHsibmFtZSI6InZlcmlmeSIsInBhcmFtZXRlcnMiOltdLCJyZXR1cm50eXBlIjoiQm9vbGVhbiIsIm9mZnNldCI6MjA1OCwic2FmZSI6ZmFsc2V9XSwiZXZlbnRzIjpbeyJuYW1lIjoiVHJhbnNmZXIiLCJwYXJhbWV0ZXJzIjpbeyJuYW1lIjoiYXJnMSIsInR5cGUiOiJIYXNoMTYwIn0seyJuYW1lIjoiYXJnMiIsInR5cGUiOiJIYXNoMTYwIn0seyJuYW1lIjoiYXJnMyIsInR5cGUiOiJJbnRlZ2VyIn1dfV19LCJwZXJtaXNzaW9ucyI6W3siY29udHJhY3QiOiIqIiwibWV0aG9kcyI6IioifV0sInRydXN0cyI6W10sImV4dHJhIjp7IkF1dGhvciI6Ik5lbyIsIkVtYWlsIjoiZGV2QG5lby5vcmciLCJEZXNjcmlwdGlvbiI6IlRoaXMgaXMgYSBORVAxNyBleGFtcGxlIn19Df4ITkVGM25lb24tMy4wLjAuMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXA7znO4OTpJcbCoGp54UQN2G/OrARpdG9hAgABD/2j+kNG6lMqJY/El92t22Q3yf3/C2dldENvbnRyYWN0AQABD/2j+kNG6lMqJY/El92t22Q3yf3/BnVwZGF0ZQMAAA/9o/pDRupTKiWPxJfdrdtkN8n9/wdkZXN0cm95AAAAD0OkVyMwdLSq1p8g/WmykRNSvvAeBXRlc3QyAAABDwAA/RAIVwICeXBoJgcjBwEAACE1JgMAABC3cWkmIAwbQ29udHJhY3QgaGFzIGJlZW4gZGVwbG95ZWQuOgwcYWZ0ZXIgZ2V0IHRvdGFsU3VwcGx5U3RvcmFnZUHP50eWDAdBQpxJ/RoH2yE1aAMAAAwhYWZ0ZXIgaW5jcmVhc2UgdG90YWxTdXBwbHlzdG9yYWdlQc/nR5YMFG78pd5nDtnbpGznfCdo9+vKgwVMDAdBQpxJ/RoH2yFQNQYDAAAMG2FmdGVyIGluY3JlYXNlIGFzc2V0c3RvcmFnZUHP50eWCwwUbvyl3mcO2dukbOd8J2j368qDBUwMB0FCnEn9GgfbIVMTwAwIVHJhbnNmZXJBlQFvYUBWCAwIAACKXXhFYwHbIWAMB0FCnEn9GgfbIWEMFG78pd5nDtnbpGznfCdo9+vKgwVMYgwEAJQ1d9shYxFkDAVhc3NldGUMCGNvbnRyYWN0ZgwLdG90YWxTdXBwbHlnB0BXAgF4NX4GAAAQs3BoJkEMPFRoZSBwYXJhbWV0ZXJzIGFjY291bnQgU0hPVUxEIGJlIGEgMjAtYnl0ZSBub24temVybyBhZGRyZXNzLjoMFnZhbGlkIGFkZHJlc3MgY29tcGxldGVBz+dHlng18QAAAHFpQFcBAnh52zBQNAVwaEBXAQISw0p4EFDQSnkRUNBwaEAYQFcBAngRznmLcHgQzmhQQS9Yxe1AVwEANcsBAAAQs3BoJhYMEU5vIGF1dGhvcml6YXRpb24uOiE3AwBAQZv2Z84MBWFzc2V0UDSXDAZlbmFibGUQUzWMAwAAQFcBADWFAQAAELNwaCYWDBFObyBhdXRob3JpemF0aW9uLjohNL5AQZv2Z84MBWFzc2V0UDVS////DAZlbmFibGURUzVEAwAAQFcBADU9AQAAELNwaCYWDBFObyBhdXRob3JpemF0aW9uLjohNLtAVwMBQZv2Z84MBWFzc2V0UDUH////eFA1kAAAAHAMF2NoZWNrIGlmIHN0YXR1cyBpcyBudWxsQc/nR5Zo2HFpJgYQciIiIWhK2CYFEFBF2yEaUDcAAEHP50eWaErYJgUQUEXbIXJqQFcDAEGb9mfODAhjb250cmFjdFA1nf7//wwLdG90YWxTdXBwbHlQNBpwaNhxaSYGEHIiDWhK2CYFEFBF2yFyakBXAgJ4Ec55i3B4EM5oUEGSXegxcWlAVwIAQZv2Z84MBWFzc2V0UDVK/v//DAZlbmFibGVQNMxK2CYFEFBF2yFwaBGzcWlAVwACeHg1Dv///3meUDXZAQAAQFcAATVk////eJ415AEAAEBXAAF4NwEA2KpADBRu/KXeZw7Z26Rs53wnaPfryoMFTEH4J+yMQFcGATUu////cGgQtnNrJhsMFkNvbnRyYWN0IG5vdCBkZXBsb3llZC46DAgAAIpdeEVjAdshaJ9xeBC2dGwmGwwWQW1vdW50IGNhbm5vdCBiZSB6ZXJvLjp4abd1bSY/eBpQNwAAQc/nR5ZpGlA3AABBz+dHlgwkSW5zdWZmaWNpZW50IHN1cHBseSBmb3IgbWludCB0b2tlbnMuOiFBLVEIMHJqE854UDUP////eDUc////C2oTznhTE8AMCFRyYW5zZmVyQZUBb2FAVwQDNbn+//9waCefAAAAQTlTbjwMFPVj6kC8KD1NDgXEjqMFs/Kgc0Dvs3FpJikMD21pbnQgbmVvIHRva2Vuc0HP50eWeQwEAJQ1d9shoDXm/v//IlIhQTlTbjwMFM924ovQBixKR47jVWEBExnzz6TSs3JqJhR42KpzayYKeRGgNbT+//8hIh8hDBlXcm9uZyBjYWxsaW5nIHNjcmlwdCBoYXNoOiEiKiEMJFBheW1lbnQgaXMgZGlzYWJsZSBvbiB0aGlzIGNvbnRyYWN0ITpAVwACQZv2Z84MBWFzc2V0UDU0/P//eHlTNC1AVwABQZv2Z84MCGNvbnRyYWN0UDUW/P//DAt0b3RhbFN1cHBseXhTNANAVwEDeBHOeYtweBDOaHpTQeY/GIRAVwICeDXP/P//cGh5s3FpJgd4NBkiCXhoeZ9QNItAVwABNRn9//94nzSZQFcAAUGb9mfODAVhc3NldFA1r/v//3hQNcn7//9ADBxUZXN0Q29udHJhY3RNYW5hZ2VtZW50VXBkYXRlQFcBADcEAHBoQFcAAnh5HxDDVEFifVtSRUA1uvz//0BXBwR4NW4BAAAmDHk1ZgEAABCzIgMRcGgmRQxAVGhlIHBhcmFtZXRlcnMgZnJvbSBhbmQgdG8gU0hPVUxEIGJlIDIwLWJ5dGUgbm9uLXplcm8gYWRkcmVzc2VzLjp6ELZxaSYxDCxUaGUgcGFyYW1ldGVyIGFtb3VudCBNVVNUIGJlIGdyZWF0ZXIgdGhhbiAwLjp4Qfgn7IwkDXhBOVNuPJcQsyIDEHJqJhYMEU5vIGF1dGhvcml6YXRpb24uOng1jfv//3q1c2smGgwVSW5zdWZmaWNpZW50IGJhbGFuY2UuOnh5s3RsJgYRdSJaeHpQNYn+//95elA1Qfz//3h5elMTwAwIVHJhbnNmZXJBlQFvYXk1Sfz//3ZuJil5DA5vbk5FUDE3UGF5bWVudB8Tw0oQeNBKEXrQShJ70FRBYn1bUkURdW1AVwECNRz8//8Qs3BoJhYMEU5vIGF1dGhvcml6YXRpb24uOnh5C1M3AgBAVwABeErZKFDKABSzqyYJeBCzELMiAxBANd37//9AtFz2MBLAHwwGZGVwbG95DBT9o/pDRupTKiWPxJfdrdtkN8n9/0FifVtSAUIMQHefw35eIZrwfE+JXNTEqoXbBmbMyxCK8j07RU26X+GWNle4ynNroOlNlniZ+mWprVE2lybXFAOjtw6hVHX2frooDCECVOanJ/RSNsd2Itpgwx8fHJooXf3zbTYO/4EAs9Oud+FBdHR2qg=="),
+        ).await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getblock",
             "params": [12345,0],
             "id": 1
         }"#;
 
-        provider.get_raw_block_by_index(12345).await;
-
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		let result = provider.get_raw_block_by_index(12345).await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_block_header_count() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+	async fn test_get_block_header_count() {
+		let mock_server = setup_mock_server().await;
+		let provider =
+			mock_rpc_response(&mock_server, "getblockheadercount", json!([]), json!(256)).await;
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getblockheadercount",
             "params": [],
             "id": 1
         }"#;
 
-        provider.get_block_header_count().await;
-
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		let result = provider.get_block_header_count().await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_block_count() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+	async fn test_get_block_count() {
+		let mock_server = setup_mock_server().await;
+		let provider =
+			mock_rpc_response(&mock_server, "getblockcount", json!([]), json!(256)).await;
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getblockcount",
             "params": [],
             "id": 1
         }"#;
 
-        provider.get_block_count().await;
+		let result = provider.get_block_count().await;
 
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_native_contracts() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_native_contracts() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getnativecontracts",
+			json!([]),
+			json!([
+				{
+					"id": -1,
+					"hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+					"nef": {
+						"magic": 860243278,
+						"compiler": "neo-core-v3.0",
+						"source": "",
+						"tokens": [],
+						"script": "EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0A=",
+						"checksum": 1110259869
+					},
+					"manifest": {
+						"name": "ContractManagement",
+						"groups": [],
+						"features": {},
+						"supportedstandards": [],
+						"abi": {
+							"methods": [
+								{
+									"name": "deploy",
+									"parameters": [
+										{
+											"name": "nefFile",
+											"type": "ByteArray"
+										},
+										{
+											"name": "manifest",
+											"type": "ByteArray"
+										}
+									],
+									"returntype": "Array",
+									"offset": 0,
+									"safe": false
+								},
+								{
+									"name": "deploy",
+									"parameters": [
+										{
+											"name": "nefFile",
+											"type": "ByteArray"
+										},
+										{
+											"name": "manifest",
+											"type": "ByteArray"
+										},
+										{
+											"name": "data",
+											"type": "Any"
+										}
+									],
+									"returntype": "Array",
+									"offset": 7,
+									"safe": false
+								},
+								{
+									"name": "destroy",
+									"parameters": [],
+									"returntype": "Void",
+									"offset": 14,
+									"safe": false
+								},
+								{
+									"name": "getContract",
+									"parameters": [
+										{
+											"name": "hash",
+											"type": "Hash160"
+										}
+									],
+									"returntype": "Array",
+									"offset": 21,
+									"safe": true
+								},
+								{
+									"name": "getMinimumDeploymentFee",
+									"parameters": [],
+									"returntype": "Integer",
+									"offset": 28,
+									"safe": true
+								},
+								{
+									"name": "setMinimumDeploymentFee",
+									"parameters": [
+										{
+											"name": "value",
+											"type": "Integer"
+										}
+									],
+									"returntype": "Void",
+									"offset": 35,
+									"safe": false
+								},
+								{
+									"name": "update",
+									"parameters": [
+										{
+											"name": "nefFile",
+											"type": "ByteArray"
+										},
+										{
+											"name": "manifest",
+											"type": "ByteArray"
+										}
+									],
+									"returntype": "Void",
+									"offset": 42,
+									"safe": false
+								},
+								{
+									"name": "update",
+									"parameters": [
+										{
+											"name": "nefFile",
+											"type": "ByteArray"
+										},
+										{
+											"name": "manifest",
+											"type": "ByteArray"
+										},
+										{
+											"name": "data",
+											"type": "Any"
+										}
+									],
+									"returntype": "Void",
+									"offset": 49,
+									"safe": false
+								}
+							],
+							"events": [
+								{
+									"name": "Deploy",
+									"parameters": [
+										{
+											"name": "Hash",
+											"type": "Hash160"
+										}
+									]
+								},
+								{
+									"name": "Update",
+									"parameters": [
+										{
+											"name": "Hash",
+											"type": "Hash160"
+										}
+									]
+								},
+								{
+									"name": "Destroy",
+									"parameters": [
+										{
+											"name": "Hash",
+											"type": "Hash160"
+										}
+									]
+								}
+							]
+						},
+						"permissions": [
+							{
+								"contract": "*",
+								"methods": "*"
+							}
+						],
+						"trusts": [],
+						"extra": null
+					},
+					"updatehistory": [0]
+				}
+			]),
+		)
+		.await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getnativecontracts",
             "params": [],
             "id": 1
         }"#;
 
-        provider.get_native_contracts().await;
+		let result = provider.get_native_contracts().await;
 
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
-	
 	#[tokio::test]
-    async fn test_get_block_header_index() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+	async fn test_get_block_header_index() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+            &mock_server,
+            "getblockheader",
+            json!([12345,1]),
+            json!({
+        "hash": "0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d",
+        "size": 1217,
+        "version": 0,
+        "previousblockhash": "0x045cabde4ecbd50f5e4e1b141eaf0842c1f5f56517324c8dcab8ccac924e3a39",
+        "merkleroot": "0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7",
+        "time": 1539968858,
+        "index": 1914006,
+        "nextconsensus": "AWZo4qAxhT8fwKL93QATSjCYCgHmCY1XLB",
+        "witnesses": [
+            {
+                "invocation": "DEBJVWapboNkCDlH9uu+tStOgGnwODlolRifxTvQiBkhM0vplSPo4vMj9Jt3jvzztMlwmO75Ss5cptL8wUMxASjZ",
+                "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+            }
+        ],
+        "tx": [
+            {
+                "hash": "0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510",
+                "size": 267,
+                "version": 0,
+                "nonce": 565086327,
+                "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
+                "sysfee": "0",
+                "netfee": "0",
+                "validuntilblock": 2107425,
+                "signers": [
+                    {
+                        "account": "0xf68f181731a47036a99f04dad90043a744edec0f",
+                        "scopes": "CalledByEntry"
+                    }
+                ],
+                "attributes": [],
+                "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg",
+                "witnesses": [
+                    {
+                        "invocation": "DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+",
+                        "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+                    }
+                ]
+            },
+            {
+                "hash": "0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510",
+                "size": 267,
+                "version": 0,
+                "nonce": 565086327,
+                "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
+                "sysfee": "0",
+                "netfee": "0",
+                "validuntilblock": 2107425,
+                "signers": [
+                    {
+                        "account": "0xf68f181731a47036a99f04dad90043a744edec0f",
+                        "scopes": "CalledByEntry"
+                    }
+                ],
+                "attributes": [],
+                "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg",
+                "witnesses": [
+                    {
+                        "invocation": "DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+",
+                        "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+                    }
+                ]
+            }
+        ],
+        "confirmations": 7878,
+        "nextblockhash": "0x4a97ca89199627f877b6bffe865b8327be84b368d62572ef20953829c3501643"
+    }),
+        ).await;
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getblockheader",
             "params": [12345,1],
             "id": 1
         }"#;
 
-        provider.get_block_header_by_index(12345).await;
+		let result = provider.get_block_header_by_index(12345).await;
 
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_raw_block_header_index() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+	async fn test_get_raw_block_header_index() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+            &mock_server,
+            "getblockheader",
+            json!([12345,0]),
+            json!("AAAAAFrf0tgylRv20FkZygEC2UDiMHJTukXJPQ/DFP5sezdzm3A7VffHxK0b4rwXh/xR/zV24Mj6+Vhq25qoN1WlxRIBIKp7dwEAAIwAAADitlMicpPpnE8pBtU1U6u0pnLfhgFCDEDGZIUihuWK6RLqloq6UiKxkoW0QFhqGhoQU3cK5IQRATFUY807W/hGmYqP80N8qjKQ/e4o8URTzgRUXJKXf1/sKxEMIQLO1DI5fdxE7boDHAvDuTPyj92Wd3kteyDmwDbdqqzx4hELQRON768A")).await;
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getblockheader",
             "params": [12345,0],
             "id": 1
         }"#;
 
-        provider.get_raw_block_header_by_index(12345).await;
-
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		let result = provider.get_raw_block_header_by_index(12345).await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_contract_state() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+	async fn test_get_contract_state() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+            &mock_server,
+            "getcontractstate",
+            json!(["dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f"]),
+            json!({
+        "id": 383,
+        "updatecounter": 0,
+        "hash": "0xe7f2e74b3498d3a0d80bcbd5925bca32e4acc4f7",
+        "nef": {
+            "magic": 860243278,
+            "compiler": "Neo.Compiler.CSharp 3.1.0",
+            "source": "https://github.com/neo-project/neo",
+            "tokens": [
+                {
+                    "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                    "method": "update",
+                    "paramcount": 3,
+                    "hasreturnvalue": false,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                    "method": "destroy",
+                    "paramcount": 0,
+                    "hasreturnvalue": false,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
+                    "method": "request",
+                    "paramcount": 5,
+                    "hasreturnvalue": false,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
+                    "method": "itoa",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
+                    "method": "jsonDeserialize",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                    "method": "getContract",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+                    "method": "getTransaction",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+                    "method": "getTransactionState",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                }
+            ],
+            "script": "WEH4J+yMQEH4J+yMQDTzQFkMBmVuYWJsZUsRzlCLUBDOQZJd6DFK2CYERRDbIRGzQErYJgRFENshQEsRzlCLUBDOQZJd6DFANLiqJhYMEU5vIGF1dGhvcml6YXRpb24uOlkMBmVuYWJsZRESTRHOUYtREM5B5j8YhEASTRHOUYtREM5B5j8YhEA1d////6omFgwRTm8gYXV0aG9yaXphdGlvbi46WQwGZW5hYmxlEBJNEc5Ri1EQzkHmPxiEQFcAAzVP////JgYiKyIpDCRQYXltZW50IGlzIGRpc2FibGUgb24gdGhpcyBjb250cmFjdCE6QFcBAzUJ////qiYWDBFObyBhdXRob3JpemF0aW9uLjoLenlB2/6odBTAcGgfDAh0cmFuc2ZlcnhBYn1bUkXCSnjPSnnPSnrPDAtVbmxvY2tFdmVudEGVAW9hEdsgIgJAQdv+qHRAQWJ9W1JAVwIAEMBwaB8MCGlzUGF1c2VkWtsoStgkCUrKABQoAzpBYn1bUnHCSmnPDA1Jc1BhdXNlZEV2ZW50QZUBb2FpIgJA2yhK2CQJSsoAFCgDOkBXAAJ5JgQiGgwFV29ybGQMBUhlbGxvQZv2Z85B5j8YhEBB5j8YhEBBm/ZnzkBXAAI1If7//6omFgwRTm8gYXV0aG9yaXphdGlvbi46C3l4NwAAQDcAAEA1+v3//6omFgwRTm8gYXV0aG9yaXphdGlvbi46NwEAQDcBAEBXAgMMCGNhbGxiYWNrcAwIdXNlcmRhdGFxemloeHk3AgBANwIAQFcDBEE5U248DBRYhxcRfgqoEHKvq3HS3Yn+fEuS/pgmEgwNVW5hdXRob3JpemVkITp6EJgmLgwiT3JhY2xlIHJlc3BvbnNlIGZhaWx1cmUgd2l0aCBjb2RlIHo3AwCL2yg6ezcEAHBocWkQznIMCnVzZXJkYXRhOiB5i9soQc/nR5YMEHJlc3BvbnNlIHZhbHVlOiBqi9soQc/nR5ZAQTlTbjxADBRYhxcRfgqoEHKvq3HS3Yn+fEuS/kA3BABAQc/nR5ZAVwACeXhBm/ZnzkHmPxiEQFcBABFwIhtZaDcDAGgSTRHOUYtREM5B5j8YhGhKnHBFaAHoA7Uk4kBXAQBB2/6odDcFAHBoFM4VziICQDcFAEBXAQBB2/6odDcFAHBoFM4TziICQFcCAEEtUQgwcGgQznHCSmk3BgDPDBBUcmFuc2FjdGlvblN0YXRlQZUBb2FpNwcAIgJAQS1RCDBANwYAQDcHAEBWAwwUwJjkrPCyCQ3Rbss9WN5CaocVhRtgDBRC5UOC6G3Nygng2ou2fi+sTUmHRGIMBWFzc2V0QZv2Z84SwGFAEsBA",
+            "checksum": 1593448136
+        },
+        "manifest": {
+            "name": "TestNetFee",
+            "groups": [],
+            "features": {},
+            "supportedstandards": [
+                "NEP-17"
+            ],
+            "abi": {
+                "methods": [
+                    {
+                        "name": "verify",
+                        "parameters": [],
+                        "returntype": "Boolean",
+                        "offset": 13,
+                        "safe": false
+                    },
+                    {
+                        "name": "getPaymentStatus",
+                        "parameters": [],
+                        "returntype": "Boolean",
+                        "offset": 16,
+                        "safe": false
+                    },
+                    {
+                        "name": "enablePayment",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 72,
+                        "safe": false
+                    },
+                    {
+                        "name": "disablePayment",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 137,
+                        "safe": false
+                    },
+                    {
+                        "name": "onNEP17Payment",
+                        "parameters": [
+                            {
+                                "name": "from",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "amount",
+                                "type": "Integer"
+                            },
+                            {
+                                "name": "data",
+                                "type": "Any"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 190,
+                        "safe": false
+                    },
+                    {
+                        "name": "unlock",
+                        "parameters": [
+                            {
+                                "name": "toAssetHash",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "toAddress",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "amount",
+                                "type": "Integer"
+                            }
+                        ],
+                        "returntype": "Boolean",
+                        "offset": 244,
+                        "safe": false
+                    },
+                    {
+                        "name": "isPaused",
+                        "parameters": [],
+                        "returntype": "Boolean",
+                        "offset": 351,
+                        "safe": false
+                    },
+                    {
+                        "name": "_deploy",
+                        "parameters": [
+                            {
+                                "name": "data",
+                                "type": "Any"
+                            },
+                            {
+                                "name": "update",
+                                "type": "Boolean"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 431,
+                        "safe": false
+                    },
+                    {
+                        "name": "update",
+                        "parameters": [
+                            {
+                                "name": "nefFile",
+                                "type": "ByteArray"
+                            },
+                            {
+                                "name": "manifest",
+                                "type": "String"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 476,
+                        "safe": false
+                    },
+                    {
+                        "name": "destroy",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 518,
+                        "safe": false
+                    },
+                    {
+                        "name": "doRequest",
+                        "parameters": [
+                            {
+                                "name": "filter",
+                                "type": "String"
+                            },
+                            {
+                                "name": "url",
+                                "type": "String"
+                            },
+                            {
+                                "name": "gasForResponse",
+                                "type": "Integer"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 554,
+                        "safe": false
+                    },
+                    {
+                        "name": "callback",
+                        "parameters": [
+                            {
+                                "name": "url",
+                                "type": "String"
+                            },
+                            {
+                                "name": "userdata",
+                                "type": "String"
+                            },
+                            {
+                                "name": "code",
+                                "type": "Integer"
+                            },
+                            {
+                                "name": "result",
+                                "type": "String"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 592,
+                        "safe": false
+                    },
+                    {
+                        "name": "put",
+                        "parameters": [
+                            {
+                                "name": "key",
+                                "type": "String"
+                            },
+                            {
+                                "name": "value",
+                                "type": "String"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 789,
+                        "safe": false
+                    },
+                    {
+                        "name": "putMulti",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 805,
+                        "safe": false
+                    },
+                    {
+                        "name": "testPermission",
+                        "parameters": [],
+                        "returntype": "Any",
+                        "offset": 845,
+                        "safe": false
+                    },
+                    {
+                        "name": "testSupportedStandards",
+                        "parameters": [],
+                        "returntype": "Any",
+                        "offset": 869,
+                        "safe": false
+                    },
+                    {
+                        "name": "getState",
+                        "parameters": [],
+                        "returntype": "Any",
+                        "offset": 889,
+                        "safe": false
+                    },
+                    {
+                        "name": "_initialize",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 953,
+                        "safe": false
+                    }
+                ],
+                "events": [
+                    {
+                        "name": "UnlockEvent",
+                        "parameters": [
+                            {
+                                "name": "arg1",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "arg2",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "arg3",
+                                "type": "Integer"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "IsPausedEvent",
+                        "parameters": [
+                            {
+                                "name": "obj",
+                                "type": "Any"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "TransactionState",
+                        "parameters": [
+                            {
+                                "name": "obj",
+                                "type": "Any"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "permissions": [
+                {
+                    "contract": "0x42e54382e86dcdca09e0da8bb67e2fac4d498744",
+                    "methods": [
+                        "test"
+                    ]
+                },
+                {
+                    "contract": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
+                    "methods": [
+                        "itoa",
+                        "jsonDeserialize"
+                    ]
+                },
+                {
+                    "contract": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+                    "methods": [
+                        "getTransaction",
+                        "getTransactionState"
+                    ]
+                },
+                {
+                    "contract": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
+                    "methods": [
+                        "request"
+                    ]
+                },
+                {
+                    "contract": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                    "methods": [
+                        "destroy",
+                        "getContract",
+                        "update"
+                    ]
+                }
+            ],
+            "trusts": [],
+            "extra": {
+                "Author": "Neo",
+                "Email": "dev@neo.org",
+                "Description": "This is a contract example"
+            }
+        }
+    }),
+        ).await;
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getcontractstate",
             "params": ["dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f"],
             "id": 1
         }"#;
 
-        provider.get_contract_state(H160::from_str("dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f").unwrap()).await;
+		let result = provider
+			.get_contract_state(H160::from_str("dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f").unwrap())
+			.await;
 
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_contract_state_by_name() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+	async fn test_get_contract_state_by_name() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getblockhash",
+			json!([16293]),
+			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+		)
+		.await;
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getcontractstate",
             "params": ["NeoToken"],
             "id": 1
         }"#;
 
-        provider.get_native_contract_state("NeoToken").await;
+		let result = provider.get_native_contract_state("NeoToken").await;
 
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_contract_state_by_Id() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_contract_state_by_Id() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+            &mock_server,
+            "getcontractstate",
+            json!([-6]),
+            json!({
+        "id": 383,
+        "updatecounter": 0,
+        "hash": "0xe7f2e74b3498d3a0d80bcbd5925bca32e4acc4f7",
+        "nef": {
+            "magic": 860243278,
+            "compiler": "Neo.Compiler.CSharp 3.1.0",
+            "source": "https://github.com/neo-project/neo",
+            "tokens": [
+                {
+                    "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                    "method": "update",
+                    "paramcount": 3,
+                    "hasreturnvalue": false,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                    "method": "destroy",
+                    "paramcount": 0,
+                    "hasreturnvalue": false,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
+                    "method": "request",
+                    "paramcount": 5,
+                    "hasreturnvalue": false,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
+                    "method": "itoa",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
+                    "method": "jsonDeserialize",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                    "method": "getContract",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+                    "method": "getTransaction",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                },
+                {
+                    "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+                    "method": "getTransactionState",
+                    "paramcount": 1,
+                    "hasreturnvalue": true,
+                    "callflags": "All"
+                }
+            ],
+            "script": "WEH4J+yMQEH4J+yMQDTzQFkMBmVuYWJsZUsRzlCLUBDOQZJd6DFK2CYERRDbIRGzQErYJgRFENshQEsRzlCLUBDOQZJd6DFANLiqJhYMEU5vIGF1dGhvcml6YXRpb24uOlkMBmVuYWJsZRESTRHOUYtREM5B5j8YhEASTRHOUYtREM5B5j8YhEA1d////6omFgwRTm8gYXV0aG9yaXphdGlvbi46WQwGZW5hYmxlEBJNEc5Ri1EQzkHmPxiEQFcAAzVP////JgYiKyIpDCRQYXltZW50IGlzIGRpc2FibGUgb24gdGhpcyBjb250cmFjdCE6QFcBAzUJ////qiYWDBFObyBhdXRob3JpemF0aW9uLjoLenlB2/6odBTAcGgfDAh0cmFuc2ZlcnhBYn1bUkXCSnjPSnnPSnrPDAtVbmxvY2tFdmVudEGVAW9hEdsgIgJAQdv+qHRAQWJ9W1JAVwIAEMBwaB8MCGlzUGF1c2VkWtsoStgkCUrKABQoAzpBYn1bUnHCSmnPDA1Jc1BhdXNlZEV2ZW50QZUBb2FpIgJA2yhK2CQJSsoAFCgDOkBXAAJ5JgQiGgwFV29ybGQMBUhlbGxvQZv2Z85B5j8YhEBB5j8YhEBBm/ZnzkBXAAI1If7//6omFgwRTm8gYXV0aG9yaXphdGlvbi46C3l4NwAAQDcAAEA1+v3//6omFgwRTm8gYXV0aG9yaXphdGlvbi46NwEAQDcBAEBXAgMMCGNhbGxiYWNrcAwIdXNlcmRhdGFxemloeHk3AgBANwIAQFcDBEE5U248DBRYhxcRfgqoEHKvq3HS3Yn+fEuS/pgmEgwNVW5hdXRob3JpemVkITp6EJgmLgwiT3JhY2xlIHJlc3BvbnNlIGZhaWx1cmUgd2l0aCBjb2RlIHo3AwCL2yg6ezcEAHBocWkQznIMCnVzZXJkYXRhOiB5i9soQc/nR5YMEHJlc3BvbnNlIHZhbHVlOiBqi9soQc/nR5ZAQTlTbjxADBRYhxcRfgqoEHKvq3HS3Yn+fEuS/kA3BABAQc/nR5ZAVwACeXhBm/ZnzkHmPxiEQFcBABFwIhtZaDcDAGgSTRHOUYtREM5B5j8YhGhKnHBFaAHoA7Uk4kBXAQBB2/6odDcFAHBoFM4VziICQDcFAEBXAQBB2/6odDcFAHBoFM4TziICQFcCAEEtUQgwcGgQznHCSmk3BgDPDBBUcmFuc2FjdGlvblN0YXRlQZUBb2FpNwcAIgJAQS1RCDBANwYAQDcHAEBWAwwUwJjkrPCyCQ3Rbss9WN5CaocVhRtgDBRC5UOC6G3Nygng2ou2fi+sTUmHRGIMBWFzc2V0QZv2Z84SwGFAEsBA",
+            "checksum": 1593448136
+        },
+        "manifest": {
+            "name": "TestNetFee",
+            "groups": [],
+            "features": {},
+            "supportedstandards": [
+                "NEP-17"
+            ],
+            "abi": {
+                "methods": [
+                    {
+                        "name": "verify",
+                        "parameters": [],
+                        "returntype": "Boolean",
+                        "offset": 13,
+                        "safe": false
+                    },
+                    {
+                        "name": "getPaymentStatus",
+                        "parameters": [],
+                        "returntype": "Boolean",
+                        "offset": 16,
+                        "safe": false
+                    },
+                    {
+                        "name": "enablePayment",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 72,
+                        "safe": false
+                    },
+                    {
+                        "name": "disablePayment",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 137,
+                        "safe": false
+                    },
+                    {
+                        "name": "onNEP17Payment",
+                        "parameters": [
+                            {
+                                "name": "from",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "amount",
+                                "type": "Integer"
+                            },
+                            {
+                                "name": "data",
+                                "type": "Any"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 190,
+                        "safe": false
+                    },
+                    {
+                        "name": "unlock",
+                        "parameters": [
+                            {
+                                "name": "toAssetHash",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "toAddress",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "amount",
+                                "type": "Integer"
+                            }
+                        ],
+                        "returntype": "Boolean",
+                        "offset": 244,
+                        "safe": false
+                    },
+                    {
+                        "name": "isPaused",
+                        "parameters": [],
+                        "returntype": "Boolean",
+                        "offset": 351,
+                        "safe": false
+                    },
+                    {
+                        "name": "_deploy",
+                        "parameters": [
+                            {
+                                "name": "data",
+                                "type": "Any"
+                            },
+                            {
+                                "name": "update",
+                                "type": "Boolean"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 431,
+                        "safe": false
+                    },
+                    {
+                        "name": "update",
+                        "parameters": [
+                            {
+                                "name": "nefFile",
+                                "type": "ByteArray"
+                            },
+                            {
+                                "name": "manifest",
+                                "type": "String"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 476,
+                        "safe": false
+                    },
+                    {
+                        "name": "destroy",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 518,
+                        "safe": false
+                    },
+                    {
+                        "name": "doRequest",
+                        "parameters": [
+                            {
+                                "name": "filter",
+                                "type": "String"
+                            },
+                            {
+                                "name": "url",
+                                "type": "String"
+                            },
+                            {
+                                "name": "gasForResponse",
+                                "type": "Integer"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 554,
+                        "safe": false
+                    },
+                    {
+                        "name": "callback",
+                        "parameters": [
+                            {
+                                "name": "url",
+                                "type": "String"
+                            },
+                            {
+                                "name": "userdata",
+                                "type": "String"
+                            },
+                            {
+                                "name": "code",
+                                "type": "Integer"
+                            },
+                            {
+                                "name": "result",
+                                "type": "String"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 592,
+                        "safe": false
+                    },
+                    {
+                        "name": "put",
+                        "parameters": [
+                            {
+                                "name": "key",
+                                "type": "String"
+                            },
+                            {
+                                "name": "value",
+                                "type": "String"
+                            }
+                        ],
+                        "returntype": "Void",
+                        "offset": 789,
+                        "safe": false
+                    },
+                    {
+                        "name": "putMulti",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 805,
+                        "safe": false
+                    },
+                    {
+                        "name": "testPermission",
+                        "parameters": [],
+                        "returntype": "Any",
+                        "offset": 845,
+                        "safe": false
+                    },
+                    {
+                        "name": "testSupportedStandards",
+                        "parameters": [],
+                        "returntype": "Any",
+                        "offset": 869,
+                        "safe": false
+                    },
+                    {
+                        "name": "getState",
+                        "parameters": [],
+                        "returntype": "Any",
+                        "offset": 889,
+                        "safe": false
+                    },
+                    {
+                        "name": "_initialize",
+                        "parameters": [],
+                        "returntype": "Void",
+                        "offset": 953,
+                        "safe": false
+                    }
+                ],
+                "events": [
+                    {
+                        "name": "UnlockEvent",
+                        "parameters": [
+                            {
+                                "name": "arg1",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "arg2",
+                                "type": "Hash160"
+                            },
+                            {
+                                "name": "arg3",
+                                "type": "Integer"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "IsPausedEvent",
+                        "parameters": [
+                            {
+                                "name": "obj",
+                                "type": "Any"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "TransactionState",
+                        "parameters": [
+                            {
+                                "name": "obj",
+                                "type": "Any"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "permissions": [
+                {
+                    "contract": "0x42e54382e86dcdca09e0da8bb67e2fac4d498744",
+                    "methods": [
+                        "test"
+                    ]
+                },
+                {
+                    "contract": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
+                    "methods": [
+                        "itoa",
+                        "jsonDeserialize"
+                    ]
+                },
+                {
+                    "contract": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+                    "methods": [
+                        "getTransaction",
+                        "getTransactionState"
+                    ]
+                },
+                {
+                    "contract": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
+                    "methods": [
+                        "request"
+                    ]
+                },
+                {
+                    "contract": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                    "methods": [
+                        "destroy",
+                        "getContract",
+                        "update"
+                    ]
+                }
+            ],
+            "trusts": [],
+            "extra": {
+                "Author": "Neo",
+                "Email": "dev@neo.org",
+                "Description": "This is a contract example"
+            }
+        }
+    }),
+        ).await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getcontractstate",
             "params": [-6],
             "id": 1
         }"#;
 
-        provider.get_contract_state_by_id(-6).await;
-
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		let result = provider.get_contract_state_by_id(-6).await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_mem_pool() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_mem_pool() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getrawmempool",
+			json!([1]),
+			json!({
+			  "height": 5882071,
+			  "verified": [
+				"0x0c65fbfd2598aee5f30cd18f1264b458f1db137c4a460f4a174facb3f2d59d06",
+				"0xc8040c285aa495f5b5e5b3761fd9333899f4ed902951c46d86c3bbb1cb12f2c0"
+			  ],
+			  "unverified": []
+			}),
+		)
+		.await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getrawmempool",
             "params": [1],
             "id": 1
         }"#;
 
-        provider.get_mem_pool().await;
+		let result = provider.get_mem_pool().await;
 
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_raw_mem_pool() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_raw_mem_pool() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getrawmempool",
+			json!([]),
+			json!([
+				"0x9786cce0dddb524c40ddbdd5e31a41ed1f6b5c8a683c122f627ca4a007a7cf4e",
+				"0xb488ad25eb474f89d5ca3f985cc047ca96bc7373a6d3da8c0f192722896c1cd7",
+				"0xf86f6f2c08fbf766ebe59dc84bc3b8829f1053f0a01deb26bf7960d99fa86cd6"
+			]),
+		)
+		.await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getrawmempool",
             "params": [],
             "id": 1
         }"#;
 
-        provider.get_raw_mem_pool().await;
+		let result = provider.get_raw_mem_pool().await;
 
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_transaction() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+	async fn test_get_transaction() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+            &mock_server,
+            "getrawtransaction",
+            json!(["7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c", 1]),
+            json!({
+        "hash": "0x7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c",
+        "size": 386,
+        "version": 0,
+        "nonce": 246876555,
+        "sender": "NikhQp1aAD1YFCiwknhM5LQQebj4464bCJ",
+        "sysfee": "0.0999954",
+        "netfee": "0.0235316",
+        "validuntilblock": 5899,
+        "signers": [
+            {
+                "account": "0xebae4ab3f21765e5f604dfdd590fdf142cfb89fa",
+                "scopes": "None"
+            },
+            {
+                "account": "0x86df72a6b4ab5335d506294f9ce993722253b6e2",
+                "scopes": "CalledByEntry"
+            }
+        ],
+        "attributes": [],
+        "script": "CwMA5AtUAgAAAAwU+on7LBTfD1nd3wT25WUX8rNKrusMFOK2UyJyk+mcTykG1TVTq7Smct+GFMAfDAh0cmFuc2ZlcgwUKLOtq3Jp+cIYHbPLdB6/VRkw4nBBYn1bUjk=",
+        "witnesses": [
+            {
+                "invocation": "DEC31ZE1kiIFPan7qal/h9FYsD2LTk6Lf0m0Kbbh1GExUqTAfye7BDjyEylfR50/AVNQkr+g+jXXMHGcxF4MUYBQ",
+                "verification": "DCECztQyOX3cRO26AxwLw7kz8o/dlnd5LXsg5sA23aqs8eILQZVEDXg="
+            },
+            {
+                "invocation": "DED8PagPv03pnEbsxUY7XgFk/qniHcha36hDCzZsmaJkpFg5vbgxk5+QE46K0GFsNpsqDJHNToGD9jeXsPzSvD5T",
+                "verification": "EQwhAs7UMjl93ETtugMcC8O5M/KP3ZZ3eS17IObANt2qrPHiEQtBE43vrw=="
+            }
+        ],
+        "blockhash": "0x3d87f53c51c93fc08e5ccc09dbd9e21fcfad4dbea66af454bed334824a90262c",
+        "confirmations": 26,
+        "blocktime": 1612687482881u64
+    }),
+        ).await;
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getrawtransaction",
-            "params": ["1f31821787b0a53df0ff7d6e0e7ecba3ac19dd517d6d2ea5aaf00432c20831d6", 1],
+            "params": ["7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c", 1],
             "id": 1
         }"#;
 
-        provider.get_transaction(H256::from_str("0x1f31821787b0a53df0ff7d6e0e7ecba3ac19dd517d6d2ea5aaf00432c20831d6").unwrap()).await;
+		let result = provider
+			.get_transaction(
+				H256::from_str(
+					"0x7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c",
+				).unwrap()).await;
 
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_raw_transaction() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_raw_transaction() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+            &mock_server,
+            "getrawtransaction",
+            json!(["7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c",0]),
+            json!("AIsJtw60lJgAAAAAAAjoIwAAAAAACxcAAAL6ifssFN8PWd3fBPblZRfys0qu6wDitlMicpPpnE8pBtU1U6u0pnLfhgEAXwsDAOQLVAIAAAAMFPqJ+ywU3w9Z3d8E9uVlF/KzSq7rDBTitlMicpPpnE8pBtU1U6u0pnLfhhTAHwwIdHJhbnNmZXIMFCizratyafnCGB2zy3Qev1UZMOJwQWJ9W1I5AkIMQLfVkTWSIgU9qfupqX+H0ViwPYtOTot/SbQptuHUYTFSpMB/J7sEOPITKV9HnT8BU1CSv6D6NdcwcZzEXgxRgFApDCECztQyOX3cRO26AxwLw7kz8o/dlnd5LXsg5sA23aqs8eILQZVEDXhCDED8PagPv03pnEbsxUY7XgFk/qniHcha36hDCzZsmaJkpFg5vbgxk5+QE46K0GFsNpsqDJHNToGD9jeXsPzSvD5TKxEMIQLO1DI5fdxE7boDHAvDuTPyj92Wd3kteyDmwDbdqqzx4hELQRON768="),
+        ).await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-        // Expected request body
-        let expected_request_body = r#"{
+		// Expected request body
+		let expected_request_body = r#"{
             "jsonrpc": "2.0",
             "method": "getrawtransaction",
-            "params": ["1f31821787b0a53df0ff7d6e0e7ecba3ac19dd517d6d2ea5aaf00432c20831d6", 0],
+            "params": ["7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c", 0],
             "id": 1
         }"#;
 
-        provider.get_raw_transaction(H256::from_str("0x1f31821787b0a53df0ff7d6e0e7ecba3ac19dd517d6d2ea5aaf00432c20831d6").unwrap()).await;
+		let result = provider
+			.get_raw_transaction(
+				H256::from_str(
+					"0x7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c",
+				)
+				.unwrap(),
+			)
+			.await;
 
-        verify_request(&mock_server, expected_request_body).await.unwrap();
-    }
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_storge() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_storge() {
+		let mock_server = setup_mock_server().await;
+		let key_hex = "hello".as_bytes().to_hex();
+		let key_base64 = key_hex.from_hex().unwrap().to_base64();
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getstorage",
+			json!(["99042d380f2b754175717bb932a911bc0bb0ad7d", key_base64]),
+			json!("d29ybGQ="),
+		)
+		.await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
-		let key = "616e797468696e67";
-		let key_base64 = key.to_string().to_base64();
-
-        // Expected request body
-        let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getstorage",
-			"params": ["03febccf81ac85e3d795bc5cbd4e84e907812aa3", "{}"],
+			"params": ["99042d380f2b754175717bb932a911bc0bb0ad7d", "{}"],
 			"id": 1
-		}}"#, key_base64);
+		}}"#,
+			key_base64
+		);
 
-        provider.get_storage(H160::from_str("03febccf81ac85e3d795bc5cbd4e84e907812aa3").unwrap(), key).await;
-
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		let result = provider
+			.get_storage(
+				H160::from_str("0x99042d380f2b754175717bb932a911bc0bb0ad7d").unwrap(),
+				key_hex.as_str(),
+			)
+			.await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_find_storge() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
+	async fn test_find_storge() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"findstorage",
+			json!(["1b468f207a5c5c3ee94e41b4cc606e921b33d160", "{}", 2]),
+			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+		)
+		.await;
 
 		let prefix_base64 = "c3".to_string().to_base64();
 
-        // Expected request body
-        let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "findstorage",
 			"params": ["1b468f207a5c5c3ee94e41b4cc606e921b33d160", "{}", 2],
 			"id": 1
-		}}"#, prefix_base64);
+		}}"#,
+			prefix_base64
+		);
 
-        provider.find_storage(H160::from_str("1b468f207a5c5c3ee94e41b4cc606e921b33d160").unwrap(), "c3", 2).await;
+		let result = provider
+			.find_storage(
+				H160::from_str("1b468f207a5c5c3ee94e41b4cc606e921b33d160").unwrap(),
+				"c3",
+				2,
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_find_storge_with_id() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client); 
-
+	async fn test_find_storge_with_id() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getblockhash",
+			json!([16293]),
+			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+		)
+		.await;
 		let prefix_base64 = "0b".to_string().to_base64();
 
-        // Expected request body
-        let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "findstorage",
 			"params": [-1, "{}", 10],
 			"id": 1
-		}}"#, prefix_base64);
+		}}"#,
+			prefix_base64
+		);
 
-        provider.find_storage_with_id(-1, "0b", 10).await;
+		let result = provider.find_storage_with_id(-1, "0b", 10).await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_transaction_height() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
-
-        // Expected request body
-        let expected_request_body = format!(r#"{{
+	async fn test_get_transaction_height() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"gettransactionheight",
+			json!(["57280b29c2f9051af6e28a8662b160c216d57c498ee529e0cf271833f90e1a53"]),
+			json!(14),
+		)
+		.await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "gettransactionheight",
-			"params": ["793f560ae7058a50c672890e69c9292391dd159ce963a33462059d03b9573d6a"],
+			"params": ["57280b29c2f9051af6e28a8662b160c216d57c498ee529e0cf271833f90e1a53"],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-        provider.get_transaction_height(H256::from_str("0x793f560ae7058a50c672890e69c9292391dd159ce963a33462059d03b9573d6a").unwrap()).await;
-
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		let result = provider
+			.get_transaction_height(
+				H256::from_str(
+					"0x57280b29c2f9051af6e28a8662b160c216d57c498ee529e0cf271833f90e1a53",
+				)
+				.unwrap(),
+			)
+			.await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_next_block_validators() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
-
-        // Expected request body
-        let expected_request_body = format!(r#"{{
+	async fn test_get_next_block_validators() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getnextblockvalidators",
+			json!([]),
+			json!([
+			  {
+				"publickey": "03aa052fbcb8e5b33a4eefd662536f8684641f04109f1d5e69cdda6f084890286a",
+				"votes": "0",
+				"active": true
+			  }
+			]),
+		)
+		.await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getnextblockvalidators",
 			"params": [],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-        provider.get_next_block_validators().await;
-
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		let result = provider.get_next_block_validators().await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_committe() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
-
-        // Expected request body
-        let expected_request_body = format!(r#"{{
+	async fn test_get_committe() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getblockhash",
+			json!([16293]),
+			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+		)
+		.await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getcommittee",
 			"params": [],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-        provider.get_committee().await;
+		let result = provider.get_committee().await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	// Node Methods
 
 	#[tokio::test]
-    async fn test_get_connection_count() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_connection_count() {
+		let mock_server = setup_mock_server().await;
+		let provider =
+			mock_rpc_response(&mock_server, "getconnectioncount", json!([]), json!(10)).await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
-
-        // Expected request body
-        let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getconnectioncount",
 			"params": [],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-        provider.get_connection_count().await;
-
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		let result = provider.get_connection_count().await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_peers() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
-
-        // Expected request body
-        let expected_request_body = format!(r#"{{
+	async fn test_get_peers() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getpeers",
+			json!([]),
+			json!({
+				"unconnected": [],
+				"bad": [],
+				"connected": [
+					{
+						"address": "47.90.28.99",
+						"port": 21333
+					},
+					{
+						"address": "47.90.28.99",
+						"port": 22333
+					}
+				]
+			}),
+		)
+		.await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getpeers",
 			"params": [],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-        provider.get_peers().await;
-
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		let result = provider.get_peers().await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_version() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
-
-        // Expected request body
-        let expected_request_body = format!(r#"{{
+	async fn test_get_version() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getversion",
+			json!([]),
+			json!( {
+				"tcpport": 10333,
+				"wsport": 10334,
+				"nonce": 1930156121,
+				"useragent": "/Neo:3.0.3/",
+				"protocol": {
+					"addressversion": 53,
+					"network": 860833102,
+					"validatorscount": 7,
+					"msperblock": 15000,
+					"maxtraceableblocks": 2102400,
+					"maxvaliduntilblockincrement": 5760,
+					"maxtransactionsperblock": 512,
+					"memorypoolmaxtransactions": 50000,
+					"initialgasdistribution": 5200000000000000u64
+				}
+			}),
+		)
+		.await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getversion",
 			"params": [],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-        provider.get_version().await;
-
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
-
-	#[tokio::test]
-    async fn test_send_raw_transaction() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
-
-        // Expected request body
-        let expected_request_body = format!(r#"{{
-			"jsonrpc": "2.0",
-			"method": "sendrawtransaction",
-			"params": ["gAAAAdQFqwPnNqAconfZSxN3ETx+lhu0VQUR/h1AjzDHeoJlAAACm3z/2qZ0vq4Pkw6+YIWvkJPl/lazSlwiDM3Pbvwzb8UAypo7AAAAACO6JwPFMmPo1uUi3DIgMznc2O7pm3z/2qZ0vq4Pkw6+YIWvkJPl/lazSlwiDM3Pbvwzb8UAGnEYAgAAAClfg/g/xDn1bm4fsGLYnG9TgmPXAUFANxHjZvyZ53oRC2yWtfiCjvlWptXPpctjJzQZFJARsPMNxUWPqlnkhn0Kx1N+MkyYEku2kf7KXF3fbtIPStt3giMhAmW/kGvzhfvz93eDLlWoeZG8++GbCX+3xcouQCWk1eXWrA=="],
-			"id": 1
-		}}"#);
-
-        provider.send_raw_transaction("80000001d405ab03e736a01ca277d94b1377113c7e961bb4550511fe1d408f30c77a82650000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500ca9a3b0000000023ba2703c53263e8d6e522dc32203339dcd8eee99b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc5001a711802000000295f83f83fc439f56e6e1fb062d89c6f538263d70141403711e366fc99e77a110b6c96b5f8828ef956a6d5cfa5cb63273419149011b0f30dc5458faa59e4867d0ac7537e324c98124bb691feca5c5ddf6ed20f4adb778223210265bf906bf385fbf3f777832e55a87991bcfbe19b097fb7c5ca2e4025a4d5e5d6ac".to_string()).await;
-
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		let result = provider.get_version().await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_submit_block() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_send_raw_transaction() {
+		let mock_server = setup_mock_server().await;
+		let tx_hex = "80000001d405ab03e736a01ca277d94b1377113c7e961bb4550511fe1d408f30c77a82650000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500ca9a3b0000000023ba2703c53263e8d6e522dc32203339dcd8eee99b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc5001a711802000000295f83f83fc439f56e6e1fb062d89c6f538263d70141403711e366fc99e77a110b6c96b5f8828ef956a6d5cfa5cb63273419149011b0f30dc5458faa59e4867d0ac7537e324c98124bb691feca5c5ddf6ed20f4adb778223210265bf906bf385fbf3f777832e55a87991bcfbe19b097fb7c5ca2e4025a4d5e5d6ac".to_string();
+		let tx_base64 = tx_hex.from_hex().unwrap().to_base64();
+		let provider = mock_rpc_response(
+			&mock_server,
+			"sendrawtransaction",
+			json!([tx_base64]),
+			json!({
+				"hash": "0x13ccdb9f7eda95a24aa5a4841b24fed957fe7f1b944996cbc2e92a4fa4f1fa73"
+			}),
+		)
+		.await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
+    "jsonrpc": "2.0",
+    "method": "sendrawtransaction",
+    "params": ["{}"],
+    "id": 1
+}}"#,
+			tx_base64
+		);
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
+		let result = provider.send_raw_transaction(tx_hex).await.expect("TODO: panic message");
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
-        // Expected request body
-        let expected_request_body = format!(r#"{{
+	#[tokio::test]
+	async fn test_submit_block() {
+		// TODO:: This one still panic
+		let mock_server = setup_mock_server().await;
+		let block_base64 = "AAAAACMSKFbGpGl6t7uroMpi2ilhQd84eU/pUrRfQyswXYl76woLOY0oW1z4InfxoKyxFAAB+8FS6cRu2Pm0iaOiD8OMCnLadQEAAMgcAAD6lrDvowCyjK9dBALCmE1fvMuahQFCDEAd8EoEFBcxOLCZfh8w0tUEHHmyn++KzW4I8oeJ1WyMmjHVcolpNzOnAOzXTn/xujwy93gJ9ijvVo6wAF5qC3wCKxEMIQL4L//X3jDpIyMLze0sPNW+yFcufrrL3bnzOipdJpNLixELQRON768CAGUTt7+NSxXGAA7aoUS2kokAAAAAACYcEwAAAAAARzMAAAHNWK7P0zW+HrPTEeHcgAlj39ctnwEAXQMA5AtUAgAAAAwUzViuz9M1vh6z0xHh3IAJY9/XLZ8MFM1Yrs/TNb4es9MR4dyACWPf1y2fE8AMCHRyYW5zZmVyDBS8r0HWhMfUrW7g2Z2pcHudHwyOZkFifVtSOAFCDEADRhUarLK+/BBjhqaWY5ieento21zgkcsUMWNCBWGd+v8a35zatNRgFbUkni4dDNI/BGc3zOgPT6EwroUsgvR+KQwhAv3yei642bBp1hrlpk26E7iWN8VC2MdMXWurST/mONaPC0GVRA14".to_string();
+		let block_hex = block_base64.from_base64().unwrap().to_hex();
+
+		let provider = mock_rpc_response(
+			&mock_server,
+			"submitblock",
+			json!([block_base64]),
+			json!({"hash": "0xbe153a2ef9e9160906f7054ed8f676aa223a826c4ae662ce0fb3f09d38b093c1"}),
+		)
+		.await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "submitblock",
-			"params": ["00000000000000000000000000000000"],
+			"params": ["{}"],
 			"id": 1
-		}}"#);
+		}}"#,
+			block_base64
+		);
 
-        provider.submit_block("00000000000000000000000000000000".to_string()).await;
-
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		let result = provider.submit_block(block_hex).await.expect("TODO: panic message");
+		// assert!(result, "Result is not okay: {:?}", result);
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	// SmartContract Methods
 
 	#[tokio::test]
-    async fn test_invoke_function() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
-
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+	async fn test_invoke_function() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+            &mock_server,
+            "invokefunction",
+            json!([
+    "0xa1a375677dded85db80a852c28c2431cab29e2c4",
+    "transfer",
+    [
+            {
+                "type": "Hash160",
+                "value": "0xfa03cb7b40072c69ca41f0ad3606a548f1d59966"
+            },
+            {
+                "type": "Hash160",
+                "value": "0xebae4ab3f21765e5f604dfdd590fdf142cfb89fa"
+            },
+            {
+                "type": "Integer",
+                "value": "10000"
+            },
+            {
+                "type": "String",
+                "value": ""
+            }
+        ],
+        [
+            {
+                "account": "0xfa03cb7b40072c69ca41f0ad3606a548f1d59966",
+                "scopes": "CalledByEntry",
+                "allowedcontracts": [],
+                "allowedgroups": []
+            }
+        ],
+    true
+  ]),
+            json!({
+        "script": "DAABECcMFPqJ+ywU3w9Z3d8E9uVlF/KzSq7rDBRmmdXxSKUGNq3wQcppLAdAe8sD+hTAHwwIdHJhbnNmZXIMFMTiKascQ8IoLIUKuF3Y3n1ndaOhQWJ9W1I=",
+        "state": "HALT",
+        "gasconsumed": "1490312",
+        "exception": null,
+        "notifications": [
+            {
+                "eventname": "Transfer",
+                "contract": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
+                "state": {
+                    "type": "Array",
+                    "value": [
+                        {
+                            "type": "ByteString",
+                            "value": "ZpnV8UilBjat8EHKaSwHQHvLA/o="
+                        },
+                        {
+                            "type": "ByteString",
+                            "value": "+on7LBTfD1nd3wT25WUX8rNKrus="
+                        },
+                        {
+                            "type": "Integer",
+                            "value": "10000"
+                        }
+                    ]
+                }
+            }
+        ],
+        "diagnostics": {
+            "invokedcontracts": {
+                "hash": "0x9cac876fcc1646f1f017aa49b1fbcf87bd37b043",
+                "call": [
+                    {
+                        "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
+                        "call": [
+                            {
+                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+                            },
+                            {
+                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+                            },
+                            {
+                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+                            },
+                            {
+                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+                            },
+                            {
+                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+                            },
+                            {
+                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+                            },
+                            {
+                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
+                                "call": [
+                                    {
+                                        "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+                                    },
+                                    {
+                                        "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+                                    }
+                                ]
+                            },
+                            {
+                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
+                                "call": [
+                                    {
+                                        "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+                                    },
+                                    {
+                                        "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+                                    }
+                                ]
+                            },
+                            {
+                                "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "storagechanges": [
+                {
+                    "state": "Changed",
+                    "key": "BgAAAAEBZpnV8UilBjat8EHKaSwHQHvLA/o=",
+                    "value": "8CTJ5wda"
+                },
+                {
+                    "state": "Added",
+                    "key": "BgAAAAEB+on7LBTfD1nd3wT25WUX8rNKrus=",
+                    "value": "ECc="
+                }
+            ]
+        },
+        "stack": [
+            {
+                "type": "Boolean",
+                "value": true
+            }
+        ],
+        "tx": "AOaXOgSIvRYAAAAAAKzgAQAAAAAAesUGAAFmmdXxSKUGNq3wQcppLAdAe8sD+gEAWQwAARAnDBT6ifssFN8PWd3fBPblZRfys0qu6wwUZpnV8UilBjat8EHKaSwHQHvLA/oUwB8MCHRyYW5zZmVyDBTE4imrHEPCKCyFCrhd2N59Z3WjoUFifVtSAUIMQMTS2HRIO9gDxq/U/lqIB77dLBzVHT4cwKdvqoGOZqm4IoGqHbYzBSYHOPHWGNutWvkjCgIQGQFKK1JGyOR16LwoDCEDrQCtTQQyXXSsHZm3oRiqiAzP00uFPaW9tICYC3D7Bm9BVuezJw=="
+    }),
+        ).await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "invokefunction",
 			"params": [
@@ -1931,8 +3439,9 @@ use neo::prelude::{
 				]
 			],
 			"id": 1
-		}}"#, TestConstants::NEO_TOKEN_HASH);
-		
+		}}"#,
+			TestConstants::NEO_TOKEN_HASH
+		);
 
 		let public_key = Secp256r1PublicKey::from_bytes(
 			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
@@ -1940,32 +3449,46 @@ use neo::prelude::{
 		.unwrap();
 		let rule = WitnessRule::new(
 			WitnessAction::Allow,
-			WitnessCondition::CalledByContract(H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap()),
+			WitnessCondition::CalledByContract(
+				H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap(),
+			),
 		);
 
-		let mut signer = AccountSigner::called_by_entry_hash160(H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap()).unwrap();
-		signer.set_allowed_contracts(vec![H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap()]);
-		signer.set_allowed_groups(vec![public_key]);
-		signer.set_rules(vec![rule]);
+		let mut signer = AccountSigner::called_by_entry_hash160(
+			H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap(),
+		)
+		.unwrap();
+		signer
+			.set_allowed_contracts(vec![H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap()])
+			.expect("TODO: panic message");
+		signer.set_allowed_groups(vec![public_key]).expect("TODO: panic message");
+		signer.set_rules(vec![rule]).expect("TODO: panic message");
 
-        provider.invoke_function(&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(), 
-								 "balanceOf".to_string(), 
-								 vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()], Some(vec![Account(signer)])).await;
+		let result = provider
+			.invoke_function(
+				&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
+				"balanceOf".to_string(),
+				vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()],
+				Some(vec![Account(signer)]),
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_invoke_function_witnessrules() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
-
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+	async fn test_invoke_function_witnessrules() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getblockhash",
+			json!([16293]),
+			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+		)
+		.await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "invokefunction",
 			"params": [
@@ -2040,8 +3563,13 @@ use neo::prelude::{
 				]
 			],
 			"id": 1
-		}}"#, TestConstants::NEO_TOKEN_HASH, TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY, TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY, TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY, TestConstants::COMMITTEE_ACCOUNT_SCRIPT_HASH);
-		
+		}}"#,
+			TestConstants::NEO_TOKEN_HASH,
+			TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY,
+			TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY,
+			TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY,
+			TestConstants::COMMITTEE_ACCOUNT_SCRIPT_HASH
+		);
 
 		let public_key = Secp256r1PublicKey::from_bytes(
 			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
@@ -2051,7 +3579,9 @@ use neo::prelude::{
 			WitnessAction::Deny,
 			WitnessCondition::And(vec![
 				WitnessCondition::Boolean(true),
-				WitnessCondition::CalledByContract(H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap()),
+				WitnessCondition::CalledByContract(
+					H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap(),
+				),
 				WitnessCondition::CalledByGroup(public_key.clone()),
 				WitnessCondition::Group(public_key.clone()),
 			]),
@@ -2060,7 +3590,9 @@ use neo::prelude::{
 			WitnessAction::Deny,
 			WitnessCondition::Or(vec![
 				WitnessCondition::CalledByGroup(public_key.clone()),
-				WitnessCondition::ScriptHash(H160::from_hex(TestConstants::COMMITTEE_ACCOUNT_SCRIPT_HASH).unwrap()),
+				WitnessCondition::ScriptHash(
+					H160::from_hex(TestConstants::COMMITTEE_ACCOUNT_SCRIPT_HASH).unwrap(),
+				),
 			]),
 		);
 		let rule3 = WitnessRule::new(
@@ -2068,29 +3600,52 @@ use neo::prelude::{
 			WitnessCondition::Not(Box::new(WitnessCondition::CalledByEntry)),
 		);
 
-		let mut signer = AccountSigner::called_by_entry_hash160(H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap()).unwrap();
-		signer.set_allowed_contracts(vec![H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap()]);
-		signer.set_allowed_groups(vec![public_key]);
-		signer.set_rules(vec![rule1, rule2, rule3]);
+		let mut signer = AccountSigner::called_by_entry_hash160(
+			H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap(),
+		)
+		.unwrap();
+		signer
+			.set_allowed_contracts(vec![H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap()])
+			.expect("TODO: panic message");
+		signer.set_allowed_groups(vec![public_key]).expect("TODO: panic message");
+		signer.set_rules(vec![rule1, rule2, rule3]).expect("TODO: panic message");
 
-        provider.invoke_function(&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(), 
-								 "balanceOf".to_string(), 
-								 vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()], Some(vec![Account(signer)])).await;
+		let result = provider
+			.invoke_function(
+				&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
+				"balanceOf".to_string(),
+				vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()],
+				Some(vec![Account(signer)]),
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_invoke_function_diagnostics() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
-
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
-
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+	async fn test_invoke_function_diagnostics() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"invokefunction",
+			json!([
+				"af7c7328eee5a275a3bcaee2bf0cf662b5e739be",
+				"balanceOf",
+				[
+					{
+						"type": "Hash160",
+						"value": "91b83e96f2a7c4fdf0c1688441ec61986c7cae26"
+					}
+				],
+				[],
+				true
+			]),
+			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+		)
+		.await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "invokefunction",
 			"params": [
@@ -2106,8 +3661,8 @@ use neo::prelude::{
 				true
 			],
 			"id": 1
-		}}"#);
-		
+		}}"#
+		);
 
 		let public_key = Secp256r1PublicKey::from_bytes(
 			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
@@ -2115,17 +3670,24 @@ use neo::prelude::{
 		.unwrap();
 		let rule = WitnessRule::new(
 			WitnessAction::Allow,
-			WitnessCondition::CalledByContract(H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap()),
+			WitnessCondition::CalledByContract(
+				H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap(),
+			),
 		);
 
-        provider.invoke_function_diagnostics(H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(), 
-								 "balanceOf".to_string(), 
-								 vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()], vec![]).await;
+		let result = provider
+			.invoke_function_diagnostics(
+				H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
+				"balanceOf".to_string(),
+				vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()],
+				vec![],
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
-
-	#[tokio::test]
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
+  
+  #[tokio::test]
     async fn test_invoke_function_diagnostics_no_params() {
         // Access the global mock server
         let mock_server = setup_mock_server().await;
@@ -2439,23 +4001,13 @@ use neo::prelude::{
     }
 
 
-
-
-
-	async fn setup_mock_server() -> MockServer {
-		let server = MockServer::start().await;
-		Mock::given(method("POST"))
-			.and(path("/"))
-			.respond_with(ResponseTemplate::new(200).set_body_string("hello"))
-			.mount(&server)
-			.await;
-		server
-	}
-
-    async fn verify_request(mock_server: &MockServer, expected: &str) -> Result<(), Box<dyn std::error::Error>> {
-        // Retrieve the request body from the mock server
-        let received_requests = mock_server.received_requests().await.unwrap();
-        assert!(!received_requests.is_empty(), "No requests received");
+	async fn verify_request(
+		mock_server: &MockServer,
+		expected: &str,
+	) -> Result<(), Box<dyn std::error::Error>> {
+		// Retrieve the request body from the mock server
+		let received_requests = mock_server.received_requests().await.unwrap();
+		assert!(!received_requests.is_empty(), "No requests received");
 
 		// Assuming we only have one request
 		let request = &received_requests[0];
@@ -2464,33 +4016,33 @@ use neo::prelude::{
 		// Normalize JSON by removing whitespace and comparing
 		let request_json: Value = serde_json::from_str(&request_body).unwrap();
 		let expected_json: Value = serde_json::from_str(expected).unwrap();
-
-		// assert_eq!(
-		// 	request_json, expected_json,
-		// 	"The request body does not match the expected body"
-		// );
-
 		assert_eq!(
 			request_json, expected_json,
 			"The request body does not match the expected body"
 		);
 
-        Ok(())
-    }
+		Ok(())
+	}
 
-	async fn verify_request_json(mock_server: &MockServer, expected_json: Value) -> Result<(), Box<dyn std::error::Error>> {
-        // Retrieve the request body from the mock server
-        let received_requests = mock_server.received_requests().await.unwrap();
-        assert!(!received_requests.is_empty(), "No requests received");
+	async fn verify_request_json(
+		mock_server: &MockServer,
+		expected_json: Value,
+	) -> Result<(), Box<dyn std::error::Error>> {
+		// Retrieve the request body from the mock server
+		let received_requests = mock_server.received_requests().await.unwrap();
+		assert!(!received_requests.is_empty(), "No requests received");
 
-        // Assuming we only have one request
-        let request = &received_requests[0];
-        let request_body = String::from_utf8_lossy(&request.body);
+		// Assuming we only have one request
+		let request = &received_requests[0];
+		let request_body = String::from_utf8_lossy(&request.body);
 
-        // Normalize JSON by removing whitespace and comparing
-        let request_json: Value = serde_json::from_str(&request_body).unwrap();
+		// Normalize JSON by removing whitespace and comparing
+		let request_json: Value = serde_json::from_str(&request_body).unwrap();
 
-        assert_eq!(request_json, expected_json, "The request body does not match the expected body");
+		assert_eq!(
+			request_json, expected_json,
+			"The request body does not match the expected body"
+		);
 
 		Ok(())
 	}

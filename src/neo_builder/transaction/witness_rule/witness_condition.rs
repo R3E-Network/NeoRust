@@ -6,7 +6,7 @@ use serde::{ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializ
 use serde_json::Value;
 
 use neo::prelude::{
-	Decoder, Encoder, NeoSerializable, ScriptHashExtension, Secp256r1PublicKey, TransactionError, deserialize_script_hash, serialize_script_hash
+	Decoder, Encoder, NeoSerializable, ScriptHashExtension, Secp256r1PublicKey, TransactionError,
 };
 
 use crate::neo_codec::VarSizeTrait;
@@ -364,7 +364,7 @@ impl NeoSerializable for WitnessCondition {
 			WitnessCondition::OR_BYTE | WitnessCondition::AND_BYTE => {
 				let len = reader.read_var_int()? as usize;
 				if len > Self::MAX_SUBITEMS {
-					return Err(TransactionError::InvalidWitnessCondition)
+					return Err(TransactionError::InvalidWitnessCondition);
 				}
 				let mut expressions = Vec::with_capacity(len);
 				for _ in 0..len {

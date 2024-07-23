@@ -1,4 +1,4 @@
-use ethers::prelude::*;
+use NeoRust::prelude::*;
 
 const RPC_URL: &str = "http://localhost:8551";
 
@@ -11,7 +11,7 @@ async fn main() -> eyre::Result<()> {
 async fn connect_jwt() -> eyre::Result<()> {
     // An Http provider can be created from an http(s) URI.
     // In case of https you must add the "rustls" or "openssl" feature
-    // to the ethers library dependency in `Cargo.toml`.
+    // to the library dependency in `Cargo.toml`.
     let _provider = Provider::<Http>::try_from(RPC_URL)?;
 
     // Instantiate with auth to append basic authorization headers across requests

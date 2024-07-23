@@ -1,6 +1,7 @@
 use getset::Getters;
-use neo::prelude::{deserialize_script_hash, serialize_script_hash, ScriptHash};
 use serde::{Deserialize, Serialize};
+
+use neo::prelude::{deserialize_script_hash, serialize_script_hash, ScriptHash};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Nep11Balances {

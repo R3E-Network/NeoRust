@@ -3,12 +3,12 @@ use serde_with::serde_as;
 
 use neo::prelude::ContractMethodToken;
 
-#[derive(Serialize, Deserialize, Hash, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, Hash, Clone, Debug)]
 #[serde_as]
 pub struct ContractNef {
 	pub magic: i32,
 	pub compiler: String,
-	pub source: Option<String>,
+	pub source: String,
 	#[serde_as(as = "Vec<ContractMethodToken>")]
 	pub tokens: Vec<ContractMethodToken>,
 	pub script: String,
@@ -24,6 +24,13 @@ impl ContractNef {
 		script: String,
 		checksum: i32,
 	) -> Self {
-		Self { magic, compiler, source, tokens, script, checksum }
+		Self {
+			magic,
+			compiler,
+			source: source.unwrap_or_else(|| "".to_string()),
+			tokens,
+			script,
+			checksum,
+		}
 	}
 }

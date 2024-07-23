@@ -1,10 +1,10 @@
-use regex::Regex;
 use std::{future::Future, pin::Pin, str::FromStr, sync::Arc};
-use wiremock::{Match, Request};
 
 use futures_timer::Delay;
 use futures_util::{stream, FutureExt, StreamExt};
 use primitive_types::{H160, U256};
+use regex::Regex;
+use wiremock::{Match, Request};
 
 use neo::prelude::{
 	private_key_to_public_key, HashableForVec, ProviderError, ScriptBuilder, ScriptHash,
@@ -96,7 +96,7 @@ pub fn address_to_script_hash(address: &str) -> Result<ScriptHash, ProviderError
 	let sha = &bytes[..21].hash256().hash256();
 	let check = &sha[..4];
 	if checksum != check {
-		return Err(ProviderError::InvalidAddress)
+		return Err(ProviderError::InvalidAddress);
 	}
 
 	let mut rev = [0u8; 20];

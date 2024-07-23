@@ -98,7 +98,7 @@ impl Base64Encode for &[u8] {
 
 impl Base64Encode for String {
 	fn to_base64(&self) -> String {
-		base64::encode(&hex::decode(self).unwrap())
+		general_purpose::STANDARD.encode(&hex::decode(self).unwrap())
 	}
 }
 

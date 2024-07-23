@@ -97,12 +97,12 @@ impl WsBackend {
 				trace!(%item, "Deserialized message");
 				let res = self.handler.unbounded_send(item);
 				if res.is_err() {
-					return Err(WsClientError::DeadChannel)
+					return Err(WsClientError::DeadChannel);
 				}
 			},
 			Err(e) => {
 				error!(e = %e, "Failed to deserialize message");
-				return Err(WsClientError::JsonError(e))
+				return Err(WsClientError::JsonError(e));
 			},
 		}
 		Ok(())

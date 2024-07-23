@@ -1,7 +1,5 @@
 use std::{convert::TryFrom, sync::Arc, time::Duration};
 
-use eyre::Result;
-
 use ethers::{
     contract::abigen,
     core::utils::Anvil,
@@ -9,6 +7,7 @@ use ethers::{
     providers::{Http, Provider},
     signers::{LocalWallet, Signer},
 };
+use eyre::Result;
 
 // Generate the type-safe contract bindings by providing the json artifact
 // *Note*: this requires a `bytecode` and `abi` object in the `greeter.json` artifact:

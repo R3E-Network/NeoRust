@@ -36,7 +36,7 @@ resolver = "2"
 
 [dependencies]
 tokio = { version = "1.32", features = ["full"] }
-tokio-tungstenite = { version = "0.20", default-features = false }
+tokio-tungstenite = { version = "0.23.1", default-features = false }
 futures = { version = "0.3.28", default-features = false, features = ["std"] }
 futures-core = "0.3.28"
 futures-util = "0.3.28"
@@ -45,13 +45,13 @@ futures-channel = "0.3.28"
 futures-locks = { version = "0.7.1", default-features = false }
 futures-timer = { version = "3.0.2", default-features = false, features = ["wasm-bindgen"] }
 pin-project = "1.1"
-reqwest = { version = "0.11.19", default-features = false, features = ["json"] }
+reqwest = { version = "0.12.5", default-features = false, features = ["json"] }
 url = { version = "2.4", default-features = false }
 wiremock = "0.6"
 
 # crypto
 elliptic-curve = { version = "0.13.5", default-features = false }
-generic-array = { version = "0.14.7", default-features = false }
+generic-array = { version = "1.1.0", default-features = false }
 k256 = { version = "0.13.1", default-features = false, features = ["ecdsa", "std"] }
 sha2 = { version = "0.10.7", default-features = false }
 tiny-keccak = { version = "2.0.2", default-features = false }
@@ -96,8 +96,8 @@ instant = "0.1.12"
 serde_with = "3.3.0"
 serde_derive = "1.0.188"
 # For base64 encoding
-base64 = "0.21.4"
-bs58 = "0.4.0"
+base64 = "0.22.1"
+bs58 = "0.5.1"
 aes = "0.8.3"
 block-modes = "0.9.1"
 # For hash function
@@ -123,13 +123,13 @@ rust-crypto = "0.2"
 lazy_static = "1.4.0"
 num-traits = "0.2.16"
 chrono = "0.4.31"
-strum = "0.25.0"
-strum_macros = "0.25.2"
+strum = "0.26.3"
+strum_macros = "0.26.4"
 num_enum = { version = "0.7.0", features = [] }
 derive_more = "0.99.17"
 indexmap = "2.0.0"
 getset = "0.1.2"
-educe = "0.4.23"
+educe = "0.6.0"
 byteorder = "1.4.3"
 serde-big-array = "0.5.1"
 blake2 = { version = "0.10.6", default-features = false }
@@ -150,27 +150,28 @@ num-integer = { version = "0.1.45", features = [] }
 log = "0.4.14"
 ecb = "0.1.2"
 cipher = { version = "0.4.4", features = [] }
-http = "0.2.9"
+http = "1.1.0"
 jsonwebtoken = "9.2.0"
 
 uint = { git = "https://github.com/paritytech/parity-common", package = "uint", version = "0.9", default-features = false }
 impl-codec = { version = "0.6", default-features = false, optional = true }
 impl-serde = { version = "0.4.0", default-features = false, optional = true }
 scale-info = { version = ">=1.0, <3", features = ["derive"], default-features = false, optional = true }
-ring = { version = "0.16.20", features = [] }
+ring = { version = "0.17.8", features = [] }
 
 # aws
 rusoto_core = { version = "0.48.0", default-features = false, optional = true }
 rusoto_kms = { version = "0.48.0", default-features = false, optional = true }
 # ledger
-coins-ledger = { version = "0.10.1", default-features = false, optional = true }
+coins-ledger = { version = "0.11.1", default-features = false, optional = true }
 protobuf = { version = "=3.2.0", optional = true }
 # yubi
-yubihsm = { version = "0.42", features = ["mockhsm", "http", "usb"], optional = true }
+yubihsm = { version = "0.42", features = ["mockhsm", "http", "usb"] }
 block-padding = "0.3.3"
+env_logger = "0.11.3"
 
 [features]
 futures = []
-ledger = []
+ledger = ["coins-ledger"]
 aws = []#, "spki"]
-yubi = ["yubihsm"]
+#yubi = ["yubihsm"]

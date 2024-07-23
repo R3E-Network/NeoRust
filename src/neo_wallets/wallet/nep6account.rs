@@ -115,7 +115,7 @@ impl NEP6Account {
 		if account.key_pair.is_some() && account.encrypted_private_key.is_none() {
 			return Err(WalletError::AccountState(
 				"Account private key is available but not encrypted.".to_string(),
-			))
+			));
 		}
 
 		let mut parameters = Vec::new();

@@ -173,7 +173,7 @@ impl NeoSerializable for InvocationScript {
 	type Error = BuilderError;
 
 	fn size(&self) -> usize {
-		return var_size(self.script.len()) + self.script.len()
+		return var_size(self.script.len()) + self.script.len();
 	}
 
 	fn encode(&self, writer: &mut Encoder) {

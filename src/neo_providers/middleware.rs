@@ -213,7 +213,10 @@ pub trait Middleware: Sync + Send + Debug {
 	}
 
 	async fn get_contract_state_by_id(&self, id: i64) -> Result<ContractState, Self::Error> {
-		self.inner().get_contract_state_by_id(id).await.map_err(MiddlewareError::from_err)
+		self.inner()
+			.get_contract_state_by_id(id)
+			.await
+			.map_err(MiddlewareError::from_err)
 	}
 
 	async fn get_native_contract_state(&self, name: &str) -> Result<ContractState, Self::Error> {
@@ -233,13 +236,13 @@ pub trait Middleware: Sync + Send + Debug {
 
 	// Application logs
 
-	async fn get_transaction(&self, hash: H256) -> Result<Option<TransactionResult>, Self::Error> {
+	async fn get_transaction(&self, hash: H256) -> Result<TransactionResult, Self::Error> {
 		self.inner().get_transaction(hash).await.map_err(MiddlewareError::from_err)
 	}
 
 	// State service
 
-	async fn get_raw_transaction(&self, tx_hash: H256) -> Result<RawTransaction, Self::Error> {
+	async fn get_raw_transaction(&self, tx_hash: H256) -> Result<String, Self::Error> {
 		self.inner()
 			.get_raw_transaction(tx_hash)
 			.await
@@ -253,14 +256,24 @@ pub trait Middleware: Sync + Send + Debug {
 			.map_err(MiddlewareError::from_err)
 	}
 
-	async fn find_storage(&self, contract_hash: H160, prefix_hex_string: &str, start_index: u64) -> Result<String, ProviderError> {
+	async fn find_storage(
+		&self,
+		contract_hash: H160,
+		prefix_hex_string: &str,
+		start_index: u64,
+	) -> Result<String, ProviderError> {
 		self.inner()
 			.find_storage(contract_hash, prefix_hex_string, start_index)
 			.await
 			.map_err(MiddlewareError::from_err)
 	}
 
-	async fn find_storage_with_id(&self, contract_id: i64, prefix_hex_string: &str, start_index: u64) -> Result<String, ProviderError> {
+	async fn find_storage_with_id(
+		&self,
+		contract_id: i64,
+		prefix_hex_string: &str,
+		start_index: u64,
+	) -> Result<String, ProviderError> {
 		self.inner()
 			.find_storage_with_id(contract_id, prefix_hex_string, start_index)
 			.await
@@ -303,7 +316,7 @@ pub trait Middleware: Sync + Send + Debug {
 		self.inner().send_raw_transaction(hex).await.map_err(MiddlewareError::from_err)
 	}
 
-	async fn submit_block(&self, hex: String) -> Result<bool, Self::Error> {
+	async fn submit_block(&self, hex: String) -> Result<SubmitBlock, Self::Error> {
 		self.inner().submit_block(hex).await.map_err(MiddlewareError::from_err)
 	}
 

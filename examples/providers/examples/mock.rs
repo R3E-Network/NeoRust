@@ -3,7 +3,7 @@
 //! provider's responses on client requests.
 //!
 //! This can be useful for testing code that relies on providers without the need to
-//! connect to a real network or spend real Ether. It also allows to test code in a
+//! connect to a real network or spend real Gas. It also allows to test code in a
 //! deterministic manner, as you can control the state and behavior of the provider.
 //!
 //! In these examples we use the common Arrange, Act, Assert (AAA) test approach.
@@ -30,9 +30,9 @@ async fn mocked_block_number() -> eyre::Result<()> {
     mock.push(block_num_3)?;
 
     // Act
-    let ret_block_3: u64 = JsonRpcClient::fetch(&mock, "eth_blockNumber", ()).await?;
-    let ret_block_2: u64 = JsonRpcClient::fetch(&mock, "eth_blockNumber", ()).await?;
-    let ret_block_1: u64 = JsonRpcClient::fetch(&mock, "eth_blockNumber", ()).await?;
+    let ret_block_3: u64 = JsonRpcClient::fetch(&mock, "blockNumber", ()).await?;
+    let ret_block_2: u64 = JsonRpcClient::fetch(&mock, "blockNumber", ()).await?;
+    let ret_block_1: u64 = JsonRpcClient::fetch(&mock, "blockNumber", ()).await?;
 
     // Assert
     assert_eq!(block_num_1, ret_block_1);
@@ -49,7 +49,7 @@ async fn mocked_block_number() -> eyre::Result<()> {
 async fn mocked_provider_dependency() -> eyre::Result<()> {
     // Arrange
     let (provider, mock) = crate::Provider::mocked();
-    mock.push(U64::from(2))?;
+    mock.push(2)?;
 
     // Act
     // Let's mock the provider dependency (we ❤️ DI!) then ask for the answer
@@ -75,7 +75,7 @@ where
 
     /// We want to test this!
     async fn is_odd_block(&self) -> eyre::Result<bool> {
-        let block: U64 = self.provider.get_block_number().await?;
-        Ok(block % 2 == U64::zero())
+        let block: u32 = self.provider.get_block_count().await?;
+        Ok(block % 2 == 0)
     }
 }

@@ -9,8 +9,11 @@ pub struct ContractMethodToken {
 	#[serde(serialize_with = "serialize_script_hash")]
 	hash: ScriptHash,
 	method: String,
+	#[serde(rename = "paramcount")]
 	param_count: u32,
+	#[serde(rename = "hasreturnvalue")]
 	has_return_value: bool,
+	#[serde(rename = "callflags")]
 	call_flags: String,
 }
 

@@ -1,9 +1,13 @@
-use crate::{common::Request, JsonRpcError};
+use std::fmt;
+
 use futures_channel::{mpsc, oneshot};
 use primitive_types::U256;
 use serde::{de, Deserialize};
 use serde_json::value::{to_raw_value, RawValue};
-use std::fmt;
+
+pub use aliases::*;
+
+use crate::{common::Request, JsonRpcError};
 
 // Normal JSON-RPC response
 pub type Response = Result<Box<RawValue>, JsonRpcError>;
@@ -65,7 +69,7 @@ impl<'de> Deserialize<'de> for PubSubItem {
 					match key {
 						"jsonrpc" => {
 							if jsonrpc {
-								return Err(de::Error::duplicate_field("jsonrpc"))
+								return Err(de::Error::duplicate_field("jsonrpc"));
 							}
 
 							let value = map.next_value()?;
@@ -73,14 +77,14 @@ impl<'de> Deserialize<'de> for PubSubItem {
 								return Err(de::Error::invalid_value(
 									de::Unexpected::Str(value),
 									&"2.0",
-								))
+								));
 							}
 
 							jsonrpc = true;
 						},
 						"id" => {
 							if id.is_some() {
-								return Err(de::Error::duplicate_field("id"))
+								return Err(de::Error::duplicate_field("id"));
 							}
 
 							let value: u64 = map.next_value()?;
@@ -88,7 +92,7 @@ impl<'de> Deserialize<'de> for PubSubItem {
 						},
 						"result" => {
 							if result.is_some() {
-								return Err(de::Error::duplicate_field("result"))
+								return Err(de::Error::duplicate_field("result"));
 							}
 
 							let value: Box<RawValue> = map.next_value()?;
@@ -96,7 +100,7 @@ impl<'de> Deserialize<'de> for PubSubItem {
 						},
 						"error" => {
 							if error.is_some() {
-								return Err(de::Error::duplicate_field("error"))
+								return Err(de::Error::duplicate_field("error"));
 							}
 
 							let value: JsonRpcError = map.next_value()?;
@@ -104,7 +108,7 @@ impl<'de> Deserialize<'de> for PubSubItem {
 						},
 						"method" => {
 							if method.is_some() {
-								return Err(de::Error::duplicate_field("method"))
+								return Err(de::Error::duplicate_field("method"));
 							}
 
 							let value: String = map.next_value()?;
@@ -112,7 +116,7 @@ impl<'de> Deserialize<'de> for PubSubItem {
 						},
 						"params" => {
 							if params.is_some() {
-								return Err(de::Error::duplicate_field("params"))
+								return Err(de::Error::duplicate_field("params"));
 							}
 
 							let value: Notification = map.next_value()?;
@@ -128,7 +132,7 @@ impl<'de> Deserialize<'de> for PubSubItem {
 
 				// jsonrpc version must be present in all responses
 				if !jsonrpc {
-					return Err(de::Error::missing_field("jsonrpc"))
+					return Err(de::Error::missing_field("jsonrpc"));
 				}
 
 				match (id, result, error, method, params) {
@@ -252,20 +256,20 @@ mod aliases {
 
 #[cfg(not(target_arch = "wasm32"))]
 mod aliases {
+	pub use tokio::time::sleep;
 	pub use tokio_tungstenite::{
 		connect_async, connect_async_with_config,
 		tungstenite::{self, protocol::CloseFrame},
 	};
 	use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
+	pub use tracing::{debug, error, trace, warn};
+
+	pub use tungstenite::client::IntoClientRequest;
+
 	pub type WebSocketConfig = tungstenite::protocol::WebSocketConfig;
 	pub type Message = tungstenite::protocol::Message;
 	pub type WsError = tungstenite::Error;
 	pub type WsStreamItem = Result<Message, WsError>;
-
-	pub use tracing::{debug, error, trace, warn};
-	pub use tungstenite::client::IntoClientRequest;
-
-	pub use tokio::time::sleep;
 
 	pub type InternalStream =
 		futures_util::stream::Fuse<WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>>;
@@ -287,12 +291,8 @@ mod aliases {
 	}
 }
 
-pub use aliases::*;
-
 #[cfg(test)]
 mod test {
-	use super::*;
-
 	#[test]
 	fn it_desers_pubsub_items() {
 		let a = "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0xcd0c3e8af590364c09d0fa6a1210faf5\"}";
