@@ -398,7 +398,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 
 #[cfg(test)]
 mod tests {
-	use std::ops::Deref;
+	use std::{ops::Deref, str::FromStr};
 
 	use lazy_static::lazy_static;
 	use primitive_types::H160;
@@ -556,7 +556,7 @@ mod tests {
 			.provider
 			.unwrap()
 			.invoke_function(
-				&H160::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(),
+				&H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(),
 				"symbol".to_string(),
 				vec![],
 				None,

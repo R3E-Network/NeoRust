@@ -84,6 +84,7 @@ impl ScriptHashExtension for H160 {
 		Ok(Self(arr))
 	}
 
+	//Performs different behavior compared to from_str, should be noticed
 	fn from_hex(hex: &str) -> Result<Self, FromHexError> {
 		if hex.starts_with("0x") {
 			let mut bytes = hex::decode(&hex[2..])?;
