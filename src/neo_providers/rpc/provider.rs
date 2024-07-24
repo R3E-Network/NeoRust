@@ -446,20 +446,19 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 				self.request(
 					"invokefunction",
 					json!([
-// <<<<<<< Lichen2
-// 							//ScriptHashExtension::to_hex_big_endian(contract_hash),
-// 							contract_hash.to_hex(),
-// 							method,
-// 							params,
-// 							signers
-// 					])
-// =======
-						ScriptHashExtension::to_hex_big_endian(contract_hash),
-						method,
-						params,
-						signers
-					]),
-// >>>>>>> master
+
+							//ScriptHashExtension::to_hex_big_endian(contract_hash),
+							contract_hash.to_hex(),
+							method,
+							params,
+							signers
+					])
+
+					// 	ScriptHashExtension::to_hex_big_endian(contract_hash),
+					// 	method,
+					// 	params,
+					// 	signers
+					// ]),
 				)
 				.await
 			},

@@ -556,7 +556,7 @@ mod tests {
 			.provider
 			.unwrap()
 			.invoke_function(
-				&H160::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(),
+				&H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(),
 				"symbol".to_string(),
 				vec![],
 				None,
