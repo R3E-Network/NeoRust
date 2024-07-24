@@ -398,7 +398,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 
 #[cfg(test)]
 mod tests {
-	use std::ops::Deref;
+	use std::{ops::Deref, str::FromStr};
 
 	use lazy_static::lazy_static;
 	use primitive_types::H160;
