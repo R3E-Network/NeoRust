@@ -116,26 +116,22 @@ pub trait Middleware: Sync + Send + Debug {
 		self.inner().provider()
 	}
 
-	fn config(&self) -> &NeoConfig {
-		&self.inner().config()
-	}
-
 	async fn network(&self) -> u32;
 
 	fn nns_resolver(&self) -> H160 {
-		H160::from(self.config().nns_resolver.clone())
+		H160::from(NEOCONFIG.lock().unwrap().nns_resolver.clone())
 	}
 
 	fn block_interval(&self) -> u32 {
-		self.config().block_interval
+		NEOCONFIG.lock().unwrap().milliseconds_per_block
 	}
 
 	fn polling_interval(&self) -> u32 {
-		self.config().polling_interval
+		NEOCONFIG.lock().unwrap().milliseconds_per_block
 	}
 
 	fn max_valid_until_block_increment(&self) -> u32 {
-		self.config().max_valid_until_block_increment
+		NEOCONFIG.lock().unwrap().get_max_valid_until_block_increment()
 	}
 
 	// Blockchain methods
@@ -150,7 +146,7 @@ pub trait Middleware: Sync + Send + Debug {
 			.map_err(MiddlewareError::from_err)
 	}
 
-	async fn get_block(&self, block_hash: H256, full_tx: bool) -> Result<NeoBlock, Self::Error> {
+	async fn get_block(&self, block_hash: H256, full_tx: bool) -> Result<NeoBlock<Transaction>, Self::Error> {
 		self.inner()
 			.get_block(block_hash, full_tx)
 			.await
@@ -170,14 +166,14 @@ pub trait Middleware: Sync + Send + Debug {
 		self.inner().get_block_count().await.map_err(MiddlewareError::from_err)
 	}
 
-	async fn get_block_header(&self, block_hash: H256) -> Result<NeoBlock, Self::Error> {
+	async fn get_block_header(&self, block_hash: H256) -> Result<NeoBlock<Transaction>, Self::Error> {
 		self.inner()
 			.get_block_header(block_hash)
 			.await
 			.map_err(MiddlewareError::from_err)
 	}
 
-	async fn get_block_header_by_index(&self, index: u32) -> Result<NeoBlock, Self::Error> {
+	async fn get_block_header_by_index(&self, index: u32) -> Result<NeoBlock<Transaction>, Self::Error> {
 		self.inner()
 			.get_block_header_by_index(index)
 			.await
@@ -592,7 +588,7 @@ pub trait Middleware: Sync + Send + Debug {
 			.map_err(MiddlewareError::from_err)
 	}
 
-	async fn get_block_by_index(&self, index: u32, full_tx: bool) -> Result<NeoBlock, Self::Error> {
+	async fn get_block_by_index(&self, index: u32, full_tx: bool) -> Result<NeoBlock<Transaction>, Self::Error> {
 		self.inner()
 			.get_block_by_index(index, full_tx)
 			.await
@@ -669,7 +665,7 @@ pub trait Middleware: Sync + Send + Debug {
 		self.inner().import_private_key(wif).await.map_err(MiddlewareError::from_err)
 	}
 
-	async fn get_block_header_hash(&self, hash: H256) -> Result<NeoBlock, Self::Error> {
+	async fn get_block_header_hash(&self, hash: H256) -> Result<NeoBlock<Transaction>, Self::Error> {
 		self.inner()
 			.get_block_header_hash(hash)
 			.await

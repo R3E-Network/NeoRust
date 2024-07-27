@@ -29,11 +29,11 @@ use neo::prelude::{
 
 #[derive(Debug, Clone)]
 pub struct NefFile {
-	compiler: Option<String>,
+	pub(crate) compiler: Option<String>,
 	source_url: String,
 	method_tokens: Vec<MethodToken>,
-	script: Bytes,
-	checksum: Bytes,
+	pub(crate) script: Bytes,
+	pub(crate) checksum: Bytes,
 }
 
 impl Into<ContractParameter> for NefFile {

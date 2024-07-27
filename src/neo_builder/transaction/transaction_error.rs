@@ -40,4 +40,7 @@ pub enum TransactionError {
 	CryptoError(#[from] CryptoError),
 	#[error(transparent)]
 	ProviderError(#[from] ProviderError),
+	InsufficientFunds,
+	InvalidScript,
+	UnknownTransaction,
 }

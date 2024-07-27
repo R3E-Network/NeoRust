@@ -61,6 +61,7 @@ use std::{
 
 // use zeroize::Zeroize;
 use elliptic_curve::zeroize::Zeroize;
+use neo::prelude::{CryptoError, Decoder, Encoder, NeoConstants, NeoSerializable};
 use p256::{
 	ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey},
 	elliptic_curve::{
@@ -73,9 +74,7 @@ use primitive_types::U256;
 use rand_core::OsRng;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use signature::{SignerMut, Verifier};
-
-use neo::prelude::{CryptoError, Decoder, Encoder, NeoConstants, NeoSerializable};
+use signature::{hazmat::PrehashSigner, SignerMut, Verifier};
 
 #[cfg_attr(feature = "substrate", serde(crate = "serde_substrate"))]
 #[derive(Debug, Clone)]
@@ -296,6 +295,22 @@ impl Secp256r1PrivateKey {
 			.map_err(|_| CryptoError::InvalidPrivateKey)?;
 		let (signature, _) =
 			signing_key.try_sign(message).map_err(|_| CryptoError::SigningError)?;
+
+		Ok(Secp256r1Signature { inner: signature })
+	}
+
+	/// Signs a prehashed message with the private key.
+	/// This method signs the provided prehashed message using the private key
+	/// and returns the signature.
+	/// - Parameter message: A byte slice representing the prehashed message to be signed.
+	/// - Returns: A `Result` with the `Secp256r1Signature` or a `CryptoError`.
+	/// - Note: The message should be prehashed using a secure hash function before calling this method.
+	///  The signature is generated using the ECDSA algorithm.
+	pub fn sign_prehash(&self, message: &[u8]) -> Result<Secp256r1Signature, CryptoError> {
+		let signing_key = SigningKey::from_slice(&self.inner.to_bytes().as_slice())
+			.map_err(|_| CryptoError::InvalidPrivateKey)?;
+		let (signature, _) =
+			signing_key.sign_prehash(message).map_err(|_| CryptoError::SigningError)?;
 
 		Ok(Secp256r1Signature { inner: signature })
 	}

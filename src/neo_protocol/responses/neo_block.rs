@@ -3,11 +3,10 @@ use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
 	deserialize_h256, deserialize_h256_option, serialize_h256, serialize_h256_option, NeoWitness,
-	TransactionResult,
 };
 
 #[derive(Serialize, Deserialize, Hash, Clone, Debug)]
-pub struct NeoBlock {
+pub struct NeoBlock<TX> { // Transaction, TransactionResult
 	#[serde(serialize_with = "serialize_h256")]
 	#[serde(deserialize_with = "deserialize_h256")]
 	pub hash: H256,
@@ -27,7 +26,7 @@ pub struct NeoBlock {
 	#[serde(rename = "nextconsensus")]
 	pub next_consensus: String,
 	pub witnesses: Option<Vec<NeoWitness>>,
-	pub transactions: Option<Vec<TransactionResult>>,
+	pub transactions: Option<Vec<TX>>,
 	pub confirmations: i32,
 	#[serde(serialize_with = "serialize_h256_option")]
 	#[serde(deserialize_with = "deserialize_h256_option")]

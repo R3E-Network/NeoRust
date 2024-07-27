@@ -77,7 +77,7 @@ impl WalletTrait for Wallet {
 
 impl Wallet {
 	/// The default wallet name.
-	pub const DEFAULT_WALLET_NAME: &'static str = "neo-rsWallet";
+	pub const DEFAULT_WALLET_NAME: &'static str = "NeoWallet";
 	/// The current wallet version.
 	pub const CURRENT_VERSION: &'static str = "1.0";
 
@@ -88,7 +88,7 @@ impl Wallet {
 		let mut accounts = HashMap::new();
 		accounts.insert(account.address_or_scripthash.script_hash(), account.clone());
 		Self {
-			name: "neo-rsWallet".to_string(),
+			name: "NeoWallet".to_string(),
 			version: "1.0".to_string(),
 			scrypt_params: ScryptParamsDef::default(),
 			accounts,
@@ -99,7 +99,7 @@ impl Wallet {
 	/// Creates a new wallet instance without any accounts.
 	pub fn default() -> Self {
 		Self {
-			name: "neo-rsWallet".to_string(),
+			name: "NeoWallet".to_string(),
 			version: "1.0".to_string(),
 			scrypt_params: ScryptParamsDef::default(),
 			accounts: HashMap::new(),
@@ -410,7 +410,7 @@ mod tests {
 	fn test_create_default_wallet() {
 		let wallet: Wallet = Wallet::default();
 
-		assert_eq!(&wallet.name, "neo-rsWallet");
+		assert_eq!(&wallet.name, "NeoWallet");
 		assert_eq!(&wallet.version, Wallet::CURRENT_VERSION);
 		assert_eq!(wallet.accounts.len(), 0usize);
 	}

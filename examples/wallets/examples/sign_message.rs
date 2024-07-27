@@ -1,7 +1,6 @@
-// use the ethers_core rand for rng
-use ethers::core::rand::thread_rng;
-// use the ethers_signers crate to manage LocalWallet and Signer
-use ethers::signers::{LocalWallet, Signer};
+extern crate NeoRust;
+
+use NeoRust::prelude::*;
 // use the eyre crate for easy idiomatic error handling
 use eyre::Result;
 

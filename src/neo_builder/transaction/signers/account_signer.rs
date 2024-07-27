@@ -31,7 +31,7 @@ pub struct AccountSigner {
 		serialize_with = "serialize_vec_public_key",
 		deserialize_with = "deserialize_vec_public_key"
 	)]
-	allowed_groups: Vec<Secp256r1PublicKey>,
+	pub(crate) allowed_groups: Vec<Secp256r1PublicKey>,
 	rules: Vec<WitnessRule>,
 	#[getset(get = "pub")]
 	pub account: Account,
@@ -204,7 +204,7 @@ impl SignerTrait for AccountSigner {
 }
 
 impl AccountSigner {
-	fn new(account: &Account, scope: WitnessScope) -> Self {
+	pub fn new(account: &Account, scope: WitnessScope) -> Self {
 		Self {
 			signer_hash: account.get_script_hash().clone(),
 			scopes: vec![scope],
@@ -244,5 +244,9 @@ impl AccountSigner {
 
 	pub fn is_multi_sig(&self) -> bool {
 		matches!(&self.account.verification_script(), Some(script) if script.is_multi_sig())
+	}
+
+	pub fn get_script_hash(&self) -> &H160 {
+		&self.account.get_script_hash()
 	}
 }

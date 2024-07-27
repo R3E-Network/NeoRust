@@ -152,30 +152,24 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 
 	async fn network(&self) -> u32 {
 		self.get_version().await.unwrap().protocol.unwrap().network
-		// if self.config().network == None {
-		// 	let network = self.inner().get_version().await.unwrap().protocol.unwrap().network;
-		// 	network
-		// } else {
-		// 	self.config().network.unwrap()
-		// }
 	}
 
 	//////////////////////// Neo methods////////////////////////////
 
 	fn nns_resolver(&self) -> H160 {
-		H160::from(self.config().nns_resolver.clone())
+		H160::from(NEOCONFIG.lock().as_ref().unwrap().nns_resolver.clone())
 	}
 
 	fn block_interval(&self) -> u32 {
-		self.config().block_interval
+		NEOCONFIG.lock().as_ref().unwrap().block_interval()
 	}
 
 	fn polling_interval(&self) -> u32 {
-		self.config().polling_interval
+		NEOCONFIG.lock().as_ref().unwrap().polling_interval()
 	}
 
 	fn max_valid_until_block_increment(&self) -> u32 {
-		self.config().max_valid_until_block_increment
+		NEOCONFIG.lock().as_ref().unwrap().max_valid_until_block_increment()
 	}
 
 	// Blockchain methods
@@ -197,7 +191,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	///   - blockHash: The block hash
 	///   - returnFullTransactionObjects: Whether to get block information with all transaction objects or just the block header
 	/// - Returns: The request object
-	async fn get_block(&self, block_hash: H256, full_tx: bool) -> Result<NeoBlock, ProviderError> {
+	async fn get_block(&self, block_hash: H256, full_tx: bool) -> Result<NeoBlock<Transaction>, ProviderError> {
 		return Ok(if full_tx {
 			self.request("getblock", [block_hash.to_value(), 1.to_value()].to_vec()).await?
 		} else {
@@ -228,14 +222,14 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Gets the corresponding block header information according to the specified block hash.
 	/// - Parameter blockHash: The block hash
 	/// - Returns: The request object
-	async fn get_block_header(&self, block_hash: H256) -> Result<NeoBlock, ProviderError> {
+	async fn get_block_header(&self, block_hash: H256) -> Result<NeoBlock<Transaction>, ProviderError> {
 		self.request("getblockheader", vec![block_hash.to_value(), 1.to_value()]).await
 	}
 
 	/// Gets the corresponding block header information according to the specified index.
 	/// - Parameter blockIndex: The block index
 	/// - Returns: The request object
-	async fn get_block_header_by_index(&self, index: u32) -> Result<NeoBlock, ProviderError> {
+	async fn get_block_header_by_index(&self, index: u32) -> Result<NeoBlock<Transaction>, ProviderError> {
 		self.request("getblockheader", vec![index.to_value(), 1.to_value()]).await
 	}
 
@@ -297,10 +291,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Gets the corresponding transaction information based on the specified transaction hash.
 	/// - Parameter txHash: The transaction hash
 	/// - Returns: The request object
-	async fn get_transaction(
-		&self,
-		hash: H256,
-	) -> Result<TransactionResult, ProviderError> {
+	async fn get_transaction(&self, hash: H256) -> Result<TransactionResult, ProviderError> {
 		self.request("getrawtransaction", vec![hash.to_value(), 1.to_value()]).await
 	}
 
@@ -446,19 +437,16 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 				self.request(
 					"invokefunction",
 					json!([
-
-							//ScriptHashExtension::to_hex_big_endian(contract_hash),
-							contract_hash.to_hex(),
-							method,
-							params,
-							signers
-					])
-
-					// 	ScriptHashExtension::to_hex_big_endian(contract_hash),
-					// 	method,
-					// 	params,
-					// 	signers
-					// ]),
+						//ScriptHashExtension::to_hex_big_endian(contract_hash),
+						contract_hash.to_hex(),
+						method,
+						params,
+						signers
+					]), // 	ScriptHashExtension::to_hex_big_endian(contract_hash),
+					    // 	method,
+					    // 	params,
+					    // 	signers
+					    // ]),
 				)
 				.await
 			},
@@ -835,7 +823,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		&self,
 		index: u32,
 		full_tx: bool,
-	) -> Result<NeoBlock, ProviderError> {
+	) -> Result<NeoBlock<Transaction>, ProviderError> {
 		// let full_tx = if full_tx { 1 } else { 0 };
 		// self.request("getblock", vec![index.to_value(), 1.to_value()]).await
 		return Ok(if full_tx {
@@ -920,16 +908,8 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	) -> Result<InvocationResult, ProviderError> {
 		let signers: Vec<TransactionSigner> =
 			signers.into_iter().map(|signer| signer.into()).collect::<Vec<_>>();
-		let params = json!([
-			hash.to_hex(),
-			params,
-			signers
-			]);
-		self.request(
-			"invokecontractverify",
-			params,
-		)
-		.await
+		let params = json!([hash.to_hex(), params, signers]);
+		self.request("invokecontractverify", params).await
 	}
 
 	async fn send_to_address_send_token(
@@ -1236,7 +1216,7 @@ mod tests {
 
 	use crate::{
 		neo_types::{Base64Encode, ToBase64},
-		prelude::NativeContractState,
+		prelude::{MockProvider, NativeContractState},
 	};
 
 	async fn setup_mock_server() -> MockServer {
@@ -1274,15 +1254,15 @@ mod tests {
 	async fn test_get_best_block_hash() {
 		let _ = env_logger::builder().is_test(true).try_init();
 
-		let mock_server = setup_mock_server().await;
-		let provider = mock_rpc_response(
-			&mock_server,
-			"getbestblockhash",
-			json!([]),
-			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
-		)
-		.await;
-
+		let mock_provider = MockProvider::new().await;
+		mock_provider
+			.mock_response(
+				"getbestblockhash",
+				json!([]),
+				json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+			)
+			.await;
+		let provider = mock_provider.into_provider();
 		let result = provider.get_best_block_hash().await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 
@@ -1294,7 +1274,7 @@ mod tests {
             "id": 1
         }"#;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
-		verify_request(&mock_server, expected_request_body).await.unwrap();
+		verify_request(mock_provider.server(), expected_request_body).await.unwrap();
 	}
 
 	#[tokio::test]
@@ -2877,7 +2857,10 @@ mod tests {
 			.get_transaction(
 				H256::from_str(
 					"0x7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c",
-				).unwrap()).await;
+				)
+				.unwrap(),
+			)
+			.await;
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		verify_request(&mock_server, expected_request_body).await.unwrap();
@@ -3685,18 +3668,19 @@ mod tests {
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
-  
-  #[tokio::test]
-    async fn test_invoke_function_diagnostics_no_params() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+
+	#[tokio::test]
+	async fn test_invoke_function_diagnostics_no_params() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
+		let http_client = HttpProvider::new(url);
+		let provider = Provider::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "invokefunction",
 			"params": [
@@ -3707,27 +3691,33 @@ mod tests {
 				true
 			],
 			"id": 1
-		}}"#);
-		
+		}}"#
+		);
 
-        provider.invoke_function_diagnostics(H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(), 
-								 "symbol".to_string(), 
-								 vec![], vec![]).await;
+		provider
+			.invoke_function_diagnostics(
+				H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
+				"symbol".to_string(),
+				vec![],
+				vec![],
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_invoke_function_without_params() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_invoke_function_without_params() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
+		let http_client = HttpProvider::new(url);
+		let provider = Provider::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "invokefunction",
 			"params": [
@@ -3737,26 +3727,33 @@ mod tests {
 				[]
 			],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-        provider.invoke_function(&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(), 
-								 "decimals".to_string(), 
-								 vec![], None).await;
+		provider
+			.invoke_function(
+				&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
+				"decimals".to_string(),
+				vec![],
+				None,
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_invoke_script() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_invoke_script() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
+		let http_client = HttpProvider::new(url);
+		let provider = Provider::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "invokescript",
 			"params": [
@@ -3764,24 +3761,32 @@ mod tests {
 				[]
 			],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-        provider.invoke_script("10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52".to_string(), vec![]).await;
+		provider
+			.invoke_script(
+				"10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52"
+					.to_string(),
+				vec![],
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_invoke_script_diagnostics() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_invoke_script_diagnostics() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
+		let http_client = HttpProvider::new(url);
+		let provider = Provider::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "invokescript",
 			"params": [
@@ -3790,24 +3795,32 @@ mod tests {
 				true
 			],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-        provider.invoke_script_diagnostics("10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52".to_string(), vec![]).await;
+		provider
+			.invoke_script_diagnostics(
+				"10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52"
+					.to_string(),
+				vec![],
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_invoke_script_with_signer() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_invoke_script_with_signer() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
+		let http_client = HttpProvider::new(url);
+		let provider = Provider::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "invokescript",
 			"params": [
@@ -3823,28 +3836,37 @@ mod tests {
 				]
 			],
 			"id": 1
-		}}"#);
-		
+		}}"#
+		);
 
-		
-		let mut signer = AccountSigner::called_by_entry_hash160(H160::from_str("0xcc45cc8987b0e35371f5685431e3c8eeea306722").unwrap()).unwrap();
+		let mut signer = AccountSigner::called_by_entry_hash160(
+			H160::from_str("0xcc45cc8987b0e35371f5685431e3c8eeea306722").unwrap(),
+		)
+		.unwrap();
 
-        provider.invoke_script("10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52".to_string(), vec![Account(signer)]).await;
+		provider
+			.invoke_script(
+				"10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52"
+					.to_string(),
+				vec![Account(signer)],
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_invoke_script_diagnostics_with_signer() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_invoke_script_diagnostics_with_signer() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
+		let http_client = HttpProvider::new(url);
+		let provider = Provider::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "invokescript",
 			"params": [
@@ -3861,28 +3883,37 @@ mod tests {
 				true
 			],
 			"id": 1
-		}}"#);
-		
+		}}"#
+		);
 
-		
-		let mut signer = AccountSigner::called_by_entry_hash160(H160::from_str("0xcc45cc8987b0e35371f5685431e3c8eeea306722").unwrap()).unwrap();
+		let mut signer = AccountSigner::called_by_entry_hash160(
+			H160::from_str("0xcc45cc8987b0e35371f5685431e3c8eeea306722").unwrap(),
+		)
+		.unwrap();
 
-        provider.invoke_script_diagnostics("10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52".to_string(), vec![Account(signer)]).await;
+		provider
+			.invoke_script_diagnostics(
+				"10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52"
+					.to_string(),
+				vec![Account(signer)],
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_traverse_iterator() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_traverse_iterator() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
+		let http_client = HttpProvider::new(url);
+		let provider = Provider::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "traverseiterator",
 			"params": [
@@ -3891,48 +3922,58 @@ mod tests {
 				100
 			],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-        provider.traverse_iterator("127d3320-db35-48d5-b6d3-ca22dca4a370".to_string(), "cb7ef774-1ade-4a83-914b-94373ca92010".to_string(), 100).await;
+		provider
+			.traverse_iterator(
+				"127d3320-db35-48d5-b6d3-ca22dca4a370".to_string(),
+				"cb7ef774-1ade-4a83-914b-94373ca92010".to_string(),
+				100,
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_terminate_session() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_terminate_session() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
+		let http_client = HttpProvider::new(url);
+		let provider = Provider::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "terminatesession",
 			"params": [
 				"127d3320-db35-48d5-b6d3-ca22dca4a370"
 			],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-        provider.terminate_session("127d3320-db35-48d5-b6d3-ca22dca4a370").await;
+		provider.terminate_session("127d3320-db35-48d5-b6d3-ca22dca4a370").await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_invoke_contract_verify() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_invoke_contract_verify() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
+		let http_client = HttpProvider::new(url);
+		let provider = Provider::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "invokecontractverify",
 			"params": [
@@ -3958,29 +3999,37 @@ mod tests {
 				]
 			],
 			"id": 1
-		}}"#);
-		
+		}}"#
+		);
 
-		let mut signer = AccountSigner::called_by_entry_hash160(H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap()).unwrap();
+		let mut signer = AccountSigner::called_by_entry_hash160(
+			H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap(),
+		)
+		.unwrap();
 
-        provider.invoke_contract_verify(H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(), 
-								 		vec!["a string".to_string().into(), "another string".to_string().into()], 
-							 	 		vec![Account(signer)]).await;
+		provider
+			.invoke_contract_verify(
+				H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
+				vec!["a string".to_string().into(), "another string".to_string().into()],
+				vec![Account(signer)],
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_invoke_contract_verify_noparams_nosigners() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_invoke_contract_verify_noparams_nosigners() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = Provider::new(http_client);
+		let http_client = HttpProvider::new(url);
+		let provider = Provider::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "invokecontractverify",
 			"params": [
@@ -3989,16 +4038,19 @@ mod tests {
 				[]
 			],
 			"id": 1
-		}}"#);
-		
+		}}"#
+		);
 
-        provider.invoke_contract_verify(H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(), 
-								 		vec![], 
-							 	 		vec![]).await;
+		provider
+			.invoke_contract_verify(
+				H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
+				vec![],
+				vec![],
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
-
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	async fn verify_request(
 		mock_server: &MockServer,

@@ -10,6 +10,7 @@ use lazy_static::lazy_static;
 pub use errors::{ProviderError, RpcError};
 pub use ext::*;
 pub use middleware::*;
+pub use mock_provider::MockProvider;
 use neo::prelude::NeoConstants;
 pub use rpc::*;
 #[allow(deprecated)]
@@ -20,9 +21,12 @@ pub use utils::*;
 mod errors;
 mod ext;
 mod middleware;
+mod mock_provider;
 mod rpc;
 /// Crate utilities and type aliases
 mod utils;
+mod rx;
+mod mock_blocks;
 
 lazy_static! {
 	pub static ref HTTP_PROVIDER: Provider<Http> = Provider::<Http>::try_from(

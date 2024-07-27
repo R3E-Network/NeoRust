@@ -133,13 +133,13 @@ impl<'de> Deserialize<'de> for ContractParameter {
 
 impl From<&H160> for ContractParameter {
 	fn from(value: &H160) -> Self {
-		Self::H160(value)
+		Self::h160(value)
 	}
 }
 
 impl From<H160> for ContractParameter {
 	fn from(value: H160) -> Self {
-		Self::H160(&value)
+		Self::h160(&value)
 	}
 }
 
@@ -229,7 +229,7 @@ impl From<&Secp256r1PublicKey> for ContractParameter {
 
 impl From<&H256> for ContractParameter {
 	fn from(value: &H256) -> Self {
-		Self::H256(value)
+		Self::h256(value)
 	}
 }
 
@@ -446,7 +446,7 @@ impl ContractParameter {
 			_ => panic!("Cannot convert {:?} to String", self.clone()),
 		}
 	}
-	pub fn H160(value: &H160) -> Self {
+	pub fn h160(value: &H160) -> Self {
 		Self::with_value(ContractParameterType::H160, ParameterValue::H160(value.to_hex()))
 	}
 
@@ -457,7 +457,7 @@ impl ContractParameter {
 		}
 	}
 
-	pub fn H256(value: &H256) -> Self {
+	pub fn h256(value: &H256) -> Self {
 		Self::with_value(ContractParameterType::H256, ParameterValue::H256(value.0.to_hex()))
 	}
 
@@ -522,6 +522,10 @@ impl ContractParameter {
 				self.clone()
 			),
 		}
+	}
+
+	pub fn any(option: Option<_>) -> Self {
+		Self::new(ContractParameterType::Any)
 	}
 
 	pub fn hash(self) -> Vec<u8> {
@@ -831,7 +835,7 @@ mod tests {
 	#[test]
 	fn test_H160() {
 		let hash = H160::from([0u8; 20]);
-		let param = ContractParameter::H160(&hash);
+		let param = ContractParameter::h160(&hash);
 		// assert_param(&param, hash.into(), ContractParameterType::H160);
 		assert_eq!(param.typ, ContractParameterType::H160);
 		assert_eq!(param.value.unwrap().to_h160(), hash);
@@ -840,7 +844,7 @@ mod tests {
 	#[test]
 	fn test_H256() {
 		let hash = H256::from([0u8; 32]);
-		let param = ContractParameter::H256(&hash);
+		let param = ContractParameter::h256(&hash);
 		// assert_param(&param, hash.into(), ContractParameterType::H256);
 		assert_eq!(param.typ, ContractParameterType::H256);
 		assert_eq!(param.value.unwrap().to_h256(), hash);

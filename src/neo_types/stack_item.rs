@@ -163,7 +163,7 @@ impl StackItem {
 	/// Returns the string representation of a `StackItem`.
 	pub fn to_string(&self) -> String {
 		match self {
-			StackItem::Any => format!("Any"),
+			StackItem::Any => "Any".to_string(),
 			StackItem::Pointer { value: pointer } => format!("Pointer{{value={}}}", pointer),
 			StackItem::Boolean { value: boolean } => format!("Boolean{{value={}}}", boolean),
 			StackItem::Integer { value: integer } => format!("Integer{{value={}}}", integer),

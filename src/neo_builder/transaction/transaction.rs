@@ -8,11 +8,15 @@ use serde_json::Value;
 use serde_with::__private__::DeError;
 
 use neo::prelude::{
-	Bytes, Decoder, Encoder, HashableForVec, Middleware, NameOrAddress, NeoSerializable, Signer,
-	TransactionAttribute, TransactionError, VarSizeTrait, Witness,
+	ApplicationLog, Bytes, Decoder, Encoder, HashableForVec, Middleware, NameOrAddress,
+	NeoSerializable, Provider, Signer, TransactionAttribute, TransactionError, VarSizeTrait,
+	Witness,
 };
 
-use crate::neo_providers::JsonRpcClient;
+use crate::{
+	neo_providers::JsonRpcClient,
+	prelude::{NeoConstants, RawTransaction},
+};
 
 #[derive(Serialize, Getters, Setters, MutGetters, CopyGetters, Debug, Clone)]
 pub struct Transaction {
@@ -41,6 +45,7 @@ pub struct Transaction {
 	pub size: i32,
 
 	#[serde(rename = "sysfee")]
+	#[getset(get = "pub", set = "pub")]
 	pub sys_fee: i64,
 
 	#[serde(rename = "netfee")]
@@ -62,6 +67,8 @@ pub struct Transaction {
 	#[serde(rename = "blocktime")]
 	#[getset(get = "pub", set = "pub")]
 	pub block_time: Option<i32>,
+	#[serde(skip)]
+	pub(crate) block_count_when_sent: Option<u32>,
 }
 
 impl Default for Transaction {
@@ -79,6 +86,7 @@ impl Default for Transaction {
 			script: Default::default(),
 			witnesses: Default::default(),
 			block_time: Default::default(),
+			block_count_when_sent: None,
 		}
 	}
 }
@@ -132,6 +140,7 @@ impl<'de> Deserialize<'de> for Transaction {
 			witnesses,
 			block_time,
 			// Fill in other fields as necessary
+			block_count_when_sent: None,
 		})
 	}
 }
@@ -173,13 +182,72 @@ impl Transaction {
 
 	fn serialize_without_witnesses(&self, writer: &mut Encoder) {
 		writer.write_u8(self.version);
-		writer.write_u32(self.nonce as u32);
+		writer.write_u32(self.nonce);
 		writer.write_i64(self.sys_fee);
 		writer.write_i64(self.net_fee);
-		writer.write_u32(self.valid_until_block as u32);
+		writer.write_u32(self.valid_until_block);
 		writer.write_serializable_variable_list(&self.signers);
 		writer.write_serializable_variable_list(&self.attributes);
 		writer.write_var_bytes(&self.script);
+	}
+
+	pub async fn send(
+		&mut self,
+		provider: Box<dyn JsonRpcClient<Error = TransactionError>>,
+	) -> Result<RawTransaction, TransactionError> {
+		if self.signers.len() != self.witnesses.len() {
+			return Err(TransactionError::TransactionConfiguration(
+				"The transaction does not have the same number of signers and witnesses."
+					.to_string(),
+			));
+		}
+		if self.size() > &(NeoConstants::MAX_TRANSACTION_SIZE as i32) {
+			return Err(TransactionError::TransactionConfiguration(
+				"The transaction exceeds the maximum transaction size.".to_string(),
+			));
+		}
+		let hex = hex::encode(self.to_array().await?);
+		self.throw_if_neo_swift_nil()?;
+		self.block_count_when_sent = Some(provider.as_ref().get_block_count().await?);
+		provider.as_ref().send_raw_transaction(&hex).await
+	}
+
+	pub async fn track(
+		&self,
+		provider: Box<dyn JsonRpcClient<Error = TransactionError>>,
+	) -> Result<(), TransactionError> {
+		let block_count_when_sent =
+			self.block_count_when_sent.ok_or(TransactionError::IllegalState(
+				"Cannot subscribe before transaction has been sent.".to_string(),
+			))?;
+		self.throw_if_neo_swift_nil()?;
+		let predicate = |get_block: GetBlock| {
+			get_block.block.as_ref().map_or(true, |block| {
+				!block.transactions.iter().any(|tx| tx.hash == self.tx_id().unwrap())
+			})
+		};
+		provider
+			.as_ref()
+			.catch_up_to_latest_and_subscribe_to_new_blocks_publisher(block_count_when_sent, true)
+			.await?
+			.take_while(predicate)
+			.map(|block| block.index)
+			.collect::<Vec<_>>()
+			.await;
+		Ok(())
+	}
+
+	pub async fn get_application_log(
+		&self,
+		provider: Box<dyn JsonRpcClient<Error = TransactionError>>,
+	) -> Result<ApplicationLog, TransactionError> {
+		if self.block_count_when_sent.is_none() {
+			return Err(TransactionError::IllegalState(
+				"Cannot get the application log before transaction has been sent.".to_string(),
+			));
+		}
+		self.throw_if_neo_swift_nil()?;
+		provider.as_ref().get_application_log(self.get_tx_id().await?).await
 	}
 }
 
@@ -261,6 +329,7 @@ impl NeoSerializable for Transaction {
 			script,
 			witnesses,
 			block_time: None,
+			block_count_when_sent: None,
 		})
 	}
 

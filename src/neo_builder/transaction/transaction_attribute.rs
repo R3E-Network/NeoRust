@@ -17,6 +17,8 @@ pub enum TransactionAttribute {
 
 	#[serde(rename = "OracleResponse")]
 	OracleResponse(OracleResponse),
+
+	Conflicts,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Hash, Debug, Clone)]

@@ -9,7 +9,7 @@ use std::{
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
 use serde_derive::{Deserialize, Serialize};
-use signature::{hazmat::PrehashSigner, Error};
+use signature::{hazmat::PrehashSigner, Error, SignerMut};
 
 use neo::prelude::*;
 
@@ -118,6 +118,23 @@ pub struct Account {
 	pub nr_of_participants: Option<u32>,
 	#[serde(skip)]
 	pub wallet: Option<Weak<Wallet>>,
+}
+
+impl Account {
+	pub fn get_address(&self) -> String {
+		self.address_or_scripthash.address()
+	}
+
+	pub fn get_script_hash(&self) -> H160 {
+		self.address_or_scripthash.script_hash()
+	}
+
+	pub fn get_verification_script(&self) -> Option<VerificationScript> {
+		self.verification_script.clone()
+	}
+	pub fn get_public_key(&self) -> Option<Secp256r1PublicKey> {
+		self.key_pair.as_ref().map(|k| k.public_key.clone())
+	}
 }
 
 impl From<H160> for Account {
@@ -389,6 +406,14 @@ impl AccountTrait for Account {
 		})
 	}
 
+	fn set_wallet(&mut self, wallet: Option<Weak<Wallet>>) {
+		self.wallet = wallet;
+	}
+
+	fn get_wallet(&self) -> Option<Arc<Wallet>> {
+		self.wallet.as_ref().and_then(|w| w.upgrade())
+	}
+
 	fn multi_sig_from_public_keys(
 		public_keys: &mut [Secp256r1PublicKey],
 		signing_threshold: u32,
@@ -442,28 +467,26 @@ impl AccountTrait for Account {
 	fn is_multi_sig(&self) -> bool {
 		self.signing_threshold.is_some() && self.nr_of_participants.is_some()
 	}
-
-	fn set_wallet(&mut self, wallet: Option<Weak<Wallet>>) {
-		self.wallet = wallet;
-	}
-
-	fn get_wallet(&self) -> Option<Arc<Wallet>> {
-		self.wallet.as_ref().and_then(|w| w.upgrade())
-	}
 }
 
 impl PrehashSigner<Secp256r1Signature> for Account {
 	fn sign_prehash(&self, _prehash: &[u8]) -> Result<Secp256r1Signature, Error> {
-		todo!()
+		if self.key_pair.is_none() {
+			return Err(Error::new());
+		}
+
+		let key_pair = self.key_pair.as_ref().unwrap();
+		let signature = key_pair.private_key.sign_prehash(_prehash).unwrap();
+		Ok(signature)
 	}
 }
 
 impl Account {
 	pub fn to_nep6_account(&self) -> Result<NEP6Account, ProviderError> {
 		if self.key_pair.is_some() && self.encrypted_private_key.is_none() {
-			return Err(ProviderError::IllegalState(format!(
-				"Account private key is available but not encrypted."
-			)));
+			return Err(ProviderError::IllegalState(
+				"Account private key is available but not encrypted.".to_string(),
+			));
 		}
 
 		if self.verification_script.is_none() {

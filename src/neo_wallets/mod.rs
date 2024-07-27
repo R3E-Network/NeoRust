@@ -21,7 +21,8 @@ mod wallet;
 mod wallet_trait;
 
 /// A wallet instantiated with a locally stored private key
-pub type LocalSigner = WalletSigner<Account>;
+pub type LocalWallet = WalletSigner<Account>;
+// pub type LocalWallet = Wallet<ethers_core::k256::ecdsa::SigningKey>;
 
 /// A wallet instantiated with a YubiHSM
 pub type YubiWallet = WalletSigner<yubihsm::ecdsa::Signer<NistP256>>;

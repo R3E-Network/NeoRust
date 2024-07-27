@@ -4,11 +4,11 @@ use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
-	deserialize_script_hash, deserialize_vec_public_key_option, deserialize_vec_script_hash_option,
-	serialize_scopes, deserialize_scopes, serialize_script_hash, serialize_vec_public_key_option,
-	serialize_vec_script_hash_option, Decoder, Encoder, NeoConstants, NeoSerializable,
-	Secp256r1PublicKey, SignerTrait, SignerType, TransactionError, VarSizeTrait, WitnessRule,
-	WitnessScope,
+	deserialize_scopes, deserialize_script_hash, deserialize_vec_public_key_option,
+	deserialize_vec_script_hash_option, serialize_scopes, serialize_script_hash,
+	serialize_vec_public_key_option, serialize_vec_script_hash_option, Decoder, Encoder,
+	NeoConstants, NeoSerializable, Secp256r1PublicKey, SignerTrait, SignerType, TransactionError,
+	VarSizeTrait, WitnessRule, WitnessScope,
 };
 
 #[derive(Default, Serialize, Deserialize, Clone, Debug)]
