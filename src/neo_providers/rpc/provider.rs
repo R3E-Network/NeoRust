@@ -492,7 +492,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Gets a list of plugins loaded by the node.
 	/// - Returns: The request object
 	async fn list_plugins(&self) -> Result<Vec<Plugin>, ProviderError> {
-		self.request("listplugins", ()).await
+		self.request("listplugins", Vec::<u32>::new()).await
 	}
 
 	/// Verifies whether the address is a valid NEO address.
@@ -505,14 +505,14 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Closes the current wallet.
 	/// - Returns: The request object
 	async fn close_wallet(&self) -> Result<bool, ProviderError> {
-		self.request("closewallet", ()).await
+		self.request("closewallet", Vec::<u32>::new()).await
 	}
 
 	/// Exports the private key of the specified script hash.
 	/// - Parameter scriptHash: The account's script hash
 	/// - Returns: The request object
 	async fn dump_priv_key(&self, script_hash: H160) -> Result<String, ProviderError> {
-		let params = [script_hash.to_value()].to_vec();
+		let params = [script_hash.to_address()].to_vec();
 		self.request("dumpprivkey", params).await
 	}
 
@@ -526,13 +526,13 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Creates a new address.
 	/// - Returns: The request object
 	async fn get_new_address(&self) -> Result<String, ProviderError> {
-		self.request("getnewaddress", ()).await
+		self.request("getnewaddress", Vec::<u32>::new()).await
 	}
 
 	/// Gets the amount of unclaimed GAS in the wallet.
 	/// - Returns: The request object
 	async fn get_wallet_unclaimed_gas(&self) -> Result<String, ProviderError> {
-		self.request("getwalletunclaimedgas", ()).await
+		self.request("getwalletunclaimedgas", Vec::<u32>::new()).await
 	}
 
 	/// Imports a private key to the wallet.
@@ -3999,6 +3999,198 @@ mod tests {
         verify_request(&mock_server, &expected_request_body).await.unwrap();
     }
 
+	// Utility methods
+
+	#[tokio::test]
+    async fn test_list_plugins() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "listplugins",
+			"params": [],
+			"id": 1
+		}}"#);
+
+		
+
+        provider.list_plugins().await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_validate_address() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "validateaddress",
+			"params": ["NTzVAPBpnUUCvrA6tFPxBHGge8Kyw8igxX"],
+			"id": 1
+		}}"#);
+
+		
+
+        provider.validate_address("NTzVAPBpnUUCvrA6tFPxBHGge8Kyw8igxX").await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	// Wallet Methods
+
+	#[tokio::test]
+    async fn test_close_wallet() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "closewallet",
+			"params": [],
+			"id": 1
+		}}"#);
+
+		
+
+        provider.close_wallet().await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_open_wallet() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "openwallet",
+			"params": ["wallet.json","one"],
+			"id": 1
+		}}"#);
+
+		
+
+        provider.open_wallet("wallet.json".to_string(), "one".to_string()).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_dump_priv_key() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "dumpprivkey",
+			"params": ["NdWaiUoBWbPxGsm5wXPjXYJxCyuY1Zw8uW"],
+			"id": 1
+		}}"#);
+
+		
+
+        provider.dump_priv_key(H160::from_str("c11d816956b6682c3406bb99b7ec8a3e93f005c1").unwrap()).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_wallet_balance() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getwalletbalance",
+			"params": ["de5f57d430d3dece511cf975a8d37848cb9e0525"],
+			"id": 1
+		}}"#);
+
+		
+
+        provider.get_wallet_balance(H160::from_str("de5f57d430d3dece511cf975a8d37848cb9e0525").unwrap()).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_new_address() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getnewaddress",
+			"params": [],
+			"id": 1
+		}}"#);
+        provider.get_new_address().await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_wallet_unclaimed_gas() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getwalletunclaimedgas",
+			"params": [],
+			"id": 1
+		}}"#);
+        provider.get_wallet_unclaimed_gas().await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+
+	
 
 	async fn verify_request(
 		mock_server: &MockServer,

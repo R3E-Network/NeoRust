@@ -144,7 +144,10 @@ impl PartialEq for KeyPair {
 
 #[cfg(test)]
 mod tests {
-	use rustc_serialize::hex::FromHex;
+	use std::str::FromStr;
+
+use ethereum_types::H160;
+use rustc_serialize::hex::FromHex;
 
 	use neo::prelude::{KeyPair, ScriptHash, ScriptHashExtension, TestConstants};
 
@@ -176,7 +179,7 @@ mod tests {
 		let key_pair = KeyPair::from_private_key(private_key_arr).unwrap();
 		assert_eq!(
 			key_pair.get_script_hash(),
-			ScriptHash::from_hex(TestConstants::DEFAULT_ACCOUNT_SCRIPT_HASH).unwrap()
+			H160::from_hex(TestConstants::DEFAULT_ACCOUNT_SCRIPT_HASH).unwrap()
 		);
 	}
 
