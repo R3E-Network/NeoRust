@@ -137,6 +137,7 @@ impl VerificationScript {
 	// other methods
 	pub fn hash(&self) -> H160 {
 		let mut script_hash = self.script.sha256_ripemd160();
+		script_hash.reverse();
 		H160::from_slice(&script_hash)
 	}
 

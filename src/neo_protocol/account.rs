@@ -368,7 +368,7 @@ impl AccountTrait for Account {
 		};
 
 		Ok(Self {
-			address_or_scripthash: AddressOrScriptHash::ScriptHash(address),
+			address_or_scripthash: AddressOrScriptHash::Address(address.to_address()),
 			label: Some(address.to_address()),
 			verification_script: Some(script.clone()),
 			signing_threshold: signing_threshold.map(|x| x as u32),
