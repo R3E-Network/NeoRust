@@ -3,8 +3,8 @@
 //! # Example
 //!
 //! ```no_run
-//! use neo_providers::{Provider, Http, Middleware, DevRpcMiddleware};
-//! use neo_providers::core::transaction::transaction::Transaction;
+//! use neo_clients::{Provider, Http, Middleware, DevRpcMiddleware};
+//! use neo_clients::core::transaction::transaction::Transaction;
 //!
 //! # async fn foo() -> Result<(), Box<dyn std::error::Error>> {
 //! let anvil = Anvil::new().spawn();

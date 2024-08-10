@@ -12,11 +12,11 @@ pub struct ContractManagement<'a, P: JsonRpcClient> {
 	#[serde(serialize_with = "serialize_script_hash")]
 	script_hash: ScriptHash,
 	#[serde(skip)]
-	provider: Option<&'a Provider<P>>,
+	provider: Option<&'a NeoClient<P>>,
 }
 
 impl<'a, P: JsonRpcClient + 'static> ContractManagement<'a, P> {
-	pub fn new(script_hash: H160, provider: Option<&'a Provider<P>>) -> Self {
+	pub fn new(script_hash: H160, provider: Option<&'a NeoClient<P>>) -> Self {
 		Self { script_hash, provider }
 	}
 
@@ -134,7 +134,7 @@ impl<'a, P: JsonRpcClient> SmartContractTrait<'a> for ContractManagement<'a, P> 
 		self.script_hash = script_hash;
 	}
 
-	fn provider(&self) -> Option<&Provider<P>> {
+	fn provider(&self) -> Option<&NeoClient<P>> {
 		self.provider
 	}
 }

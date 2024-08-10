@@ -5,7 +5,7 @@ use primitive_types::H256;
 use signature::hazmat::{PrehashSigner, PrehashVerifier};
 use yubihsm::ecdsa::Signature;
 
-use neo::prelude::{Middleware, Transaction, WalletError};
+use neo::prelude::{APITrait, Transaction, WalletError};
 
 use crate::{neo_types::Address, prelude::HashableForVec};
 

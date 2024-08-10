@@ -63,7 +63,7 @@ pub trait FungibleTokenTrait<'a, P: JsonRpcClient>: TokenTrait<'a, P> {
 
 		let transfer_script = self.build_transfer_script(from, to, amount, data).await.unwrap();
 		let mut builder = TransactionBuilder::new();
-		builder.set_script(transfer_script);
+		builder.set_script(Some(transfer_script));
 		Ok(builder)
 	}
 

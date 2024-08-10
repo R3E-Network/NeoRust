@@ -34,7 +34,7 @@ use neo::{neo_types::ScriptHashExtension, prelude::*};
 
 #[derive(Getters, Setters, MutGetters, CopyGetters, Default)]
 pub struct TransactionBuilder<P: JsonRpcClient + 'static> {
-	provider: Option<&'static Provider<P>>,
+	client: Option<&'static NeoClient<P>>,
 	version: u8,
 	nonce: u32,
 	valid_until_block: Option<u32>,
@@ -71,7 +71,7 @@ impl<P: JsonRpcClient> Debug for TransactionBuilder<P> {
 impl<P: JsonRpcClient> Clone for TransactionBuilder<P> {
 	fn clone(&self) -> Self {
 		Self {
-			provider: self.provider,
+			client: self.client,
 			version: self.version,
 			nonce: self.nonce,
 			valid_until_block: self.valid_until_block,
@@ -127,7 +127,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 	// Constructor
 	pub fn new() -> Self {
 		Self {
-			provider: None,
+			client: None,
 			version: 0,
 			nonce: 0,
 			valid_until_block: None,
@@ -141,9 +141,9 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 		}
 	}
 
-	pub fn with_provider(provider: &'static Provider<P>) -> Self {
+	pub fn with_provider(client: &'static NeoClient<P>) -> Self {
 		Self {
-			provider: Some(provider),
+			client: Some(client),
 			version: 0,
 			nonce: 0,
 			valid_until_block: None,
@@ -186,10 +186,10 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 	}
 
 	// Set script
-	pub fn set_script(&mut self, script: Vec<u8>) -> &mut Self {
-		self.script = Some(script);
-		self
-	}
+	// pub fn set_script(&mut self, script: Vec<u8>) -> &mut Self {
+	// 	self.script = Some(script);
+	// 	self
+	// }
 
 	pub fn first_signer(mut self, sender: &Account) -> Result<Self, TransactionError> {
 		self.first_signer_by_hash(&sender.get_script_hash())
@@ -197,14 +197,14 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 
 	pub fn first_signer_by_hash(mut self, sender: &H160) -> Result<Self, TransactionError> {
 		if self.signers.iter().any(|s| s.get_scopes().contains(&WitnessScope::None)) {
-			return Err("This transaction contains a signer with fee-only witness scope that will cover the fees. Hence, the order of the signers does not affect the payment of the fees.".into());
+			return Err(TransactionError::ScriptFormat("This transaction contains a signer with fee-only witness scope that will cover the fees. Hence, the order of the signers does not affect the payment of the fees.".to_string()));
 		}
 		if let Some(pos) = self.signers.iter().position(|s| s.get_signer_hash() == sender) {
 			let s = self.signers.remove(pos);
 			self.signers.insert(0, s);
 			Ok(self)
 		} else {
-			Err(format!("Could not find a signer with script hash {}. Make sure to add the signer before calling this method.", sender.to_string()).into())
+			Err(TransactionError::ScriptFormat(format!("Could not find a signer with script hash {}. Make sure to add the signer before calling this method.", sender.to_string()).into()))
 		}
 	}
 
@@ -221,9 +221,9 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 		if self.script.is_none() || self.script.as_ref().unwrap().is_empty() {
 			panic!("Script is not set");
 		}
-		self.provider
+		self.client
 			.unwrap()
-			.provider()
+			.client()
 			.invoke_script(self.script.clone().unwrap().to_hex(), self.signers.clone())
 			.await
 			.unwrap_or(panic!("Failed to invoke script"))
@@ -264,7 +264,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 		// Get fees
 		let script = self.script.as_ref().unwrap();
 		let response = self
-			.provider
+			.client
 			.unwrap()
 			.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
 			.await
@@ -273,7 +273,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 
 		// Check sender balance if needed
 		let mut tx = Transaction {
-			network: Some(self.provider.unwrap().network().await),
+			network: Some(self.client.unwrap().network().await),
 			version: self.version,
 			nonce: self.nonce,
 			valid_until_block: self.valid_until_block.unwrap(),
@@ -289,7 +289,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 		};
 
 		// It's impossible to calculate network fee when the tx is unsigned, because there is no witness
-		// let network_fee = Box::pin(self.provider.unwrap().calculate_network_fee(base64::encode(tx.to_array()))).await?;
+		// let network_fee = Box::pin(self.client.unwrap().calculate_network_fee(base64::encode(tx.to_array()))).await?;
 		// if let Some(fee_consumer) = &self.fee_consumer {
 		// 	let sender_balance = 0; // self.get_sender_balance().await.unwrap();
 		// 	if network_fee + system_fee > sender_balance {
@@ -305,7 +305,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 		let script = self.script.as_ref().unwrap();
 
 		let response = self
-			.provider
+			.client
 			.unwrap()
 			.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
 			.await
@@ -315,7 +315,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 
 	async fn get_network_fee(&mut self) -> Result<i64, TransactionError> {
 		let fee = self
-			.provider
+			.client
 			.unwrap()
 			.calculate_network_fee(self.get_unsigned_tx().await.unwrap().to_array().to_hex())
 			.await
@@ -329,7 +329,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 
 		if Self::is_account_signer(sender) {
 			let balance = self
-				.provider
+				.client
 				.unwrap()
 				.invoke_function(
 					&GAS_TOKEN_HASH,
@@ -356,7 +356,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 	// Sign transaction
 	pub async fn sign(&mut self) -> Result<Transaction, BuilderError> {
 		let mut unsigned_tx = self.get_unsigned_tx().await.unwrap();
-		// let provider = self.provider.unwrap();
+		// let client = self.client.unwrap();
 		let tx_bytes = unsigned_tx.get_hash_data().await?;
 
 		let mut witnesses_to_add = Vec::new();
@@ -486,7 +486,7 @@ impl<P: JsonRpcClient> TransactionBuilder<P> {
 mod tests {
 	use crate::{
 		neo_builder::GAS_TOKEN_HASH,
-		neo_providers::MockProvider,
+		neo_clients::MockClient,
 		neo_types::ScriptHashExtension,
 		prelude::{
 			ApplicationLog, ContractParameter, ContractSigner, InvocationResult, Signer, StackItem,
@@ -498,8 +498,8 @@ mod tests {
 		builder::VerificationScript,
 		config::{NeoConfig, NEOCONFIG},
 		prelude::{
-			Account, AccountSigner, AccountTrait, Http, KeyPair, Middleware, NeoConstants,
-			Provider, RawTransaction, ScriptBuilder, Secp256r1PrivateKey, TransactionBuilder,
+			APITrait, Account, AccountSigner, AccountTrait, Http, HttpProvider, KeyPair, NeoClient,
+			NeoConstants, RawTransaction, ScriptBuilder, Secp256r1PrivateKey, TransactionBuilder,
 		},
 	};
 	use num_bigint::BigInt;
@@ -511,6 +511,7 @@ mod tests {
 		str::FromStr,
 		sync::{Arc, Mutex},
 	};
+	use tokio::sync::OnceCell;
 
 	lazy_static! {
 		pub static ref ACCOUNT1: Account = Account::from_key_pair(
@@ -543,15 +544,16 @@ mod tests {
 		.expect("Failed to create ACCOUNT2");
 	}
 
+	static CLIENT: OnceCell<NeoClient<HttpProvider>> = OnceCell::const_new();
+
 	#[tokio::test]
 	async fn test_build_transaction_with_correct_nonce() {
 		let mut nonce = 1;
-
-		let provider = MockProvider::new().await.into_provider();
-		let mut tx = TransactionBuilder::with_provider(&provider)
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tx = TransactionBuilder::with_provider(&client)
 			.valid_until_block(1)
 			.unwrap()
-			.set_script(vec![1, 2, 3])
+			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
 			.nonce(nonce)
 			.unwrap()
@@ -562,10 +564,10 @@ mod tests {
 		assert_eq!(*tx.nonce(), nonce);
 
 		nonce = 0;
-		tx = TransactionBuilder::with_provider(&provider)
+		tx = TransactionBuilder::with_provider(&client)
 			.valid_until_block(1)
 			.unwrap()
-			.set_script(vec![1, 2, 3])
+			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
 			.nonce(nonce)
 			.unwrap()
@@ -575,10 +577,10 @@ mod tests {
 		assert_eq!(*tx.nonce(), nonce);
 
 		nonce = u32::MAX;
-		tx = TransactionBuilder::with_provider(&provider)
+		tx = TransactionBuilder::with_provider(&client)
 			.valid_until_block(1)
 			.unwrap()
-			.set_script(vec![1, 2, 3])
+			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
 			.nonce(nonce)
 			.unwrap()
@@ -590,8 +592,8 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_invoke_script() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 
 		mock_provider
 			.mock_response_ignore_param(
@@ -614,17 +616,16 @@ mod tests {
 			.unwrap()
 			.to_bytes();
 
-		let tb = TransactionBuilder::with_provider(&provider);
-		let response =
-			tb.provider.unwrap().invoke_script((&script).to_hex(), vec![]).await.unwrap();
+		let tb = TransactionBuilder::with_provider(&client);
+		let response = tb.client.unwrap().invoke_script((&script).to_hex(), vec![]).await.unwrap();
 
 		assert_eq!(response.stack[0].as_string().unwrap(), "NEO");
 	}
 
 	#[tokio::test]
 	async fn test_build_without_setting_script() {
-		let provider = MockProvider::new().await.into_provider();
-		let err = TransactionBuilder::with_provider(&provider)
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let err = TransactionBuilder::with_provider(&client)
 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
 			.get_unsigned_tx()
 			.await
@@ -636,11 +637,11 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_sign_transaction_with_additional_signers() {
-		let provider = MockProvider::new().await.into_provider();
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let script = vec![0x01u8, 0x02u8, 0x03u8];
 
-		let tx = TransactionBuilder::with_provider(&provider)
-			.set_script(script)
+		let tx = TransactionBuilder::with_provider(&client)
+			.set_script(Some(script))
 			.set_signers(vec![
 				AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(),
 				AccountSigner::called_by_entry(ACCOUNT2.deref()).unwrap().into(),
@@ -665,10 +666,10 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_send_invoke_function() {
-		let provider = MockProvider::new().await.into_provider();
-		let tb = TransactionBuilder::with_provider(&provider);
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let tb = TransactionBuilder::with_provider(&client);
 		let response = tb
-			.provider
+			.client
 			.unwrap()
 			.invoke_function(
 				&H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(),
@@ -683,57 +684,12 @@ mod tests {
 	}
 
 	#[tokio::test]
-	async fn test_build_transaction_with_correct_nonce() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut nonce = 1;
-
-		let mut tx = TransactionBuilder::with_provider(&provider)
-			.valid_until_block(1)
-			.unwrap()
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
-			.nonce(nonce)
-			.unwrap()
-			.get_unsigned_tx()
-			.await
-			.unwrap();
-
-		assert_eq!(*tx.nonce(), nonce);
-
-		nonce = 0;
-		tx = TransactionBuilder::with_provider(&provider)
-			.valid_until_block(1)
-			.unwrap()
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
-			.nonce(nonce)
-			.unwrap()
-			.get_unsigned_tx()
-			.await
-			.unwrap();
-		assert_eq!(*tx.nonce(), nonce);
-
-		nonce = u32::MAX;
-		tx = TransactionBuilder::with_provider(&provider)
-			.valid_until_block(1)
-			.unwrap()
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
-			.nonce(nonce)
-			.unwrap()
-			.get_unsigned_tx()
-			.await
-			.unwrap();
-		assert_eq!(*tx.nonce(), nonce);
-	}
-
-	#[tokio::test]
 	async fn test_fail_building_transaction_with_incorrect_nonce() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tb = TransactionBuilder::with_provider(&provider);
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tb = TransactionBuilder::with_provider(&client);
 		tb.valid_until_block(1)
 			.unwrap()
-			.set_script(vec![1, 2, 3])
+			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()]);
 
 		assert!(tb.nonce((-1i32) as u32 + 1).is_err());
@@ -743,13 +699,10 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_fail_building_transaction_with_invalid_block_number() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(vec![1, 2, 3]).set_signers(vec![AccountSigner::called_by_entry(
-			ACCOUNT1.deref(),
-		)
-		.unwrap()
-		.into()]);
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()]);
 
 		assert!(tb.valid_until_block(-1i32 as u32).is_err());
 		assert!(tb.valid_until_block(2u32.pow(32)).is_err());
@@ -757,13 +710,10 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_automatically_set_nonce() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(vec![1, 2, 3]).set_signers(vec![AccountSigner::called_by_entry(
-			ACCOUNT1.deref(),
-		)
-		.unwrap()
-		.into()]);
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()]);
 
 		let tx = tb.get_unsigned_tx().await.unwrap();
 		assert!(tx.nonce() < &u32::MAX && tx.nonce() > &0);
@@ -771,13 +721,13 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_fail_building_tx_without_any_signer() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.valid_until_block(100).unwrap().set_script(vec![1, 2, 3]);
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.valid_until_block(100).unwrap().set_script(Some(vec![1, 2, 3]));
 
 		assert!(tb.get_unsigned_tx().await.is_err());
 
-		let mut tb2 = TransactionBuilder::with_provider(&provider);
+		let mut tb2 = TransactionBuilder::with_provider(&client);
 		assert!(tb2
 			.set_signers(vec![
 				AccountSigner::global(ACCOUNT1.deref()).unwrap().into(),
@@ -788,10 +738,13 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_override_signer() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::global(ACCOUNT1.deref()).unwrap().into()]);
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(vec![1, 2, 3])).set_signers(vec![AccountSigner::global(
+			ACCOUNT1.deref(),
+		)
+		.unwrap()
+		.into()]);
 		assert_eq!(tb.signers(), vec![AccountSigner::global(ACCOUNT1.deref()).unwrap().into()]);
 
 		tb.set_signers(vec![AccountSigner::global(ACCOUNT2.deref()).unwrap().into()]);
@@ -800,26 +753,26 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_attributes_high_priority() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(vec![1, 2, 3])
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
 			.set_attributes(vec![TransactionAttribute::HighPriority])
 			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()]);
 
 		let tx = tb.get_unsigned_tx().await.unwrap();
-		assert_eq!(tx.attributes(), vec![TransactionAttribute::HighPriority]);
+		assert_eq!(tx.attributes()[0], TransactionAttribute::HighPriority);
 	}
 
 	#[tokio::test]
 	async fn test_attributes_high_priority_committee() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tb = TransactionBuilder::with_provider(&provider);
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tb = TransactionBuilder::with_provider(&client);
 		let multi_sig_account = Account::create_multi_sig_account(
 			&vec![ACCOUNT2.get_public_key(), ACCOUNT1.get_public_key()],
 			1,
 		)
 		.unwrap();
-		tb.set_script(vec![1, 2, 3])
+		tb.set_script(Some(vec![1, 2, 3]))
 			.set_attributes(vec![TransactionAttribute::HighPriority])
 			.set_signers(vec![AccountSigner::none(&multi_sig_account).unwrap().into()]);
 
@@ -829,9 +782,9 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_attributes_high_priority_not_committee_member() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(vec![1, 2, 3])
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
 			.set_attributes(vec![TransactionAttribute::HighPriority])
 			.set_signers(vec![AccountSigner::none(ACCOUNT2.deref()).unwrap().into()]);
 
@@ -840,9 +793,9 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_attributes_high_priority_only_added_once() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(vec![1, 2, 3])
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
 			.set_attributes(vec![
 				TransactionAttribute::HighPriority,
 				TransactionAttribute::HighPriority,
@@ -850,23 +803,23 @@ mod tests {
 			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()]);
 
 		let tx = tb.get_unsigned_tx().await.unwrap();
-		assert_eq!(tx.attributes(), vec![TransactionAttribute::HighPriority]);
+		assert_eq!(tx.attributes()[0], TransactionAttribute::HighPriority);
 	}
 
 	#[tokio::test]
 	async fn test_fail_adding_more_than_max_attributes_to_tx_just_attributes() {
-		let provider = MockProvider::new().await.into_provider();
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let attrs: Vec<TransactionAttribute> = (0..=NeoConstants::MAX_TRANSACTION_ATTRIBUTES)
 			.map(|_| TransactionAttribute::HighPriority)
 			.collect();
-		let mut tb = TransactionBuilder::with_provider(&provider);
+		let mut tb = TransactionBuilder::with_provider(&client);
 		assert!(tb.set_attributes(attrs).is_err());
 	}
 
 	#[tokio::test]
 	async fn test_fail_adding_more_than_max_attributes_to_tx_attributes_and_signers() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tb = TransactionBuilder::with_provider(&provider);
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tb = TransactionBuilder::with_provider(&client);
 		tb.set_signers(vec![
 			AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(),
 			AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(),
@@ -880,8 +833,8 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_fail_adding_more_than_max_attributes_to_tx_signers() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tb = TransactionBuilder::with_provider(&provider);
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tb = TransactionBuilder::with_provider(&client);
 		tb.set_attributes(vec![TransactionAttribute::HighPriority]);
 		let signers: Vec<AccountSigner> = (0..NeoConstants::MAX_TRANSACTION_ATTRIBUTES)
 			.map(|_| AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap())
@@ -891,39 +844,39 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_automatic_setting_of_valid_until_block_variable() {
-		let provider = MockProvider::new().await.into_provider();
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let block_count = 1000;
 		let max_valid_until_block_increment = 1000;
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(vec![1, 2, 3])
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()]);
 
 		let tx = tb.get_unsigned_tx().await.unwrap();
-		assert_eq!(tx.valid_until_block(), block_count + max_valid_until_block_increment);
+		assert_eq!(*tx.valid_until_block(), block_count + max_valid_until_block_increment);
 	}
 
 	#[tokio::test]
 	async fn test_automatic_setting_of_system_fee_and_network_fee() {
-		let provider = MockProvider::new().await.into_provider();
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let script = vec![1, 2, 3];
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(script.clone())
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(script.clone()))
 			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()])
 			.valid_until_block(1000)
 			.unwrap();
 
 		let tx = tb.get_unsigned_tx().await.unwrap();
-		assert_eq!(tx.sys_fee(), 984060);
-		assert_eq!(tx.net_fee(), 1230610);
+		assert_eq!(*tx.sys_fee(), 984060);
+		assert_eq!(*tx.net_fee(), 1230610);
 	}
 
 	#[tokio::test]
 	async fn test_fail_trying_to_sign_transaction_with_account_missing_a_private_key() {
-		let provider = MockProvider::new().await.into_provider();
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let account_without_keypair =
 			Account::from_address(ACCOUNT1.get_address().as_str()).unwrap();
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(vec![1, 2, 3])
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::none(&account_without_keypair).unwrap().into()])
 			.valid_until_block(1000)
 			.unwrap();
@@ -933,38 +886,42 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_fail_automatically_signing_with_multi_sig_account_signer() {
-		let provider = MockProvider::new().await.into_provider();
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let multi_sig_account =
 			Account::create_multi_sig_account(&vec![ACCOUNT1.get_public_key()], 1).unwrap();
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::none(&multi_sig_account).unwrap().into()]);
-
-		assert!(tb.sign().await.is_err());
-	}
-
-	#[tokio::test]
-	async fn test_fail_with_no_signing_account() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(vec![1, 2, 3]).set_signers(vec![ContractSigner::called_by_entry(
-			ACCOUNT1.address_or_scripthash().script_hash(),
-			vec![],
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(vec![1, 2, 3])).set_signers(vec![AccountSigner::none(
+			&multi_sig_account,
 		)
+		.unwrap()
 		.into()]);
 
 		assert!(tb.sign().await.is_err());
 	}
 
 	#[tokio::test]
+	async fn test_fail_with_no_signing_account() {
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![ContractSigner::called_by_entry(
+				ACCOUNT1.address_or_scripthash().script_hash(),
+				vec![],
+			)
+			.into()]);
+
+		assert!(tb.sign().await.is_err());
+	}
+
+	#[tokio::test]
 	async fn test_fail_signing_with_account_without_ec_keypair() {
-		let provider = MockProvider::new().await.into_provider();
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let account_without_keypair = Account::from_verification_script(
 			&ACCOUNT1.clone().verification_script().clone().unwrap(),
 		)
 		.unwrap();
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(vec![1, 2, 3]).set_signers(vec![AccountSigner::none(
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(vec![1, 2, 3])).set_signers(vec![AccountSigner::none(
 			&account_without_keypair,
 		)
 		.unwrap()
@@ -974,48 +931,22 @@ mod tests {
 	}
 
 	#[tokio::test]
-	async fn test_sign_transaction_with_additional_signers() {
-		let provider = MockProvider::new().await.into_provider();
-		let script = vec![0x01u8, 0x02u8, 0x03u8];
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(script)
-			.set_signers(vec![
-				AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(),
-				AccountSigner::called_by_entry(ACCOUNT2.deref()).unwrap().into(),
-			])
-			.valid_until_block(1000)
-			.unwrap();
-
-		let tx = tb.sign().await.unwrap();
-		assert_eq!(tx.witnesses().len(), 2);
-
-		let signers = tx
-			.witnesses()
-			.iter()
-			.map(|witness| witness.verification.get_public_keys().unwrap().first().unwrap().clone())
-			.collect::<Vec<_>>();
-
-		assert!(signers.contains(&ACCOUNT1.deref().clone().key_pair.unwrap().public_key()));
-		assert!(signers.contains(&ACCOUNT2.deref().clone().key_pair.unwrap().public_key()));
-	}
-
-	#[tokio::test]
 	async fn test_fail_sending_transaction_because_it_doesnt_contain_the_right_number_of_witnesses()
 	{
-		let provider = MockProvider::new().await.into_provider();
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(vec![1, 2, 3])
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
 			.valid_until_block(1000)
 			.unwrap();
 
 		let mut tx = tb.get_unsigned_tx().await.unwrap();
-		assert!(tx.send(&provider).await.is_err());
+		assert!(tx.send(&client).await.is_err());
 	}
 
 	#[tokio::test]
 	async fn test_contract_witness() {
-		let provider = MockProvider::new().await.into_provider();
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let contract_hash = H160::from_str("e87819d005b730645050f89073a4cd7bf5f6bd3c").unwrap();
 		let params = vec![ContractParameter::from("iamgroot"), ContractParameter::from(2)];
 		let invocation_script = ScriptBuilder::new()
@@ -1023,8 +954,8 @@ mod tests {
 			.push_integer(BigInt::from(2))
 			.to_array()
 			.unwrap();
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(vec![1, 2, 3])
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![
 				ContractSigner::global(contract_hash, params.clone()).into(),
 				AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(),
@@ -1037,44 +968,8 @@ mod tests {
 	}
 
 	#[tokio::test]
-	async fn test_send_invoke_function() {
-		let provider = MockProvider::new().await.into_provider();
-		let script = ScriptBuilder::new()
-			.contract_call(
-				&ScriptHashExtension::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")
-					.unwrap(),
-				"transfer",
-				&vec![
-					ContractParameter::from(ACCOUNT1.address_or_scripthash().script_hash()),
-					ContractParameter::from(
-						H160::from_str("969a77db482f74ce27105f760efa139223431394").unwrap(),
-					),
-					ContractParameter::from(5),
-					ContractParameter::Any(None),
-				],
-				None,
-			)
-			.unwrap()
-			.to_bytes();
-
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(script)
-			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()]);
-
-		let mut tx = tb.sign().await.unwrap();
-		let response = tx.send(&provider).await.unwrap();
-
-		// assert!(response.error.is_none());
-		assert_eq!(
-			response.hash,
-			H160::from_str("0x830816f0c801bcabf919dfa1a90d7b9a4f867482cb4d18d0631a5aa6daefab6a")
-				.unwrap()
-		);
-	}
-
-	#[tokio::test]
 	async fn test_transfer_neo_from_normal_account() {
-		let provider = MockProvider::new().await.into_provider();
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let script = ScriptBuilder::new()
 			.contract_call(
 				&ScriptHashExtension::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")
@@ -1094,7 +989,7 @@ mod tests {
 			.to_bytes();
 
 		let expected_verification_script = ACCOUNT1.verification_script().clone().unwrap().script();
-		let mut tb = TransactionBuilder::with_provider(&provider);
+		let mut tb = TransactionBuilder::with_provider(&client);
 		tb.set_script(script.clone())
 			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()])
 			.valid_until_block(100)
@@ -1111,7 +1006,7 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_extend_script() {
-		let provider = MockProvider::new().await.into_provider();
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let script1 = ScriptBuilder::new()
 			.contract_call(
 				&ScriptHashExtension::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")
@@ -1146,18 +1041,18 @@ mod tests {
 			.unwrap()
 			.to_bytes();
 
-		let mut tb = TransactionBuilder::with_provider(&provider);
-		tb.set_script(script1.clone());
-		assert_eq!(tb.script(), &script1);
+		let mut tb = TransactionBuilder::with_provider(&client);
+		tb.set_script(Some(script1.clone()));
+		assert_eq!(tb.script().clone().unwrap(), &script1);
 
 		tb.extend_script(script2.clone());
-		assert_eq!(tb.script(), &(script1 + script2));
+		assert_eq!(tb.script(), &([script1, script2].concat()));
 	}
 
 	#[tokio::test]
 	async fn test_invoking_with_params_should_produce_the_correct_request() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tb = TransactionBuilder::with_provider(&provider);
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tb = TransactionBuilder::with_provider(&client);
 		let script = ScriptBuilder::new()
 			.contract_call(
 				&ScriptHashExtension::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")
@@ -1177,7 +1072,7 @@ mod tests {
 			.to_bytes();
 
 		let response = tb
-			.provider
+			.client
 			.unwrap()
 			.invoke_function(
 				&H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(),
@@ -1197,419 +1092,11 @@ mod tests {
 
 		assert_eq!(response.stack[0].as_string().unwrap(), "NEO");
 	}
-	#[tokio::test]
-	async fn test_build_transaction_with_correct_nonce() {
-		let provider = MockProvider::new().await.into_provider();
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-		let account2 =
-			Account::from_wif("KysNqEuLb3wmZJ6PsxbA9Bh6ewTybEda4dEiN9X7X48dJPkLWZ5a").unwrap();
-
-		let mut nonce = rand::random::<u32>();
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.valid_until_block(1)
-			.unwrap()
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::called_by_entry(&account1.clone()).unwrap().into()])
-			.nonce(nonce)
-			.unwrap();
-
-		let tx = tx_builder.get_unsigned_tx().await.unwrap();
-		assert_eq!(tx.nonce, nonce);
-
-		nonce = 0;
-		tx_builder.nonce(nonce).unwrap();
-		let tx = tx_builder.get_unsigned_tx().await.unwrap();
-		assert_eq!(tx.nonce, nonce);
-
-		nonce = u32::MAX;
-		tx_builder.nonce(nonce).unwrap();
-		let tx = tx_builder.get_unsigned_tx().await.unwrap();
-		assert_eq!(tx.nonce, nonce);
-	}
-
-	#[tokio::test]
-	async fn test_fail_building_transaction_with_incorrect_nonce() {
-		let provider = MockProvider::new().await.into_provider();
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.valid_until_block(1)
-			.unwrap()
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::called_by_entry(&account1.clone()).unwrap().into()]);
-
-		assert!(tx_builder.nonce(u32::MAX + 1).is_err());
-	}
-
-	#[tokio::test]
-	async fn test_fail_building_transaction_with_invalid_block_number() {
-		let provider = MockProvider::new().await.into_provider();
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-
-		assert!(tx_builder.valid_until_block(0).is_err());
-		assert!(tx_builder.valid_until_block(u32::MAX + 1).is_err());
-	}
-
-	#[tokio::test]
-	async fn test_automatically_set_nonce() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param("getblockcount", json!(|_| Ok(1000)))
-			.await;
-
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::called_by_entry(account1.clone()).unwrap()]);
-
-		let tx = tx_builder.get_unsigned_tx().await.unwrap();
-		assert!(tx.nonce > 0 && tx.nonce < u32::MAX);
-	}
-
-	#[tokio::test]
-	async fn test_fail_building_tx_without_any_signer() {
-		let provider = MockProvider::new().await.into_provider();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder.valid_until_block(100).unwrap().set_script(vec![1, 2, 3]);
-
-		assert!(tx_builder.get_unsigned_tx().await.is_err());
-	}
-
-	#[tokio::test]
-	async fn test_override_signer() {
-		let provider = MockProvider::new().await.into_provider();
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-		let account2 =
-			Account::from_wif("KysNqEuLb3wmZJ6PsxbA9Bh6ewTybEda4dEiN9X7X48dJPkLWZ5a").unwrap();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder.set_signers(vec![AccountSigner::global(&account1.clone()).unwrap().into()]);
-		assert_eq!(
-			tx_builder.signers,
-			vec![AccountSigner::global(&account1.clone()).unwrap().into()]
-		);
-
-		tx_builder.set_signers(vec![AccountSigner::global(&account2.clone()).unwrap().into()]);
-		assert_eq!(
-			tx_builder.signers,
-			vec![AccountSigner::global(&account2.clone()).unwrap().into()]
-		);
-	}
-
-	#[tokio::test]
-	async fn test_attributes_high_priority() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param("invokescript", json!(|_| Ok(InvocationResult::default())))
-			.await;
-		mock_provider
-			.mock_response_ignore_param("calculatenetworkfee", json!(|_| Ok(1000000)))
-			.await;
-		mock_provider
-			.mock_response_ignore_param("getblockcount", json!(|_| Ok(100)))
-			.await;
-
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_attributes(vec![TransactionAttribute::HighPriority])
-			.set_signers(vec![AccountSigner::none(account1.clone()).unwrap()]);
-
-		let tx = tx_builder.get_unsigned_tx().await.unwrap();
-		assert_eq!(tx.attributes, vec![TransactionAttribute::HighPriority]);
-	}
-
-	#[tokio::test]
-	async fn test_attributes_high_priority_committee() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param("invokescript", json!(|_| Ok(InvocationResult::default())))
-			.await;
-		mock_provider
-			.mock_response_ignore_param("calculatenetworkfee", json!(|_| Ok(1000000)))
-			.await;
-		mock_provider
-			.mock_response_ignore_param(
-				"getcommittee",
-				json!(|_| Ok(vec![
-					H160::from_str("0x0000000000000000000000000000000000000001").unwrap()
-				])),
-			)
-			.await;
-
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-		let account2 =
-			Account::from_wif("KysNqEuLb3wmZJ6PsxbA9Bh6ewTybEda4dEiN9X7X48dJPkLWZ5a").unwrap();
-		let multi_sig_account = Account::create_multi_sig_account(
-			vec![
-				account1.key_pair().clone().unwrap().public_key(),
-				account2.key_pair().clone().unwrap().public_key(),
-			],
-			1,
-		)
-		.unwrap();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_attributes(vec![TransactionAttribute::HighPriority])
-			.set_signers(vec![AccountSigner::none(multi_sig_account).unwrap()]);
-
-		let tx = tx_builder.get_unsigned_tx().await.unwrap();
-		assert_eq!(tx.attributes, vec![TransactionAttribute::HighPriority]);
-	}
-
-	#[tokio::test]
-	async fn test_attributes_high_priority_not_committee_member() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param("getblockcount", json!(|_| Ok(1000)))
-			.await;
-		mock_provider
-			.mock_response_ignore_param(
-				"getcommittee",
-				json!(|_| Ok(vec![
-					H160::from_str("0x0000000000000000000000000000000000000001").unwrap()
-				])),
-			)
-			.await;
-
-		let account2 =
-			Account::from_wif("KysNqEuLb3wmZJ6PsxbA9Bh6ewTybEda4dEiN9X7X48dJPkLWZ5a").unwrap();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_attributes(vec![TransactionAttribute::HighPriority])
-			.set_signers(vec![AccountSigner::none(account2).unwrap()]);
-
-		assert!(tx_builder.get_unsigned_tx().await.is_err());
-	}
-
-	#[tokio::test]
-	async fn test_attributes_high_priority_only_added_once() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param("invokescript", json!(|_| Ok(InvocationResult::default())))
-			.await;
-		mock_provider
-			.mock_response_ignore_param("calculatenetworkfee", json!(|_| Ok(1000000)))
-			.await;
-		mock_provider
-			.mock_response_ignore_param("getblockcount", json!(|_| Ok(1000)))
-			.await;
-
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_attributes(vec![
-				TransactionAttribute::HighPriority,
-				TransactionAttribute::HighPriority,
-			])
-			.set_signers(vec![AccountSigner::none(account1).unwrap()]);
-
-		let tx = tx_builder.get_unsigned_tx().await.unwrap();
-		assert_eq!(tx.attributes, vec![TransactionAttribute::HighPriority]);
-	}
-
-	#[tokio::test]
-	async fn test_fail_adding_more_than_max_attributes_to_tx_just_attributes() {
-		let provider = MockProvider::new().await.into_provider();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		let attrs = vec![
-			TransactionAttribute::HighPriority;
-			NeoConstants::MAX_TRANSACTION_ATTRIBUTES as usize + 1
-		];
-
-		assert!(tx_builder.set_attributes(attrs).is_err());
-	}
-
-	#[tokio::test]
-	async fn test_fail_adding_more_than_max_attributes_to_tx_attributes_and_signers() {
-		let provider = MockProvider::new().await.into_provider();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder.set_signers(vec![
-			AccountSigner::called_by_entry(&Account::create().unwrap()).unwrap().into(),
-			AccountSigner::called_by_entry(&Account::create().unwrap()).unwrap().into(),
-			AccountSigner::called_by_entry(&Account::create().unwrap()).unwrap().into(),
-		]);
-
-		let attrs = vec![
-			TransactionAttribute::HighPriority;
-			NeoConstants::MAX_TRANSACTION_ATTRIBUTES as usize - 2
-		];
-
-		assert!(tx_builder.set_attributes(attrs).is_err());
-	}
-
-	#[tokio::test]
-	async fn test_fail_adding_more_than_max_attributes_to_tx_signers() {
-		let provider = MockProvider::new().await.into_provider();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder.set_attributes(vec![TransactionAttribute::HighPriority]);
-
-		let signers = (0..NeoConstants::MAX_TRANSACTION_ATTRIBUTES)
-			.map(|_| AccountSigner::called_by_entry(&Account::create().unwrap()).unwrap().into())
-			.collect::<Vec<_>>();
-
-		assert!(tx_builder.set_signers(signers).is_err());
-	}
-
-	#[tokio::test]
-	async fn test_automatic_setting_of_valid_until_block_variable() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param("invokescript", json!(Ok(InvocationResult::default())))
-			.await;
-		mock_provider.mock_response_ignore_param("getblockcount", json!(Ok(1000))).await;
-		mock_provider
-			.mock_response_ignore_param("calculatenetworkfee", json!(Ok(1000000)))
-			.await;
-
-		let account = Account::create();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::none(account).unwrap()]);
-
-		let tx = tx_builder.get_unsigned_tx().await.unwrap();
-		assert_eq!(tx.valid_until_block, 1000 + NeoConstants::MAX_VALID_UNTIL_BLOCK_INCREMENT);
-	}
-
-	#[tokio::test]
-	async fn test_automatic_setting_of_system_fee_and_network_fee() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param(
-				"invokescript",
-				json!(Ok(InvocationResult {
-					gas_consumed: "984060".to_string(),
-					..Default::default()
-				})),
-			)
-			.await;
-		mock_provider
-			.mock_response_ignore_param("calculatenetworkfee", json!(Ok(1230610)))
-			.await;
-
-		let account = Account::create();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::none(account).unwrap()])
-			.valid_until_block(1000)
-			.unwrap();
-
-		let tx = tx_builder.get_unsigned_tx().await.unwrap();
-		assert_eq!(tx.sys_fee, 984060);
-		assert_eq!(tx.net_fee, 1230610);
-	}
-
-	#[tokio::test]
-	async fn test_fail_trying_to_sign_transaction_with_account_missing_a_private_key() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param("invokescript", json!(Ok(InvocationResult::default())))
-			.await;
-		mock_provider
-			.mock_response_ignore_param("calculatenetworkfee", json!(Ok(1000000)))
-			.await;
-
-		let account = Account::from_address("NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj").unwrap();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::none(account).unwrap()])
-			.valid_until_block(1000)
-			.unwrap();
-
-		assert!(tx_builder.sign().await.is_err());
-	}
-
-	#[tokio::test]
-	async fn test_fail_automatically_signing_with_multi_sig_account_signer() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param("invokescript", json!(Ok(InvocationResult::default())))
-			.await;
-		mock_provider.mock_response_ignore_param("getblockcount", json!(Ok(1000))).await;
-		mock_provider
-			.mock_response_ignore_param("calculatenetworkfee", json!(Ok(1000000)))
-			.await;
-
-		let account1 = Account::create().unwrap();
-		let account2 = Account::create().unwrap();
-		let multi_sig_account = Account::create_multi_sig_account(
-			vec![account1.get_public_key(), account2.get_public_key()],
-			1,
-		)
-		.unwrap();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::none(multi_sig_account).unwrap()]);
-
-		assert!(tx_builder.sign().await.is_err());
-	}
-
-	#[tokio::test]
-	async fn test_fail_with_no_signing_account() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param("invokescript", json!(Ok(InvocationResult::default())))
-			.await;
-		mock_provider.mock_response_ignore_param("getblockcount", json!(Ok(1000))).await;
-
-		let contract_hash = H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![Signer::contract(contract_hash, WitnessScope::CalledByEntry)]);
-
-		assert!(tx_builder.sign().await.is_err());
-	}
 
 	#[tokio::test]
 	async fn test_fail_signing_with_account_without_ec_key_pair() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param("invokescript", json!(Ok(InvocationResult::default())))
 			.await;
@@ -1621,293 +1108,18 @@ mod tests {
 		let account =
 			Account::from_verification_script(&VerificationScript::from(vec![1, 2, 3])).unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::none(account).unwrap()]);
+			.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![AccountSigner::none(&account).unwrap().into()]);
 
 		assert!(tx_builder.sign().await.is_err());
 	}
 
 	#[tokio::test]
-	async fn test_sign_transaction_with_additional_signers() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param("invokescript", json!(Ok(InvocationResult::default())))
-			.await;
-		mock_provider
-			.mock_response_ignore_param("calculatenetworkfee", json!(Ok(1000000)))
-			.await;
-
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-		let account2 =
-			Account::from_wif("KysNqEuLb3wmZJ6PsxbA9Bh6ewTybEda4dEiN9X7X48dJPkLWZ5a").unwrap();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![
-				AccountSigner::called_by_entry(account1.clone()).unwrap(),
-				AccountSigner::called_by_entry(account2.clone()).unwrap(),
-			])
-			.valid_until_block(1000)
-			.unwrap();
-
-		let tx = tx_builder.sign().await.unwrap();
-
-		assert_eq!(tx.witnesses.len(), 2);
-		let signers: Vec<_> = tx
-			.witnesses
-			.iter()
-			.map(|w| w.verification.get_public_keys().unwrap()[0])
-			.collect();
-		assert!(signers.contains(&account1.get_public_key()));
-		assert!(signers.contains(&account2.get_public_key()));
-	}
-
-	#[tokio::test]
-	async fn test_fail_sending_transaction_because_it_doesnt_contain_the_right_number_of_witnesses()
-	{
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param("invokescript", json!(Ok(InvocationResult::default())))
-			.await;
-		mock_provider
-			.mock_response_ignore_param("calculatenetworkfee", json!(Ok(1000000)))
-			.await;
-
-		let account = Account::create();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::called_by_entry(account).unwrap()])
-			.valid_until_block(1000)
-			.unwrap();
-
-		let mut tx = tx_builder.get_unsigned_tx().await.unwrap();
-		assert!(tx.send(&provider).await.is_err());
-	}
-
-	#[tokio::test]
-	async fn test_contract_witness() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param("invokescript", json!(Ok(InvocationResult::default())))
-			.await;
-		mock_provider
-			.mock_response_ignore_param("calculatenetworkfee", json!(Ok(1000000)))
-			.await;
-
-		let contract_hash = H160::from_str("0xe87819d005b730645050f89073a4cd7bf5f6bd3c").unwrap();
-		let account = Account::create();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![
-				Signer::contract(contract_hash, WitnessScope::Global)
-					.with_witness_provider(WitnessProvider::Constant("iamgroot".into(), 2)),
-				AccountSigner::called_by_entry(account).unwrap(),
-			])
-			.valid_until_block(1000)
-			.unwrap();
-
-		let tx = tx_builder.sign().await.unwrap();
-
-		let invocation_script =
-			ScriptBuilder::new().push_data("iamgroot".as_bytes()).push_integer(2).to_bytes();
-		assert!(tx.witnesses.contains(&Witness::from_scripts(invocation_script, vec![])));
-	}
-
-	#[tokio::test]
-	async fn test_send_invoke_function() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param(
-				"invokescript",
-				json!(Ok(InvocationResult {
-					gas_consumed: "10000000".to_string(),
-					..Default::default()
-				})),
-			)
-			.await;
-		mock_provider.mock_response_ignore_param("getblockcount", json!(Ok(1000))).await;
-		mock_provider
-			.mock_response_ignore_param("calculatenetworkfee", json!(Ok(1000000)))
-			.await;
-		mock_provider
-			.mock_response_ignore_param(
-				"sendrawtransaction",
-				json!(Ok(RawTransaction { hash: H256::zero(), ..Default::default() })),
-			)
-			.await;
-
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-		let recipient = H160::from_str("969a77db482f74ce27105f760efa139223431394").unwrap();
-
-		let script = ScriptBuilder::new()
-			.contract_call(
-				&H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap(),
-				"transfer",
-				&[
-					ContractParameter::hash160(account1.address_or_scripthash().script_hash()),
-					ContractParameter::hash160(recipient),
-					ContractParameter::integer(5),
-					ContractParameter::any(None),
-				],
-				None,
-			)
-			.unwrap()
-			.to_bytes();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(script)
-			.set_signers(vec![AccountSigner::none(account1).unwrap()]);
-
-		let mut tx = tx_builder.sign().await.unwrap();
-		let response = tx.send(&provider).await.unwrap();
-
-		assert_ne!(response.hash, H256::zero());
-	}
-
-	#[tokio::test]
-	async fn test_transfer_neo_from_normal_account() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param(
-				"invokescript",
-				json!(Ok(InvocationResult {
-					gas_consumed: "10000000".to_string(),
-					..Default::default()
-				})),
-			)
-			.await;
-		mock_provider
-			.mock_response_ignore_param("calculatenetworkfee", json!(Ok(1000000)))
-			.await;
-
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-		let recipient = H160::from_str("969a77db482f74ce27105f760efa139223431394").unwrap();
-
-		let script = ScriptBuilder::new()
-			.contract_call(
-				&H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap(),
-				"transfer",
-				&[
-					ContractParameter::hash160(account1.address_or_scripthash().script_hash()),
-					ContractParameter::hash160(recipient),
-					ContractParameter::integer(5),
-					ContractParameter::any(None),
-				],
-				None,
-			)
-			.unwrap()
-			.to_bytes();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder
-			.set_script(script)
-			.set_signers(vec![AccountSigner::none(account1.clone()).unwrap()])
-			.valid_until_block(100)
-			.unwrap();
-
-		let tx = tx_builder.sign().await.unwrap();
-
-		assert_eq!(tx.script, script);
-		assert_eq!(tx.witnesses.len(), 1);
-		assert_eq!(tx.witnesses[0].verification, account1.verification_script().clone().unwrap());
-	}
-
-	#[tokio::test]
-	async fn test_extend_script() {
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-		let account2 =
-			Account::from_wif("KysNqEuLb3wmZJ6PsxbA9Bh6ewTybEda4dEiN9X7X48dJPkLWZ5a").unwrap();
-		let recipient = H160::from_str("969a77db482f74ce27105f760efa139223431394").unwrap();
-
-		let script1 = ScriptBuilder::new()
-			.contract_call(
-				&H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap(),
-				"transfer",
-				&[
-					ContractParameter::hash160(account1.address_or_scripthash().script_hash()),
-					ContractParameter::hash160(recipient),
-					ContractParameter::integer(11),
-					ContractParameter::any(None),
-				],
-				None,
-			)
-			.unwrap()
-			.to_bytes();
-
-		let script2 = ScriptBuilder::new()
-			.contract_call(
-				&H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap(),
-				"transfer",
-				&[
-					ContractParameter::hash160(account1.address_or_scripthash().script_hash()),
-					ContractParameter::hash160(account2.address_or_scripthash().script_hash()),
-					ContractParameter::integer(22),
-					ContractParameter::any(None),
-				],
-				None,
-			)
-			.unwrap()
-			.to_bytes();
-
-		let provider = MockProvider::new().await.into_provider();
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder.set_script(script1.clone());
-		assert_eq!(tx_builder.script, Some(script1.clone()));
-
-		tx_builder.extend_script(script2.clone());
-		assert_eq!(tx_builder.script, Some([script1, script2].concat()));
-	}
-
-	#[tokio::test]
-	async fn test_invoking_with_params_should_produce_the_correct_request() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param("invokescript", json!(Ok(InvocationResult::default())))
-			.await;
-
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-		let recipient = H160::from_str("969a77db482f74ce27105f760efa139223431394").unwrap();
-		let invoke_function = provider
-			.invoke_function(
-				&H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap(),
-				"transfer".to_string(),
-				vec![
-					ContractParameter::h160(&account1.address_or_scripthash().script_hash()),
-					ContractParameter::h160(&recipient),
-					ContractParameter::integer(5),
-					ContractParameter::any(None),
-				],
-				None,
-			)
-			.await
-			.unwrap();
-
-		assert_eq!(invoke_function.script, "CxUMFJQTQyOSE/oOdl8QJ850L0jbd5qWDBQGSl3MDxYsg0c9Aok46V+3dhMechTAHwwIdHJhbnNmZXIMFIOrBnmtVcBQoTrUP1k26nP16x72QWJ9W1I=");
-	}
-
-	#[tokio::test]
 	async fn test_do_if_sender_cannot_cover_fees() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -1951,10 +1163,10 @@ mod tests {
 
 		let mut tested = false;
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(script)
-			.set_signers(vec![AccountSigner::called_by_entry(account1).unwrap()])
+			.set_script(Some(script))
+			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()])
 			.valid_until_block(2000000)
 			.unwrap()
 			.do_if_sender_cannot_cover_fees(Box::new(|fee, balance| {
@@ -1970,8 +1182,8 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_do_if_sender_cannot_cover_fees_already_specified_a_supplier() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		NeoConfig::throw_if_sender_cannot_cover_fees(TransactionError::InsufficientFunds);
 
 		assert!(tx_builder.do_if_sender_cannot_cover_fees(Box::new(|_, _| {})).is_err());
@@ -1979,8 +1191,8 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_throw_if_sender_cannot_cover_fees() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2021,12 +1233,12 @@ mod tests {
 			.unwrap()
 			.to_bytes();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(script)
+			.set_script(Some(script))
 			.valid_until_block(2000000)
 			.unwrap()
-			.set_signers(vec![AccountSigner::called_by_entry(account1).unwrap()])
+			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()])
 			.throw_if_sender_cannot_cover_fees(TransactionError::InsufficientFunds);
 
 		assert!(tx_builder.get_unsigned_tx().await.is_err());
@@ -2034,8 +1246,8 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_throw_if_sender_cannot_cover_fees_already_specified_a_consumer() {
-		let provider = MockProvider::new().await.into_provider();
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder.do_if_sender_cannot_cover_fees(Box::new(|_, _| {}));
 
 		assert!(tx_builder
@@ -2044,55 +1256,9 @@ mod tests {
 	}
 
 	#[tokio::test]
-	async fn test_invoke_script() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
-		mock_provider
-			.mock_response_ignore_param(
-				"invokescript",
-				json!(|_| Ok(InvocationResult {
-					stack: vec![StackItem::ByteString { value: base64::encode("NEO") }],
-					..Default::default()
-				})),
-			)
-			.await;
-
-		let script = ScriptBuilder::new()
-			.contract_call(
-				&H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap(),
-				"symbol",
-				&[],
-				None,
-			)
-			.unwrap()
-			.to_bytes();
-
-		let tx_builder = TransactionBuilder::with_provider(&provider);
-		let response = tx_builder.set_script(script).call_invoke_script().await;
-
-		assert_eq!(response.stack[0].as_string().unwrap(), "NEO");
-	}
-
-	#[tokio::test]
-	async fn test_invoke_script_without_setting_script() {
-		let provider = MockProvider::new().await.into_provider();
-
-		let tx_builder = TransactionBuilder::with_provider(&provider);
-		assert!(tx_builder.call_invoke_script().await);
-	}
-
-	#[tokio::test]
-	async fn test_build_without_setting_script() {
-		let provider = MockProvider::new().await.into_provider();
-
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		assert!(tx_builder.get_unsigned_tx().await.is_err());
-	}
-
-	#[tokio::test]
 	async fn test_build_with_invalid_script() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param("invokescript", json!(Err(TransactionError::InvalidScript)))
 			.await;
@@ -2101,18 +1267,18 @@ mod tests {
 		let account1 =
 			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(hex::decode("0c0e4f7261636c65436f6e7472616374411af77b67").unwrap())
-			.set_signers(vec![AccountSigner::called_by_entry(account1).unwrap()]);
+			.set_script(Some(hex::decode("0c0e4f7261636c65436f6e7472616374411af77b67").unwrap()))
+			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
 
 		assert!(tx_builder.get_unsigned_tx().await.is_err());
 	}
 
 	#[tokio::test]
 	async fn test_build_with_script_vm_faults() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param("invokescript", json!(Err(TransactionError::InvalidScript)))
 			.await;
@@ -2121,10 +1287,10 @@ mod tests {
 		let account1 =
 			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(hex::decode("0c00120c1493ad1572").unwrap())
-			.set_signers(vec![AccountSigner::called_by_entry(account1).unwrap()]);
+			.set_script(Some(hex::decode("0c00120c1493ad1572").unwrap()))
+			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
 
 		let result = tx_builder.get_unsigned_tx().await;
 		assert!(result.is_err());
@@ -2136,8 +1302,8 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_get_unsigned_transaction() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2152,22 +1318,25 @@ mod tests {
 		let account1 =
 			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::called_by_entry(account1).unwrap()]);
+			.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
 
 		let tx = tx_builder.get_unsigned_tx().await.unwrap();
 
 		assert_eq!(tx.version, 0);
-		assert_eq!(tx.signers, vec![AccountSigner::called_by_entry(account1.clone()).unwrap()]);
+		assert_eq!(
+			tx.signers[0].as_account_signer().unwrap(),
+			AccountSigner::called_by_entry(&account1).unwrap()
+		);
 		assert!(tx.witnesses.is_empty());
 	}
 
 	#[tokio::test]
 	async fn test_version() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2182,11 +1351,11 @@ mod tests {
 		let account1 =
 			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
 			.version(1)
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::called_by_entry(account1).unwrap()]);
+			.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
 
 		let tx = tx_builder.get_unsigned_tx().await.unwrap();
 
@@ -2194,8 +1363,8 @@ mod tests {
 	}
 	#[tokio::test]
 	async fn test_additional_network_fee() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2212,18 +1381,18 @@ mod tests {
 
 		let account = Account::create().unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::called_by_entry(account.clone()).unwrap()]);
+			.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![AccountSigner::called_by_entry(&account).unwrap().into()]);
 
 		let tx = tx_builder.get_unsigned_tx().await.unwrap();
 		assert_eq!(tx.net_fee, 1230610);
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::none(account.clone()).unwrap()])
+			.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![AccountSigner::none(&account).unwrap().into()])
 			.additional_network_fee(2000);
 
 		let tx = tx_builder.get_unsigned_tx().await.unwrap();
@@ -2232,8 +1401,8 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_additional_system_fee() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2250,18 +1419,18 @@ mod tests {
 
 		let account = Account::create().unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(vec![1, 2, 3])
+			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(&account).unwrap().into()]);
 
 		let tx = tx_builder.get_unsigned_tx().await.unwrap();
 		assert_eq!(tx.sys_fee, 984060);
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::none(account).unwrap()])
+			.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![AccountSigner::none(&account).unwrap().into()])
 			.additional_system_fee(3000);
 
 		let tx = tx_builder.get_unsigned_tx().await.unwrap();
@@ -2270,7 +1439,7 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_set_first_signer() {
-		let provider = MockProvider::new().await.into_provider();
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let account1 =
 			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
 		let account2 =
@@ -2279,20 +1448,22 @@ mod tests {
 		let s1 = AccountSigner::global(&account1.clone()).unwrap();
 		let s2 = AccountSigner::called_by_entry(&account2.clone()).unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder.set_script(vec![1, 2, 3]).set_signers(vec![s1.clone(), s2.clone()]);
-		assert_eq!(tx_builder.signers, vec![s1.clone(), s2.clone()]);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
+		tx_builder
+			.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![s1.clone().into(), s2.clone().into()]);
+		assert_eq!(tx_builder.signers, vec![s1.clone().into(), s2.clone().into()]);
 
-		tx_builder.first_signer(s2.get_script_hash()).unwrap();
+		tx_builder.first_signer(&s2.into()).unwrap();
 		assert_eq!(tx_builder.signers, vec![s2.clone(), s1.clone()]);
 
-		tx_builder.first_signer(account1.address_or_scripthash().script_hash()).unwrap();
-		assert_eq!(tx_builder.signers, vec![s1.clone(), s2.clone()]);
+		tx_builder.first_signer(&account1).unwrap();
+		assert_eq!(tx_builder.signers, vec![s1.clone().into(), s2.clone().into()]);
 	}
 
 	#[tokio::test]
 	async fn test_set_first_signer_fee_only_present() {
-		let provider = MockProvider::new().await.into_provider();
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let account1 =
 			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
 		let account2 =
@@ -2301,16 +1472,18 @@ mod tests {
 		let s1 = AccountSigner::none(&account1.clone()).unwrap();
 		let s2 = AccountSigner::called_by_entry(&account2.clone()).unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder.set_script(vec![1, 2, 3]).set_signers(vec![s1.clone(), s2.clone()]);
-		assert_eq!(tx_builder.signers, vec![s1.clone(), s2.clone()]);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
+		tx_builder
+			.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![s1.clone().into(), s2.clone().into()]);
+		assert_eq!(tx_builder.signers, vec![s1.clone().into(), s2.clone().into()]);
 
 		assert!(tx_builder.first_signer(s2.get_script_hash()).is_err());
 	}
 
 	#[tokio::test]
 	async fn test_set_first_signer_not_present() {
-		let provider = MockProvider::new().await.into_provider();
+		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let account1 =
 			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
 		let account2 =
@@ -2318,17 +1491,17 @@ mod tests {
 
 		let s1 = AccountSigner::global(&account1.clone()).unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder.set_script(vec![1, 2, 3]).set_signers(vec![s1.clone()]);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
+		tx_builder.set_script(Some(vec![1, 2, 3])).set_signers(vec![s1.clone().into()]);
 		assert_eq!(tx_builder.signers, vec![s1.clone()]);
 
-		assert!(tx_builder.first_signer(account2.address_or_scripthash().script_hash()).is_err());
+		assert!(tx_builder.first_signer(&account2).is_err());
 	}
 
 	#[tokio::test]
 	async fn test_tracking_transaction_should_return_correct_block() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2368,19 +1541,19 @@ mod tests {
 			.unwrap()
 			.to_bytes();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(script)
+			.set_script(Some(script))
 			.nonce(0)
 			.unwrap()
-			.set_signers(vec![AccountSigner::called_by_entry(account1).unwrap()]);
+			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
 
 		let mut tx = tx_builder.sign().await.unwrap();
-		let _ = tx.send(&provider).await.unwrap();
+		let _ = tx.send(&client).await.unwrap();
 
 		let mut block_num = 0;
-		let mut subscription = tx.track(&provider).await.unwrap();
-		while let Some(result) = subscription.next(&provider).await {
+		let mut subscription = tx.track(&client).await.unwrap();
+		while let Some(result) = subscription.next(&client).await {
 			block_num = result.unwrap();
 			if block_num == 1002 {
 				break;
@@ -2392,8 +1565,8 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_tracking_transaction_tx_not_sent() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2427,22 +1600,22 @@ mod tests {
 			.unwrap()
 			.to_bytes();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(script)
+			.set_script(Some(script))
 			.nonce(0)
 			.unwrap()
-			.set_signers(vec![AccountSigner::called_by_entry(account1).unwrap()]);
+			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
 
 		let tx = tx_builder.sign().await.unwrap();
 
-		assert!(tx.track(&provider).await.is_err());
+		assert!(tx.track(&client).await.is_err());
 	}
 
 	#[tokio::test]
 	async fn test_get_application_log() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2493,14 +1666,14 @@ mod tests {
 			.unwrap()
 			.to_bytes();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(script)
-			.set_signers(vec![AccountSigner::called_by_entry(account1).unwrap()]);
+			.set_script(Some(script))
+			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
 
 		let mut tx = tx_builder.sign().await.unwrap();
-		let _ = tx.send(&provider).await.unwrap();
-		let application_log = tx.get_application_log(&provider).await.unwrap();
+		let _ = tx.send(&client).await.unwrap();
+		let application_log = tx.get_application_log(&client).await.unwrap();
 
 		assert_eq!(
 			application_log.transaction_id,
@@ -2511,8 +1684,8 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_get_application_log_tx_not_sent() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2545,20 +1718,20 @@ mod tests {
 			.unwrap()
 			.to_bytes();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(script)
-			.set_signers(vec![AccountSigner::called_by_entry(account1).unwrap()]);
+			.set_script(Some(script))
+			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
 
 		let tx = tx_builder.sign().await.unwrap();
 
-		assert!(tx.get_application_log(&provider).await.is_err());
+		assert!(tx.get_application_log(&client).await.is_err());
 	}
 
 	#[tokio::test]
 	async fn test_get_application_log_not_existing() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2603,21 +1776,21 @@ mod tests {
 			.unwrap()
 			.to_bytes();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(script)
-			.set_signers(vec![AccountSigner::called_by_entry(account1).unwrap()]);
+			.set_script(Some(script))
+			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
 
 		let mut tx = tx_builder.sign().await.unwrap();
-		let _ = tx.send(&provider).await.unwrap();
+		let _ = tx.send(&client).await.unwrap();
 
-		assert!(tx.get_application_log(&provider).await.is_err());
+		assert!(tx.get_application_log(&client).await.is_err());
 	}
 
 	#[tokio::test]
 	async fn test_transmission_on_fault() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2635,10 +1808,10 @@ mod tests {
 
 		let account = Account::create();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::none(account).unwrap()])
+			.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![AccountSigner::none(&account).unwrap().into()])
 			.allow_transmission_on_fault();
 
 		let result = tx_builder.call_invoke_script().await;
@@ -2653,8 +1826,8 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_prevent_transmission_on_fault() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2669,10 +1842,10 @@ mod tests {
 
 		let account = Account::create();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(vec![1, 2, 3])
-			.set_signers(vec![AccountSigner::none(account).unwrap()]);
+			.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![AccountSigner::none(&account).unwrap().into()]);
 
 		assert!(!NEOCONFIG.lock().unwrap().allows_transmission_on_fault);
 
@@ -2684,8 +1857,8 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_sign_with_multiple_accounts() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2705,8 +1878,8 @@ mod tests {
 		let account2 =
 			Account::from_wif("KysNqEuLb3wmZJ6PsxbA9Bh6ewTybEda4dEiN9X7X48dJPkLWZ5a").unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
-		tx_builder.set_script(vec![1, 2, 3]).set_signers(vec![
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
+		tx_builder.set_script(Some(vec![1, 2, 3])).set_signers(vec![
 			AccountSigner::called_by_entry(account1.clone()).unwrap(),
 			AccountSigner::called_by_entry(account2.clone()).unwrap(),
 		]);
@@ -2726,8 +1899,8 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_sign_with_multi_sig_account() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2752,9 +1925,9 @@ mod tests {
 		)
 		.unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(vec![1, 2, 3])
+			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(multi_sig_account.clone()).unwrap()]);
 
 		let tx = tx_builder.sign().await.unwrap();
@@ -2765,8 +1938,8 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_get_network_fee() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2783,9 +1956,9 @@ mod tests {
 
 		let account = Account::create().unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(vec![1, 2, 3])
+			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(&account).unwrap().into()]);
 
 		let network_fee = tx_builder.get_network_fee().await.unwrap();
@@ -2794,8 +1967,8 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_get_system_fee() {
-		let mock_provider = MockProvider::new().await;
-		let provider = mock_provider.into_provider();
+		let mock_provider = MockClient::new().await;
+		let client = mock_provider.into_client();
 		mock_provider
 			.mock_response_ignore_param(
 				"invokescript",
@@ -2808,9 +1981,9 @@ mod tests {
 
 		let account = Account::create().unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_provider(&provider);
+		let mut tx_builder = TransactionBuilder::with_provider(&client);
 		tx_builder
-			.set_script(vec![1, 2, 3])
+			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(&account).unwrap().into()]);
 
 		let system_fee = tx_builder.get_system_fee().await.unwrap();

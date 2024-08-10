@@ -75,6 +75,23 @@ impl InvocationResult {
 	}
 }
 
+impl Default for InvocationResult {
+	fn default() -> Self {
+		Self {
+			script: "".to_string(),
+			state: NeoVMStateType::Halt,
+			gas_consumed: "".to_string(),
+			exception: None,
+			notifications: None,
+			diagnostics: None,
+			stack: vec![],
+			tx: None,
+			pending_signature: None,
+			session_id: None,
+		}
+	}
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct PendingSignature {
 	pub typ: String,

@@ -101,7 +101,7 @@ enum Instruction {
 ///
 /// ```no_run
 /// # async fn foo() -> Result<(), Box<dyn std::error::Error>> {
-/// use neo_providers::Ws;
+/// use neo_clients::Ws;
 ///
 /// let ws = Ws::connect("ws://localhost:8545").await?;
 /// # Ok(())

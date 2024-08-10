@@ -12,7 +12,7 @@ use serde::de::DeserializeOwned;
 use serde_json::value::RawValue;
 use tracing::error;
 
-use neo::prelude::{JsonRpcClient, Provider};
+use neo::prelude::{JsonRpcClient, NeoClient};
 
 /// A transport implementation supporting pub sub subscriptions.
 pub trait PubsubClient: JsonRpcClient {
@@ -35,7 +35,7 @@ pub struct SubscriptionStream<'a, P: PubsubClient, R: DeserializeOwned> {
 
 	loaded_elements: VecDeque<R>,
 
-	pub(crate) provider: &'a Provider<P>,
+	pub(crate) provider: &'a NeoClient<P>,
 
 	#[pin]
 	rx: P::NotificationStream,
@@ -54,8 +54,8 @@ where
 	/// Most providers treat `SubscriptionStream` IDs as global singletons.
 	/// Instantiating this directly with a known ID will likely cause any
 	/// existing streams with that ID to end. To avoid this, start a new stream
-	/// using [`Provider::subscribe`] instead of `SubscriptionStream::new`.
-	pub fn new(id: U256, provider: &'a Provider<P>) -> Result<Self, P::Error> {
+	/// using [`NeoClient::subscribe`] instead of `SubscriptionStream::new`.
+	pub fn new(id: U256, provider: &'a NeoClient<P>) -> Result<Self, P::Error> {
 		// Call the underlying PubsubClient's subscribe
 		let rx = provider.as_ref().subscribe(id)?;
 		Ok(Self { id, provider, rx, ret: PhantomData, loaded_elements: VecDeque::new() })

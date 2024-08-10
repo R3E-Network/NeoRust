@@ -25,7 +25,7 @@ pub trait SmartContractTrait<'a>: Send + Sync {
 		panic!("Cannot set script hash for NNS")
 	}
 
-	fn provider(&self) -> Option<&Provider<Self::P>>;
+	fn provider(&self) -> Option<&NeoClient<Self::P>>;
 
 	async fn invoke_function(
 		&self,
@@ -34,7 +34,7 @@ pub trait SmartContractTrait<'a>: Send + Sync {
 	) -> Result<TransactionBuilder<Self::P>, ContractError> {
 		let script = self.build_invoke_function_script(function, params).await.unwrap();
 		let mut builder = TransactionBuilder::new();
-		builder.set_script(script);
+		builder.set_script(Some(script));
 		Ok(builder)
 	}
 

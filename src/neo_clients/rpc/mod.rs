@@ -1,9 +1,9 @@
 pub use connections::*;
-pub use provider::*;
 pub use pubsub::{PubsubClient, SubscriptionStream};
+pub use rpc_client::*;
 pub use transports::*;
 
-mod provider;
+mod rpc_client;
 
 mod connections;
 mod pubsub;

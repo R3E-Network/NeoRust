@@ -68,7 +68,7 @@
 //! your transactions with a [`Signer`]. The middleware architecture allows users to either use one
 //! of the existing middleware, or they are free to write on of their own.
 //!
-//! [`Provider`]: providers::Provider
+//! [`Provider`]: providers::NeoClient
 //! [`Middleware`]: providers::middleware
 //! [`Wallet`]: signers::Wallet
 //! [`Signer`]: signers::SignerTrait
@@ -91,6 +91,8 @@ extern crate self as neo;
 #[doc(inline)]
 use neo_builder as builder;
 #[doc(inline)]
+use neo_clients as providers;
+#[doc(inline)]
 use neo_codec as codec;
 #[doc(inline)]
 use neo_config as config;
@@ -101,20 +103,18 @@ use neo_crypto as crypto;
 #[doc(inline)]
 use neo_protocol as protocol;
 #[doc(inline)]
-use neo_providers as providers;
-#[doc(inline)]
 use neo_types as types;
 #[doc(inline)]
 use neo_wallets as wallets;
 
 pub mod neo_builder;
+pub mod neo_clients;
 pub mod neo_codec;
 pub mod neo_config;
 pub mod neo_contract;
 pub mod neo_crypto;
 pub mod neo_error;
 pub mod neo_protocol;
-pub mod neo_providers;
 pub mod neo_types;
 pub mod neo_wallets;
 

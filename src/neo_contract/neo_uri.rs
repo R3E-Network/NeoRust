@@ -28,7 +28,7 @@ pub struct NeoURI<'a, P: JsonRpcClient> {
 	#[getset(get = "pub", set = "pub")]
 	amount: Option<u64>,
 	#[serde(skip)]
-	provider: Option<&'a Provider<P>>,
+	provider: Option<&'a NeoClient<P>>,
 }
 
 impl<'a, P: JsonRpcClient + 'static> NeoURI<'a, P> {
@@ -37,7 +37,7 @@ impl<'a, P: JsonRpcClient + 'static> NeoURI<'a, P> {
 	const NEO_TOKEN_STRING: &'static str = "neo";
 	const GAS_TOKEN_STRING: &'static str = "gas";
 
-	pub fn new(provider: Option<&'a Provider<P>>) -> Self {
+	pub fn new(provider: Option<&'a NeoClient<P>>) -> Self {
 		Self { uri: None, recipient: None, token: None, amount: None, provider }
 	}
 

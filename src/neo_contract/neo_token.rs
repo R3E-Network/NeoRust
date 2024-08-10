@@ -15,7 +15,7 @@ pub struct NeoToken<'a, P: JsonRpcClient> {
 	decimals: Option<u8>,
 	symbol: Option<String>,
 	#[serde(skip)]
-	provider: Option<&'a Provider<P>>,
+	provider: Option<&'a NeoClient<P>>,
 }
 
 impl<'a, P: JsonRpcClient + 'static> NeoToken<'a, P> {
@@ -25,7 +25,7 @@ impl<'a, P: JsonRpcClient + 'static> NeoToken<'a, P> {
 	pub const SYMBOL: &'static str = "NEO";
 	pub const TOTAL_SUPPLY: u64 = 100_000_000;
 
-	pub(crate) fn new(provider: Option<&'a Provider<P>>) -> Self {
+	pub(crate) fn new(provider: Option<&'a NeoClient<P>>) -> Self {
 		Self {
 			script_hash: Self::calc_native_contract_hash(Self::NAME).unwrap(),
 			total_supply: Some(Self::TOTAL_SUPPLY),
@@ -275,7 +275,7 @@ impl<'a, P: JsonRpcClient> SmartContractTrait<'a> for NeoToken<'a, P> {
 		self.script_hash = script_hash;
 	}
 
-	fn provider(&self) -> Option<&Provider<P>> {
+	fn provider(&self) -> Option<&NeoClient<P>> {
 		self.provider
 	}
 }

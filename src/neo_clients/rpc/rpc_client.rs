@@ -16,23 +16,23 @@ use url::{Host, ParseError, Url};
 use neo::prelude::*;
 
 use crate::{
-	neo_providers::rpc::provider::sealed::Sealed, neo_types::ScriptHashExtension,
+	neo_clients::rpc::rpc_client::sealed::Sealed, neo_types::ScriptHashExtension,
 	prelude::Base64Encode,
 };
 
 /// Node Clients
 #[derive(Copy, Clone)]
-pub enum NodeClient {
+pub enum RpcClient {
 	/// RNEO
 	NEO,
 }
 
-impl FromStr for NodeClient {
+impl FromStr for RpcClient {
 	type Err = ProviderError;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		match s.split('/').next().unwrap().to_lowercase().as_str() {
-			"NEO" => Ok(NodeClient::NEO),
+			"NEO" => Ok(RpcClient::NEO),
 			_ => Err(ProviderError::UnsupportedNodeClient),
 		}
 	}
@@ -60,26 +60,26 @@ impl FromStr for NodeClient {
 /// # }
 /// ```
 #[derive(Clone, Debug)]
-pub struct Provider<P> {
-	inner: P,
+pub struct NeoClient<P> {
+	provider: P,
 	nns: Option<Address>,
 	interval: Option<Duration>,
 	from: Option<Address>,
 	_node_client: Arc<Mutex<Option<NeoVersion>>>,
 }
 
-impl<P> AsRef<P> for Provider<P> {
+impl<P> AsRef<P> for NeoClient<P> {
 	fn as_ref(&self) -> &P {
-		&self.inner
+		&self.provider
 	}
 }
 
 // JSON RPC bindings
-impl<P: JsonRpcClient> Provider<P> {
+impl<P: JsonRpcClient> NeoClient<P> {
 	/// Instantiate a new provider with a backend.
 	pub fn new(provider: P) -> Self {
 		Self {
-			inner: provider,
+			provider,
 			nns: None,
 			interval: None,
 			from: None,
@@ -119,7 +119,7 @@ impl<P: JsonRpcClient> Provider<P> {
 		// https://docs.rs/tracing/0.1.22/tracing/span/struct.Span.html#in-asynchronous-code
 		let res = async move {
 			trace!("tx");
-			let fetched = self.inner.fetch(method, params).await;
+			let fetched = self.provider.fetch(method, params).await;
 			let res: R = fetched.map_err(Into::into)?;
 			debug!("{:?}", res);
 			trace!(rx = ?serde_json::to_string(&res)?);
@@ -133,20 +133,15 @@ impl<P: JsonRpcClient> Provider<P> {
 
 #[cfg_attr(target_arch = "wasm32", async_trait(? Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-impl<P: JsonRpcClient> Middleware for Provider<P> {
+impl<P: JsonRpcClient> APITrait for NeoClient<P> {
 	type Error = ProviderError;
 	type Provider = P;
-	type Inner = Self;
-
-	fn inner(&self) -> &Self::Inner {
-		unreachable!("There is no inner provider here")
-	}
 
 	fn convert_err(p: ProviderError) -> Self::Error {
 		p
 	}
 
-	fn provider(&self) -> &Provider<Self::Provider> {
+	fn provider(&self) -> &NeoClient<Self::Provider> {
 		self
 	}
 
@@ -191,7 +186,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	///   - blockHash: The block hash
 	///   - returnFullTransactionObjects: Whether to get block information with all transaction objects or just the block header
 	/// - Returns: The request object
-	async fn get_block(&self, block_hash: H256, full_tx: bool) -> Result<NeoBlock<Transaction>, ProviderError> {
+	async fn get_block(&self, block_hash: H256, full_tx: bool) -> Result<NeoBlock, ProviderError> {
 		return Ok(if full_tx {
 			self.request("getblock", [block_hash.to_value(), 1.to_value()].to_vec()).await?
 		} else {
@@ -222,14 +217,14 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Gets the corresponding block header information according to the specified block hash.
 	/// - Parameter blockHash: The block hash
 	/// - Returns: The request object
-	async fn get_block_header(&self, block_hash: H256) -> Result<NeoBlock<Transaction>, ProviderError> {
+	async fn get_block_header(&self, block_hash: H256) -> Result<NeoBlock, ProviderError> {
 		self.request("getblockheader", vec![block_hash.to_value(), 1.to_value()]).await
 	}
 
 	/// Gets the corresponding block header information according to the specified index.
 	/// - Parameter blockIndex: The block index
 	/// - Returns: The request object
-	async fn get_block_header_by_index(&self, index: u32) -> Result<NeoBlock<Transaction>, ProviderError> {
+	async fn get_block_header_by_index(&self, index: u32) -> Result<NeoBlock, ProviderError> {
 		self.request("getblockheader", vec![index.to_value(), 1.to_value()]).await
 	}
 
@@ -823,7 +818,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 		&self,
 		index: u32,
 		full_tx: bool,
-	) -> Result<NeoBlock<Transaction>, ProviderError> {
+	) -> Result<NeoBlock, ProviderError> {
 		// let full_tx = if full_tx { 1 } else { 0 };
 		// self.request("getblock", vec![index.to_value(), 1.to_value()]).await
 		return Ok(if full_tx {
@@ -930,7 +925,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	}
 }
 
-impl<P: JsonRpcClient> Provider<P> {
+impl<P: JsonRpcClient> NeoClient<P> {
 	/// Sets the default polling interval for event filters and pending transactions
 	/// (default: 7 seconds)
 	pub fn set_interval<T: Into<Duration>>(&mut self, interval: T) -> &mut Self {
@@ -948,7 +943,7 @@ impl<P: JsonRpcClient> Provider<P> {
 }
 
 #[cfg(all(feature = "ipc", any(unix, windows)))]
-impl Provider<crate::Ipc> {
+impl NeoClient<crate::Ipc> {
 	#[cfg_attr(unix, doc = "Connects to the Unix socket at the provided path.")]
 	#[cfg_attr(windows, doc = "Connects to the named pipe at the provided path.\n")]
 	#[cfg_attr(
@@ -961,32 +956,32 @@ impl Provider<crate::Ipc> {
 	}
 }
 
-impl Provider<Http> {
+impl NeoClient<Http> {
 	/// The Url to which requests are made
 	pub fn url(&self) -> &Url {
-		self.inner.url()
+		self.provider.url()
 	}
 
 	/// Mutable access to the Url to which requests are made
 	pub fn url_mut(&mut self) -> &mut Url {
-		self.inner.url_mut()
+		self.provider.url_mut()
 	}
 }
 
-impl<Read, Write> Provider<RwClient<Read, Write>>
+impl<Read, Write> NeoClient<RwClient<Read, Write>>
 where
 	Read: JsonRpcClient + 'static,
 	<Read as JsonRpcClient>::Error: Sync + Send + 'static,
 	Write: JsonRpcClient + 'static,
 	<Write as JsonRpcClient>::Error: Sync + Send + 'static,
 {
-	/// Creates a new [Provider] with a [RwClient]
+	/// Creates a new [NeoClient] with a [RwClient]
 	pub fn rw(r: Read, w: Write) -> Self {
 		Self::new(RwClient::new(r, w))
 	}
 }
 
-impl Provider<MockProvider> {
+impl NeoClient<MockClient> {
 	/// Returns a `Provider` instantiated with an internal "mock" transport.
 	///
 	/// # Example
@@ -1007,8 +1002,8 @@ impl Provider<MockProvider> {
 	/// # Ok(())
 	/// # }
 	/// ```
-	pub fn mocked() -> (Self, MockProvider) {
-		let mock = MockProvider::new();
+	pub fn mocked() -> (Self, MockClient) {
+		let mock = MockClient::new();
 		let mock_clone = mock.clone();
 		(Self::new(mock), mock_clone)
 	}
@@ -1025,36 +1020,36 @@ impl Provider<MockProvider> {
 // 	T::from_tokens(tokens).expect("could not parse tokens as address")
 // }
 
-impl TryFrom<&str> for Provider<Http> {
+impl TryFrom<&str> for NeoClient<Http> {
 	type Error = ParseError;
 
 	fn try_from(src: &str) -> Result<Self, Self::Error> {
-		Ok(Provider::new(Http::new(Url::parse(src)?)))
+		Ok(NeoClient::new(Http::new(Url::parse(src)?)))
 	}
 }
 
-impl TryFrom<String> for Provider<Http> {
+impl TryFrom<String> for NeoClient<Http> {
 	type Error = ParseError;
 
 	fn try_from(src: String) -> Result<Self, Self::Error> {
-		Provider::try_from(src.as_str())
+		NeoClient::try_from(src.as_str())
 	}
 }
 
-impl<'a> TryFrom<&'a String> for Provider<Http> {
+impl<'a> TryFrom<&'a String> for NeoClient<Http> {
 	type Error = ParseError;
 
 	fn try_from(src: &'a String) -> Result<Self, Self::Error> {
-		Provider::try_from(src.as_str())
+		NeoClient::try_from(src.as_str())
 	}
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl Provider<RetryClient<Http>> {
+impl NeoClient<RetryClient<Http>> {
 	/// Create a new [`RetryClient`] by connecting to the provided URL. Errors
 	/// if `src` is not a valid URL
 	pub fn new_client(src: &str, max_retry: u32, initial_backoff: u64) -> Result<Self, ParseError> {
-		Ok(Provider::new(RetryClient::new(
+		Ok(NeoClient::new(RetryClient::new(
 			Http::new(Url::parse(src)?),
 			Box::new(HttpRateLimitRetryPolicy),
 			max_retry,
@@ -1064,11 +1059,11 @@ impl Provider<RetryClient<Http>> {
 }
 
 mod sealed {
-	use neo::prelude::{Http, Provider};
+	use neo::prelude::{Http, NeoClient};
 
 	/// private trait to ensure extension trait is not implement outside of this crate
 	pub trait Sealed {}
-	impl Sealed for Provider<Http> {}
+	impl Sealed for NeoClient<Http> {}
 }
 
 /// Extension trait for `Provider`
@@ -1134,14 +1129,14 @@ pub trait ProviderExt: Sealed {
 
 #[cfg_attr(target_arch = "wasm32", async_trait(? Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-impl ProviderExt for Provider<Http> {
+impl ProviderExt for NeoClient<Http> {
 	type Error = ParseError;
 
 	async fn try_connect(url: &str) -> Result<Self, Self::Error>
 	where
 		Self: Sized,
 	{
-		let mut provider = Provider::try_from(url)?;
+		let mut provider = NeoClient::try_from(url)?;
 		let Some(network) = provider.get_version().await.ok() else { panic!("") };
 		provider.set_network(network.protocol.unwrap().network);
 
@@ -1178,8 +1173,7 @@ pub fn is_local_endpoint(endpoint: &str) -> bool {
 					domain.contains("localhost") || domain.contains("localdev.me"),
 				Host::Ipv4(ipv4) =>
 					ipv4 == Ipv4Addr::LOCALHOST
-						|| ipv4.is_link_local()
-						|| ipv4.is_loopback()
+						|| ipv4.is_link_local() || ipv4.is_loopback()
 						|| ipv4.is_private(),
 				Host::Ipv6(ipv6) => ipv6.is_loopback(),
 			};
@@ -1210,13 +1204,13 @@ mod tests {
 	};
 
 	use neo::prelude::{
-		AccountSigner, HttpProvider, Middleware, Provider, ScriptHashExtension, Secp256r1PublicKey,
+		APITrait, AccountSigner, HttpProvider, NeoClient, ScriptHashExtension, Secp256r1PublicKey,
 		Signer::Account, SignerTrait, TestConstants, WitnessAction, WitnessCondition, WitnessRule,
 	};
 
 	use crate::{
 		neo_types::{Base64Encode, ToBase64},
-		prelude::{MockProvider, NativeContractState},
+		prelude::{MockClient, NativeContractState},
 	};
 
 	async fn setup_mock_server() -> MockServer {
@@ -1228,7 +1222,7 @@ mod tests {
 		rpc_method: &str,
 		params: serde_json::Value,
 		result: serde_json::Value,
-	) -> Provider<HttpProvider> {
+	) -> NeoClient<HttpProvider> {
 		Mock::given(http_method("POST"))
 			.and(path("/"))
 			.and(body_json(json!({
@@ -1247,14 +1241,14 @@ mod tests {
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
-		Provider::new(http_client)
+		NeoClient::new(http_client)
 	}
 
 	#[tokio::test]
 	async fn test_get_best_block_hash() {
 		let _ = env_logger::builder().is_test(true).try_init();
 
-		let mock_provider = MockProvider::new().await;
+		let mock_provider = MockClient::new().await;
 		mock_provider
 			.mock_response(
 				"getbestblockhash",
@@ -1262,7 +1256,7 @@ mod tests {
 				json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
 			)
 			.await;
-		let provider = mock_provider.into_provider();
+		let provider = mock_provider.into_client();
 		let result = provider.get_best_block_hash().await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 
@@ -3676,7 +3670,7 @@ mod tests {
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
-		let provider = Provider::new(http_client);
+		let provider = NeoClient::new(http_client);
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -3713,7 +3707,7 @@ mod tests {
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
-		let provider = Provider::new(http_client);
+		let provider = NeoClient::new(http_client);
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -3749,7 +3743,7 @@ mod tests {
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
-		let provider = Provider::new(http_client);
+		let provider = NeoClient::new(http_client);
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -3782,7 +3776,7 @@ mod tests {
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
-		let provider = Provider::new(http_client);
+		let provider = NeoClient::new(http_client);
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -3816,7 +3810,7 @@ mod tests {
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
-		let provider = Provider::new(http_client);
+		let provider = NeoClient::new(http_client);
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -3862,7 +3856,7 @@ mod tests {
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
-		let provider = Provider::new(http_client);
+		let provider = NeoClient::new(http_client);
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -3909,7 +3903,7 @@ mod tests {
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
-		let provider = Provider::new(http_client);
+		let provider = NeoClient::new(http_client);
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -3943,7 +3937,7 @@ mod tests {
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
-		let provider = Provider::new(http_client);
+		let provider = NeoClient::new(http_client);
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -3969,7 +3963,7 @@ mod tests {
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
-		let provider = Provider::new(http_client);
+		let provider = NeoClient::new(http_client);
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -4025,7 +4019,7 @@ mod tests {
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
-		let provider = Provider::new(http_client);
+		let provider = NeoClient::new(http_client);
 
 		// Expected request body
 		let expected_request_body = format!(

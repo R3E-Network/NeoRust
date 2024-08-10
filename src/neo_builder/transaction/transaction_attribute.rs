@@ -90,6 +90,8 @@ impl NeoSerializable for TransactionAttribute {
 				response_code: _,
 				result,
 			}) => 1 + 9 + result.len(),
+			// TODO: check the size of the conflicts attribute
+			TransactionAttribute::Conflicts => 1,
 		}
 	}
 
@@ -106,6 +108,7 @@ impl NeoSerializable for TransactionAttribute {
 				writer.write_u8(response_code.clone() as u8);
 				writer.write_var_bytes(result.from_base64().unwrap().as_slice());
 			},
+			_ => {},
 		}
 	}
 

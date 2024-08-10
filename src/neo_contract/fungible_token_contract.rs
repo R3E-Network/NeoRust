@@ -9,11 +9,11 @@ pub struct FungibleTokenContract<'a, P: JsonRpcClient> {
 	total_supply: Option<u64>,
 	decimals: Option<u8>,
 	symbol: Option<String>,
-	provider: Option<&'a Provider<P>>,
+	provider: Option<&'a NeoClient<P>>,
 }
 
 impl<'a, P: JsonRpcClient> FungibleTokenContract<'a, P> {
-	pub fn new(script_hash: &H160, provider: Option<&'a Provider<P>>) -> Self {
+	pub fn new(script_hash: &H160, provider: Option<&'a NeoClient<P>>) -> Self {
 		Self {
 			script_hash: script_hash.clone(),
 			total_supply: None,
@@ -67,7 +67,7 @@ impl<'a, P: JsonRpcClient> SmartContractTrait<'a> for FungibleTokenContract<'a, 
 		self.script_hash = script_hash;
 	}
 
-	fn provider(&self) -> Option<&Provider<P>> {
+	fn provider(&self) -> Option<&NeoClient<P>> {
 		self.provider
 	}
 }

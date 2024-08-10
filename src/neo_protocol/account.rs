@@ -538,7 +538,7 @@ impl Account {
 
 	pub async fn get_nep17_balances<P>(
 		&self,
-		provider: &Provider<P>,
+		provider: &NeoClient<P>,
 	) -> Result<HashMap<H160, u64>, ProviderError>
 	where
 		P: JsonRpcClient,
@@ -567,12 +567,12 @@ mod tests {
 	};
 
 	use neo::prelude::{
-		Account, AccountTrait, BodyRegexMatcher, HttpProvider, KeyPair, NeoSerializable, Provider,
+		Account, AccountTrait, BodyRegexMatcher, HttpProvider, KeyPair, NeoClient, NeoSerializable,
 		ProviderError, ScriptHashExtension, Secp256r1PublicKey, TestConstants, ToArray32,
 		VerificationScript, Wallet, WalletTrait,
 	};
 
-	use super::Middleware;
+	use super::APITrait;
 
 	#[test]
 	fn test_create_generic_account() {
@@ -799,7 +799,7 @@ mod tests {
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
-		let provider = Provider::new(http_client);
+		let provider = NeoClient::new(http_client);
 
 		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
 		//

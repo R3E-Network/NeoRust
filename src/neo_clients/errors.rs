@@ -4,10 +4,10 @@ use thiserror::Error;
 
 use neo::{
 	prelude::{CryptoError, JsonRpcError, TypeError},
-	providers::middleware::MiddlewareError,
+	providers::middleware::APIError,
 };
 
-use crate::prelude::Middleware;
+use crate::prelude::APITrait;
 
 /// An `RpcError` is an abstraction over error types returned by a
 /// [`crate::JsonRpcClient`].
@@ -139,7 +139,7 @@ impl RpcError for ProviderError {
 	}
 }
 
-impl MiddlewareError for ProviderError {
+impl APIError for ProviderError {
 	type Inner = Self;
 
 	fn from_err(e: Self::Inner) -> Self {

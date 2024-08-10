@@ -199,7 +199,7 @@ mod imp {
 ///
 /// ```no_run
 /// # async fn foo() -> Result<(), Box<dyn std::error::Error>> {
-/// use neo_providers::Ipc;
+/// use neo_clients::Ipc;
 ///
 /// // the ipc's path
 #[cfg_attr(unix, doc = r#"let path = "/home/user/.local/share/reth/reth.ipc";"#)]

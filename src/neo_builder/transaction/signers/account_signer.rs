@@ -127,6 +127,19 @@ impl NeoSerializable for AccountSigner {
 	}
 }
 
+impl Eq for &AccountSigner {}
+
+impl PartialEq for &AccountSigner {
+	fn eq(&self, other: &Self) -> bool {
+		self.signer_hash == other.signer_hash
+			&& self.scopes == other.scopes
+			&& self.allowed_contracts == other.allowed_contracts
+			&& self.allowed_groups == other.allowed_groups
+			&& self.rules == other.rules
+		// && self.account == other.account
+	}
+}
+
 impl PartialEq for AccountSigner {
 	fn eq(&self, other: &Self) -> bool {
 		self.signer_hash == other.signer_hash

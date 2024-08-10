@@ -163,7 +163,7 @@
 // mod tests {
 // 	use neo::prelude::{JsonRpcError, Provider};
 //
-// 	use crate::{config::NeoNetwork, neo_providers::middleware::Middleware};
+// 	use crate::{config::NeoNetwork, neo_clients::middleware::Middleware};
 //
 // 	use super::*;
 //

@@ -6,7 +6,7 @@ pub struct NeoIterator<'a, T, P: JsonRpcClient> {
 	session_id: String,
 	iterator_id: String,
 	mapper: Arc<dyn Fn(StackItem) -> T + Send + Sync>,
-	provider: Option<&'a Provider<P>>,
+	provider: Option<&'a NeoClient<P>>,
 }
 
 impl<'a, T, P: JsonRpcClient> fmt::Debug for NeoIterator<'a, T, P> {
@@ -25,7 +25,7 @@ impl<'a, T, P: JsonRpcClient> NeoIterator<'a, T, P> {
 		session_id: String,
 		iterator_id: String,
 		mapper: Arc<dyn Fn(StackItem) -> T + Send + Sync>,
-		provider: Option<&'a Provider<P>>,
+		provider: Option<&'a NeoClient<P>>,
 	) -> Self {
 		Self { session_id, iterator_id, mapper, provider }
 	}

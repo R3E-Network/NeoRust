@@ -8,7 +8,7 @@ use yubihsm::{
 };
 
 use neo::{
-	neo_providers::public_key_to_address,
+	neo_clients::public_key_to_address,
 	prelude::{Secp256r1PublicKey, WalletSigner},
 };
 

@@ -8,13 +8,12 @@ use serde_json::Value;
 use serde_with::__private__::DeError;
 
 use neo::prelude::{
-	ApplicationLog, Bytes, Decoder, Encoder, HashableForVec, Middleware, NameOrAddress,
-	NeoSerializable, Provider, Signer, TransactionAttribute, TransactionError, VarSizeTrait,
-	Witness,
+	APITrait, ApplicationLog, Bytes, Decoder, Encoder, HashableForVec, NameOrAddress, NeoClient,
+	NeoSerializable, Signer, TransactionAttribute, TransactionError, VarSizeTrait, Witness,
 };
 
 use crate::{
-	neo_providers::JsonRpcClient,
+	neo_clients::JsonRpcClient,
 	prelude::{NeoConstants, RawTransaction},
 };
 
@@ -193,7 +192,12 @@ impl Transaction {
 
 	pub async fn send(
 		&mut self,
-		provider: Box<dyn JsonRpcClient<Error = TransactionError>>,
+		client: Box<
+			dyn APITrait<
+				Error = TransactionError,
+				Provider = dyn JsonRpcClient<Error = TransactionError>,
+			>,
+		>,
 	) -> Result<RawTransaction, TransactionError> {
 		if self.signers.len() != self.witnesses.len() {
 			return Err(TransactionError::TransactionConfiguration(
@@ -206,15 +210,20 @@ impl Transaction {
 				"The transaction exceeds the maximum transaction size.".to_string(),
 			));
 		}
-		let hex = hex::encode(self.to_array().await?);
-		self.throw_if_neo_swift_nil()?;
-		self.block_count_when_sent = Some(provider.as_ref().get_block_count().await?);
-		provider.as_ref().send_raw_transaction(&hex).await
+		let hex = hex::encode(self.to_array());
+		// self.throw()?;
+		self.block_count_when_sent = Some(client.as_ref().get_block_count().await?);
+		client.as_ref().send_raw_transaction(hex).await
 	}
 
 	pub async fn track(
 		&self,
-		provider: Box<dyn JsonRpcClient<Error = TransactionError>>,
+		provider: Box<
+			dyn APITrait<
+				Error = TransactionError,
+				Provider = dyn JsonRpcClient<Error = TransactionError>,
+			>,
+		>,
 	) -> Result<(), TransactionError> {
 		let block_count_when_sent =
 			self.block_count_when_sent.ok_or(TransactionError::IllegalState(
@@ -239,7 +248,12 @@ impl Transaction {
 
 	pub async fn get_application_log(
 		&self,
-		provider: Box<dyn JsonRpcClient<Error = TransactionError>>,
+		provider: Box<
+			dyn APITrait<
+				Error = TransactionError,
+				Provider = dyn JsonRpcClient<Error = TransactionError>,
+			>,
+		>,
 	) -> Result<ApplicationLog, TransactionError> {
 		if self.block_count_when_sent.is_none() {
 			return Err(TransactionError::IllegalState(

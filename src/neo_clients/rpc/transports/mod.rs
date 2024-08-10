@@ -1,5 +1,5 @@
 pub use common::*;
-pub use http::{ClientError, HttpProvider};
+pub use http_provider::{ClientError, HttpProvider};
 #[cfg(all(feature = "ipc", any(unix, windows)))]
 pub use ipc::{Ipc, IpcError};
 #[cfg(feature = "legacy-ws")]
@@ -10,9 +10,9 @@ pub use rw::{RwClient, RwClientError};
 #[cfg(all(feature = "ws", not(feature = "legacy-ws")))]
 pub use ws::{ConnectionDetails, WsClient as Ws, WsClientError};
 
-pub use self::http::{ClientError as HttpClientError, HttpProvider as Http};
+pub use self::http_provider::{ClientError as HttpClientError, HttpProvider as Http};
 
-mod http;
+mod http_provider;
 #[cfg(all(feature = "ipc", any(unix, windows)))]
 mod ipc;
 // mod quorum;

@@ -59,7 +59,7 @@ pub struct NeoConfig {
 }
 
 lazy_static! {
-    pub static ref NEOCONFIG: Mutex<NeoConfig> = Mutex::new(NeoConfig::default());
+	pub static ref NEOCONFIG: Mutex<NeoConfig> = Mutex::new(NeoConfig::default());
 }
 
 impl Hash for NeoConfig {
@@ -124,7 +124,7 @@ impl Default for NeoConfig {
 				"seed5.neo.org:10333".to_string(),
 			],
 			nns_resolver: H160::from_slice(
-				hex::decode("50ac1c37690cc2cfc594472833cf57505d5f46de").unwrap().as_slice()
+				hex::decode("50ac1c37690cc2cfc594472833cf57505d5f46de").unwrap().as_slice(),
 			),
 			executor: Arc::new(Mutex::new(tokio::runtime::Handle::current())),
 			allows_transmission_on_fault: false,

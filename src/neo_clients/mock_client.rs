@@ -12,11 +12,11 @@ use wiremock::{
 ///
 /// This provider wraps a `MockServer` to simulate RPC responses,
 /// allowing for controlled testing of Neo RPC client code.
-pub struct MockProvider {
+pub struct MockClient {
 	server: MockServer,
 }
 
-impl MockProvider {
+impl MockClient {
 	/// Creates a new instance of `MockProvider`.
 	///
 	/// This method starts a new `MockServer` and returns a `MockProvider`
@@ -140,9 +140,9 @@ impl MockProvider {
 	/// # Returns
 	///
 	/// A `Provider<HttpProvider>` that uses this mock server.
-	pub fn into_provider(&self) -> Provider<HttpProvider> {
+	pub fn into_client(&self) -> NeoClient<HttpProvider> {
 		let http_provider = HttpProvider::new(self.url());
-		Provider::new(http_provider)
+		NeoClient::new(http_provider)
 	}
 
 	/// Returns a reference to the internal `MockServer`.

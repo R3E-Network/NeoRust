@@ -114,7 +114,7 @@ impl VerificationScript {
 
 		let service_bytes = &reader.read_bytes(4).unwrap().to_hex();
 		let hash = &InteropService::SystemCryptoCheckMultiSig.hash(); //.from_hex().unwrap();
-																//assert_eq!(service_bytes, hash);
+															  //assert_eq!(service_bytes, hash);
 		if service_bytes != hash {
 			return false;
 		}
@@ -192,7 +192,7 @@ impl VerificationScript {
 		} else if self.is_multi_sig() {
 			let reader = &mut Decoder::new(&self.script);
 			Ok(reader.by_ref().read_push_int()?.to_usize().unwrap())
-			//Ok(reader.by_ref().read_bigint()?.to_usize().unwrap())
+		//Ok(reader.by_ref().read_bigint()?.to_usize().unwrap())
 		} else {
 			Err(BuilderError::InvalidScript("Invalid verification script".to_string()))
 		}

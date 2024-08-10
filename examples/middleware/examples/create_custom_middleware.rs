@@ -98,7 +98,7 @@ where
         println!("Raised transaction gas: {raised_gas:?} wei");
 
         // Dispatch the call to the inner layer
-        self.inner().send_transaction(tx, block).await.map_err(MiddlewareError::from_err)
+        self.send_transaction(tx, block).await.map_err(MiddlewareError::from_err)
     }
 }
 

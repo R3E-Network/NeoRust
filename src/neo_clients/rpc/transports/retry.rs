@@ -15,7 +15,7 @@ use tracing::trace;
 
 use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
 
-use super::{common::JsonRpcError, http::ClientError};
+use super::{common::JsonRpcError, http_provider::ClientError};
 
 /// [RetryPolicy] defines logic for which [JsonRpcClient::Error] instances should
 /// the client retry the request and try to recover from.

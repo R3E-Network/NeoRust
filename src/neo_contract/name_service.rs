@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
 	deserialize_script_hash, deserialize_script_hash_option, serialize_script_hash,
-	serialize_script_hash_option, AddressOrScriptHash, ContractError, ContractParameter,
-	JsonRpcClient, Middleware, NNSName, NeoIterator, NonFungibleTokenTrait, Provider, ScriptHash,
+	serialize_script_hash_option, APITrait, AddressOrScriptHash, ContractError, ContractParameter,
+	JsonRpcClient, NNSName, NeoClient, NeoIterator, NonFungibleTokenTrait, ScriptHash,
 	SmartContractTrait, StackItem, TokenTrait, TransactionBuilder,
 };
 
@@ -61,7 +61,7 @@ pub struct NeoNameService<'a, P: JsonRpcClient> {
 	#[serde(serialize_with = "serialize_script_hash")]
 	script_hash: ScriptHash,
 	#[serde(skip)]
-	provider: Option<&'a Provider<P>>,
+	provider: Option<&'a NeoClient<P>>,
 }
 
 impl<'a, P: JsonRpcClient + 'static> NeoNameService<'a, P> {
@@ -84,7 +84,7 @@ impl<'a, P: JsonRpcClient + 'static> NeoNameService<'a, P> {
 	const EXPIRATION_PROPERTY: &'static str = "expiration";
 	const ADMIN_PROPERTY: &'static str = "admin";
 
-	pub fn new(provider: Option<&'a Provider<P>>) -> Self {
+	pub fn new(provider: Option<&'a NeoClient<P>>) -> Self {
 		Self { script_hash: provider.unwrap().nns_resolver().clone(), provider }
 	}
 
@@ -297,7 +297,7 @@ impl<'a, P: JsonRpcClient> SmartContractTrait<'a> for NeoNameService<'a, P> {
 		self.script_hash = script_hash;
 	}
 
-	fn provider(&self) -> Option<&Provider<P>> {
+	fn provider(&self) -> Option<&NeoClient<P>> {
 		self.provider
 	}
 }

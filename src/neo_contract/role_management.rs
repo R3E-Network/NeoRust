@@ -11,14 +11,14 @@ pub struct RoleManagement<'a, P: JsonRpcClient> {
 	#[serde(serialize_with = "serialize_script_hash")]
 	script_hash: ScriptHash,
 	#[serde(skip)]
-	provider: Option<&'a Provider<P>>,
+	provider: Option<&'a NeoClient<P>>,
 }
 
 impl<'a, P: JsonRpcClient + 'static> RoleManagement<'a, P> {
 	const NAME: &'static str = "RoleManagement";
 	// const SCRIPT_HASH: H160 = Self::calc_native_contract_hash(Self::NAME).unwrap(); // compute hash
 
-	pub fn new(provider: Option<&'a Provider<P>>) -> Self {
+	pub fn new(provider: Option<&'a NeoClient<P>>) -> Self {
 		Self { script_hash: Self::calc_native_contract_hash(Self::NAME).unwrap(), provider }
 	}
 
@@ -96,7 +96,7 @@ impl<'a, P: JsonRpcClient> SmartContractTrait<'a> for RoleManagement<'a, P> {
 		self.script_hash = script_hash;
 	}
 
-	fn provider(&self) -> Option<&Provider<P>> {
+	fn provider(&self) -> Option<&NeoClient<P>> {
 		self.provider
 	}
 }

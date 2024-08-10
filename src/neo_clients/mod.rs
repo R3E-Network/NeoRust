@@ -10,7 +10,7 @@ use lazy_static::lazy_static;
 pub use errors::{ProviderError, RpcError};
 pub use ext::*;
 pub use middleware::*;
-pub use mock_provider::MockProvider;
+pub use mock_client::MockClient;
 use neo::prelude::NeoConstants;
 pub use rpc::*;
 #[allow(deprecated)]
@@ -21,15 +21,15 @@ pub use utils::*;
 mod errors;
 mod ext;
 mod middleware;
-mod mock_provider;
+mod mock_blocks;
+mod mock_client;
 mod rpc;
+mod rx;
 /// Crate utilities and type aliases
 mod utils;
-mod rx;
-mod mock_blocks;
 
 lazy_static! {
-	pub static ref HTTP_PROVIDER: Provider<Http> = Provider::<Http>::try_from(
+	pub static ref HTTP_PROVIDER: NeoClient<Http> = NeoClient::<Http>::try_from(
 		std::env::var("ENDPOINT").unwrap_or_else(|_| NeoConstants::SEED_1.to_string())
 	)
 	.unwrap();
@@ -71,18 +71,18 @@ mod test_provider {
 			format!("https://{network}.infura.io/v3/{key}")
 		}
 
-		pub fn provider(&self) -> Provider<Http> {
-			Provider::try_from(self.url().as_str()).unwrap()
+		pub fn provider(&self) -> NeoClient<Http> {
+			NeoClient::try_from(self.url().as_str()).unwrap()
 		}
 
 		#[cfg(feature = "ws")]
-		pub async fn ws(&self) -> Provider<crate::Ws> {
+		pub async fn ws(&self) -> NeoClient<crate::Ws> {
 			let url = format!(
 				"wss://{}.infura.neo.io/ws/v3/{}",
 				self.network,
 				self.keys.lock().unwrap().next().unwrap()
 			);
-			Provider::connect(url.as_str()).await.unwrap()
+			NeoClient::connect(url.as_str()).await.unwrap()
 		}
 	}
 }

@@ -155,8 +155,8 @@ impl crate::Provider<WsClient> {
 	/// Connect to server via URL
 	///
 	/// ```
-	/// use neo_providers::{Ws, Provider};
-	/// use neo_providers::Middleware;
+	/// use neo_clients::{Ws, Provider};
+	/// use neo_clients::Middleware;
 	/// # async fn t() {
 	///     let ws = Provider::<Ws>::connect("ws://localhost:8545").await.unwrap();
 	///     let _num = ws.get_block_number().await.unwrap();
@@ -166,7 +166,7 @@ impl crate::Provider<WsClient> {
 	/// Connect with authentication, see also [Self::connect_with_auth]
 	///
 	/// ```
-	/// use neo_providers::{Ws, Provider, Middleware, ConnectionDetails, Authorization };
+	/// use neo_clients::{Ws, Provider, Middleware, ConnectionDetails, Authorization };
 	/// # async fn t() {
 	///     let auth = Authorization::basic("user", "pass");
 	///     let opts = ConnectionDetails::new("ws://localhost:8545", Some(auth));

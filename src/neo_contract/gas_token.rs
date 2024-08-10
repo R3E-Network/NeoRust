@@ -16,7 +16,7 @@ pub struct GasToken<'a, P: JsonRpcClient> {
 	#[serde(skip_serializing_if = "Option::is_none")]
 	symbol: Option<String>,
 	#[serde(skip)]
-	provider: Option<&'a Provider<P>>,
+	provider: Option<&'a NeoClient<P>>,
 }
 
 impl<'a, P: JsonRpcClient> GasToken<'a, P> {
@@ -24,7 +24,7 @@ impl<'a, P: JsonRpcClient> GasToken<'a, P> {
 	pub const DECIMALS: u8 = 8;
 	pub const SYMBOL: &'static str = "GAS";
 
-	pub fn new(provider: Option<&'a Provider<P>>) -> Self {
+	pub fn new(provider: Option<&'a NeoClient<P>>) -> Self {
 		Self {
 			script_hash: Self::calc_native_contract_hash(Self::NAME).unwrap(),
 			total_supply: None,
@@ -78,7 +78,7 @@ impl<'a, P: JsonRpcClient> SmartContractTrait<'a> for GasToken<'a, P> {
 		self.script_hash = script_hash;
 	}
 
-	fn provider(&self) -> Option<&Provider<P>> {
+	fn provider(&self) -> Option<&NeoClient<P>> {
 		self.provider
 	}
 }
