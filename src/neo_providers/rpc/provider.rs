@@ -486,7 +486,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// - Parameter scriptHash: The account's script hash
 	/// - Returns: The request object
 	async fn get_unclaimed_gas(&self, hash: H160) -> Result<UnclaimedGas, ProviderError> {
-		self.request("getunclaimedgas", [serialize(&hash)]).await
+		self.request("getunclaimedgas", [hash.to_address()]).await
 	}
 
 	/// Gets a list of plugins loaded by the node.
@@ -532,7 +532,7 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// Gets the amount of unclaimed GAS in the wallet.
 	/// - Returns: The request object
 	async fn get_wallet_unclaimed_gas(&self) -> Result<String, ProviderError> {
-		self.request("getwalletunclaimedgas", Vec::<u32>::new()).await
+		self.request("getwalletunclaimedgas", Vec::<String>::new()).await
 	}
 
 	/// Imports a private key to the wallet.
@@ -547,13 +547,13 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	/// - Parameter txBase64: The transaction in hexadecimal
 	/// - Returns: The request object
 	async fn calculate_network_fee(&self, txBase64: String) -> Result<i64, ProviderError> {
-		self.request("calculatenetworkfee", vec![txBase64.to_value()]).await
+		self.request("calculatenetworkfee", vec![Base64Encode::to_base64(&txBase64)]).await
 	}
 
 	/// Lists all the addresses in the current wallet.
 	/// - Returns: The request object
 	async fn list_address(&self) -> Result<Vec<NeoAddress>, ProviderError> {
-		self.request("listaddress", ()).await
+		self.request("listaddress", Vec::<NeoAddress>::new()).await
 	}
 
 	/// Opens the specified wallet.
@@ -575,12 +575,13 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	async fn send_from(
 		&self,
 		token_hash: H160,
-		from: Address,
-		to: Address,
+		from: H160,
+		to: H160,
 		amount: u32,
 	) -> Result<Transaction, ProviderError> {
-		let params =
-			[token_hash.to_value(), from.to_value(), to.to_value(), amount.to_value()].to_vec();
+		// let params =
+		// 	[token_hash.to_value(), from.to_value(), to.to_value(), amount.to_value()].to_vec();
+		let params = json!([token_hash.to_hex(), from.to_address(), to.to_address(), amount,]);
 		self.request("sendfrom", params).await
 	}
 
@@ -943,10 +944,11 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 	async fn send_from_send_token(
 		&self,
 		send_token: &TransactionSendToken,
-		from: Address,
+		from: H160,
 	) -> Result<Transaction, ProviderError> {
-		let params = [from.to_value(), vec![send_token.to_value()].into()].to_vec();
-		self.request("sendmany", params).await
+		let params = json!([send_token.token.to_hex(), from.to_address(), send_token.address, send_token.value,]);
+		// let params = [from.to_value(), vec![send_token.to_value()].into()].to_vec();
+		self.request("sendfrom", params).await
 	}
 }
 
@@ -1231,7 +1233,7 @@ mod tests {
 
 	use neo::prelude::{
 		AccountSigner, HttpProvider, Middleware, Provider, ScriptHashExtension, Secp256r1PublicKey,
-		Signer::Account, SignerTrait, TestConstants, WitnessAction, WitnessCondition, WitnessRule,
+		Signer::Account, SignerTrait, TestConstants, TransactionSendToken, WitnessAction, WitnessCondition, WitnessRule,
 	};
 
 	use crate::{
@@ -4185,6 +4187,138 @@ mod tests {
 			"id": 1
 		}}"#);
         provider.get_wallet_unclaimed_gas().await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_unclaimed_gas() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getunclaimedgas",
+			"params": ["NaQ6Kj6qYinh1frv1wrn53wbPFe5BH5T7g"],
+			"id": 1
+		}}"#);
+        provider.get_unclaimed_gas(H160::from_str("ffa6adbb5f82ad2a1aafa22ce6aaf05dad5de39e").unwrap()).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_import_priv_key() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "importprivkey",
+			"params": ["L5c6jz6Rh8arFJW3A5vg7Suaggo28ApXVF2EPzkAXbm94ThqaA6r"],
+			"id": 1
+		}}"#);
+        provider.import_priv_key("L5c6jz6Rh8arFJW3A5vg7Suaggo28ApXVF2EPzkAXbm94ThqaA6r".to_string()).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_calculate_network_fee() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "calculatenetworkfee",
+			"params": ["bmVvdzNq"],
+			"id": 1
+		}}"#);
+        provider.calculate_network_fee("6e656f77336a".to_string()).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_list_address() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "listaddress",
+			"params": [],
+			"id": 1
+		}}"#);
+        provider.list_address().await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_send_from() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "sendfrom",
+			"params": ["de5f57d430d3dece511cf975a8d37848cb9e0525", "NaxePjypvtsQ5GVi6S1jBsSjXribTSUKRu", "NbD6be5uYezFZRSBDt6aBfYR9bYsAk8Yui", 10],
+			"id": 1
+		}}"#);
+        provider.send_from(
+			H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(), 
+			H160::from_str("8cdb257b8873049918fe5a1e7f6289f75d720ba5").unwrap(), 
+			H160::from_str("db1acbae4dbae55f8325724cf080ed782925c7a7").unwrap(), 
+			10).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_send_from_transaction_send_asset() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = Provider::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "sendfrom",
+			"params": ["de5f57d430d3dece511cf975a8d37848cb9e0525", "Ng9E3D4DpM6JrgSxizhanJ6zm6BjvZ2XkM", "NUokBS9rfH8qncwFdfByBTT9yJjxQv8h2h", 10],
+			"id": 1
+		}}"#);
+        provider.send_from_send_token(
+			&TransactionSendToken::new(H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(), 10, "NUokBS9rfH8qncwFdfByBTT9yJjxQv8h2h".to_string()),
+			H160::from_str("44b159ceed1bfbd753748227309428f54f52e4dd").unwrap()).await;
 
         verify_request(&mock_server, &expected_request_body).await.unwrap();
     }

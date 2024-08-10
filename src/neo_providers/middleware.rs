@@ -404,8 +404,8 @@ pub trait Middleware: Sync + Send + Debug {
 	async fn send_from(
 		&self,
 		token_hash: H160,
-		from: Address,
-		to: Address,
+		from: H160,
+		to: H160,
 		amount: u32,
 	) -> Result<Transaction, Self::Error> {
 		self.inner()
@@ -689,7 +689,7 @@ pub trait Middleware: Sync + Send + Debug {
 	async fn send_from_send_token(
 		&self,
 		send_token: &TransactionSendToken,
-		from: Address,
+		from: H160,
 	) -> Result<Transaction, Self::Error> {
 		self.inner()
 			.send_from_send_token(send_token, from)
