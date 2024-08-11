@@ -122,8 +122,8 @@ pub mod neo_wallets;
 #[doc(hidden)]
 #[allow(unknown_lints, ambiguous_glob_reexports)]
 pub mod prelude {
-    pub use super::{
-        builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
-        providers::*, types::*, wallets::*,
-    };
+	pub use super::{
+		builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
+		providers::*, types::*, wallets::*,
+	};
 }

@@ -12,12 +12,12 @@ use neo::prelude::ProviderError;
 /// Trait which must be implemented by data transports to be used with the Neo
 /// JSON-RPC provider.
 pub trait JsonRpcProvider: Debug + Send + Sync {
-    /// A JSON-RPC Error
-    type Error: Into<ProviderError>;
+	/// A JSON-RPC Error
+	type Error: Into<ProviderError>;
 
-    /// Sends a request with the provided JSON-RPC and parameters serialized as JSON
-    async fn fetch<T, R>(&self, method: &str, params: T) -> Result<R, Self::Error>
-    where
-        T: Debug + Serialize + Send + Sync,
-        R: DeserializeOwned + Send;
+	/// Sends a request with the provided JSON-RPC and parameters serialized as JSON
+	async fn fetch<T, R>(&self, method: &str, params: T) -> Result<R, Self::Error>
+	where
+		T: Debug + Serialize + Send + Sync,
+		R: DeserializeOwned + Send;
 }
