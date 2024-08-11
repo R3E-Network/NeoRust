@@ -12,16 +12,25 @@ use neo::prelude::{deserialize_script_hash, serialize_script_hash, ContractParam
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct InvocationResult {
+	#[serde(default)]
 	pub script: String,
+	#[serde(default)]
 	pub state: NeoVMStateType,
-	#[serde(rename = "gasconsumed")]
+	#[serde(rename = "gasconsumed", default)]
 	pub gas_consumed: String,
+	#[serde(default)]
 	pub exception: Option<String>,
+	#[serde(default)]
 	pub notifications: Option<Vec<Notification>>,
+	#[serde(default)]
 	pub diagnostics: Option<Diagnostics>,
+	#[serde(default)]
 	pub stack: Vec<StackItem>,
+	#[serde(default)]
 	pub tx: Option<String>,
+	#[serde(default)]
 	pub pending_signature: Option<PendingSignature>,
+	#[serde(default)]
 	pub session_id: Option<String>,
 }
 
@@ -36,6 +45,12 @@ pub enum NeoVMStateType {
 	StepOut,
 	StepOver,
 	Exception,
+}
+
+impl Default for NeoVMStateType {
+	fn default() -> Self {
+		NeoVMStateType::Halt
+	}
 }
 
 impl InvocationResult {
@@ -78,9 +93,9 @@ impl InvocationResult {
 impl Default for InvocationResult {
 	fn default() -> Self {
 		Self {
-			script: "".to_string(),
+			script: "0001020304".to_string(),
 			state: NeoVMStateType::Halt,
-			gas_consumed: "".to_string(),
+			gas_consumed: "1234567".to_string(),
 			exception: None,
 			notifications: None,
 			diagnostics: None,

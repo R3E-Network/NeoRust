@@ -7,6 +7,7 @@ use std::{
 
 use async_trait::async_trait;
 use http::HeaderValue;
+use log::debug;
 use reqwest::{header, Client, Error as ReqwestError};
 use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
@@ -69,6 +70,11 @@ impl From<ClientError> for ProviderError {
 	fn from(src: ClientError) -> Self {
 		match src {
 			ClientError::ReqwestError(err) => ProviderError::HTTPError(err),
+			ClientError::JsonRpcError(err) => ProviderError::IllegalState(err.to_string()),
+			ClientError::SerdeJson { err, text } => {
+				debug!("SerdeJson Error: {:#?}, Response: {:#?}", err, text);
+				ProviderError::SerdeJson(err)
+			},
 			_ => ProviderError::IllegalState("unexpected error".to_string()),
 		}
 	}
