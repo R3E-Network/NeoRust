@@ -180,9 +180,16 @@ pub trait APITrait: Sync + Send + Debug {
 	async fn send_to_address(
 		&self,
 		token_hash: H160,
-		to: Address,
+		to: H160,
 		amount: u32,
 	) -> Result<Transaction, Self::Error>;
+
+	async fn cancel_transaction(
+		&self,
+		txHash: H256,
+		signers: Vec<H160>,
+		extra_fee: u64,
+	) -> Result<Transaction, ProviderError>;
 
 	async fn get_application_log(&self, tx_hash: H256) -> Result<ApplicationLog, Self::Error>;
 
