@@ -48,55 +48,55 @@ use neo::prelude::{BuilderError, CryptoError, TransactionError};
 /// This approach allows for precise error handling and reporting, facilitating debugging and user feedback.
 #[derive(Error, Debug)]
 pub enum WalletError {
-	/// Error indicating an issue with the account's state, such as being locked or
-	/// insufficient funds. The contained message provides additional detail.
-	#[error("Account state error: {0}")]
-	AccountState(String),
+    /// Error indicating an issue with the account's state, such as being locked or
+    /// insufficient funds. The contained message provides additional detail.
+    #[error("Account state error: {0}")]
+    AccountState(String),
 
-	/// Indicates that no key pair is available for a cryptographic operation, possibly
-	/// because it has not been generated or imported.
-	#[error("No key pair")]
-	NoKeyPair,
+    /// Indicates that no key pair is available for a cryptographic operation, possibly
+    /// because it has not been generated or imported.
+    #[error("No key pair")]
+    NoKeyPair,
 
-	/// Wraps errors from the `ecdsa` crate, related to ECDSA signature operations.
-	/// This could include errors during signature generation or verification.
-	#[error(transparent)]
-	EcdsaError(#[from] ecdsa::Error),
+    /// Wraps errors from the `ecdsa` crate, related to ECDSA signature operations.
+    /// This could include errors during signature generation or verification.
+    #[error(transparent)]
+    EcdsaError(#[from] ecdsa::Error),
 
-	/// Represents errors encountered during hex encoding or decoding operations,
-	/// such as an invalid hex character or incorrect string length.
-	#[error(transparent)]
-	HexError(#[from] hex::FromHexError),
+    /// Represents errors encountered during hex encoding or decoding operations,
+    /// such as an invalid hex character or incorrect string length.
+    #[error(transparent)]
+    HexError(#[from] hex::FromHexError),
 
-	/// Encapsulates errors arising from IO operations, like reading from or writing to
-	/// files. This includes file not found, permissions issues, and other file-related errors.
-	#[error(transparent)]
-	IoError(#[from] std::io::Error),
+    /// Encapsulates errors arising from IO operations, like reading from or writing to
+    /// files. This includes file not found, permissions issues, and other file-related errors.
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
 
-	/// Signifies that the wallet does not have a designated default account, which might
-	/// be required for certain operations or configurations.
-	#[error("No default account")]
-	NoDefaultAccount,
+    /// Signifies that the wallet does not have a designated default account, which might
+    /// be required for certain operations or configurations.
+    #[error("No default account")]
+    NoDefaultAccount,
 
-	/// Used when a key pair is found to be invalid, such as when a private key does not
-	/// match the public key, or the key pair cannot be used for signing due to corruption.
-	#[error("Invalid key pair")]
-	SignHashError,
+    /// Used when a key pair is found to be invalid, such as when a private key does not
+    /// match the public key, or the key pair cannot be used for signing due to corruption.
+    #[error("Invalid key pair")]
+    SignHashError,
 
-	/// Wraps generic cryptographic errors that might occur during operations such as
-	/// encryption, decryption, hashing, or key generation.
-	#[error(transparent)]
-	CryptoError(#[from] CryptoError),
+    /// Wraps generic cryptographic errors that might occur during operations such as
+    /// encryption, decryption, hashing, or key generation.
+    #[error(transparent)]
+    CryptoError(#[from] CryptoError),
 
-	/// Covers errors related to the creation, signing, or broadcasting of transactions,
-	/// including invalid transaction formats, insufficient gas, or nonce issues.
-	#[error(transparent)]
-	TransactionError(#[from] TransactionError),
+    /// Covers errors related to the creation, signing, or broadcasting of transactions,
+    /// including invalid transaction formats, insufficient gas, or nonce issues.
+    #[error(transparent)]
+    TransactionError(#[from] TransactionError),
 
-	/// Indicates issues encountered during the construction or configuration of wallet
-	/// components, such as invalid parameters or configurations that cannot be applied.
-	#[error(transparent)]
-	BuilderError(#[from] BuilderError),
-	#[error("Invalid signature")]
-	VerifyError,
+    /// Indicates issues encountered during the construction or configuration of wallet
+    /// components, such as invalid parameters or configurations that cannot be applied.
+    #[error(transparent)]
+    BuilderError(#[from] BuilderError),
+    #[error("Invalid signature")]
+    VerifyError,
 }

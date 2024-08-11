@@ -1,11 +1,12 @@
-//! A [JsonRpcClient] implementation that serves as a wrapper around two different [JsonRpcClient]
+//! A [JsonRpcProvider] implementation that serves as a wrapper around two different [JsonRpcProvider]
 //! and uses a dedicated client for read and the other for write operations
 
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
+use std::fmt::Display;
 use thiserror::Error;
 
-use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
+use neo::prelude::{JsonRpcProvider, ProviderError};
 
 /// A client containing two clients.
 ///
@@ -17,126 +18,104 @@ use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
 // # Example
 #[derive(Debug, Clone)]
 pub struct RwClient<Read, Write> {
-	/// client used to read
-	r: Read,
-	/// client used to write
-	w: Write,
+    /// client used to read
+    r: Read,
+    /// client used to write
+    w: Write,
 }
 
 impl<Read, Write> RwClient<Read, Write> {
-	/// Creates a new client using two different clients
-	///
-	/// # Example
-	///
-	/// ```no_run
-	/// use url::Url;
-	/// use NeoRust::prelude::Http;
-	/// async fn t(){
-	/// let http = Http::new(Url::parse("http://localhost:8545").unwrap());
-	/// let ws = Ws::connect("ws://localhost:8545").await.unwrap();
-	/// let rw = RwClient::new(http, ws);
-	/// # }
-	/// ```
-	pub fn new(r: Read, w: Write) -> RwClient<Read, Write> {
-		Self { r, w }
-	}
+    /// Creates a new client using two different clients
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use url::Url;
+    /// use NeoRust::prelude::Http;
+    /// async fn t(){
+    /// let http = Http::new(Url::parse("http://localhost:8545").unwrap());
+    /// let ws = Ws::connect("ws://localhost:8545").await.unwrap();
+    /// let rw = RwClient::new(http, ws);
+    /// # }
+    /// ```
+    pub fn new(r: Read, w: Write) -> RwClient<Read, Write> {
+        Self { r, w }
+    }
 
-	/// Returns the client used for read operations
-	pub fn read_client(&self) -> &Read {
-		&self.r
-	}
+    /// Returns the client used for read operations
+    pub fn read_client(&self) -> &Read {
+        &self.r
+    }
 
-	/// Returns the client used for write operations
-	pub fn write_client(&self) -> &Write {
-		&self.w
-	}
+    /// Returns the client used for write operations
+    pub fn write_client(&self) -> &Write {
+        &self.w
+    }
 
-	/// Returns a new `RwClient` with transposed clients
-	pub fn transpose(self) -> RwClient<Write, Read> {
-		let RwClient { r, w } = self;
-		RwClient::new(w, r)
-	}
+    /// Returns a new `RwClient` with transposed clients
+    pub fn transpose(self) -> RwClient<Write, Read> {
+        let RwClient { r, w } = self;
+        RwClient::new(w, r)
+    }
 
-	/// Consumes the client and returns the underlying clients
-	pub fn split(self) -> (Read, Write) {
-		let RwClient { r, w } = self;
-		(r, w)
-	}
+    /// Consumes the client and returns the underlying clients
+    pub fn split(self) -> (Read, Write) {
+        let RwClient { r, w } = self;
+        (r, w)
+    }
 }
 
 #[derive(Error, Debug)]
 /// Error thrown when using either read or write client
 pub enum RwClientError<Read, Write>
 where
-	Read: JsonRpcClient,
-	<Read as JsonRpcClient>::Error: RpcError + Sync + Send + 'static,
-	Write: JsonRpcClient,
-	<Write as JsonRpcClient>::Error: RpcError + Sync + Send + 'static,
+    Read: JsonRpcProvider,
+    <Read as JsonRpcProvider>::Error: Sync + Send + 'static + Display,
+    Write: JsonRpcProvider,
+    <Write as JsonRpcProvider>::Error: Sync + Send + 'static + Display,
 {
-	/// Thrown if the _read_ request failed
-	#[error(transparent)]
-	Read(Read::Error),
-	#[error(transparent)]
-	/// Thrown if the _write_ request failed
-	Write(Write::Error),
-}
-
-impl<Read, Write> RpcError for RwClientError<Read, Write>
-where
-	Read: JsonRpcClient,
-	<Read as JsonRpcClient>::Error: RpcError + Sync + Send + 'static,
-	Write: JsonRpcClient,
-	<Write as JsonRpcClient>::Error: RpcError + Sync + Send + 'static,
-{
-	fn as_error_response(&self) -> Option<&super::JsonRpcError> {
-		match self {
-			RwClientError::Read(e) => e.as_error_response(),
-			RwClientError::Write(e) => e.as_error_response(),
-		}
-	}
-
-	fn as_serde_error(&self) -> Option<&serde_json::Error> {
-		match self {
-			RwClientError::Read(e) => e.as_serde_error(),
-			RwClientError::Write(e) => e.as_serde_error(),
-		}
-	}
+    /// Thrown if the _read_ request failed
+    #[error("Read error: {0}")]
+    Read(Read::Error),
+    #[error("Write error: {0}")]
+    /// Thrown if the _write_ request failed
+    Write(Write::Error),
 }
 
 impl<Read, Write> From<RwClientError<Read, Write>> for ProviderError
 where
-	Read: JsonRpcClient + 'static,
-	<Read as JsonRpcClient>::Error: Sync + Send + 'static,
-	Write: JsonRpcClient + 'static,
-	<Write as JsonRpcClient>::Error: Sync + Send + 'static,
+    Read: JsonRpcProvider + 'static,
+    <Read as JsonRpcProvider>::Error: Sync + Send + 'static + Display,
+    Write: JsonRpcProvider + 'static,
+    <Write as JsonRpcProvider>::Error: Sync + Send + 'static + Display,
 {
-	fn from(src: RwClientError<Read, Write>) -> Self {
-		ProviderError::JsonRpcClientError(Box::new(src))
-	}
+    fn from(src: RwClientError<Read, Write>) -> Self {
+        ProviderError::CustomError(src.to_string())
+    }
 }
 
 #[cfg_attr(target_arch = "wasm32", async_trait(? Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-impl<Read, Write> JsonRpcClient for RwClient<Read, Write>
+impl<Read, Write> JsonRpcProvider for RwClient<Read, Write>
 where
-	Read: JsonRpcClient + 'static,
-	<Read as JsonRpcClient>::Error: Sync + Send + 'static,
-	Write: JsonRpcClient + 'static,
-	<Write as JsonRpcClient>::Error: Sync + Send + 'static,
+    Read: JsonRpcProvider + 'static,
+    <Read as JsonRpcProvider>::Error: Sync + Send + 'static + Display,
+    Write: JsonRpcProvider + 'static,
+    <Write as JsonRpcProvider>::Error: Sync + Send + 'static + Display,
 {
-	type Error = RwClientError<Read, Write>;
+    type Error = RwClientError<Read, Write>;
 
-	/// Sends a POST request with the provided method and the params serialized as JSON
-	/// over HTTP
-	async fn fetch<T, R>(&self, method: &str, params: T) -> Result<R, Self::Error>
-	where
-		T: std::fmt::Debug + Serialize + Send + Sync,
-		R: DeserializeOwned + Send,
-	{
-		match method {
-			"neo_sendTransaction" | "neo_sendRawTransaction" =>
-				self.w.fetch(method, params).await.map_err(RwClientError::Write),
-			_ => self.r.fetch(method, params).await.map_err(RwClientError::Read),
-		}
-	}
+    /// Sends a POST request with the provided method and the params serialized as JSON
+    /// over HTTP
+    async fn fetch<T, R>(&self, method: &str, params: T) -> Result<R, Self::Error>
+    where
+        T: std::fmt::Debug + Serialize + Send + Sync,
+        R: DeserializeOwned + Send,
+    {
+        match method {
+            "neo_sendTransaction" | "neo_sendRawTransaction" =>
+                self.w.fetch(method, params).await.map_err(RwClientError::Write),
+            _ => self.r.fetch(method, params).await.map_err(RwClientError::Read),
+        }
+    }
 }

@@ -68,8 +68,8 @@
 //! your transactions with a [`Signer`]. The middleware architecture allows users to either use one
 //! of the existing middleware, or they are free to write on of their own.
 //!
-//! [`Provider`]: providers::NeoClient
-//! [`Middleware`]: providers::middleware
+//! [`Provider`]: providers::RpcClient
+//! [`Middleware`]: providers::api_trait
 //! [`Wallet`]: signers::Wallet
 //! [`Signer`]: signers::SignerTrait
 //! [`ContractFactory`]: contract::ContractFactory
@@ -122,8 +122,8 @@ pub mod neo_wallets;
 #[doc(hidden)]
 #[allow(unknown_lints, ambiguous_glob_reexports)]
 pub mod prelude {
-	pub use super::{
-		builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
-		providers::*, types::*, wallets::*,
-	};
+    pub use super::{
+        builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
+        providers::*, types::*, wallets::*,
+    };
 }
