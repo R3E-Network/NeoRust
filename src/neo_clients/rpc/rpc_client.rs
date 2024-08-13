@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use futures_util::lock::Mutex;
 use primitive_types::{H160, H256};
-use rustc_serialize::{base64, base64::ToBase64, hex::FromHex};
+use rustc_serialize::{base64, base64::ToBase64, hex::FromHex, hex::ToHex};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, value::Value};
 use std::{
@@ -593,7 +593,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	/// - Parameter txHash: The transaction hash
 	/// - Returns: The request object
 	async fn get_application_log(&self, tx_hash: H256) -> Result<ApplicationLog, ProviderError> {
-		self.request("getapplicationlog", vec![tx_hash.to_value()]).await
+		self.request("getapplicationlog", vec![tx_hash.0.to_hex().to_value()]).await
 	}
 
 	/// Gets the balance of all NEP-17 token assets in the specified script hash.
@@ -611,7 +611,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		&self,
 		script_hash: H160,
 	) -> Result<Nep17Transfers, ProviderError> {
-		let params = [script_hash.to_value()].to_vec();
+		let params = json!([script_hash.to_address()]);
 		self.request("getnep17transfers", params).await
 	}
 
@@ -626,7 +626,9 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		from: u64,
 	) -> Result<Nep17Transfers, ProviderError> {
 		// let params = [script_hash.to_value(), from.to_value()].to_vec();
-		self.request("getnep17transfers", [script_hash.to_value(), from.to_value()])
+		self.request(
+			"getnep17transfers", 
+			json!([script_hash.to_address(), from]))
 			.await
 	}
 
@@ -642,7 +644,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		from: u64,
 		to: u64,
 	) -> Result<Nep17Transfers, ProviderError> {
-		let params = [script_hash.to_value(), from.to_value(), to.to_value()].to_vec();
+		let params = json!([script_hash.to_address(), from, to]);
 		self.request("getnep17transfers", params).await
 	}
 
@@ -719,7 +721,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	/// - Parameter blockIndex: The block index
 	/// - Returns: The request object
 	async fn get_state_root(&self, block_index: u32) -> Result<StateRoot, ProviderError> {
-		let params = [block_index.to_value()].to_vec();
+		let params = json!([block_index]);
 		self.request("getstateroot", params).await
 	}
 
@@ -737,7 +739,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	) -> Result<String, ProviderError> {
 		self.request(
 			"getproof",
-			vec![root_hash.to_value(), contract_hash.to_value(), key.to_value()],
+			json!([root_hash.0.to_hex(), contract_hash.to_hex(), Base64Encode::to_base64(&key.to_string())]),
 		)
 		.await
 	}
@@ -963,14 +965,20 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		&self,
 		txHash: H256,
 		signers: Vec<H160>,
-		extra_fee: u64,
+		extra_fee: Option<u64>,
 	) -> Result<Transaction, ProviderError> {
 		//to be implemented
+		if signers.is_empty() {
+			return Err(ProviderError::CustomError("signers must not be empty".into()));
+		}
+		let signer_addresses: Vec<String> = signers
+								.into_iter()
+        						.map(|signer| signer.to_address())
+        						.collect();
 		let params = json!([
-			// send_token.token.to_hex(),
-			// from.to_address(),
-			// send_token.address,
-			// send_token.value,
+			txHash.0.to_hex(),
+			signer_addresses,
+			extra_fee.map_or("".to_string(), |fee| fee.to_string())
 		]);
 		// let params = [from.to_value(), vec![send_token.to_value()].into()].to_vec();
 		self.request("canceltransaction", params).await
@@ -4550,35 +4558,205 @@ mod tests {
         verify_request(&mock_server, &expected_request_body).await.unwrap();
     }
 
-	// #[tokio::test]
-    // async fn test_cancel_transaction() {
-    //     // Access the global mock server
-    //     let mock_server = setup_mock_server().await;
+	#[tokio::test]
+    async fn test_cancel_transaction() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
 
-	// 	let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    // 	let http_client = HttpProvider::new(url);
-    // 	let provider = RpcClient::new(http_client);
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
 
-    //     // Expected request body
-	// 	let expected_request_body = format!(r#"{{
-	// 		"jsonrpc": "2.0",
-	// 		"method": "canceltransaction",
-	// 		"params": [
-	// 			"0000000000000000000000000000000000000000000000000000000000000000", 
-	// 			[
-	// 				"NKuyBkoGdZZSLyPbJEetheRhMjeznFZszf",
-	// 				"NKuyBkoGdZZSLyPbJEetheRhMjeznFZszf"
-	// 			], 
-	// 			"3333"
-	// 		],
-	// 		"id": 1
-	// 	}}"#);
-    //     let _ = provider.send_to_address_send_token(
-	// 		&TransactionSendToken::new(H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(), 10, "NaCsFrmoJepqCJSxnTyb41CXVSjr3dMjuL".to_string())
-	// 	).await;
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "canceltransaction",
+			"params": [
+				"0000000000000000000000000000000000000000000000000000000000000000", 
+				[
+					"NKuyBkoGdZZSLyPbJEetheRhMjeznFZszf",
+					"NKuyBkoGdZZSLyPbJEetheRhMjeznFZszf"
+				], 
+				"3333"
+			],
+			"id": 1
+		}}"#);
+        let _ = provider.cancel_transaction(
+			H256::zero(),
+			vec![H160::zero(), H160::zero()],
+			Some(3333)
+		).await;
 
-    //     verify_request(&mock_server, &expected_request_body).await.unwrap();
-    // }
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	// TokenTracker: Nep17
+
+	#[tokio::test]
+    async fn test_get_nep17_transfers() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getnep17transfers",
+			"params": ["NekZLTu93WgrdFHxzBEJUYgLTQMAT85GLi"],
+			"id": 1
+		}}"#);
+        let _ = provider.get_nep17_transfers(
+			H160::from_str("04457ce4219e462146ac00b09793f81bc5bca2ce").unwrap()).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_nep17_transfers_date() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getnep17transfers",
+			"params": ["NSH1UeM96PKhjuzVBKcyWeNNuQkT3sHGmA", 1553105830],
+			"id": 1
+		}}"#);
+        let _ = provider.get_nep17_transfers_from(
+			H160::from_str("8bed27d0e88266807a6339270f0593510967cb45").unwrap(), 1553105830).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_nep17_transfers_date_from_to() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getnep17transfers",
+			"params": ["NfWL3Kx7qtZzXrajmggAD4b6r2kGzajbaJ", 1553105830, 1557305830],
+			"id": 1
+		}}"#);
+        let _ = provider.get_nep17_transfers_range(
+			H160::from_str("2eeda865e7824c71b3fe14bed35d04d0f2f0e9d6").unwrap(), 1553105830, 1557305830).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_nep17_balances() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getnep17balances",
+			"params": ["NY9zhKwcmht5cQJ3oRqjJGo3QuVLwXwTzL"],
+			"id": 1
+		}}"#);
+        let _ = provider.get_nep17_balances(
+			H160::from_str("5d75775015b024970bfeacf7c6ab1b0ade974886").unwrap()).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	// ApplicationLogs
+
+	#[tokio::test]
+    async fn test_get_application_log() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getapplicationlog",
+			"params": ["420d1eb458c707d698c6d2ba0f91327918ddb3b7bae2944df070f3f4e579078b"],
+			"id": 1
+		}}"#);
+        let _ = provider.get_application_log(
+			H256::from_str("420d1eb458c707d698c6d2ba0f91327918ddb3b7bae2944df070f3f4e579078b").unwrap()).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	// StateService
+
+	#[tokio::test]
+    async fn test_get_state_root() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getstateroot",
+			"params": [52],
+			"id": 1
+		}}"#);
+        let _ = provider.get_state_root(52).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_proof() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getproof",
+			"params": [
+				"7bf925dbd33af0e00d392b92313da59369ed86c82494d0e02040b24faac0a3ca", 
+				"79bcd398505eb779df6e67e4be6c14cded08e2f2",
+				"YW55dGhpbmc="
+			],
+			"id": 1
+		}}"#);
+        let _ = provider.get_proof(
+			H256::from_str("0x7bf925dbd33af0e00d392b92313da59369ed86c82494d0e02040b24faac0a3ca").unwrap(),
+			H160::from_str("0x79bcd398505eb779df6e67e4be6c14cded08e2f2").unwrap(),
+			"616e797468696e67"
+		).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+
 
 	async fn verify_request(
 		mock_server: &MockServer,
