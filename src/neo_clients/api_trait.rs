@@ -188,7 +188,7 @@ pub trait APITrait: Sync + Send + Debug {
 		&self,
 		txHash: H256,
 		signers: Vec<H160>,
-		extra_fee: u64,
+		extra_fee: Option<u64>,
 	) -> Result<Transaction, ProviderError>;
 
 	async fn get_application_log(&self, tx_hash: H256) -> Result<ApplicationLog, Self::Error>;
