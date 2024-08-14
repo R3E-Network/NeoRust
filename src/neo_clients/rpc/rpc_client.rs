@@ -747,17 +747,17 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	/// Verifies the proof data and gets the value of the storage corresponding to the key.
 	/// - Parameters:
 	///   - rootHash: The root hash
-	///   - proofDataHex: The proof data of the state root
+	///   - proof: The proof data of the state root
 	/// - Returns: The request object
 	async fn verify_proof(&self, root_hash: H256, proof: &str) -> Result<bool, ProviderError> {
-		let params = [root_hash.to_value(), proof.to_value()].to_vec();
+		let params = json!([root_hash.0.to_hex(), Base64Encode::to_base64(&proof.to_string())]);
 		self.request("verifyproof", params).await
 	}
 
 	/// Gets the state root height.
 	/// - Returns: The request object
 	async fn get_state_height(&self) -> Result<StateHeight, ProviderError> {
-		self.request("getstateheight", ()).await
+		self.request("getstateheight", Vec::<StateHeight>::new()).await
 	}
 
 	/// Gets the state.
@@ -774,7 +774,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	) -> Result<String, ProviderError> {
 		self.request(
 			"getstate",
-			vec![root_hash.to_value(), contract_hash.to_value(), key.to_value()], //key.to_base64()],
+			json!([root_hash.0.to_hex(), contract_hash.to_hex(), Base64Encode::to_base64(&key.to_string())]), //key.to_base64()],
 		)
 		.await
 	}
@@ -797,14 +797,38 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		start_key: Option<&str>,
 		count: Option<u32>,
 	) -> Result<States, ProviderError> {
-		let mut params =
-			vec![root_hash.to_value(), contract_hash.to_value(), key_prefix.to_value()];
-		if let Some(start_key) = start_key {
-			params.push(start_key.to_value())
+		let mut params = json!([root_hash.0.to_hex(), contract_hash.to_hex(), Base64Encode::to_base64(&key_prefix.to_string())]);
+		if let (Some(start_key), Some(count)) = (start_key, count) {
+			params = json!([
+				root_hash.0.to_hex(),
+				contract_hash.to_hex(),
+				Base64Encode::to_base64(&key_prefix.to_string()),
+				Base64Encode::to_base64(&start_key.to_string()),
+				count,
+			]);
+		} else if let Some(count) = count {
+			params = json!([
+				root_hash.0.to_hex(),
+				contract_hash.to_hex(),
+				Base64Encode::to_base64(&key_prefix.to_string()),
+				"".to_string(),
+				count,
+			]);
+		} else if let Some(start_key) = start_key {
+			params = json!([
+				root_hash.0.to_hex(),
+				contract_hash.to_hex(),
+				Base64Encode::to_base64(&key_prefix.to_string()),
+				Base64Encode::to_base64(&start_key.to_string()),
+			]);
 		}
-		if let Some(count) = count {
-			params.push(count.to_value())
-		}
+		
+		// if let Some(start_key) = start_key {
+		// 	params.push(start_key.to_value())
+		// }
+		// if let Some(count) = count {
+		// 	params.push(count.to_value())
+		// }
 		self.request("findstates", params).await
 	}
 
@@ -4755,6 +4779,237 @@ mod tests {
 
         verify_request(&mock_server, &expected_request_body).await.unwrap();
     }
+
+	#[tokio::test]
+    async fn test_verify_proof() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "verifyproof",
+			"params": [
+				"7bf925dbd33af0e00d392b92313da59369ed86c82494d0e02040b24faac0a3ca", 
+				"Bfv///8XBiQBAQ8DRzb6Vkdw0r5nxMBp6Z5nvbyXiupMvffwm0v5GdB6jHvyAAQEBAQEBAQEA7l84HFtRI5V11s58vA+8CZ5GArFLkGUYLO98RLaMaYmA5MEnx0upnVI45XTpoUDRvwrlPD59uWy9aIrdS4T0D2cA6Rwv/l3GmrctRzL1me+iTUFdDgooaz+esFHFXJdDANfA2bdshZMp5ox2goVAOMjvoxNIWWOqjJoRPu6ZOw2kdj6A8xovEK1Mp6cAG9z/jfFDrSEM60kuo97MNaVOP/cDZ1wA1nf4WdI+jksYz0EJgzBukK8rEzz8jE2cb2Zx2fytVyQBANC7v2RaLMCRF1XgLpSri12L2IwL9Zcjz5LZiaB5nHKNgQpAQYPDw8PDw8DggFffnsVMyqAfZjg+4gu97N/gKpOsAK8Q27s56tijRlSAAMm26DYxOdf/IjEgkE/u/CoRL6dDnzvs1dxCg/00esMvgPGioeOqQCkDOTfliOnCxYjbY/0XvVUOXkceuDm1W0FzQQEBAQEBAQEBAQEBAQEBJIABAPH1PnX/P8NOgV4KHnogwD7xIsD8KvNhkTcDxgCo7Ec6gPQs1zD4igSJB4M9jTREq+7lQ5PbTH/6d138yUVvtM8bQP9Df1kh7asXrYjZolKhLcQ1NoClQgEzbcJfYkCHXv6DQQEBAOUw9zNl/7FJrWD7rCv0mbOoy6nLlHWiWuyGsA12ohRuAQEBAQEBAQEBAYCBAIAAgA="
+			],
+			"id": 1
+		}}"#);
+        let _ = provider.verify_proof(
+			H256::from_str("0x7bf925dbd33af0e00d392b92313da59369ed86c82494d0e02040b24faac0a3ca").unwrap(),
+			"05fbffffff17062401010f034736fa564770d2be67c4c069e99e67bdbc978aea4cbdf7f09b4bf919d07a8c7bf200040404040404040403b97ce0716d448e55d75b39f2f03ef02679180ac52e419460b3bdf112da31a6260393049f1d2ea67548e395d3a6850346fc2b94f0f9f6e5b2f5a22b752e13d03d9c03a470bff9771a6adcb51ccbd667be893505743828a1acfe7ac14715725d0c035f0366ddb2164ca79a31da0a1500e323be8c4d21658eaa326844fbba64ec3691d8fa03cc68bc42b5329e9c006f73fe37c50eb48433ad24ba8f7b30d69538ffdc0d9d700359dfe16748fa392c633d04260cc1ba42bcac4cf3f2313671bd99c767f2b55c90040342eefd9168b302445d5780ba52ae2d762f62302fd65c8f3e4b662681e671ca36042901060f0f0f0f0f0f0382015f7e7b15332a807d98e0fb882ef7b37f80aa4eb002bc436eece7ab628d1952000326dba0d8c4e75ffc88c482413fbbf0a844be9d0e7cefb357710a0ff4d1eb0cbe03c68a878ea900a40ce4df9623a70b16236d8ff45ef55439791c7ae0e6d56d05cd04040404040404040404040404040492000403c7d4f9d7fcff0d3a05782879e88300fbc48b03f0abcd8644dc0f1802a3b11cea03d0b35cc3e22812241e0cf634d112afbb950e4f6d31ffe9dd77f32515bed33c6d03fd0dfd6487b6ac5eb62366894a84b710d4da02950804cdb7097d89021d7bfa0d0404040394c3dccd97fec526b583eeb0afd266cea32ea72e51d6896bb21ac035da8851b804040404040404040406020402000200"
+		).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_state_height() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getstateheight",
+			"params": [],
+			"id": 1
+		}}"#);
+        let _ = provider.get_state_height().await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+
+	#[tokio::test]
+    async fn test_get_state() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getstate",
+			"params": [
+				"7bf925dbd33af0e00d392b92313da59369ed86c82494d0e02040b24faac0a3ca", 
+				"7c5832ba81fd0af40ec11e96b1c26613466dae02",
+				"QQEhB4DRxWFfeRI="
+			],
+			"id": 1
+		}}"#);
+        let _ = provider.get_state(
+			H256::from_str("0x7bf925dbd33af0e00d392b92313da59369ed86c82494d0e02040b24faac0a3ca").unwrap(),
+			H160::from_str("7c5832ba81fd0af40ec11e96b1c26613466dae02").unwrap(),
+			"4101210780d1c5615f7912"
+		).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_find_states() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "findstates",
+			"params": [
+				"76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f", 
+				"d2a4cff31913016155e38e474a2c06d08be276cf",
+				"C/4=",
+				"Cw==",
+				2
+			],
+			"id": 1
+		}}"#);
+        let _ = provider.find_states(
+			H256::from_str("0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f").unwrap(),
+			H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
+			"0bfe",
+			Some("0b"),
+			Some(2)
+		).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_find_states_nocount() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "findstates",
+			"params": [
+				"76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f", 
+				"d2a4cff31913016155e38e474a2c06d08be276cf",
+				"C/4=",
+				"Cw=="
+			],
+			"id": 1
+		}}"#);
+        let _ = provider.find_states(
+			H256::from_str("0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f").unwrap(),
+			H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
+			"0bfe",
+			Some("0b"),
+			None
+		).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_find_states_nostartkey_withcount() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "findstates",
+			"params": [
+				"76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f", 
+				"d2a4cff31913016155e38e474a2c06d08be276cf",
+				"C/4=",
+				"",
+				53
+			],
+			"id": 1
+		}}"#);
+        let _ = provider.find_states(
+			H256::from_str("0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f").unwrap(),
+			H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
+			"0bfe",
+			None,
+			Some(53)
+		).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_find_states_nostartkey_nocount() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "findstates",
+			"params": [
+				"76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f", 
+				"d2a4cff31913016155e38e474a2c06d08be276cf",
+				"C/4="
+			],
+			"id": 1
+		}}"#);
+        let _ = provider.find_states(
+			H256::from_str("0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f").unwrap(),
+			H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
+			"0bfe",
+			None,
+			None
+		).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	// Neo-express related tests
+	#[tokio::test]
+    async fn test_express_get_populated_blocks() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "expressgetpopulatedblocks"\n,
+			"params": [],
+			"id": 1
+		}}"#);
+        let _ = provider.get_state_height().await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	
 
 
 
