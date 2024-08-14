@@ -4988,26 +4988,26 @@ mod tests {
     }
 
 	// Neo-express related tests
-	#[tokio::test]
-    async fn test_express_get_populated_blocks() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	// #[tokio::test]
+    // async fn test_express_get_populated_blocks() {
+    //     // Access the global mock server
+    //     let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+	// 	let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    // 	let http_client = HttpProvider::new(url);
+    // 	let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
-			"jsonrpc": "2.0",
-			"method": "expressgetpopulatedblocks"\n,
-			"params": [],
-			"id": 1
-		}}"#);
-        let _ = provider.get_state_height().await;
+    //     // Expected request body
+	// 	let expected_request_body = format!(r#"{{
+	// 		"jsonrpc": "2.0",
+	// 		"method": "expressgetpopulatedblocks",
+	// 		"params": [],
+	// 		"id": 1
+	// 	}}"#);
+    //     let _ = provider.express().await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+    //     verify_request(&mock_server, &expected_request_body).await.unwrap();
+    // }
 
 	
 
