@@ -70,7 +70,7 @@ impl From<ClientError> for ProviderError {
 	fn from(src: ClientError) -> Self {
 		match src {
 			ClientError::ReqwestError(err) => ProviderError::HTTPError(err),
-			ClientError::JsonRpcError(err) => ProviderError::IllegalState(err.to_string()),
+			ClientError::JsonRpcError(err) => ProviderError::JsonRpcError(err),
 			ClientError::SerdeJson { err, text } => {
 				debug!("SerdeJson Error: {:#?}, Response: {:#?}", err, text);
 				ProviderError::SerdeJson(err)

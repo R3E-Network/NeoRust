@@ -41,6 +41,21 @@ impl MockClient {
 			.await;
 	}
 
+	pub async fn mock_response_error(
+		&self,
+		error: serde_json::Value
+	) {
+		Mock::given(method("POST"))
+			.and(path("/"))
+			.respond_with(ResponseTemplate::new(200).set_body_json(json!({
+				"jsonrpc": "2.0",
+				"id": 1,
+				"error": error
+			})))
+			.mount(&self.server)
+			.await;
+	}
+
 	pub async fn mock_response_ignore_param(&self, method_name: &str, result: serde_json::Value) {
 		Mock::given(method("POST"))
 			.and(path("/"))

@@ -24,6 +24,9 @@ pub enum ProviderError {
 	/// Error in underlying lib `reqwest`
 	#[error(transparent)]
 	HTTPError(#[from] reqwest::Error),
+	/// Reponse error
+	#[error(transparent)]
+	JsonRpcError(#[from] JsonRpcError),
 	/// Custom error from unknown source
 	#[error("custom error: {0}")]
 	CustomError(String),

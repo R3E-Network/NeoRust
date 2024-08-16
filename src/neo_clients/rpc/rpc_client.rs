@@ -652,7 +652,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	/// - Parameter scriptHash: The account's script hash
 	/// - Returns: The request object
 	async fn get_nep11_balances(&self, script_hash: H160) -> Result<Nep11Balances, ProviderError> {
-		let params = [script_hash.to_value()].to_vec();
+		let params = json!([script_hash.to_address()]);
 		self.request("getnep11balances", params).await
 	}
 
@@ -663,7 +663,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		&self,
 		script_hash: H160,
 	) -> Result<Nep11Transfers, ProviderError> {
-		let params = [script_hash.to_value()].to_vec();
+		let params = json!([script_hash.to_address()]);
 		self.request("getnep11transfers", params).await
 	}
 
@@ -677,7 +677,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		script_hash: H160,
 		from: u64,
 	) -> Result<Nep11Transfers, ProviderError> {
-		let params = [script_hash.to_value(), from.to_value()].to_vec();
+		let params = json!([script_hash.to_address(), from]);
 		self.request("getnep11transfers", params).await
 	}
 
@@ -693,7 +693,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		from: u64,
 		to: u64,
 	) -> Result<Nep11Transfers, ProviderError> {
-		let params = [script_hash.to_value(), from.to_value(), to.to_value()].to_vec();
+		let params = json!([script_hash.to_address(), from, to]);
 		self.request("getnep11transfers", params).await
 	}
 
@@ -713,7 +713,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		script_hash: H160,
 		token_id: &str,
 	) -> Result<HashMap<String, String>, ProviderError> {
-		let params = [script_hash.to_value(), token_id.to_value()].to_vec();
+		let params = json!([script_hash.to_address(), token_id]);
 		self.request("getnep11properties", params).await
 	}
 
@@ -1262,7 +1262,7 @@ mod tests {
 	};
 
 	use neo::prelude::{
-		AccountSigner, HttpProvider, ScriptHashExtension, Secp256r1PublicKey, Signer::Account,
+		AccountSigner, HttpProvider, ProviderError, ScriptHashExtension, Secp256r1PublicKey, Signer::Account,
 		SignerTrait, TestConstants, TransactionSendToken, WitnessAction, WitnessCondition,
 		WitnessRule,
 	};
@@ -1304,6 +1304,59 @@ mod tests {
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
 		let http_client = HttpProvider::new(url);
 		RpcClient::new(http_client)
+	}
+
+	#[tokio::test]
+	async fn test_error_reponse() {
+		let _ = env_logger::builder().is_test(true).try_init();
+
+		let mock_provider = MockClient::new().await;
+		mock_provider
+			.mock_response_error(
+				json!({
+					"code": -32602,
+					"message": "Invalid address length, expected 40 got 64 bytes",
+					"data": null
+				}),
+			)
+			.await;
+		let provider = mock_provider.into_client();
+		let result = provider.get_best_block_hash().await;
+
+		// Assert that the error is a JsonRpcError
+		assert!(matches!(result, Err(ProviderError::JsonRpcError(_))), "Expected a JsonRpcError.");
+		if let ProviderError::JsonRpcError(json_rpc_error) = result.unwrap_err() {
+			assert_eq!(json_rpc_error.code, -32602);
+			assert_eq!(json_rpc_error.message, "Invalid address length, expected 40 got 64 bytes");
+		}
+	}
+
+	#[tokio::test]
+	async fn test_error_reponse_complex_data() {
+		let _ = env_logger::builder().is_test(true).try_init();
+
+		let mock_provider = MockClient::new().await;
+		mock_provider
+			.mock_response_error(
+				json!({
+					"code": -32602,
+					"message": "Invalid address length, expected 40 got 64 bytes",
+					"data": {
+						"foo": "bar"
+					}
+				}),
+			)
+			.await;
+		let provider = mock_provider.into_client();
+		let result = provider.get_best_block_hash().await;
+
+		// Assert that the error is a JsonRpcError
+		assert!(matches!(result, Err(ProviderError::JsonRpcError(_))), "Expected a JsonRpcError.");
+		if let ProviderError::JsonRpcError(json_rpc_error) = result.unwrap_err() {
+			assert_eq!(json_rpc_error.code, -32602);
+			assert_eq!(json_rpc_error.message, "Invalid address length, expected 40 got 64 bytes");
+			assert_eq!(json_rpc_error.data, Some(json!({ "foo": "bar" })));
+		}
 	}
 
 	#[tokio::test]
@@ -5008,6 +5061,140 @@ mod tests {
 
     //     verify_request(&mock_server, &expected_request_body).await.unwrap();
     // }
+
+	// TokenTracker: Nep11
+	#[tokio::test]
+    async fn test_get_nep11_balance() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getnep11balances",
+			"params": [
+				"NY9zhKwcmht5cQJ3oRqjJGo3QuVLwXwTzL"
+			],
+			"id": 1
+		}}"#);
+        let _ = provider.get_nep11_balances(
+			H160::from_str("5d75775015b024970bfeacf7c6ab1b0ade974886").unwrap()
+		).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_nep11_transfers() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getnep11transfers",
+			"params": [
+				"NekZLTu93WgrdFHxzBEJUYgLTQMAT85GLi"
+			],
+			"id": 1
+		}}"#);
+        let _ = provider.get_nep11_transfers(
+			H160::from_str("04457ce4219e462146ac00b09793f81bc5bca2ce").unwrap()
+		).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_nep11_transfers_date() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getnep11transfers",
+			"params": [
+				"NSH1UeM96PKhjuzVBKcyWeNNuQkT3sHGmA",
+				1553105830
+			],
+			"id": 1
+		}}"#);
+        let _ = provider.get_nep11_transfers_from(
+			H160::from_str("8bed27d0e88266807a6339270f0593510967cb45").unwrap(),
+			1553105830
+		).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_nep11_transfers_from_to() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getnep11transfers",
+			"params": [
+				"NfWL3Kx7qtZzXrajmggAD4b6r2kGzajbaJ",
+				1553105830,
+				1557305830
+			],
+			"id": 1
+		}}"#);
+        let _ = provider.get_nep11_transfers_range(
+			H160::from_str("2eeda865e7824c71b3fe14bed35d04d0f2f0e9d6").unwrap(),
+			1553105830,
+			1557305830
+		).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
+
+	#[tokio::test]
+    async fn test_get_nep11_properties() {
+        // Access the global mock server
+        let mock_server = setup_mock_server().await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+    	let http_client = HttpProvider::new(url);
+    	let provider = RpcClient::new(http_client);
+
+        // Expected request body
+		let expected_request_body = format!(r#"{{
+			"jsonrpc": "2.0",
+			"method": "getnep11properties",
+			"params": [
+				"NfWL3Kx7qtZzXrajmggAD4b6r2kGzajbaJ",
+				"12345"
+			],
+			"id": 1
+		}}"#);
+        let _ = provider.get_nep11_properties(
+			H160::from_str("2eeda865e7824c71b3fe14bed35d04d0f2f0e9d6").unwrap(),
+			"12345"
+		).await;
+
+        verify_request(&mock_server, &expected_request_body).await.unwrap();
+    }
 
 	
 
