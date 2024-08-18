@@ -1262,9 +1262,9 @@ mod tests {
 	};
 
 	use neo::prelude::{
-		AccountSigner, HttpProvider, ProviderError, ScriptHashExtension, Secp256r1PublicKey, Signer::Account,
-		SignerTrait, TestConstants, TransactionSendToken, WitnessAction, WitnessCondition,
-		WitnessRule,
+		AccountSigner, HttpProvider, NeoWitness, ProviderError, RTransaction, ScriptHashExtension, Secp256r1PublicKey, Signer, Signer::Account,
+		SignerTrait, TestConstants, Transaction, TransactionSendToken, TransactionSigner, Witness, WitnessAction, WitnessCondition,
+		WitnessRule, WitnessScope
 	};
 
 	use crate::{
@@ -1359,6 +1359,8 @@ mod tests {
 		}
 	}
 
+	// Blockchain Methods
+
 	#[tokio::test]
 	async fn test_get_best_block_hash() {
 		let _ = env_logger::builder().is_test(true).try_init();
@@ -1368,7 +1370,7 @@ mod tests {
 			.mock_response(
 				"getbestblockhash",
 				json!([]),
-				json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+				json!("0x3d1e051247f246f60dd2ba4f90f799578b5d394157b1f2b012c016b29536b899"),
 			)
 			.await;
 		let provider = mock_provider.into_client();
@@ -1382,7 +1384,7 @@ mod tests {
             "params": [],
             "id": 1
         }"#;
-		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), H256::from_str("0x3d1e051247f246f60dd2ba4f90f799578b5d394157b1f2b012c016b29536b899").unwrap());
 		verify_request(mock_provider.server(), expected_request_body).await.unwrap();
 	}
 
@@ -1393,7 +1395,7 @@ mod tests {
 			&mock_server,
 			"getblockhash",
 			json!([16293]),
-			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+			json!("0x147ad6a26f1d5a9bb2bea3f0b2ca9fab3824873beaf8887e87d08c8fd98a81b3"),
 		)
 		.await;
 
@@ -1407,6 +1409,7 @@ mod tests {
 
 		let result = provider.get_block_hash(16293).await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), H256::from_str("0x147ad6a26f1d5a9bb2bea3f0b2ca9fab3824873beaf8887e87d08c8fd98a81b3").unwrap());
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
@@ -1424,7 +1427,9 @@ mod tests {
         "previousblockhash": "0x045cabde4ecbd50f5e4e1b141eaf0842c1f5f56517324c8dcab8ccac924e3a39",
         "merkleroot": "0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7",
         "time": 1539968858,
+		"nonce": "7F8EEE652D4BC959",
         "index": 1914006,
+		"primary": 1,
         "nextconsensus": "AWZo4qAxhT8fwKL93QATSjCYCgHmCY1XLB",
         "witnesses": [
             {
@@ -1432,7 +1437,56 @@ mod tests {
                 "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
             }
         ],
-        "tx": [],
+        "tx": [
+			{
+                "hash": "0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510",
+                "size": 267,
+                "version": 0,
+                "nonce": 565086327,
+                "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
+                "sysfee": "0",
+                "netfee": "0",
+                "validuntilblock": 2107425,
+                "signers": [
+                    {
+                        "account": "0xf68f181731a47036a99f04dad90043a744edec0f",
+                        "scopes": "CalledByEntry"
+                    }
+                ],
+                "attributes": [],
+                "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg",
+                "witnesses": [
+                    {
+                        "invocation": "DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+",
+                        "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+                    }
+                ]
+            },
+            {
+                "hash": "0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510",
+                "size": 267,
+                "version": 0,
+                "nonce": 565086327,
+                "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
+                "sysfee": "0",
+                "netfee": "0",
+                "validuntilblock": 2107425,
+                "signers": [
+                    {
+                        "account": "0xf68f181731a47036a99f04dad90043a744edec0f",
+                        "scopes": "CalledByEntry"
+                    }
+                ],
+                "attributes": [],
+                "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg",
+                "witnesses": [
+                    {
+                        "invocation": "DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+",
+                        "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+                    }
+                ]
+            }
+		],
         "confirmations": 7878,
         "nextblockhash": "0x4a97ca89199627f877b6bffe865b8327be84b368d62572ef20953829c3501643"
     }),
@@ -1449,6 +1503,83 @@ mod tests {
 		let result = provider.get_block_by_index(12345, true).await;
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let neo_block = result.unwrap();
+		assert_eq!(neo_block.hash, H256::from_str("0x1de7e5eaab0f74ac38f5191c038e009d3c93ef5c392d1d66fa95ab164ba308b8").unwrap());
+		assert_eq!(neo_block.size, 1217);
+		assert_eq!(neo_block.version, 0);
+		assert_eq!(neo_block.prev_block_hash, H256::from_str("0x045cabde4ecbd50f5e4e1b141eaf0842c1f5f56517324c8dcab8ccac924e3a39").unwrap());
+		assert_eq!(neo_block.merkle_root_hash, H256::from_str("0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7").unwrap());
+		assert_eq!(neo_block.time, 1539968858);
+		assert_eq!(neo_block.nonce, "7F8EEE652D4BC959");
+		assert_eq!(neo_block.index, 1914006);
+		assert_eq!(neo_block.primary.unwrap(), 1);
+		assert_eq!(neo_block.next_consensus, "AWZo4qAxhT8fwKL93QATSjCYCgHmCY1XLB");
+		assert!(neo_block.witnesses.is_some());
+		assert_eq!(neo_block.witnesses.clone().unwrap().len(), 1);
+		assert!(neo_block.witnesses.clone().unwrap().contains(
+			&NeoWitness::new("DEBJVWapboNkCDlH9uu+tStOgGnwODlolRifxTvQiBkhM0vplSPo4vMj9Jt3jvzztMlwmO75Ss5cptL8wUMxASjZ".to_string(),
+							"EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw==".to_string()
+			)
+		));
+		assert!(neo_block.transactions.is_some());
+		assert_eq!(neo_block.transactions.clone().unwrap().len(), 2);
+
+		let expected_transactions = vec![
+			RTransaction::new(
+				H256::from_str("0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510").unwrap(),
+				267,
+				0,
+				565086327,
+				"AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4".to_string(),
+				"0".to_string(),
+				"0".to_string(),
+				2107425,
+				vec![
+					TransactionSigner::new(H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap(),
+					vec![
+						WitnessScope::CalledByEntry
+					]
+					)
+				],
+				Vec::new(),
+				"AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg".to_string(),
+				vec![
+					NeoWitness::new("DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+".to_string(),
+							"EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw==".to_string()
+					)
+				]
+			),
+			RTransaction::new(
+				H256::from_str("0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510").unwrap(),
+				267,
+				0,
+				565086327,
+				"AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4".to_string(),
+				"0".to_string(),
+				"0".to_string(),
+				2107425,
+				vec![
+					TransactionSigner::new(H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap(),
+					vec![
+						WitnessScope::CalledByEntry
+					]
+					)
+				],
+				Vec::new(),
+				"AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg".to_string(),
+				vec![
+					NeoWitness::new("DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+".to_string(),
+							"EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw==".to_string()
+					)
+				]
+			)
+		];
+
+		assert_eq!(neo_block.transactions.clone().unwrap(), expected_transactions);
+		assert_eq!(neo_block.confirmations, 7878);
+		assert_eq!(neo_block.next_block_hash.unwrap(), H256::from_str("0x4a97ca89199627f877b6bffe865b8327be84b368d62572ef20953829c3501643").unwrap());
+
+
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 

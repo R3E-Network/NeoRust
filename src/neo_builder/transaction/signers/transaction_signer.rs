@@ -11,7 +11,7 @@ use neo::prelude::{
 	VarSizeTrait, WitnessRule, WitnessScope,
 };
 
-#[derive(Default, Serialize, Deserialize, Clone, Debug)]
+#[derive(Default, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct TransactionSigner {
 	#[serde(rename = "account")]
 	#[serde(serialize_with = "serialize_script_hash")]

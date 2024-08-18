@@ -31,3 +31,10 @@ pub enum VMState {
 	#[strum(serialize = "BREAK")]
 	Break = 4,
 }
+
+impl Default for VMState {
+    fn default() -> Self {
+        // Provide a default implementation for VMState
+        VMState::None
+    }
+}

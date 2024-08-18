@@ -1,7 +1,7 @@
 use primitive_types::H256;
 use serde::{Deserialize, Serialize};
 
-use crate::prelude::Transaction;
+use crate::prelude::RTransaction;
 use neo::prelude::{
 	deserialize_h256, deserialize_h256_option, serialize_h256, serialize_h256_option, NeoWitness,
 };
@@ -23,12 +23,14 @@ pub struct NeoBlock {
 	#[serde(rename = "merkleroot")]
 	pub merkle_root_hash: H256,
 	pub time: i32,
+	pub nonce: String,
 	pub index: i32,
 	pub primary: Option<i32>,
 	#[serde(rename = "nextconsensus")]
 	pub next_consensus: String,
 	pub witnesses: Option<Vec<NeoWitness>>,
-	pub transactions: Option<Vec<Transaction>>,
+	#[serde(rename = "tx")]
+	pub transactions: Option<Vec<RTransaction>>,
 	pub confirmations: i32,
 	#[serde(serialize_with = "serialize_h256_option")]
 	#[serde(deserialize_with = "deserialize_h256_option")]

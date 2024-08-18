@@ -71,6 +71,7 @@ use neo::prelude::{
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
 pub struct InvocationScript {
 	/// This invocation script as a byte array
+	#[getset(get = "pub", set = "pub")]
 	script: Vec<u8>,
 }
 
@@ -96,6 +97,7 @@ impl InvocationScript {
 		let mut decoder = Decoder::new(&script);
 		Self::decode(&mut decoder).unwrap()
 	}
+
 
 	/// Creates an invocation script from the given signature.
 	///
@@ -151,6 +153,7 @@ impl InvocationScript {
 }
 
 impl InvocationScript {
+
 	/// Unbundles the script into a list of signatures if this invocation script contains signatures.
 	///
 	/// # Returns
