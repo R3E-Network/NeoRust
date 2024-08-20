@@ -12,7 +12,7 @@ pub struct ContractNef {
 	#[serde_as(as = "Vec<ContractMethodToken>")]
 	pub tokens: Vec<ContractMethodToken>,
 	pub script: String,
-	pub checksum: i32,
+	pub checksum: i64,
 }
 
 impl ContractNef {
@@ -22,7 +22,7 @@ impl ContractNef {
 		source: Option<String>,
 		tokens: Vec<ContractMethodToken>,
 		script: String,
-		checksum: i32,
+		checksum: i64,
 	) -> Self {
 		Self {
 			magic,

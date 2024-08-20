@@ -1306,6 +1306,34 @@ mod tests {
 		RpcClient::new(http_client)
 	}
 
+	async fn mock_rpc_response_with_id(
+		mock_server: &MockServer,
+		rpc_method: &str,
+		params: serde_json::Value,
+		result: serde_json::Value,
+		id: u32,
+	) -> RpcClient<HttpProvider> {
+		Mock::given(http_method("POST"))
+			.and(path("/"))
+			.and(body_json(json!({
+				"jsonrpc": "2.0",
+				"method": rpc_method,
+				"params": params,
+				"id": 1
+			})))
+			.respond_with(ResponseTemplate::new(200).set_body_json(json!({
+				"jsonrpc": "2.0",
+				"id": id,
+				"result": result
+			})))
+			.mount(mock_server)
+			.await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+		let http_client = HttpProvider::new(url);
+		RpcClient::new(http_client)
+	}
+
 	#[tokio::test]
 	async fn test_error_reponse() {
 		let _ = env_logger::builder().is_test(true).try_init();
@@ -1511,6 +1539,7 @@ mod tests {
 		assert_eq!(neo_block.merkle_root_hash, H256::from_str("0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7").unwrap());
 		assert_eq!(neo_block.time, 1539968858);
 		assert_eq!(neo_block.nonce, "7F8EEE652D4BC959");
+		assert_eq!(neo_block.get_nonce_as_u64().unwrap(), 9191546007828810073);
 		assert_eq!(neo_block.index, 1914006);
 		assert_eq!(neo_block.primary.unwrap(), 1);
 		assert_eq!(neo_block.next_consensus, "AWZo4qAxhT8fwKL93QATSjCYCgHmCY1XLB");
@@ -1597,62 +1626,13 @@ mod tests {
         "previousblockhash": "0x045cabde4ecbd50f5e4e1b141eaf0842c1f5f56517324c8dcab8ccac924e3a39",
         "merkleroot": "0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7",
         "time": 1539968858,
+		"nonce": "7F8EEE652D4BC95A",
         "index": 1914006,
         "nextconsensus": "AWZo4qAxhT8fwKL93QATSjCYCgHmCY1XLB",
         "witnesses": [
             {
                 "invocation": "DEBJVWapboNkCDlH9uu+tStOgGnwODlolRifxTvQiBkhM0vplSPo4vMj9Jt3jvzztMlwmO75Ss5cptL8wUMxASjZ",
                 "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
-            }
-        ],
-        "tx": [
-            {
-                "hash": "0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510",
-                "size": 267,
-                "version": 0,
-                "nonce": 565086327,
-                "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
-                "sysfee": "0",
-                "netfee": "0",
-                "validuntilblock": 2107425,
-                "signers": [
-                    {
-                        "account": "0xf68f181731a47036a99f04dad90043a744edec0f",
-                        "scopes": "CalledByEntry"
-                    }
-                ],
-                "attributes": [],
-                "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg",
-                "witnesses": [
-                    {
-                        "invocation": "DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+",
-                        "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
-                    }
-                ]
-            },
-            {
-                "hash": "0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510",
-                "size": 267,
-                "version": 0,
-                "nonce": 565086327,
-                "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
-                "sysfee": "0",
-                "netfee": "0",
-                "validuntilblock": 2107425,
-                "signers": [
-                    {
-                        "account": "0xf68f181731a47036a99f04dad90043a744edec0f",
-                        "scopes": "CalledByEntry"
-                    }
-                ],
-                "attributes": [],
-                "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg",
-                "witnesses": [
-                    {
-                        "invocation": "DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+",
-                        "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
-                    }
-                ]
             }
         ],
         "confirmations": 7878,
@@ -1671,6 +1651,29 @@ mod tests {
 		let result = provider.get_block_by_index(12345, false).await;
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let neo_block = result.unwrap();
+		assert_eq!(neo_block.hash, H256::from_str("0x1de7e5eaab0f74ac38f5191c038e009d3c93ef5c392d1d66fa95ab164ba308b8").unwrap());
+		assert_eq!(neo_block.size, 1217);
+		assert_eq!(neo_block.version, 0);
+		assert_eq!(neo_block.prev_block_hash, H256::from_str("0x045cabde4ecbd50f5e4e1b141eaf0842c1f5f56517324c8dcab8ccac924e3a39").unwrap());
+		assert_eq!(neo_block.merkle_root_hash, H256::from_str("0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7").unwrap());
+		assert_eq!(neo_block.time, 1539968858);
+		assert_eq!(neo_block.nonce, "7F8EEE652D4BC95A");
+		assert_eq!(neo_block.get_nonce_as_u64().unwrap(), 9191546007828810074);
+		assert_eq!(neo_block.index, 1914006);
+		assert_eq!(neo_block.next_consensus, "AWZo4qAxhT8fwKL93QATSjCYCgHmCY1XLB");
+		assert!(neo_block.witnesses.is_some());
+		assert_eq!(neo_block.witnesses.clone().unwrap().len(), 1);
+		assert!(neo_block.witnesses.clone().unwrap().contains(
+			&NeoWitness::new("DEBJVWapboNkCDlH9uu+tStOgGnwODlolRifxTvQiBkhM0vplSPo4vMj9Jt3jvzztMlwmO75Ss5cptL8wUMxASjZ".to_string(),
+							"EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw==".to_string()
+			)
+		));
+		assert!(neo_block.transactions.is_some());
+		assert_eq!(neo_block.transactions.clone().unwrap().len(), 0);
+		assert_eq!(neo_block.confirmations, 7878);
+		assert_eq!(neo_block.next_block_hash.unwrap(), H256::from_str("0x4a97ca89199627f877b6bffe865b8327be84b368d62572ef20953829c3501643").unwrap());
+
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
@@ -1681,74 +1684,7 @@ mod tests {
             &mock_server,
             "getblock",
             json!(["2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d", 1]),
-            json!({
-        "hash": "0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d",
-        "size": 1217,
-        "version": 0,
-        "previousblockhash": "0x045cabde4ecbd50f5e4e1b141eaf0842c1f5f56517324c8dcab8ccac924e3a39",
-        "merkleroot": "0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7",
-        "time": 1539968858,
-        "index": 1914006,
-        "nextconsensus": "AWZo4qAxhT8fwKL93QATSjCYCgHmCY1XLB",
-        "witnesses": [
-            {
-                "invocation": "DEBJVWapboNkCDlH9uu+tStOgGnwODlolRifxTvQiBkhM0vplSPo4vMj9Jt3jvzztMlwmO75Ss5cptL8wUMxASjZ",
-                "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
-            }
-        ],
-        "tx": [
-            {
-                "hash": "0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510",
-                "size": 267,
-                "version": 0,
-                "nonce": 565086327,
-                "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
-                "sysfee": "0",
-                "netfee": "0",
-                "validuntilblock": 2107425,
-                "signers": [
-                    {
-                        "account": "0xf68f181731a47036a99f04dad90043a744edec0f",
-                        "scopes": "CalledByEntry"
-                    }
-                ],
-                "attributes": [],
-                "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg",
-                "witnesses": [
-                    {
-                        "invocation": "DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+",
-                        "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
-                    }
-                ]
-            },
-            {
-                "hash": "0x46eca609a9a8c8340ee56b174b04bc9c9f37c89771c3a8998dc043f5a74ad510",
-                "size": 267,
-                "version": 0,
-                "nonce": 565086327,
-                "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
-                "sysfee": "0",
-                "netfee": "0",
-                "validuntilblock": 2107425,
-                "signers": [
-                    {
-                        "account": "0xf68f181731a47036a99f04dad90043a744edec0f",
-                        "scopes": "CalledByEntry"
-                    }
-                ],
-                "attributes": [],
-                "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg",
-                "witnesses": [
-                    {
-                        "invocation": "DEBR7EQOb1NUjat1wrINzBNKOQtXoUmRVZU8h5c8K5CLMCUVcGkFVqAAGUJDh3mVcz6sTgXvmMuujWYrBveeM4q+",
-                        "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
-                    }
-                ]
-            }
-        ],
-        "confirmations": 7878,
-        "nextblockhash": "0x4a97ca89199627f877b6bffe865b8327be84b368d62572ef20953829c3501643"
-    })).await;
+            json!([])).await;
 
 		// Expected request body
 		let expected_request_body = r#"{
@@ -1758,7 +1694,7 @@ mod tests {
             "id": 1
         }"#;
 
-		let result = provider
+		provider
 			.get_block(
 				H256::from_str(
 					"0x2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d",
@@ -1767,8 +1703,6 @@ mod tests {
 				true,
 			)
 			.await;
-
-		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
@@ -1807,11 +1741,12 @@ mod tests {
 	#[tokio::test]
 	async fn test_get_raw_block_index() {
 		let mock_server = setup_mock_server().await;
-		let provider = mock_rpc_response(
+		let provider = mock_rpc_response_with_id(
             &mock_server,
             "getblock",
             json!([12345, 0]),
-            json!("AAAAAM5doa+yo+aKrc8RO/Pfo96BYyedF2ed+jODYAzESzgvm458FX3T6b9rYw2KSBTWfttaeiA9McxN1LiWuQwI1O/6eEAaeAEAAKhnAAAG+CRl3iIpI2tQ6MaMSCq5GLum1uwB/UoBDEA2ZR0uduwN/5tFVCKoHJtAnSJINfqlRDcNXnYl0H0Jcb3YBy1M0G4Z1LB3PQMIb6J4kOtFm7TBL0B6vfPuDpigDEBLHKna+SPlL9vn755blCr3vxvc2HLP5dUch0isPARVDbg24QwVuvx3mbQ6awn0cQ/h+Jym/9xFo0MR0ddKXKzCDEAIcXyoqzFq4+3N9JtyK46LLeyx9ikidPLiXg9HWQk9Ps5wx9+XIe8zziS9dRAOqT4od7tW1SA6cRU3U8ZCexJ1DECxN+nyE15RaIvwpJ0JK3/RJvAM++YKou/ljVef5atDx9pce5nkuibfZzvzrjcoJF53qnP8ZSXBKThjrN2kGCxlDEBSVfUQAFNm4j4KihACjt5Kx1A9hN8RIDQkLw7udpcFm7Nf4PtDtucw7pS7WGEkmu3c+yt2BV3KeCzNBAreypb7/BUMIQMCJCsdztY+G/frFIdvfvAmt5Vn+cW+g94ZQ90YXsKOaAwhAg34hYtm/017Cmpo0R3e3MfZDSpk/6LNCHxMXav0FQtADCECF5VDAAGEeB5UR7Pw+6zmZOqSt+MSJ8jnG8Tnza/M244MIQJehJSQO5PcNp8Ior1+Ih9XTHXZZ1WR8EkHy6na7rg9EAwhA4QV0L6NwSth0+O3a5j0ZN+rf93udCccNeLeYku1ECOmDCEDybHInG4tSr1imi24t9A6ztUYpWeTvJD0mF737T8bSBoMIQPoq1GG4d6rzRDsDlCd7U//reb931NKw+BQYmi64/1EphdBe85spQEAKihGP0BY1TwAAAAAAKBVAAAAAAAnfgAAAW78pd5nDtnbpGznfCdo9+vKgwVMAAD9dBENSgh7Im5hbWUiOiJUb2tlbiBOYW1lIiwiZ3JvdXBzIjpbXSwic3VwcG9ydGVkc3RhbmRhcmRzIjpbIk5FUDE3IiwiTkVQMTAiXSwiYWJpIjp7Im1ldGhvZHMiOlt7Im5hbWUiOiJfZGVwbG95IiwicGFyYW1ldGVycyI6W3sibmFtZSI6ImRhdGEiLCJ0eXBlIjoiQW55In0seyJuYW1lIjoidXBkYXRlIiwidHlwZSI6IkJvb2xlYW4ifV0sInJldHVybnR5cGUiOiJWb2lkIiwib2Zmc2V0IjowLCJzYWZlIjpmYWxzZX0seyJuYW1lIjoiX2luaXRpYWxpemUiLCJwYXJhbWV0ZXJzIjpbXSwicmV0dXJudHlwZSI6IlZvaWQiLCJvZmZzZXQiOjI3Miwic2FmZSI6ZmFsc2V9LHsibmFtZSI6ImJhbGFuY2VPZiIsInBhcmFtZXRlcnMiOlt7Im5hbWUiOiJhY2NvdW50IiwidHlwZSI6Ikhhc2gxNjAifV0sInJldHVybnR5cGUiOiJJbnRlZ2VyIiwib2Zmc2V0IjozNjgsInNhZmUiOmZhbHNlfSx7Im5hbWUiOiJkZWNpbWFscyIsInBhcmFtZXRlcnMiOltdLCJyZXR1cm50eXBlIjoiSW50ZWdlciIsIm9mZnNldCI6NTE1LCJzYWZlIjpmYWxzZX0seyJuYW1lIjoiZGVzdHJveSIsInBhcmFtZXRlcnMiOltdLCJyZXR1cm50eXBlIjoiVm9pZCIsIm9mZnNldCI6NTM3LCJzYWZlIjpmYWxzZX0seyJuYW1lIjoiZGlzYWJsZVBheW1lbnQiLCJwYXJhbWV0ZXJzIjpbXSwicmV0dXJudHlwZSI6IlZvaWQiLCJvZmZzZXQiOjYwNywic2FmZSI6ZmFsc2V9LHsibmFtZSI6ImVuYWJsZVBheW1lbnQiLCJwYXJhbWV0ZXJzIjpbXSwicmV0dXJudHlwZSI6IlZvaWQiLCJvZmZzZXQiOjY3OSwic2FmZSI6ZmFsc2V9LHsibmFtZSI6Im9uTkVQMTdQYXltZW50IiwicGFyYW1ldGVycyI6W3sibmFtZSI6ImZyb20iLCJ0eXBlIjoiSGFzaDE2MCJ9LHsibmFtZSI6ImFtb3VudCIsInR5cGUiOiJJbnRlZ2VyIn0seyJuYW1lIjoiZGF0YSIsInR5cGUiOiJBbnkifV0sInJldHVybnR5cGUiOiJWb2lkIiwib2Zmc2V0IjoxMjMwLCJzYWZlIjpmYWxzZX0seyJuYW1lIjoic3ltYm9sIiwicGFyYW1ldGVycyI6W10sInJldHVybnR5cGUiOiJTdHJpbmciLCJvZmZzZXQiOjE2MDIsInNhZmUiOmZhbHNlfSx7Im5hbWUiOiJ0ZXN0Y29udHJhY3QiLCJwYXJhbWV0ZXJzIjpbXSwicmV0dXJudHlwZSI6IlN0cmluZyIsIm9mZnNldCI6MTYzMywic2FmZSI6ZmFsc2V9LHsibmFtZSI6InRlc3RkeW5hbWljY2FsbCIsInBhcmFtZXRlcnMiOlt7Im5hbWUiOiJoYXNoIiwidHlwZSI6Ikhhc2gxNjAifSx7Im5hbWUiOiJtZXRob2QiLCJ0eXBlIjoiU3RyaW5nIn1dLCJyZXR1cm50eXBlIjoiVm9pZCIsIm9mZnNldCI6MTY0Miwic2FmZSI6ZmFsc2V9LHsibmFtZSI6InRvdGFsU3VwcGx5IiwicGFyYW1ldGVycyI6W10sInJldHVybnR5cGUiOiJJbnRlZ2VyIiwib2Zmc2V0IjoxNjU4LCJzYWZlIjpmYWxzZX0seyJuYW1lIjoidHJhbnNmZXIiLCJwYXJhbWV0ZXJzIjpbeyJuYW1lIjoiZnJvbSIsInR5cGUiOiJIYXNoMTYwIn0seyJuYW1lIjoidG8iLCJ0eXBlIjoiSGFzaDE2MCJ9LHsibmFtZSI6ImFtb3VudCIsInR5cGUiOiJJbnRlZ2VyIn0seyJuYW1lIjoiZGF0YSIsInR5cGUiOiJBbnkifV0sInJldHVybnR5cGUiOiJCb29sZWFuIiwib2Zmc2V0IjoxNjY0LCJzYWZlIjpmYWxzZX0seyJuYW1lIjoidXBkYXRlIiwicGFyYW1ldGVycyI6W3sibmFtZSI6Im5lZkZpbGUiLCJ0eXBlIjoiU3RyaW5nIn0seyJuYW1lIjoibWFuaWZlc3QiLCJ0eXBlIjoiU3RyaW5nIn1dLCJyZXR1cm50eXBlIjoiVm9pZCIsIm9mZnNldCI6MTk5Miwic2FmZSI6ZmFsc2V9LHsibmFtZSI6InZlcmlmeSIsInBhcmFtZXRlcnMiOltdLCJyZXR1cm50eXBlIjoiQm9vbGVhbiIsIm9mZnNldCI6MjA1OCwic2FmZSI6ZmFsc2V9XSwiZXZlbnRzIjpbeyJuYW1lIjoiVHJhbnNmZXIiLCJwYXJhbWV0ZXJzIjpbeyJuYW1lIjoiYXJnMSIsInR5cGUiOiJIYXNoMTYwIn0seyJuYW1lIjoiYXJnMiIsInR5cGUiOiJIYXNoMTYwIn0seyJuYW1lIjoiYXJnMyIsInR5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"),
+            json!("00000000ebaa4ed893333db1ed556bb24145f4e7fe40b9c7c07ff2235c7d3d361ddb27e603da9da4c7420d090d0e29c588cfd701b3f81819375e537c634bd779ddc7e2e2c436cc5ba53f00001952d428256ad0cdbe48d3a3f5d10013ab9ffee489706078714f1ea201c340c44387d762d1bcb2ab0ec650628c7c674021f333ee7666e2a03805ad86df3b826b5dbf5ac607a361807a047d43cf6bba726dcb06a42662aee7e78886c72faef940e6cef9abab82e1e90c6683ac8241b3bf51a10c908f01465f19c3df1099ef5de5d43a648a6e4ab63cc7d5e88146bddbe950e8041e44a2b0b81f21ad706e88258540fd19314f46ad452b4cbedf58bf9d266c0c808374cd33ef18d9a0575b01e47f6bb04abe76036619787c457c49288aeb91ff23cdb85771c0209db184801d5bdd348b532102103a7f7dd016558597f7960d27c516a4394fd968b9e65155eb4b013e4040406e2102a7bc55fe8684e0119768d104ba30795bdcc86619e864add26156723ed185cd622102b3622bf4017bdfe317c58aed5f4c753f206b7db896046fa7d774bbc4bf7f8dc22103d90c07df63e690ce77912e10ab51acc944b66860237b608c4f8f8309e71ee69954ae0100001952d42800000000"),
+			67,
         ).await;
 
 		// Expected request body
@@ -1824,6 +1759,7 @@ mod tests {
 
 		let result = provider.get_raw_block_by_index(12345).await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), "00000000ebaa4ed893333db1ed556bb24145f4e7fe40b9c7c07ff2235c7d3d361ddb27e603da9da4c7420d090d0e29c588cfd701b3f81819375e537c634bd779ddc7e2e2c436cc5ba53f00001952d428256ad0cdbe48d3a3f5d10013ab9ffee489706078714f1ea201c340c44387d762d1bcb2ab0ec650628c7c674021f333ee7666e2a03805ad86df3b826b5dbf5ac607a361807a047d43cf6bba726dcb06a42662aee7e78886c72faef940e6cef9abab82e1e90c6683ac8241b3bf51a10c908f01465f19c3df1099ef5de5d43a648a6e4ab63cc7d5e88146bddbe950e8041e44a2b0b81f21ad706e88258540fd19314f46ad452b4cbedf58bf9d266c0c808374cd33ef18d9a0575b01e47f6bb04abe76036619787c457c49288aeb91ff23cdb85771c0209db184801d5bdd348b532102103a7f7dd016558597f7960d27c516a4394fd968b9e65155eb4b013e4040406e2102a7bc55fe8684e0119768d104ba30795bdcc86619e864add26156723ed185cd622102b3622bf4017bdfe317c58aed5f4c753f206b7db896046fa7d774bbc4bf7f8dc22103d90c07df63e690ce77912e10ab51acc944b66860237b608c4f8f8309e71ee69954ae0100001952d42800000000");
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
@@ -1831,7 +1767,7 @@ mod tests {
 	async fn test_get_block_header_count() {
 		let mock_server = setup_mock_server().await;
 		let provider =
-			mock_rpc_response(&mock_server, "getblockheadercount", json!([]), json!(256)).await;
+			mock_rpc_response(&mock_server, "getblockheadercount", json!([]), json!(543)).await;
 		// Expected request body
 		let expected_request_body = r#"{
             "jsonrpc": "2.0",
@@ -1842,6 +1778,7 @@ mod tests {
 
 		let result = provider.get_block_header_count().await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), 543);
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
@@ -1849,7 +1786,7 @@ mod tests {
 	async fn test_get_block_count() {
 		let mock_server = setup_mock_server().await;
 		let provider =
-			mock_rpc_response(&mock_server, "getblockcount", json!([]), json!(256)).await;
+		mock_rpc_response_with_id(&mock_server, "getblockcount", json!([]), json!(1234), 67).await;
 		// Expected request body
 		let expected_request_body = r#"{
             "jsonrpc": "2.0",
@@ -1861,6 +1798,7 @@ mod tests {
 		let result = provider.get_block_count().await;
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), 1234);
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
@@ -1873,159 +1811,99 @@ mod tests {
 			json!([]),
 			json!([
 				{
-					"id": -1,
-					"hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+					"id": -6,
+					"hash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
 					"nef": {
 						"magic": 860243278,
 						"compiler": "neo-core-v3.0",
-						"source": "",
+						"source": "variable-size-source-gastoken",
 						"tokens": [],
 						"script": "EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0A=",
-						"checksum": 1110259869
+						"checksum": 2663858513i64
 					},
 					"manifest": {
-						"name": "ContractManagement",
+						"name": "GasToken",
 						"groups": [],
-						"features": {},
-						"supportedstandards": [],
+						"supportedstandards": ["NEP-17"],
 						"abi": {
 							"methods": [
 								{
-									"name": "deploy",
+									"name": "balanceOf",
 									"parameters": [
 										{
-											"name": "nefFile",
-											"type": "ByteArray"
-										},
-										{
-											"name": "manifest",
-											"type": "ByteArray"
-										}
-									],
-									"returntype": "Array",
-									"offset": 0,
-									"safe": false
-								},
-								{
-									"name": "deploy",
-									"parameters": [
-										{
-											"name": "nefFile",
-											"type": "ByteArray"
-										},
-										{
-											"name": "manifest",
-											"type": "ByteArray"
-										},
-										{
-											"name": "data",
-											"type": "Any"
-										}
-									],
-									"returntype": "Array",
-									"offset": 7,
-									"safe": false
-								},
-								{
-									"name": "destroy",
-									"parameters": [],
-									"returntype": "Void",
-									"offset": 14,
-									"safe": false
-								},
-								{
-									"name": "getContract",
-									"parameters": [
-										{
-											"name": "hash",
+											"name": "account",
 											"type": "Hash160"
+										},
+										{
+											"name": "manifest",
+											"type": "ByteArray"
 										}
 									],
-									"returntype": "Array",
+									"returntype": "Integer",
+									"offset": 0,
+									"safe": true
+								},
+								{
+									"name": "decimals",
+									"parameters": [],
+									"returntype": "Integer",
+									"offset": 7,
+									"safe": true
+								},
+								{
+									"name": "symbol",
+									"parameters": [],
+									"returntype": "String",
+									"offset": 14,
+									"safe": true
+								},
+								{
+									"name": "totalSupply",
+									"parameters": [],
+									"returntype": "Integer",
 									"offset": 21,
 									"safe": true
 								},
 								{
-									"name": "getMinimumDeploymentFee",
-									"parameters": [],
-									"returntype": "Integer",
-									"offset": 28,
-									"safe": true
-								},
-								{
-									"name": "setMinimumDeploymentFee",
+									"name": "transfer",
 									"parameters": [
 										{
-											"name": "value",
+											"name": "from",
+											"type": "Hash160"
+										},
+										{
+											"name": "to",
+											"type": "Hash160"
+										},
+										{
+											"name": "amount",
 											"type": "Integer"
-										}
-									],
-									"returntype": "Void",
-									"offset": 35,
-									"safe": false
-								},
-								{
-									"name": "update",
-									"parameters": [
-										{
-											"name": "nefFile",
-											"type": "ByteArray"
-										},
-										{
-											"name": "manifest",
-											"type": "ByteArray"
-										}
-									],
-									"returntype": "Void",
-									"offset": 42,
-									"safe": false
-								},
-								{
-									"name": "update",
-									"parameters": [
-										{
-											"name": "nefFile",
-											"type": "ByteArray"
-										},
-										{
-											"name": "manifest",
-											"type": "ByteArray"
 										},
 										{
 											"name": "data",
 											"type": "Any"
 										}
 									],
-									"returntype": "Void",
-									"offset": 49,
+									"returntype": "Boolean",
+									"offset": 28,
 									"safe": false
 								}
 							],
 							"events": [
 								{
-									"name": "Deploy",
+									"name": "Transfer",
 									"parameters": [
 										{
-											"name": "Hash",
+											"name": "from",
 											"type": "Hash160"
-										}
-									]
-								},
-								{
-									"name": "Update",
-									"parameters": [
+										},
 										{
-											"name": "Hash",
+											"name": "to",
 											"type": "Hash160"
-										}
-									]
-								},
-								{
-									"name": "Destroy",
-									"parameters": [
+										},
 										{
-											"name": "Hash",
-											"type": "Hash160"
+											"name": "amount",
+											"type": "Integer"
 										}
 									]
 								}
@@ -2040,7 +1918,194 @@ mod tests {
 						"trusts": [],
 						"extra": null
 					},
-					"updatehistory": [0]
+				},
+				{
+					"id": -8,
+					"hash": "0x49cf4e5378ffcd4dec034fd98a174c5491e395e2",
+					"nef": {
+						"magic": 860243278,
+						"compiler": "neo-core-v3.0",
+						"source": "variable-size-source-rolemanagement",
+						"tokens": [],
+						"script": "EEEa93tnQBBBGvd7Z0A=",
+						"checksum": 983638438
+					},
+					"manifest": {
+						"name": "RoleManagement",
+						"groups": [],
+						"supportedstandards": [],
+						"abi": {
+							"methods": [
+								{
+									"name": "designateAsRole",
+									"parameters": [
+										{
+											"name": "role",
+											"type": "Integer"
+										},
+										{
+											"name": "nodes",
+											"type": "Array"
+										}
+									],
+									"returntype": "Void",
+									"offset": 0,
+									"safe": false
+								},
+								{
+									"name": "getDesignatedByRole",
+									"parameters": [
+										{
+											"name": "role",
+											"type": "Integer"
+										},
+										{
+											"name": "index",
+											"type": "Integer"
+										}
+									],
+									"returntype": "Array",
+									"offset": 7,
+									"safe": true
+								}
+							],
+							"events": []
+						},
+						"permissions": [
+							{
+								"contract": "*",
+								"methods": "*"
+							}
+						],
+						"trusts": [],
+						"extra": null
+					},
+				},
+				{
+					"id": -9,
+					"hash": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
+					"nef": {
+						"magic": 860243278,
+						"compiler": "neo-core-v3.0",
+						"source": "variable-size-source-oraclecontract",
+						"tokens": [],
+						"script": "EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0A=",
+						"checksum": 2663858513i64
+					},
+					"manifest": {
+						"name": "OracleContract",
+						"groups": [],
+						"supportedstandards": [],
+						"abi": {
+							"methods": [
+								{
+									"name": "finish",
+									"parameters": [],
+									"returntype": "Void",
+									"offset": 0,
+									"safe": false
+								},
+								{
+									"name": "getPrice",
+									"parameters": [],
+									"returntype": "Integer",
+									"offset": 7,
+									"safe": true
+								},
+								{
+									"name": "request",
+									"parameters": [
+										{
+											"name": "url",
+											"type": "String"
+										},
+										{
+											"name": "filter",
+											"type": "String"
+										},
+										{
+											"name": "callback",
+											"type": "String"
+										},
+										{
+											"name": "userData",
+											"type": "Any"
+										},
+										{
+											"name": "gasForResponse",
+											"type": "Integer"
+										}
+									],
+									"returntype": "Void",
+									"offset": 14,
+									"safe": false
+								},
+								{
+									"name": "setPrice",
+									"parameters": [
+										{
+											"name": "price",
+											"type": "Integer"
+										}
+									],
+									"returntype": "Void",
+									"offset": 21,
+									"safe": false
+								},
+								{
+									"name": "verify",
+									"parameters": [],
+									"returntype": "Boolean",
+									"offset": 28,
+									"safe": true
+								}
+							],
+							"events": [
+								{
+									"name": "OracleRequest",
+									"parameters": [
+										{
+											"name": "Id",
+											"type": "Integer"
+										},
+										{
+											"name": "RequestContract",
+											"type": "Hash160"
+										},
+										{
+											"name": "Url",
+											"type": "String"
+										},
+										{
+											"name": "Filter",
+											"type": "String"
+										}
+									]
+								},
+								{
+									"name": "OracleResponse",
+									"parameters": [
+										{
+											"name": "Id",
+											"type": "Integer"
+										},
+										{
+											"name": "OriginalTx",
+											"type": "Hash256"
+										}
+									]
+								},
+							]
+						},
+						"permissions": [
+							{
+								"contract": "*",
+								"methods": "*"
+							}
+						],
+						"trusts": [],
+						"extra": null
+					},
 				}
 			]),
 		)

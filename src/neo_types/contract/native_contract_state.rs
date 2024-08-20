@@ -11,8 +11,8 @@ pub struct NativeContractState {
 	#[serde(deserialize_with = "deserialize_h160")]
 	hash: H160,
 	manifest: ContractManifest,
-	#[serde(rename = "updatehistory")]
-	pub update_history: Vec<i32>,
+	// #[serde(rename = "updatehistory")]
+	// pub update_history: Vec<i32>,
 }
 
 impl NativeContractState {
@@ -21,8 +21,8 @@ impl NativeContractState {
 		hash: H160,
 		nef: ContractNef,
 		manifest: ContractManifest,
-		update_history: Vec<i32>,
+		// update_history: Vec<i32>,
 	) -> Self {
-		Self { id, nef, update_history, hash, manifest }
+		Self { id, nef, hash, manifest }
 	}
 }

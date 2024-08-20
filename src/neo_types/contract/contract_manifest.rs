@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use neo::prelude::{ContractParameter, ContractParameterType};
 
-use crate::prelude::ContractParameter2;
+use crate::prelude::{ContractParameter2, serialize_wildcard, deserialize_wildcard};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ContractManifest {
@@ -87,7 +87,7 @@ pub struct ContractEvent {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Debug, Clone)]
 pub struct ContractPermission {
 	pub contract: String,
-	// #[serde(serialize_with = "serialize_wildcard")]
-	// #[serde(deserialize_with = "deserialize_wildcard")]
+	#[serde(serialize_with = "serialize_wildcard")]
+	#[serde(deserialize_with = "deserialize_wildcard")]
 	pub methods: Vec<String>,
 }

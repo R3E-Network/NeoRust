@@ -4,6 +4,7 @@
 use std::{
 	collections::{HashMap, HashSet},
 	convert::TryInto,
+	fmt,
 };
 
 use elliptic_curve::sec1::ToEncodedPoint;
@@ -12,6 +13,7 @@ use primitive_types::{H160, H256, U256};
 use reqwest::Url;
 use serde::{
 	ser::{SerializeMap, SerializeSeq},
+	de::{self, Visitor, SeqAccess},
 	Deserialize, Deserializer, Serialize, Serializer,
 };
 
@@ -166,28 +168,28 @@ where
 	}
 }
 
-pub fn serialize_wildcard<S>(value: &Vec<String>, serializer: S) -> Result<S::Ok, S::Error>
-where
-	S: Serializer,
-{
-	if value == &vec!["*".to_string()] {
-		serializer.serialize_str("*")
-	} else {
-		value.serialize(serializer)
-	}
-}
+// pub fn serialize_wildcard<S>(value: &Vec<String>, serializer: S) -> Result<S::Ok, S::Error>
+// where
+// 	S: Serializer,
+// {
+// 	if value == &vec!["*".to_string()] {
+// 		serializer.serialize_str("*")
+// 	} else {
+// 		value.serialize(serializer)
+// 	}
+// }
 
-pub fn deserialize_wildcard<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
-where
-	D: Deserializer<'de>,
-{
-	let s: String = Deserialize::deserialize(deserializer)?;
-	if s == "*" {
-		Ok(vec!["*".to_string()])
-	} else {
-		Ok(vec![s])
-	}
-}
+// pub fn deserialize_wildcard<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+// where
+// 	D: Deserializer<'de>,
+// {
+// 	let s: String = Deserialize::deserialize(deserializer)?;
+// 	if s == "*" {
+// 		Ok(vec!["*".to_string()])
+// 	} else {
+// 		Ok(vec![s])
+// 	}
+// }
 
 pub fn serialize_u256<S>(item: &U256, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -875,6 +877,58 @@ where
 		.map(|(k, v)| (serde_json::from_str(&k).unwrap(), v))
 		.collect();
 	Ok(map)
+}
+
+const WILDCARD_CHAR: &str = "*";
+
+pub fn serialize_wildcard<S>(methods: &Vec<String>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    if !methods.is_empty() && methods[0] == WILDCARD_CHAR {
+        serializer.serialize_str(WILDCARD_CHAR)
+    } else {
+        let mut seq = serializer.serialize_seq(Some(methods.len()))?;
+        for method in methods {
+            seq.serialize_element(method)?;
+        }
+        seq.end()
+    }
+}
+
+pub fn deserialize_wildcard<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct StringOrVec;
+
+    impl<'de> Visitor<'de> for StringOrVec {
+        type Value = Vec<String>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string or a sequence of strings")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(vec![value.to_owned()])
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: SeqAccess<'de>,
+        {
+            let mut vec = Vec::new();
+            while let Some(value) = seq.next_element()? {
+                vec.push(value);
+            }
+            Ok(vec)
+        }
+    }
+
+    deserializer.deserialize_any(StringOrVec)
 }
 
 #[cfg(test)]
