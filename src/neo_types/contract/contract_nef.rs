@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
 use neo::prelude::ContractMethodToken;
+use crate::prelude::TypeError;
 
 #[derive(Serialize, Deserialize, Default, Hash, Clone, Debug)]
 #[serde_as]
@@ -32,5 +33,24 @@ impl ContractNef {
 			script,
 			checksum,
 		}
+	}
+
+	pub fn get_first_token(&self) -> Result<&ContractMethodToken, TypeError> {
+		if self.tokens.is_empty() {
+			return Err(TypeError::IndexOutOfBounds(
+				"This contract does not have any method tokens.".to_string(),
+			));
+		}
+		self.get_token(0)
+	}
+
+	pub fn get_token(&self, index: usize) -> Result<&ContractMethodToken, TypeError> {
+		if index >= self.tokens.len() {
+			return Err(TypeError::IndexOutOfBounds(format!(
+				"This contract nef only has {} method tokens.",
+				self.tokens.len()
+			)));
+		}
+		Ok(&self.tokens[index])
 	}
 }

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use neo::prelude::{ContractParameter, ContractParameterType};
 
-use crate::prelude::{ContractParameter2, serialize_wildcard, deserialize_wildcard};
+use crate::prelude::{ContractParameter2, serialize_wildcard, deserialize_wildcard, TypeError};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ContractManifest {
@@ -26,6 +26,20 @@ pub struct ContractManifest {
 	pub trusts: Vec<String>,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub extra: Option<HashMap<String, serde_json::Value>>,
+}
+
+impl ContractManifest{
+	pub fn get_supported_standard(&self, index: usize) -> Result<&String, TypeError> {
+		if index >= self.supported_standards.len() {
+			return Err(TypeError::IndexOutOfBounds(format!(
+				"This contract only supports {} standards. Tried to access a supported standard at index {} in the manifest",
+				self.supported_standards.len(),
+				index
+			)));
+		}
+		Ok(&self.supported_standards[index])
+	}
+
 }
 
 // impl Eq for ContractManifest
@@ -64,8 +78,31 @@ pub struct ContractGroup {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Debug, Clone)]
 pub struct ContractABI {
 	pub methods: Vec<ContractMethod>,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub events: Option<Vec<ContractEvent>>,
+	// #[serde(skip_serializing_if = "Option::is_none")]
+	#[serde(default)]
+	pub events: Vec<ContractEvent>,
+}
+
+impl  ContractABI {
+	pub fn get_first_event(&self) -> Result<&ContractEvent, TypeError> {
+		if self.events.is_empty() {
+			return Err(TypeError::IndexOutOfBounds(
+				"This ABI does not have any events.".to_string(),
+			));
+		}
+		self.get_event(0)
+	}
+	pub fn get_event(&self, index: usize) -> Result<&ContractEvent, TypeError> {
+		if index >= self.events.len() {
+			return Err(TypeError::IndexOutOfBounds(format!(
+				"This ABI only has {} events. Tried to access index {}.",
+				self.events.len(),
+				index
+			)));
+		}
+		Ok(&self.events[index])
+	}
+	
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
