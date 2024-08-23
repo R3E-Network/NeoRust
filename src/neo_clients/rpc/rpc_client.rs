@@ -1242,7 +1242,7 @@ pub fn is_local_endpoint(endpoint: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-	use std::{str::FromStr, sync::Mutex};
+	use std::{any::Any, str::FromStr, sync::Mutex};
 
 	use blake2::digest::Mac;
 	use lazy_static::lazy_static;
@@ -1269,7 +1269,7 @@ mod tests {
 
 	use crate::{
 		neo_types::{Base64Encode, ToBase64},
-		prelude::{MockClient, NativeContractState, TypeError},
+		prelude::{ContractParameterType, MockClient, NativeContractState, TypeError},
 		providers::RpcClient,
 	};
 
@@ -2180,8 +2180,19 @@ mod tests {
 		assert_eq!(manifest2.name.clone().unwrap(), "RoleManagement".to_string());
 		assert_eq!(manifest2.groups.len(), 0);
 		assert_eq!(manifest2.supported_standards.len(), 0);
+		let mut result = manifest2.get_first_supported_standard();
+        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+            assert!(msg.contains("does not support any standard"));
+        }
 		assert_eq!(manifest2.abi.clone().unwrap().methods.len(), 2);
 		assert_eq!(manifest2.abi.clone().unwrap().events.len(), 0);
+		let binding2 = manifest2.abi.clone().unwrap();
+		let mut result = binding2.get_first_event();
+        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+            assert!(msg.contains("does not have any events"));
+        }
 
 		let c3 = native_contracts.get(2).unwrap();
 		assert_eq!(c3.id, -9);
@@ -2322,373 +2333,111 @@ mod tests {
             "getcontractstate",
             json!(["dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f"]),
             json!({
-        "id": 383,
+        "id": -4,
         "updatecounter": 0,
-        "hash": "0xe7f2e74b3498d3a0d80bcbd5925bca32e4acc4f7",
+        "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
         "nef": {
             "magic": 860243278,
-            "compiler": "Neo.Compiler.CSharp 3.1.0",
-            "source": "https://github.com/neo-project/neo",
+            "compiler": "neo-core-v3.0",
+            "source": "variable-size-source-ledgercontract",
             "tokens": [
-                {
-                    "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
-                    "method": "update",
-                    "paramcount": 3,
-                    "hasreturnvalue": false,
-                    "callflags": "All"
-                },
-                {
-                    "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
-                    "method": "destroy",
-                    "paramcount": 0,
-                    "hasreturnvalue": false,
-                    "callflags": "All"
-                },
-                {
-                    "hash": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
-                    "method": "request",
-                    "paramcount": 5,
-                    "hasreturnvalue": false,
-                    "callflags": "All"
-                },
-                {
-                    "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
-                    "method": "itoa",
-                    "paramcount": 1,
-                    "hasreturnvalue": true,
-                    "callflags": "All"
-                },
-                {
-                    "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
-                    "method": "jsonDeserialize",
-                    "paramcount": 1,
-                    "hasreturnvalue": true,
-                    "callflags": "All"
-                },
-                {
-                    "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
-                    "method": "getContract",
-                    "paramcount": 1,
-                    "hasreturnvalue": true,
-                    "callflags": "All"
-                },
-                {
-                    "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
-                    "method": "getTransaction",
-                    "paramcount": 1,
-                    "hasreturnvalue": true,
-                    "callflags": "All"
-                },
-                {
-                    "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
-                    "method": "getTransactionState",
-                    "paramcount": 1,
-                    "hasreturnvalue": true,
-                    "callflags": "All"
-                }
+                // {
+                //     "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                //     "method": "update",
+                //     "paramcount": 3,
+                //     "hasreturnvalue": false,
+                //     "callflags": "All"
+                // },
+                // {
+                //     "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                //     "method": "destroy",
+                //     "paramcount": 0,
+                //     "hasreturnvalue": false,
+                //     "callflags": "All"
+                // },
+                // {
+                //     "hash": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
+                //     "method": "request",
+                //     "paramcount": 5,
+                //     "hasreturnvalue": false,
+                //     "callflags": "All"
+                // },
+                // {
+                //     "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
+                //     "method": "itoa",
+                //     "paramcount": 1,
+                //     "hasreturnvalue": true,
+                //     "callflags": "All"
+                // },
+                // {
+                //     "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
+                //     "method": "jsonDeserialize",
+                //     "paramcount": 1,
+                //     "hasreturnvalue": true,
+                //     "callflags": "All"
+                // },
+                // {
+                //     "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+                //     "method": "getContract",
+                //     "paramcount": 1,
+                //     "hasreturnvalue": true,
+                //     "callflags": "All"
+                // },
+                // {
+                //     "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+                //     "method": "getTransaction",
+                //     "paramcount": 1,
+                //     "hasreturnvalue": true,
+                //     "callflags": "All"
+                // },
+                // {
+                //     "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+                //     "method": "getTransactionState",
+                //     "paramcount": 1,
+                //     "hasreturnvalue": true,
+                //     "callflags": "All"
+                // }
             ],
-            "script": "WEH4J+yMQEH4J+yMQDTzQFkMBmVuYWJsZUsRzlCLUBDOQZJd6DFK2CYERRDbIRGzQErYJgRFENshQEsRzlCLUBDOQZJd6DFANLiqJhYMEU5vIGF1dGhvcml6YXRpb24uOlkMBmVuYWJsZRESTRHOUYtREM5B5j8YhEASTRHOUYtREM5B5j8YhEA1d////6omFgwRTm8gYXV0aG9yaXphdGlvbi46WQwGZW5hYmxlEBJNEc5Ri1EQzkHmPxiEQFcAAzVP////JgYiKyIpDCRQYXltZW50IGlzIGRpc2FibGUgb24gdGhpcyBjb250cmFjdCE6QFcBAzUJ////qiYWDBFObyBhdXRob3JpemF0aW9uLjoLenlB2/6odBTAcGgfDAh0cmFuc2ZlcnhBYn1bUkXCSnjPSnnPSnrPDAtVbmxvY2tFdmVudEGVAW9hEdsgIgJAQdv+qHRAQWJ9W1JAVwIAEMBwaB8MCGlzUGF1c2VkWtsoStgkCUrKABQoAzpBYn1bUnHCSmnPDA1Jc1BhdXNlZEV2ZW50QZUBb2FpIgJA2yhK2CQJSsoAFCgDOkBXAAJ5JgQiGgwFV29ybGQMBUhlbGxvQZv2Z85B5j8YhEBB5j8YhEBBm/ZnzkBXAAI1If7//6omFgwRTm8gYXV0aG9yaXphdGlvbi46C3l4NwAAQDcAAEA1+v3//6omFgwRTm8gYXV0aG9yaXphdGlvbi46NwEAQDcBAEBXAgMMCGNhbGxiYWNrcAwIdXNlcmRhdGFxemloeHk3AgBANwIAQFcDBEE5U248DBRYhxcRfgqoEHKvq3HS3Yn+fEuS/pgmEgwNVW5hdXRob3JpemVkITp6EJgmLgwiT3JhY2xlIHJlc3BvbnNlIGZhaWx1cmUgd2l0aCBjb2RlIHo3AwCL2yg6ezcEAHBocWkQznIMCnVzZXJkYXRhOiB5i9soQc/nR5YMEHJlc3BvbnNlIHZhbHVlOiBqi9soQc/nR5ZAQTlTbjxADBRYhxcRfgqoEHKvq3HS3Yn+fEuS/kA3BABAQc/nR5ZAVwACeXhBm/ZnzkHmPxiEQFcBABFwIhtZaDcDAGgSTRHOUYtREM5B5j8YhGhKnHBFaAHoA7Uk4kBXAQBB2/6odDcFAHBoFM4VziICQDcFAEBXAQBB2/6odDcFAHBoFM4TziICQFcCAEEtUQgwcGgQznHCSmk3BgDPDBBUcmFuc2FjdGlvblN0YXRlQZUBb2FpNwcAIgJAQS1RCDBANwYAQDcHAEBWAwwUwJjkrPCyCQ3Rbss9WN5CaocVhRtgDBRC5UOC6G3Nygng2ou2fi+sTUmHRGIMBWFzc2V0QZv2Z84SwGFAEsBA",
-            "checksum": 1593448136
+            "script": "EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0AQQRr3e2dA",
+            "checksum": 529571427
         },
         "manifest": {
-            "name": "TestNetFee",
+            "name": "LedgerContract",
             "groups": [],
             "features": {},
-            "supportedstandards": [
-                "NEP-17"
-            ],
+            "supportedstandards": [],
             "abi": {
                 "methods": [
                     {
-                        "name": "verify",
+                        "name": "currentHash",
                         "parameters": [],
-                        "returntype": "Boolean",
-                        "offset": 13,
-                        "safe": false
+                        "returntype": "Hash256",
+                        "offset": 0,
+                        "safe": true
                     },
                     {
-                        "name": "getPaymentStatus",
-                        "parameters": [],
-                        "returntype": "Boolean",
-                        "offset": 16,
-                        "safe": false
-                    },
-                    {
-                        "name": "enablePayment",
-                        "parameters": [],
-                        "returntype": "Void",
-                        "offset": 72,
-                        "safe": false
-                    },
-                    {
-                        "name": "disablePayment",
-                        "parameters": [],
-                        "returntype": "Void",
-                        "offset": 137,
-                        "safe": false
-                    },
-                    {
-                        "name": "onNEP17Payment",
+                        "name": "getTransactionHeight",
                         "parameters": [
-                            {
-                                "name": "from",
-                                "type": "Hash160"
-                            },
-                            {
-                                "name": "amount",
-                                "type": "Integer"
-                            },
-                            {
-                                "name": "data",
-                                "type": "Any"
-                            }
-                        ],
-                        "returntype": "Void",
-                        "offset": 190,
-                        "safe": false
-                    },
-                    {
-                        "name": "unlock",
-                        "parameters": [
-                            {
-                                "name": "toAssetHash",
-                                "type": "Hash160"
-                            },
-                            {
-                                "name": "toAddress",
-                                "type": "Hash160"
-                            },
-                            {
-                                "name": "amount",
-                                "type": "Integer"
-                            }
-                        ],
-                        "returntype": "Boolean",
-                        "offset": 244,
-                        "safe": false
-                    },
-                    {
-                        "name": "isPaused",
-                        "parameters": [],
-                        "returntype": "Boolean",
-                        "offset": 351,
-                        "safe": false
-                    },
-                    {
-                        "name": "_deploy",
-                        "parameters": [
-                            {
-                                "name": "data",
-                                "type": "Any"
-                            },
-                            {
-                                "name": "update",
-                                "type": "Boolean"
-                            }
-                        ],
-                        "returntype": "Void",
-                        "offset": 431,
-                        "safe": false
-                    },
-                    {
-                        "name": "update",
-                        "parameters": [
-                            {
-                                "name": "nefFile",
-                                "type": "ByteArray"
-                            },
-                            {
-                                "name": "manifest",
-                                "type": "String"
-                            }
-                        ],
-                        "returntype": "Void",
-                        "offset": 476,
-                        "safe": false
-                    },
-                    {
-                        "name": "destroy",
-                        "parameters": [],
-                        "returntype": "Void",
-                        "offset": 518,
-                        "safe": false
-                    },
-                    {
-                        "name": "doRequest",
-                        "parameters": [
-                            {
-                                "name": "filter",
-                                "type": "String"
-                            },
-                            {
-                                "name": "url",
-                                "type": "String"
-                            },
-                            {
-                                "name": "gasForResponse",
-                                "type": "Integer"
-                            }
-                        ],
-                        "returntype": "Void",
-                        "offset": 554,
-                        "safe": false
-                    },
-                    {
-                        "name": "callback",
-                        "parameters": [
-                            {
-                                "name": "url",
-                                "type": "String"
-                            },
-                            {
-                                "name": "userdata",
-                                "type": "String"
-                            },
-                            {
-                                "name": "code",
-                                "type": "Integer"
-                            },
-                            {
-                                "name": "result",
-                                "type": "String"
-                            }
-                        ],
-                        "returntype": "Void",
-                        "offset": 592,
-                        "safe": false
-                    },
-                    {
-                        "name": "put",
-                        "parameters": [
-                            {
-                                "name": "key",
-                                "type": "String"
-                            },
-                            {
-                                "name": "value",
-                                "type": "String"
-                            }
-                        ],
-                        "returntype": "Void",
-                        "offset": 789,
-                        "safe": false
-                    },
-                    {
-                        "name": "putMulti",
-                        "parameters": [],
-                        "returntype": "Void",
-                        "offset": 805,
-                        "safe": false
-                    },
-                    {
-                        "name": "testPermission",
-                        "parameters": [],
-                        "returntype": "Any",
-                        "offset": 845,
-                        "safe": false
-                    },
-                    {
-                        "name": "testSupportedStandards",
-                        "parameters": [],
-                        "returntype": "Any",
-                        "offset": 869,
-                        "safe": false
-                    },
-                    {
-                        "name": "getState",
-                        "parameters": [],
-                        "returntype": "Any",
-                        "offset": 889,
-                        "safe": false
-                    },
-                    {
-                        "name": "_initialize",
-                        "parameters": [],
-                        "returntype": "Void",
-                        "offset": 953,
-                        "safe": false
+							{
+								"name": "hash",
+								"type": "Hash256"
+							}
+						],
+                        "returntype": "Integer",
+                        "offset": 35,
+                        "safe": true
                     }
                 ],
-                "events": [
-                    {
-                        "name": "UnlockEvent",
-                        "parameters": [
-                            {
-                                "name": "arg1",
-                                "type": "Hash160"
-                            },
-                            {
-                                "name": "arg2",
-                                "type": "Hash160"
-                            },
-                            {
-                                "name": "arg3",
-                                "type": "Integer"
-                            }
-                        ]
-                    },
-                    {
-                        "name": "IsPausedEvent",
-                        "parameters": [
-                            {
-                                "name": "obj",
-                                "type": "Any"
-                            }
-                        ]
-                    },
-                    {
-                        "name": "TransactionState",
-                        "parameters": [
-                            {
-                                "name": "obj",
-                                "type": "Any"
-                            }
-                        ]
-                    }
-                ]
+                "events": []
             },
             "permissions": [
                 {
-                    "contract": "0x42e54382e86dcdca09e0da8bb67e2fac4d498744",
-                    "methods": [
-                        "test"
-                    ]
-                },
-                {
-                    "contract": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
-                    "methods": [
-                        "itoa",
-                        "jsonDeserialize"
-                    ]
-                },
-                {
-                    "contract": "0xda65b600f7124ce6c79950c1772a36403104f2be",
-                    "methods": [
-                        "getTransaction",
-                        "getTransactionState"
-                    ]
-                },
-                {
-                    "contract": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
-                    "methods": [
-                        "request"
-                    ]
-                },
-                {
-                    "contract": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
-                    "methods": [
-                        "destroy",
-                        "getContract",
-                        "update"
-                    ]
+                    "contract": "*",
+                    "methods": "*"
                 }
             ],
             "trusts": [],
-            "extra": {
-                "Author": "Neo",
-                "Email": "dev@neo.org",
-                "Description": "This is a contract example"
-            }
+            "extra": null
         }
     }),
         ).await;
@@ -2705,6 +2454,61 @@ mod tests {
 			.await;
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let contract_state = result.unwrap();
+		assert_eq!(contract_state.id, -4);
+		assert_eq!(contract_state.update_counter, 0);
+		assert_eq!(contract_state.hash, H160::from_str("0xda65b600f7124ce6c79950c1772a36403104f2be").unwrap());
+		let nef = contract_state.nef;
+		assert_eq!(nef.magic, 860243278);
+		assert_eq!(nef.compiler, "neo-core-v3.0".to_string());
+		assert_eq!(nef.source, "variable-size-source-ledgercontract".to_string());
+		assert_eq!(nef.script, "EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0AQQRr3e2dA".to_string());
+		assert_eq!(nef.tokens.len(), 0);
+		assert_eq!(nef.checksum, 529571427);
+
+		let manifest = contract_state.manifest;
+		assert_eq!(manifest.name.clone().unwrap(), "LedgerContract".to_string());
+		assert_eq!(manifest.groups.len(), 0);
+		assert_eq!(manifest.supported_standards.len(), 0);
+
+		let abi_o = manifest.abi.clone();
+		assert!(abi_o.is_some());
+
+		let abi = abi_o.unwrap();
+		assert_eq!(abi.methods.len(), 2);
+		assert_eq!(abi.get_first_method().unwrap().name, "currentHash".to_string());
+		assert_eq!(abi.get_method(0).unwrap().parameters.len(), 0);
+		assert_eq!(abi.get_method(1).unwrap().name, "getTransactionHeight".to_string());
+		assert_eq!(abi.get_method(1).unwrap().parameters.len(), 1);
+		assert_eq!(abi.get_method(1).unwrap().parameters[0].name, "hash".to_string());
+		assert_eq!(abi.get_method(1).unwrap().parameters[0].typ, ContractParameterType::H256);
+		assert_eq!(abi.get_method(1).unwrap().return_type, ContractParameterType::Integer);
+		let mut result = abi.get_method(2);
+        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+            assert!(msg.contains("only contains 2 methods"));
+        }
+
+		assert_eq!(abi.events.len(), 0);
+
+		assert_eq!(manifest.permissions.len(), 1);
+		let mut result = manifest.get_permission(1);
+        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+            assert!(msg.contains("only has permission for 1 contracts"));
+        }
+		assert_eq!(manifest.get_first_permission().unwrap().contract, "*".to_string());
+		assert_eq!(manifest.get_permission(0).unwrap().methods.len(), 1);
+		assert_eq!(manifest.get_permission(0).unwrap().methods[0], "*".to_string());
+
+
+
+
+
+
+
+
+
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 

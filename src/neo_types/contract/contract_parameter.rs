@@ -26,9 +26,9 @@ use neo::prelude::{
 
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Clone)]
 pub struct ContractParameter2 {
-	name: String,
+	pub name: String,
 	#[serde(rename = "type")]
-	typ: ContractParameterType,
+	pub typ: ContractParameterType,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone)]

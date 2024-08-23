@@ -39,6 +39,35 @@ impl ContractManifest{
 		}
 		Ok(&self.supported_standards[index])
 	}
+	pub fn get_first_supported_standard(&self) -> Result<&String, TypeError> {
+		if self.supported_standards.is_empty() {
+			return Err(TypeError::IndexOutOfBounds(
+				"This contract does not support any standard.".to_string(),
+			));
+		}
+		self.get_supported_standard(0)
+	}
+
+	pub fn get_permission(&self, index: usize) -> Result<&ContractPermission, TypeError> {
+		if index >= self.permissions.len() {
+			return Err(TypeError::IndexOutOfBounds(format!(
+				"This contract only has permission for {} contracts. Tried to access a permission at index {} in the manifest.",
+				self.permissions.len(),
+				index
+			)));
+		}
+		Ok(&self.permissions[index])
+	}
+
+	pub fn get_first_permission(&self) -> Result<&ContractPermission, TypeError> {
+		if self.permissions.is_empty() {
+			return Err(TypeError::IndexOutOfBounds(
+				"This contract does not have any permissions. It is not permitted to invoke any other contract's method if it is not marked safe (i.e., read-only).".to_string(),
+			));
+		}
+		self.get_permission(0)
+	}
+	
 
 }
 
@@ -84,6 +113,26 @@ pub struct ContractABI {
 }
 
 impl  ContractABI {
+	pub fn get_first_method(&self) -> Result<&ContractMethod, TypeError> {
+    	if self.methods.is_empty() {
+        	return Err(TypeError::IndexOutOfBounds(
+            	"This ABI does not contain any methods. It might be malformed, since every contract needs at least one method to be functional.".to_string(),
+        	));
+    	}
+    	self.get_method(0)
+	}
+
+	pub fn get_method(&self, index: usize) -> Result<&ContractMethod, TypeError> {
+    	if index >= self.methods.len() {
+        	return Err(TypeError::IndexOutOfBounds(format!(
+            	"This ABI only contains {} methods. Tried to access index {}.",
+            	self.methods.len(),
+            	index
+        	)));
+    	}
+    	Ok(&self.methods[index])
+	}
+
 	pub fn get_first_event(&self) -> Result<&ContractEvent, TypeError> {
 		if self.events.is_empty() {
 			return Err(TypeError::IndexOutOfBounds(
