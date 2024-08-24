@@ -29,6 +29,7 @@ pub use neo_witness::*;
 pub use notification::*;
 pub use oracle_request::*;
 pub use populated_blocks::*;
+pub use reponse_transaction::*;
 
 mod diagnostics;
 mod express_contract_state;
@@ -62,3 +63,5 @@ mod neo_witness;
 mod notification;
 mod oracle_request;
 mod populated_blocks;
+mod reponse_transaction;
+

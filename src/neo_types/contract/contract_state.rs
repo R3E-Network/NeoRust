@@ -9,12 +9,12 @@ use neo::prelude::{
 
 #[derive(Clone, Debug, Hash, Serialize, Deserialize, PartialEq)]
 pub struct ContractState {
+	#[serde(default)]
 	pub id: i32,
 	pub nef: ContractNef,
-	#[serde(rename = "updatecounter")]
+	#[serde(rename = "updatecounter", default)]
 	pub update_counter: i32,
-	#[serde(serialize_with = "serialize_h160")]
-	#[serde(deserialize_with = "deserialize_h160")]
+	#[serde(serialize_with = "serialize_h160", deserialize_with = "deserialize_h160", default)]
 	pub hash: H160,
 	pub manifest: ContractManifest,
 }

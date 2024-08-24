@@ -7,12 +7,17 @@ use crate::prelude::TypeError;
 #[derive(Serialize, Deserialize, Default, Hash, Clone, Debug, PartialEq)]
 #[serde_as]
 pub struct ContractNef {
+	#[serde(default)]
 	pub magic: i32,
+	#[serde(default)]
 	pub compiler: String,
+	#[serde(default)]
 	pub source: String,
 	#[serde_as(as = "Vec<ContractMethodToken>")]
 	pub tokens: Vec<ContractMethodToken>,
+	#[serde(default)]
 	pub script: String,
+	#[serde(default)]
 	pub checksum: i64,
 }
 

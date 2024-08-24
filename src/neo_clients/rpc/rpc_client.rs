@@ -2122,7 +2122,6 @@ mod tests {
 		let result = provider.get_native_contracts().await;
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
-		// Missing methods and errors tests
 		let native_contracts = result.unwrap();
 		assert_eq!(native_contracts.len(), 3);
 		let c1 = native_contracts.get(0).unwrap();
@@ -2564,6 +2563,63 @@ mod tests {
 	}
 
 	#[tokio::test]
+	async fn test_get_contract_state_missing_array_values_should_be_empty() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+            &mock_server,
+            "getcontractstate",
+            json!(["dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f"]),
+            json!({
+        "nef": {
+            "tokens": [],
+        },
+        "manifest": {
+            "groups": [],
+            "supportedstandards": [],
+            "abi": {
+                "methods": [],
+                "events": []
+            },
+            "permissions": [],
+            "trusts": [],
+            "extra": null
+        }
+    }),
+        ).await;
+		// Expected request body
+		let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getcontractstate",
+            "params": ["dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f"],
+            "id": 1
+        }"#;
+
+		let result = provider
+			.get_contract_state(H160::from_str("dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f").unwrap())
+			.await;
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let contract_state = result.unwrap();
+		let nef = contract_state.clone().nef;
+		assert_eq!(nef.tokens.len(), 0);
+
+		let manifest = contract_state.clone().manifest;
+		assert_eq!(manifest.groups.len(), 0);
+		assert_eq!(manifest.supported_standards.len(), 0);
+
+		let abi_o = manifest.abi.clone();
+		assert!(abi_o.is_some());
+
+		let abi = abi_o.unwrap();
+		assert_eq!(abi.events.len(), 0);
+
+		assert_eq!(manifest.permissions.len(), 0);
+
+		assert_eq!(manifest.trusts.len(), 0);
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
+
+	#[tokio::test]
 	async fn test_get_contract_state_by_name() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
@@ -2987,12 +3043,15 @@ mod tests {
 			"getrawmempool",
 			json!([1]),
 			json!({
-			  "height": 5882071,
+			  "height": 5492,
 			  "verified": [
-				"0x0c65fbfd2598aee5f30cd18f1264b458f1db137c4a460f4a174facb3f2d59d06",
-				"0xc8040c285aa495f5b5e5b3761fd9333899f4ed902951c46d86c3bbb1cb12f2c0"
+				"0x9786cce0dddb524c40ddbdd5e31a41ed1f6b5c8a683c122f627ca4a007a7cf4e",
+				"0xb488ad25eb474f89d5ca3f985cc047ca96bc7373a6d3da8c0f192722896c1cd7"
 			  ],
-			  "unverified": []
+			  "unverified": [
+				"0x9786cce0dddb524c40ddbdd5e31a41ed1f6b5c8a683c122f627ca4a007a7cf4e",
+				"0xb488ad25eb474f89d5ca3f985cc047ca96bc7373a6d3da8c0f192722896c1cd7"
+			  ]
 			}),
 		)
 		.await;
@@ -3008,6 +3067,58 @@ mod tests {
 		let result = provider.get_mem_pool().await;
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let mem_pool_details = result.unwrap();
+		assert_eq!(mem_pool_details.height, 5492);
+		assert_eq!(mem_pool_details.verified.len(), 2);
+		assert_eq!(mem_pool_details.verified,
+			vec![
+				H256::from_str("0x9786cce0dddb524c40ddbdd5e31a41ed1f6b5c8a683c122f627ca4a007a7cf4e").unwrap(),
+				H256::from_str("0xb488ad25eb474f89d5ca3f985cc047ca96bc7373a6d3da8c0f192722896c1cd7").unwrap()
+			]
+		);
+		assert_eq!(mem_pool_details.unverified.len(), 2);
+		assert_eq!(mem_pool_details.unverified,
+			vec![
+				H256::from_str("0x9786cce0dddb524c40ddbdd5e31a41ed1f6b5c8a683c122f627ca4a007a7cf4e").unwrap(),
+				H256::from_str("0xb488ad25eb474f89d5ca3f985cc047ca96bc7373a6d3da8c0f192722896c1cd7").unwrap()
+			]
+		);
+
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
+
+	#[tokio::test]
+	async fn test_get_mem_pool_empty() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response_with_id(
+			&mock_server,
+			"getrawmempool",
+			json!([1]),
+			json!({
+			  "height": 5492,
+			  "verified": [],
+			  "unverified": []
+			}),
+			67
+		)
+		.await;
+
+		// Expected request body
+		let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getrawmempool",
+            "params": [1],
+            "id": 1
+        }"#;
+
+		let result = provider.get_mem_pool().await;
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let mem_pool_details = result.unwrap();
+		assert_eq!(mem_pool_details.height, 5492);
+		assert_eq!(mem_pool_details.verified.len(), 0);
+		assert_eq!(mem_pool_details.unverified.len(), 0);
+
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
@@ -3037,6 +3148,41 @@ mod tests {
 		let result = provider.get_raw_mem_pool().await;
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(),
+			vec![
+				H256::from_str("0x9786cce0dddb524c40ddbdd5e31a41ed1f6b5c8a683c122f627ca4a007a7cf4e").unwrap(),
+				H256::from_str("0xb488ad25eb474f89d5ca3f985cc047ca96bc7373a6d3da8c0f192722896c1cd7").unwrap(),
+				H256::from_str("0xf86f6f2c08fbf766ebe59dc84bc3b8829f1053f0a01deb26bf7960d99fa86cd6").unwrap()
+			]
+		);
+
+		verify_request(&mock_server, expected_request_body).await.unwrap();
+	}
+
+	#[tokio::test]
+	async fn test_get_raw_mem_pool_empty() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getrawmempool",
+			json!([]),
+			json!([]),
+		)
+		.await;
+
+		// Expected request body
+		let expected_request_body = r#"{
+            "jsonrpc": "2.0",
+            "method": "getrawmempool",
+            "params": [],
+            "id": 1
+        }"#;
+
+		let result = provider.get_raw_mem_pool().await;
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap().len(), 0);
+
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
