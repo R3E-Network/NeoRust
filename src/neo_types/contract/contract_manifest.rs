@@ -15,8 +15,9 @@ pub struct ContractManifest {
 	pub name: Option<String>,
 	#[serde(default)]
 	pub groups: Vec<ContractGroup>,
-	#[serde(skip_serializing)]
-	pub features: Option<HashMap<String, serde_json::Value>>,
+	// #[serde(skip_serializing)]
+	#[serde(default)]
+	pub features: HashMap<String, serde_json::Value>,
 	#[serde(rename = "supportedstandards")]
 	pub supported_standards: Vec<String>,
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -29,6 +30,28 @@ pub struct ContractManifest {
 }
 
 impl ContractManifest{
+	pub fn new(
+		name: Option<String>,
+		groups: Vec<ContractGroup>,
+		features: Option<HashMap<String, serde_json::Value>>,
+		supported_standards: Vec<String>,
+		abi: Option<ContractABI>,
+		permissions: Vec<ContractPermission>,
+		trusts: Vec<String>,
+		extra: Option<HashMap<String, serde_json::Value>>,
+	) -> Self {
+		Self { 
+			name, 
+			groups,
+			features: features.unwrap_or_else(|| HashMap::new()), 
+			supported_standards, 
+			abi, 
+			permissions, 
+			trusts, 
+			extra
+		}
+	}
+
 	pub fn get_supported_standard(&self, index: usize) -> Result<&String, TypeError> {
 		if index >= self.supported_standards.len() {
 			return Err(TypeError::IndexOutOfBounds(format!(
@@ -66,6 +89,26 @@ impl ContractManifest{
 			));
 		}
 		self.get_permission(0)
+	}
+
+	pub fn get_first_trust(&self) -> Result<&String, TypeError> {
+		if self.trusts.is_empty() {
+			return Err(TypeError::IndexOutOfBounds(
+				"This contract does not trust any other contracts.".to_string(),
+			));
+		}
+		self.get_trust(0)
+	}
+	
+	pub fn get_trust(&self, index: usize) -> Result<&String, TypeError> {
+		if index >= self.trusts.len() {
+			return Err(TypeError::IndexOutOfBounds(format!(
+				"This contract trusts only {} contracts. Tried to access a trusted contract at index {} in the manifest.",
+				self.trusts.len(),
+				index
+			)));
+		}
+		Ok(&self.trusts[index])
 	}
 	
 
@@ -113,6 +156,15 @@ pub struct ContractABI {
 }
 
 impl  ContractABI {
+	pub fn new(
+		methods: Option<Vec<ContractMethod>>,
+		events: Option<Vec<ContractEvent>>,
+	) -> Self {
+		Self { 
+			methods: methods.unwrap_or_else(|| Vec::new()), 
+			events: events.unwrap_or_else(|| Vec::new()) }
+	}
+
 	pub fn get_first_method(&self) -> Result<&ContractMethod, TypeError> {
     	if self.methods.is_empty() {
         	return Err(TypeError::IndexOutOfBounds(
@@ -164,6 +216,24 @@ pub struct ContractMethod {
 	pub safe: bool,
 }
 
+impl ContractMethod {
+	pub fn new(
+		name: String,
+		parameters: Option<Vec<ContractParameter2>>,
+		offset: usize,
+		return_type: ContractParameterType,
+		safe: bool
+	) -> Self {
+		Self{
+			name,
+			parameters: parameters.unwrap_or_else(|| Vec::new()),
+			offset,
+			return_type,
+			safe
+		}	
+	}
+}
+
 #[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Debug, Clone)]
 pub struct ContractEvent {
 	pub name: String,
@@ -176,4 +246,13 @@ pub struct ContractPermission {
 	#[serde(serialize_with = "serialize_wildcard")]
 	#[serde(deserialize_with = "deserialize_wildcard")]
 	pub methods: Vec<String>,
+}
+
+impl ContractPermission {
+	pub fn new(
+		contract: String,
+		methods: Vec<String>
+	) -> Self {
+		Self { contract, methods}
+	}
 }

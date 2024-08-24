@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use neo::prelude::{deserialize_script_hash, serialize_script_hash, ScriptHash};
 
-#[derive(Serialize, Deserialize, Debug, Hash, Clone)]
+#[derive(Serialize, Deserialize, Debug, Hash, Clone, PartialEq)]
 pub struct ContractMethodToken {
 	#[serde(deserialize_with = "deserialize_script_hash")]
 	#[serde(serialize_with = "serialize_script_hash")]

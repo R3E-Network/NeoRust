@@ -4,7 +4,7 @@ use serde_with::serde_as;
 use neo::prelude::ContractMethodToken;
 use crate::prelude::TypeError;
 
-#[derive(Serialize, Deserialize, Default, Hash, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, Hash, Clone, Debug, PartialEq)]
 #[serde_as]
 pub struct ContractNef {
 	pub magic: i32,

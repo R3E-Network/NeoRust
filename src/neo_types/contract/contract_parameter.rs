@@ -31,6 +31,16 @@ pub struct ContractParameter2 {
 	pub typ: ContractParameterType,
 }
 
+impl ContractParameter2 {
+	pub fn new(
+		name: String,
+		typ: ContractParameterType,
+	) -> Self {
+		Self { name, typ }
+	}
+	
+}
+
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone)]
 pub struct ContractParameter {
 	#[serde(skip_serializing_if = "Option::is_none")]

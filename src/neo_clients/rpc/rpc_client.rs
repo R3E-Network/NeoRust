@@ -1269,7 +1269,7 @@ mod tests {
 
 	use crate::{
 		neo_types::{Base64Encode, ToBase64},
-		prelude::{ContractParameterType, MockClient, NativeContractState, TypeError},
+		prelude::{ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, MockClient, NativeContractState, TypeError},
 		providers::RpcClient,
 	};
 
@@ -2458,7 +2458,7 @@ mod tests {
 		assert_eq!(contract_state.id, -4);
 		assert_eq!(contract_state.update_counter, 0);
 		assert_eq!(contract_state.hash, H160::from_str("0xda65b600f7124ce6c79950c1772a36403104f2be").unwrap());
-		let nef = contract_state.nef;
+		let nef = contract_state.clone().nef;
 		assert_eq!(nef.magic, 860243278);
 		assert_eq!(nef.compiler, "neo-core-v3.0".to_string());
 		assert_eq!(nef.source, "variable-size-source-ledgercontract".to_string());
@@ -2466,7 +2466,7 @@ mod tests {
 		assert_eq!(nef.tokens.len(), 0);
 		assert_eq!(nef.checksum, 529571427);
 
-		let manifest = contract_state.manifest;
+		let manifest = contract_state.clone().manifest;
 		assert_eq!(manifest.name.clone().unwrap(), "LedgerContract".to_string());
 		assert_eq!(manifest.groups.len(), 0);
 		assert_eq!(manifest.supported_standards.len(), 0);
@@ -2501,14 +2501,65 @@ mod tests {
 		assert_eq!(manifest.get_permission(0).unwrap().methods.len(), 1);
 		assert_eq!(manifest.get_permission(0).unwrap().methods[0], "*".to_string());
 
+		assert_eq!(manifest.trusts.len(), 0);
+		let mut result = manifest.get_first_trust();
+        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+            assert!(msg.contains("does not trust any other contracts"));
+        }
 
-
-
-
-
-
-
-
+		assert!(manifest.extra.is_none());
+		let id = -4;
+		let update_counter = 0;
+		let hash = H160::from_str("0xda65b600f7124ce6c79950c1772a36403104f2be").unwrap();
+		let nef2 = ContractNef::new(
+			860243278, 
+			"neo-core-v3.0".to_string(), 
+			Some("variable-size-source-ledgercontract".to_string()), 
+			Vec::new(), 
+			"EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0AQQRr3e2dA".to_string(), 
+			529571427
+		);
+		let method1 = ContractMethod::new(
+			"currentHash".to_string(),
+			Some(Vec::new()),
+			0,
+			ContractParameterType::H256,
+			true
+		);
+		let method2 = ContractMethod::new(
+			"getTransactionHeight".to_string(),
+			Some(vec![ContractParameter2::new("hash".to_string(), ContractParameterType::H256)]),
+			35,
+			ContractParameterType::Integer,
+			true
+		);
+		let contract_abi = ContractABI::new(
+			Some(vec![method1, method2]),
+			Some(vec![])
+		);
+		let contract_permission = ContractPermission::new(
+			"*".to_string(),
+			vec!["*".to_string()]
+		);
+		let contract_manifest = ContractManifest::new(
+			Some("LedgerContract".to_string()),
+			vec![],
+			None,
+			vec![],
+			Some(contract_abi),
+			vec![contract_permission],
+			vec![],
+			None
+		);
+		let expected_equal = ContractState::new(
+			id,
+			update_counter,
+			hash,
+			nef2,
+			contract_manifest
+		);
+		assert_eq!(contract_state, expected_equal);
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
