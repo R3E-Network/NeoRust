@@ -21,6 +21,8 @@ use neo::{
 	// types::ContractParameterType::H256,
 };
 
+use super::{RTransactionSigner, TransactionAttributeEnum};
+
 #[derive(Serialize, Deserialize, Getters, Setters, MutGetters, CopyGetters, Debug, Clone, Hash)]
 pub struct RTransaction {
 
@@ -58,11 +60,11 @@ pub struct RTransaction {
 
 	#[serde(rename = "signers", default)]
 	#[getset(get = "pub", set = "pub")]
-	pub signers: Vec<TransactionSigner>,
+	pub signers: Vec<RTransactionSigner>,
 
 	#[serde(rename = "attributes", default)]
 	#[getset(get = "pub", set = "pub")]
-	pub attributes: Vec<TransactionAttribute>,
+	pub attributes: Vec<TransactionAttributeEnum>,
 
 	#[serde(rename = "script")]
 	#[getset(get = "pub", set = "pub")]
@@ -90,7 +92,7 @@ pub struct RTransaction {
 }
 
 impl RTransaction {
-	pub fn new(hash: H256, size: u64, version:u8, nonce:u64, sender: String ,sys_fee: String, net_fee: String, valid_until_block: u64, signers: Vec<TransactionSigner>, attributes: Vec<TransactionAttribute>, script: String, witnesses: Vec<NeoWitness>) -> Self {
+	pub fn new(hash: H256, size: u64, version:u8, nonce:u64, sender: String ,sys_fee: String, net_fee: String, valid_until_block: u64, signers: Vec<RTransactionSigner>, attributes: Vec<TransactionAttributeEnum>, script: String, witnesses: Vec<NeoWitness>) -> Self {
 		Self {
 			hash: hash,
 			size: size,

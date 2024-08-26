@@ -70,7 +70,9 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	let scopes = s.split(",").map(|x| x.parse().unwrap()).collect::<Vec<WitnessScope>>();
+	// let scopes = s.split(",").map(|x| x.parse().unwrap()).collect::<Vec<WitnessScope>>();
+	let scopes = s.split(",").map(|x| x.trim().parse().unwrap_or_else(|e| panic!("Failed to parse scope: {}, Error: {}", x, e))).collect::<Vec<WitnessScope>>();
+	
 	Ok(scopes)
 }
 

@@ -272,7 +272,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	/// Gets the corresponding transaction information based on the specified transaction hash.
 	/// - Parameter txHash: The transaction hash
 	/// - Returns: The request object
-	async fn get_transaction(&self, hash: H256) -> Result<TransactionResult, ProviderError> {
+	async fn get_transaction(&self, hash: H256) -> Result<RTransaction, ProviderError> {
 		self.request("getrawtransaction", vec![hash.to_value(), 1.to_value()]).await
 	}
 
@@ -1269,7 +1269,7 @@ mod tests {
 
 	use crate::{
 		neo_types::{Base64Encode, ToBase64},
-		prelude::{ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, MockClient, NativeContractState, TypeError},
+		prelude::{ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, MockClient, NativeContractState, RTransactionSigner, TypeError},
 		providers::RpcClient,
 	};
 
@@ -1564,7 +1564,7 @@ mod tests {
 				"0".to_string(),
 				2107425,
 				vec![
-					TransactionSigner::new(H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap(),
+					RTransactionSigner::new(H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap(),
 					vec![
 						WitnessScope::CalledByEntry
 					]
@@ -1588,7 +1588,7 @@ mod tests {
 				"0".to_string(),
 				2107425,
 				vec![
-					TransactionSigner::new(H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap(),
+					RTransactionSigner::new(H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap(),
 					vec![
 						WitnessScope::CalledByEntry
 					]
@@ -3194,39 +3194,70 @@ mod tests {
             "getrawtransaction",
             json!(["7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c", 1]),
             json!({
-        "hash": "0x7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c",
-        "size": 386,
+        "hash": "0x8b8b222ba4ae17eaf37d444210920690d0981b02c368f4f1973c8fd662438d89",
+        "size": 267,
         "version": 0,
-        "nonce": 246876555,
-        "sender": "NikhQp1aAD1YFCiwknhM5LQQebj4464bCJ",
-        "sysfee": "0.0999954",
-        "netfee": "0.0235316",
-        "validuntilblock": 5899,
+        "nonce": 1046354582,
+        "sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
+        "sysfee": "9007810",
+        "netfee": "1267450",
+        "validuntilblock": 2103622,
         "signers": [
             {
-                "account": "0xebae4ab3f21765e5f604dfdd590fdf142cfb89fa",
-                "scopes": "None"
-            },
-            {
-                "account": "0x86df72a6b4ab5335d506294f9ce993722253b6e2",
-                "scopes": "CalledByEntry"
+                "account": "0x69ecca587293047be4c59159bf8bc399985c160d",
+                "scopes": "CustomContracts,CustomGroups, WitnessRules",
+				"allowedcontracts": [
+					"0xd2a4cff31913016155e38e474a2c06d08be276cf",
+					"0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"
+				],
+				"allowedgroups": [
+					"033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b"
+				],
+				"rules": [
+					{
+						"action": "Allow",
+						"condition": {
+							"type": "ScriptHash",
+							"hash": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"
+						}
+					}
+				]
             }
         ],
-        "attributes": [],
-        "script": "CwMA5AtUAgAAAAwU+on7LBTfD1nd3wT25WUX8rNKrusMFOK2UyJyk+mcTykG1TVTq7Smct+GFMAfDAh0cmFuc2ZlcgwUKLOtq3Jp+cIYHbPLdB6/VRkw4nBBYn1bUjk=",
+        "attributes": [
+			{
+				"type": "HighPriority"
+			},
+			{
+				"type": "OracleResponse",
+				"id": 0,
+				"code": "Success",
+				"result": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+			},
+			{
+				"type": "NotValidBefore",
+				"height": "10500"
+			},
+			{
+				"type": "Conflicts",
+				"hash": "0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e80321a"
+			},
+			{
+				"type": "Conflicts",
+				"hash": "0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e80321b"
+			}
+		],
+        "script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg=",
         "witnesses": [
             {
-                "invocation": "DEC31ZE1kiIFPan7qal/h9FYsD2LTk6Lf0m0Kbbh1GExUqTAfye7BDjyEylfR50/AVNQkr+g+jXXMHGcxF4MUYBQ",
-                "verification": "DCECztQyOX3cRO26AxwLw7kz8o/dlnd5LXsg5sA23aqs8eILQZVEDXg="
-            },
-            {
-                "invocation": "DED8PagPv03pnEbsxUY7XgFk/qniHcha36hDCzZsmaJkpFg5vbgxk5+QE46K0GFsNpsqDJHNToGD9jeXsPzSvD5T",
-                "verification": "EQwhAs7UMjl93ETtugMcC8O5M/KP3ZZ3eS17IObANt2qrPHiEQtBE43vrw=="
+                "invocation": "DEBhsuS9LxQ2PKpx2XJJ/aGEr/pZ7qfZy77OyhDmWx+BobkQAnDPLg6ohOa9SSHa0OMDavUl7zpmJip3r8T5Dr1L",
+                "verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
             }
         ],
-        "blockhash": "0x3d87f53c51c93fc08e5ccc09dbd9e21fcfad4dbea66af454bed334824a90262c",
-        "confirmations": 26,
-        "blocktime": 1612687482881u64
+        "blockhash": "0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e803299",
+        "confirmations": 1388,
+        "blocktime": 1589019142879i64,
+		"vmstate": "HALT"
     }),
         ).await;
 		// Expected request body
@@ -3247,6 +3278,8 @@ mod tests {
 			.await;
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let transaction = result.unwrap();
+		assert_eq!(transaction.hash, H256::from_str("0x8b8b222ba4ae17eaf37d444210920690d0981b02c368f4f1973c8fd662438d89").unwrap());
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 

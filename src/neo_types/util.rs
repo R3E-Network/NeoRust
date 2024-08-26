@@ -116,6 +116,13 @@ pub fn parse_string_h160(h160_str: &str) -> H160 {
 /// ```
 pub fn parse_string_h256(h256_str: &str) -> H256 {
 	let bytes = hex::decode(h256_str.trim_start_matches("0x")).unwrap();
+	if bytes.len() > 32 {
+        panic!(
+            "The provided string is too long to be a valid H256: {} (length: {})",
+            h256_str,
+            bytes.len()
+        );
+    }
 	// pad the bytes to 32bytes
 	let mut padded_bytes = [0_u8; 32];
 	padded_bytes[32 - bytes.len()..].copy_from_slice(&bytes);

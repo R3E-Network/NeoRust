@@ -30,6 +30,8 @@ pub use notification::*;
 pub use oracle_request::*;
 pub use populated_blocks::*;
 pub use reponse_transaction::*;
+pub use response_transaction_attribute::*;
+pub use response_transaction_signer::*;
 
 mod diagnostics;
 mod express_contract_state;
@@ -64,4 +66,6 @@ mod notification;
 mod oracle_request;
 mod populated_blocks;
 mod reponse_transaction;
+mod response_transaction_attribute;
+mod response_transaction_signer;
 

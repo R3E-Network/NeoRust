@@ -17,6 +17,7 @@ use strum_macros::{Display, EnumString};
 	Deserialize,
 )]
 #[repr(u8)]
+#[serde(rename_all = "UPPERCASE")]
 pub enum VMState {
 	/// The virtual machine is in the "NONE" state.
 	#[strum(serialize = "NONE")]

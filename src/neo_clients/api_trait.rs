@@ -78,7 +78,7 @@ pub trait APITrait: Sync + Send + Debug {
 
 	// Application logs
 
-	async fn get_transaction(&self, hash: H256) -> Result<TransactionResult, Self::Error>;
+	async fn get_transaction(&self, hash: H256) -> Result<RTransaction, Self::Error>;
 
 	// State service
 
