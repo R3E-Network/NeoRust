@@ -11,6 +11,8 @@ use neo::prelude::{
 	VarSizeTrait, WitnessRule, WitnessScope,
 };
 
+use crate::prelude::TypeError;
+
 #[derive(Default, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct RTransactionSigner {
 	#[serde(rename = "account")]
@@ -70,6 +72,86 @@ impl RTransactionSigner {
 			rules: rules,
 		}
 	}
+
+	pub fn get_first_scope(&self) -> Result<&WitnessScope, TypeError> {
+		if self.scopes.is_empty() {
+			return Err(TypeError::IndexOutOfBounds(
+				"This transaction signer does not have any witness scopes. It might be malformed, since every transaction signer needs to have a witness scope specified.".to_string(),
+			));
+		}
+		self.get_scope(0)
+	}
+
+	pub fn get_scope(&self, index: usize) -> Result<&WitnessScope, TypeError> {
+		if index >= self.scopes.len() {
+			return Err(TypeError::IndexOutOfBounds(format!(
+				"This transaction signer only has {} witness scopes. Tried to access index {}.",
+				self.scopes.len(),
+				index
+			)));
+		}
+		Ok(&self.scopes[index])
+	}
+
+	pub fn get_first_allowed_contract(&self) -> Result<&H160, TypeError> {
+		if self.allowed_contracts.is_empty() {
+			return Err(TypeError::IndexOutOfBounds(
+				"This transaction signer does not allow any specific contract.".to_string(),
+			));
+		}
+		self.get_allowed_contract(0)
+	}
+
+	pub fn get_allowed_contract(&self, index: usize) -> Result<&H160, TypeError> {
+		if index >= self.allowed_contracts.len() {
+			return Err(TypeError::IndexOutOfBounds(format!(
+				"This transaction signer only allows {} contracts. Tried to access index {}.",
+				self.allowed_contracts.len(),
+				index
+			)));
+		}
+		Ok(&self.allowed_contracts[index])
+	}
+
+	pub fn get_first_allowed_group(&self) -> Result<&String, TypeError> {
+		if self.allowed_groups.is_empty() {
+			return Err(TypeError::IndexOutOfBounds(
+				"This transaction signer does not allow any specific group.".to_string(),
+			));
+		}
+		self.get_allowed_group(0)
+	}
+
+	pub fn get_allowed_group(&self, index: usize) -> Result<&String, TypeError> {
+		if index >= self.allowed_groups.len() {
+			return Err(TypeError::IndexOutOfBounds(format!(
+				"This transaction signer only allows {} groups. Tried to access index {}.",
+				self.allowed_groups.len(),
+				index
+			)));
+		}
+		Ok(&self.allowed_groups[index])
+	}
+
+	pub fn get_first_rule(&self) -> Result<&WitnessRule, TypeError> {
+        if self.rules.is_empty() {
+            return Err(TypeError::IndexOutOfBounds(
+                "This transaction signer does not have any witness rules.".to_string(),
+            ));
+        }
+        self.get_rule(0)
+    }
+
+    pub fn get_rule(&self, index: usize) -> Result<&WitnessRule, TypeError> {
+        if index >= self.rules.len() {
+            return Err(TypeError::IndexOutOfBounds(format!(
+                "This transaction signer only has {} witness rules. Tried to access index {}.",
+                self.rules.len(),
+                index
+            )));
+        }
+        Ok(&self.rules[index])
+    }
 }
 
 impl SignerTrait for RTransactionSigner {
@@ -98,7 +180,7 @@ impl SignerTrait for RTransactionSigner {
 	}
 
 	fn get_allowed_contracts(&self) -> &Vec<H160> {
-		panic!("Not implemented")
+		&self.allowed_contracts
 	}
 
 	fn get_allowed_contracts_mut(&mut self) -> &mut Vec<H160> {
@@ -115,7 +197,7 @@ impl SignerTrait for RTransactionSigner {
 	}
 
 	fn get_rules(&self) -> &Vec<WitnessRule> {
-		panic!("Not implemented")
+		&self.rules
 	}
 
 	fn get_rules_mut(&mut self) -> &mut Vec<WitnessRule> {

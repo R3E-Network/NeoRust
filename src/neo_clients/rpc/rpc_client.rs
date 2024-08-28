@@ -3279,7 +3279,72 @@ mod tests {
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let transaction = result.unwrap();
-		assert_eq!(transaction.hash, H256::from_str("0x8b8b222ba4ae17eaf37d444210920690d0981b02c368f4f1973c8fd662438d89").unwrap());
+		assert_eq!(*transaction.hash(), H256::from_str("0x8b8b222ba4ae17eaf37d444210920690d0981b02c368f4f1973c8fd662438d89").unwrap());
+		assert_eq!(*transaction.size(), 267);
+		assert_eq!(*transaction.version(), 0);
+		assert_eq!(*transaction.nonce(), 1046354582);
+		assert_eq!(*transaction.sender(), "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4".to_string());
+		assert_eq!(*transaction.sys_fee(), "9007810".to_string());
+		assert_eq!(*transaction.net_fee(), "1267450".to_string());
+		assert_eq!(*transaction.valid_until_block(), 2103622);
+
+		let signers = transaction.signers();
+		assert_eq!(signers.len(), 1);
+		let mut result = transaction.get_signer(1);
+        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+            assert!(msg.contains("only has 1 signers"));
+        }
+
+		let first_signer = transaction.get_first_signer().unwrap();
+		assert_eq!(first_signer.account, H160::from_str("69ecca587293047be4c59159bf8bc399985c160d").unwrap());
+		assert_eq!(first_signer.get_scopes().len(), 3);
+		assert_eq!(*first_signer.get_first_scope().unwrap(), WitnessScope::CustomContracts);
+		assert_eq!(*first_signer.get_scope(1).unwrap(), WitnessScope::CustomGroups);
+		assert_eq!(*first_signer.get_scope(2).unwrap(), WitnessScope::WitnessRules);
+		let mut result = first_signer.get_scope(3);
+        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+            assert!(msg.contains("only has 3 witness scopes"));
+        }
+		assert_eq!(first_signer.allowed_contracts.len(), 2);
+		assert_eq!(first_signer.get_first_allowed_contract().unwrap(), &H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap());
+		assert_eq!(first_signer.get_allowed_contract(1).unwrap(), &H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap());
+		let mut result = first_signer.get_allowed_contract(2);
+        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+            assert!(msg.contains("only allows 2 contracts"));
+        }
+		assert_eq!(first_signer.allowed_groups[0], "033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b".to_string());
+		let mut result = first_signer.get_allowed_group(1);
+        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+            assert!(msg.contains("only allows 1 groups"));
+        }
+		assert_eq!(first_signer.get_first_allowed_group().unwrap(), &"033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b".to_string());
+
+		let rule = first_signer.get_rules().get(0).unwrap();
+		let first_rule = first_signer.get_first_rule().unwrap();
+		let mut result = first_signer.get_rule(1);
+        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+            assert!(msg.contains("only has 1 witness rules"));
+        }
+		assert_eq!(rule, first_rule);
+		assert_eq!(rule.action, WitnessAction::Allow);
+		assert_eq!(rule.condition, WitnessCondition::ScriptHash(H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap()));
+
+		let attributes = transaction.attributes();
+		assert_eq!(attributes.len(), 5);
+		let mut result = transaction.get_attribute(5);
+        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+            assert!(msg.contains("only has 5 attributes"));
+        }
+
+
+
+
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 

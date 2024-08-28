@@ -8,6 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use serde_with::__private__::DeError;
 
+use crate::prelude::TypeError;
 use crate::{
 	neo_clients::JsonRpcProvider,
 	prelude::{NeoConstants, RawTransaction},
@@ -112,6 +113,45 @@ impl RTransaction {
 			vmstate: Default::default(),
 		}
 	}
+
+	pub fn get_first_signer(&self) -> Result<&RTransactionSigner, TypeError> {
+		if self.signers.is_empty() {
+			return Err(TypeError::IndexOutOfBounds(
+				"This transaction does not have any signers. It might be malformed, since every transaction requires at least one signer.".to_string(),
+			));
+		}
+		self.get_signer(0)
+	}
+
+	pub fn get_signer(&self, index: usize) -> Result<&RTransactionSigner, TypeError> {
+		if index >= self.signers.len() {
+			return Err(TypeError::IndexOutOfBounds(format!(
+				"This transaction only has {} signers.",
+				self.signers.len()
+			)));
+		}
+		Ok(&self.signers[index])
+	}
+
+	pub fn get_first_attribute(&self) -> Result<&TransactionAttributeEnum, TypeError> {
+        if self.attributes.is_empty() {
+            return Err(TypeError::IndexOutOfBounds(
+                "This transaction does not have any attributes.".to_string(),
+            ));
+        }
+        self.get_attribute(0)
+    }
+
+    pub fn get_attribute(&self, index: usize) -> Result<&TransactionAttributeEnum, TypeError> {
+        if index >= self.attributes.len() {
+            return Err(TypeError::IndexOutOfBounds(format!(
+                "This transaction only has {} attributes. Tried to access index {}.",
+                self.attributes.len(),
+                index
+            )));
+        }
+        Ok(&self.attributes[index])
+    }
 }
 
 // impl Default for RTransaction {
