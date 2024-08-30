@@ -98,7 +98,7 @@ pub enum TransactionAttributeEnum {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Hash, Debug, Clone)]
-struct OracleResponse {
+pub struct OracleResponse {
 	pub(crate) id: u32,
     #[serde(rename = "code")]
 	pub(crate) response_code: OracleResponseCode,

@@ -1269,7 +1269,7 @@ mod tests {
 
 	use crate::{
 		neo_types::{Base64Encode, ToBase64},
-		prelude::{ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, MockClient, NativeContractState, RTransactionSigner, TypeError},
+		prelude::{ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, MockClient, NativeContractState, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, TransactionAttributeEnum, TypeError, VMState, Validator},
 		providers::RpcClient,
 	};
 
@@ -3342,9 +3342,28 @@ mod tests {
             assert!(msg.contains("only has 5 attributes"));
         }
 
+		assert_eq!(transaction.get_first_attribute().unwrap(), &TransactionAttributeEnum::HighPriority(HighPriorityAttribute{}));
 
+		assert_eq!(attributes.get(1).unwrap(), &TransactionAttributeEnum::OracleResponse(OracleResponseAttribute{oracle_response: OracleResponse{id: 0, response_code: OracleResponseCode::Success, result: "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw==".to_string()}}));
 
+		assert_eq!(attributes.get(2).unwrap(), &TransactionAttributeEnum::NotValidBefore(NotValidBeforeAttribute{height: 10500}));
 
+		let conflict_hash1 = H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e80321a").unwrap();
+		assert_eq!(attributes.get(3).unwrap(), &TransactionAttributeEnum::Conflicts(ConflictsAttribute{hash: conflict_hash1}));
+
+		let conflict_hash2 = H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e80321b").unwrap();
+		assert_eq!(attributes.get(4).unwrap(), &TransactionAttributeEnum::Conflicts(ConflictsAttribute{hash: conflict_hash2}));
+
+		assert_eq!(transaction.script(), &"AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg=".to_string());
+		assert_eq!(transaction.witnesses().len(), 1);
+		assert_eq!(transaction.witnesses(), &vec![
+			NeoWitness::new("DEBhsuS9LxQ2PKpx2XJJ/aGEr/pZ7qfZy77OyhDmWx+BobkQAnDPLg6ohOa9SSHa0OMDavUl7zpmJip3r8T5Dr1L".to_string(),"EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw==".to_string())
+		]);
+		assert_eq!(transaction.block_hash(), &H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e803299").unwrap());
+		assert_eq!(transaction.confirmations(), &1388);
+		assert_eq!(transaction.block_time(), &1589019142879);
+		assert_eq!(transaction.vmstate(), &VMState::Halt);
+		
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
@@ -3355,7 +3374,7 @@ mod tests {
             &mock_server,
             "getrawtransaction",
             json!(["7da6ae7ff9d0b7af3d32f3a2feb2aa96c2a27ef8b651f9a132cfaad6ef20724c",0]),
-            json!("AIsJtw60lJgAAAAAAAjoIwAAAAAACxcAAAL6ifssFN8PWd3fBPblZRfys0qu6wDitlMicpPpnE8pBtU1U6u0pnLfhgEAXwsDAOQLVAIAAAAMFPqJ+ywU3w9Z3d8E9uVlF/KzSq7rDBTitlMicpPpnE8pBtU1U6u0pnLfhhTAHwwIdHJhbnNmZXIMFCizratyafnCGB2zy3Qev1UZMOJwQWJ9W1I5AkIMQLfVkTWSIgU9qfupqX+H0ViwPYtOTot/SbQptuHUYTFSpMB/J7sEOPITKV9HnT8BU1CSv6D6NdcwcZzEXgxRgFApDCECztQyOX3cRO26AxwLw7kz8o/dlnd5LXsg5sA23aqs8eILQZVEDXhCDED8PagPv03pnEbsxUY7XgFk/qniHcha36hDCzZsmaJkpFg5vbgxk5+QE46K0GFsNpsqDJHNToGD9jeXsPzSvD5TKxEMIQLO1DI5fdxE7boDHAvDuTPyj92Wd3kteyDmwDbdqqzx4hELQRON768="),
+            json!("00961a5e3e0feced44a74300d9da049fa93670a43117188ff6c272890000000000fa561300000000004619200000010feced44a74300d9da049fa93670a43117188ff6015600640c14e6c1013654af113d8a968bdca52c9948a82b953d0c140feced44a74300d9da049fa93670a43117188ff613c00c087472616e736665720c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b523801420c4061b2e4bd2f14363caa71d97249fda184affa59eea7d9cbbececa10e65b1f81a1b9100270cf2e0ea884e6bd4921dad0e3036af525ef3a66262a77afc4f90ebd4b2b110c2103f1ec3c1e283e880de6e9c489f0f27c19007c53385aaa4c0c917c320079edadf2110b413073b3bb"),
         ).await;
 
 		// Expected request body
@@ -3376,6 +3395,7 @@ mod tests {
 			.await;
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), "00961a5e3e0feced44a74300d9da049fa93670a43117188ff6c272890000000000fa561300000000004619200000010feced44a74300d9da049fa93670a43117188ff6015600640c14e6c1013654af113d8a968bdca52c9948a82b953d0c140feced44a74300d9da049fa93670a43117188ff613c00c087472616e736665720c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b523801420c4061b2e4bd2f14363caa71d97249fda184affa59eea7d9cbbececa10e65b1f81a1b9100270cf2e0ea884e6bd4921dad0e3036af525ef3a66262a77afc4f90ebd4b2b110c2103f1ec3c1e283e880de6e9c489f0f27c19007c53385aaa4c0c917c320079edadf2110b413073b3bb".to_string());
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
@@ -3388,7 +3408,7 @@ mod tests {
 			&mock_server,
 			"getstorage",
 			json!(["99042d380f2b754175717bb932a911bc0bb0ad7d", key_base64]),
-			json!("d29ybGQ="),
+			json!("4c696e"),
 		)
 		.await;
 
@@ -3410,6 +3430,7 @@ mod tests {
 			)
 			.await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), "4c696e".to_string());
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
 
@@ -3483,7 +3504,7 @@ mod tests {
 			&mock_server,
 			"gettransactionheight",
 			json!(["57280b29c2f9051af6e28a8662b160c216d57c498ee529e0cf271833f90e1a53"]),
-			json!(14),
+			json!(1223),
 		)
 		.await;
 		// Expected request body
@@ -3505,6 +3526,7 @@ mod tests {
 			)
 			.await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), 1223);
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
 
@@ -3517,8 +3539,13 @@ mod tests {
 			json!([]),
 			json!([
 			  {
-				"publickey": "03aa052fbcb8e5b33a4eefd662536f8684641f04109f1d5e69cdda6f084890286a",
+				"publickey": "03f1ec3c1e283e880de6e9c489f0f27c19007c53385aaa4c0c917c320079edadf2",
 				"votes": "0",
+				"active": false
+			  },
+			  {
+				"publickey": "02494f3ff953e45ca4254375187004f17293f90a1aa4b1a89bc07065bc1da521f6",
+				"votes": "91600000",
 				"active": true
 			  }
 			]),
@@ -3536,6 +3563,49 @@ mod tests {
 
 		let result = provider.get_next_block_validators().await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let next_validators = result.unwrap();
+		assert_eq!(next_validators.len(), 2);
+		assert_eq!(next_validators,
+			vec![
+				Validator::new(
+					"03f1ec3c1e283e880de6e9c489f0f27c19007c53385aaa4c0c917c320079edadf2".to_string(), 
+					"0".to_string(), 
+					false
+				),
+				Validator::new(
+					"02494f3ff953e45ca4254375187004f17293f90a1aa4b1a89bc07065bc1da521f6".to_string(), 
+					"91600000".to_string(), 
+					true
+				)
+			]
+		);
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
+
+	#[tokio::test]
+	async fn test_get_next_block_validators_empty() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getnextblockvalidators",
+			json!([]),
+			json!([]),
+		)
+		.await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
+			"jsonrpc": "2.0",
+			"method": "getnextblockvalidators",
+			"params": [],
+			"id": 1
+		}}"#
+		);
+
+		let result = provider.get_next_block_validators().await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let next_validators = result.unwrap();
+		assert_eq!(next_validators.len(), 0);
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
 
@@ -3570,7 +3640,7 @@ mod tests {
 	async fn test_get_connection_count() {
 		let mock_server = setup_mock_server().await;
 		let provider =
-			mock_rpc_response(&mock_server, "getconnectioncount", json!([]), json!(10)).await;
+			mock_rpc_response(&mock_server, "getconnectioncount", json!([]), json!(2)).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -3584,6 +3654,7 @@ mod tests {
 
 		let result = provider.get_connection_count().await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), 2);
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
 
