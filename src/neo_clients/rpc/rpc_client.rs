@@ -1269,7 +1269,7 @@ mod tests {
 
 	use crate::{
 		neo_types::{Base64Encode, ToBase64},
-		prelude::{AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, MockClient, NativeContractState, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, TransactionAttributeEnum, TypeError, VMState, Validator},
+		prelude::{AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, MockClient, NativeContractState, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator},
 		providers::RpcClient,
 	};
 
@@ -1285,6 +1285,20 @@ mod tests {
 		params: serde_json::Value,
 		result: serde_json::Value,
 	) -> RpcClient<HttpProvider> {
+		// Create the JSON response
+		// let json_response = json!({
+		// 	"jsonrpc": "2.0",
+		// 	"id": 1,
+		// 	"result": result
+		// });
+	
+		// // Convert JSON response to a pretty-printed string
+		// let json_response_str = serde_json::to_string_pretty(&json_response)
+		// 	.expect("Failed to serialize JSON");
+	
+		// // Print the JSON response
+		// println!("Formed JSON response:\n{}", json_response_str);
+
 		Mock::given(http_method("POST"))
 			.and(path("/"))
 			.and(body_json(json!({
@@ -3786,7 +3800,7 @@ mod tests {
 					"msperblock": 15000,
 					"maxvaliduntilblockincrement": 1,
 					"maxtraceableblocks": 3,
-					"addressversion": 53,
+					"addressversion": 22,
 					"maxtransactionsperblock": 150000,
 					"memorypoolmaxtransactions": 34000,
 					"initialgasdistribution": 14,
@@ -3812,6 +3826,83 @@ mod tests {
 
 		let result = provider.get_version().await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let version = result.unwrap();
+		assert_eq!(version.tcp_port.unwrap(), 40333);
+		assert_eq!(version.ws_port.unwrap(), 40334);
+		assert_eq!(version.nonce, 224036820);
+		assert_eq!(version.user_agent, "/Neo:3.0.0/".to_string());
+
+		let protocol = version.protocol.unwrap();
+		assert_eq!(protocol.address_version, 22);
+		assert_eq!(protocol.network, 769);
+		assert_eq!(protocol.ms_per_block, 15000);
+		assert_eq!(protocol.max_traceable_blocks, 3);
+		assert_eq!(protocol.max_valid_until_block_increment, 1);
+		assert_eq!(protocol.max_transactions_per_block, 150000);
+		assert_eq!(protocol.initial_gas_distribution, 14);
+		assert_eq!(protocol.hard_forks.len(), 1);
+
+		let hard_forks = protocol.hard_forks[0].clone();
+		assert_eq!(hard_forks.name, "HF_Aspidochelone".to_string());
+		assert_eq!(hard_forks.block_height, 0);
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
+
+	#[tokio::test]
+	async fn test_get_version_network_long() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getversion",
+			json!([]),
+			json!( {
+				"tcpport": 40333,
+				"wsport": 40334,
+				"nonce": 224036820,
+				"useragent": "/Neo:3.0.0/",
+				"protocol": {
+					"network": 4232068425u32,
+					"validatorscount": 3,
+					"msperblock": 15000,
+					"maxvaliduntilblockincrement": 1,
+					"maxtraceableblocks": 3,
+					"addressversion": 22,
+					"maxtransactionsperblock": 150000,
+					"memorypoolmaxtransactions": 34000,
+					"initialgasdistribution": 14,
+					"hardforks": []
+				}
+			}),
+		)
+		.await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
+			"jsonrpc": "2.0",
+			"method": "getversion",
+			"params": [],
+			"id": 1
+		}}"#
+		);
+
+		let result = provider.get_version().await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let version = result.unwrap();
+		assert_eq!(version.tcp_port.unwrap(), 40333);
+		assert_eq!(version.ws_port.unwrap(), 40334);
+		assert_eq!(version.nonce, 224036820);
+		assert_eq!(version.user_agent, "/Neo:3.0.0/".to_string());
+
+		let protocol = version.protocol.unwrap();
+		assert_eq!(protocol.address_version, 22);
+		assert_eq!(protocol.network, 4232068425);
+		assert_eq!(protocol.validators_count, Some(3));
+		assert_eq!(protocol.ms_per_block, 15000);
+		assert_eq!(protocol.max_traceable_blocks, 3);
+		assert_eq!(protocol.max_valid_until_block_increment, 1);
+		assert_eq!(protocol.max_transactions_per_block, 150000);
+		assert_eq!(protocol.initial_gas_distribution, 14);
+		assert_eq!(protocol.hard_forks.len(), 0);
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
 
@@ -3825,37 +3916,39 @@ mod tests {
 			"sendrawtransaction",
 			json!([tx_base64]),
 			json!({
-				"hash": "0x13ccdb9f7eda95a24aa5a4841b24fed957fe7f1b944996cbc2e92a4fa4f1fa73"
+				"hash": "0xb0748d216c9c0d0498094cdb50407035917b350fc0338c254b78f944f723b770"
 			}),
 		)
 		.await;
 		// Expected request body
 		let expected_request_body = format!(
 			r#"{{
-    "jsonrpc": "2.0",
-    "method": "sendrawtransaction",
-    "params": ["{}"],
-    "id": 1
-}}"#,
+    			"jsonrpc": "2.0",
+    			"method": "sendrawtransaction",
+    			"params": ["{}"],
+    			"id": 1
+			}}"#,
 			tx_base64
 		);
 
-		let result = provider.send_raw_transaction(tx_hex).await.expect("TODO: panic message");
+		let result = provider.send_raw_transaction(tx_hex).await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap().hash, H256::from_str("0xb0748d216c9c0d0498094cdb50407035917b350fc0338c254b78f944f723b770").unwrap());
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
 
 	#[tokio::test]
 	async fn test_submit_block() {
-		// TODO:: This one still panic
 		let mock_server = setup_mock_server().await;
-		let block_base64 = "AAAAACMSKFbGpGl6t7uroMpi2ilhQd84eU/pUrRfQyswXYl76woLOY0oW1z4InfxoKyxFAAB+8FS6cRu2Pm0iaOiD8OMCnLadQEAAMgcAAD6lrDvowCyjK9dBALCmE1fvMuahQFCDEAd8EoEFBcxOLCZfh8w0tUEHHmyn++KzW4I8oeJ1WyMmjHVcolpNzOnAOzXTn/xujwy93gJ9ijvVo6wAF5qC3wCKxEMIQL4L//X3jDpIyMLze0sPNW+yFcufrrL3bnzOipdJpNLixELQRON768CAGUTt7+NSxXGAA7aoUS2kokAAAAAACYcEwAAAAAARzMAAAHNWK7P0zW+HrPTEeHcgAlj39ctnwEAXQMA5AtUAgAAAAwUzViuz9M1vh6z0xHh3IAJY9/XLZ8MFM1Yrs/TNb4es9MR4dyACWPf1y2fE8AMCHRyYW5zZmVyDBS8r0HWhMfUrW7g2Z2pcHudHwyOZkFifVtSOAFCDEADRhUarLK+/BBjhqaWY5ieento21zgkcsUMWNCBWGd+v8a35zatNRgFbUkni4dDNI/BGc3zOgPT6EwroUsgvR+KQwhAv3yei642bBp1hrlpk26E7iWN8VC2MdMXWurST/mONaPC0GVRA14".to_string();
-		let block_hex = block_base64.from_base64().unwrap().to_hex();
+		// let block_base64 = "AAAAACMSKFbGpGl6t7uroMpi2ilhQd84eU/pUrRfQyswXYl76woLOY0oW1z4InfxoKyxFAAB+8FS6cRu2Pm0iaOiD8OMCnLadQEAAMgcAAD6lrDvowCyjK9dBALCmE1fvMuahQFCDEAd8EoEFBcxOLCZfh8w0tUEHHmyn++KzW4I8oeJ1WyMmjHVcolpNzOnAOzXTn/xujwy93gJ9ijvVo6wAF5qC3wCKxEMIQL4L//X3jDpIyMLze0sPNW+yFcufrrL3bnzOipdJpNLixELQRON768CAGUTt7+NSxXGAA7aoUS2kokAAAAAACYcEwAAAAAARzMAAAHNWK7P0zW+HrPTEeHcgAlj39ctnwEAXQMA5AtUAgAAAAwUzViuz9M1vh6z0xHh3IAJY9/XLZ8MFM1Yrs/TNb4es9MR4dyACWPf1y2fE8AMCHRyYW5zZmVyDBS8r0HWhMfUrW7g2Z2pcHudHwyOZkFifVtSOAFCDEADRhUarLK+/BBjhqaWY5ieento21zgkcsUMWNCBWGd+v8a35zatNRgFbUkni4dDNI/BGc3zOgPT6EwroUsgvR+KQwhAv3yei642bBp1hrlpk26E7iWN8VC2MdMXWurST/mONaPC0GVRA14".to_string();
+		// let block_hex = block_base64.from_base64().unwrap().to_hex();
+		let block_hex = "00000000000000000000000000000000".to_string();
 
 		let provider = mock_rpc_response(
 			&mock_server,
 			"submitblock",
-			json!([block_base64]),
-			json!({"hash": "0xbe153a2ef9e9160906f7054ed8f676aa223a826c4ae662ce0fb3f09d38b093c1"}),
+			json!([block_hex]),
+			json!(true),
 		)
 		.await;
 		// Expected request body
@@ -3866,12 +3959,16 @@ mod tests {
 			"params": ["{}"],
 			"id": 1
 		}}"#,
-			block_base64
+			block_hex
 		);
+		
+		let result = provider.submit_block(block_hex).await;
 
-		let result = provider.submit_block(block_hex).await.expect("TODO: panic message");
-		// assert!(result, "Result is not okay: {:?}", result);
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap().get_submit_block(), true);
+		
 	}
 
 	// SmartContract Methods

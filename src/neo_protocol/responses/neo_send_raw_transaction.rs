@@ -8,3 +8,9 @@ pub struct RawTransaction {
 	#[serde(deserialize_with = "deserialize_h256")]
 	pub hash: H256,
 }
+
+impl RawTransaction {
+	pub fn new(hash: H256) -> Self{
+		Self { hash }
+	}
+}
