@@ -12,3 +12,9 @@ pub struct AddressEntry {
 	pub address: String,
 	pub port: u16,
 }
+
+impl AddressEntry {
+	pub fn new(address: String, port: u16) -> Self{
+		Self {address, port}
+	}
+}

@@ -25,7 +25,7 @@ use neo::prelude::{
 #[cfg(feature = "substrate")]
 use serde_big_array_substrate::big_array;
 
-use crate::prelude::parse_string_h160;
+use crate::prelude::{parse_string_h160, HardForks};
 
 #[cfg(feature = "substrate")]
 use serde_substrate as serde;
@@ -931,6 +931,43 @@ where
     }
 
     deserializer.deserialize_any(StringOrVec)
+}
+
+// Custom deserializer function
+pub fn deserialize_hardforks<'de, D>(deserializer: D) -> Result<Vec<HardForks>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct HardforksVisitor;
+
+    impl<'de> Visitor<'de> for HardforksVisitor {
+        type Value = Vec<HardForks>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a list or a single Hardforks value")
+        }
+
+        fn visit_seq<V>(self, mut seq: V) -> Result<Vec<HardForks>, V::Error>
+        where
+            V: serde::de::SeqAccess<'de>,
+        {
+            let mut values = Vec::new();
+            while let Some(value) = seq.next_element()? {
+                values.push(value);
+            }
+            Ok(values)
+        }
+
+        fn visit_map<V>(self, map: V) -> Result<Vec<HardForks>, V::Error>
+        where
+            V: serde::de::MapAccess<'de>,
+        {
+            let single_value: HardForks = Deserialize::deserialize(de::value::MapAccessDeserializer::new(map))?;
+            Ok(vec![single_value])
+        }
+    }
+
+    deserializer.deserialize_any(HardforksVisitor)
 }
 
 #[cfg(test)]

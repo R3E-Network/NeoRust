@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use crate::prelude::deserialize_hardforks;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash)]
 pub struct NeoVersion {
@@ -41,4 +42,15 @@ pub struct NeoProtocol {
 	pub memory_pool_max_transactions: u32,
 	#[serde(rename = "initialgasdistribution")]
 	pub initial_gas_distribution: u64,
+	#[serde(rename = "hardforks", default, deserialize_with = "deserialize_hardforks")]
+	pub hard_forks: Vec<HardForks>,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct HardForks{
+	pub name: String,
+	#[serde(rename = "blockheight")]
+	pub block_height: u32,
+}
+
+

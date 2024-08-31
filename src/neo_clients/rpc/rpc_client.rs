@@ -1269,7 +1269,7 @@ mod tests {
 
 	use crate::{
 		neo_types::{Base64Encode, ToBase64},
-		prelude::{ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, MockClient, NativeContractState, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, TransactionAttributeEnum, TypeError, VMState, Validator},
+		prelude::{AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, MockClient, NativeContractState, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, TransactionAttributeEnum, TypeError, VMState, Validator},
 		providers::RpcClient,
 	};
 
@@ -3666,16 +3666,34 @@ mod tests {
 			"getpeers",
 			json!([]),
 			json!({
-				"unconnected": [],
-				"bad": [],
-				"connected": [
+				"unconnected": [
 					{
-						"address": "47.90.28.99",
-						"port": 21333
+						"address": "127.0.0.1",
+						"port": 20335
 					},
 					{
-						"address": "47.90.28.99",
-						"port": 22333
+						"address": "127.0.0.1",
+						"port": 20336
+					},
+					{
+						"address": "127.0.0.1",
+						"port": 20337
+					}
+				],
+				"bad": [
+					{
+						"address": "127.0.0.1",
+						"port": 20333
+					}
+				],
+				"connected": [
+					{
+						"address": "172.18.0.3",
+						"port": 40333
+					},
+					{
+						"address": "172.18.0.4",
+						"port": 20333
 					}
 				]
 			}),
@@ -3691,8 +3709,62 @@ mod tests {
 		}}"#
 		);
 
+		
+
 		let result = provider.get_peers().await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let peers = result.unwrap();
+		assert_eq!(peers.unconnected.len(), 3);
+		assert_eq!(peers.unconnected, vec![
+			AddressEntry::new("127.0.0.1".to_string(), 20335),
+			AddressEntry::new("127.0.0.1".to_string(), 20336),
+			AddressEntry::new("127.0.0.1".to_string(), 20337)
+		]);
+		assert_eq!(peers.bad.len(), 1);
+		assert_eq!(peers.bad, vec![
+			AddressEntry::new("127.0.0.1".to_string(), 20333)
+		]);
+		assert_eq!(peers.connected, vec![
+			AddressEntry::new("172.18.0.3".to_string(), 40333),
+			AddressEntry::new("172.18.0.4".to_string(), 20333)
+		]);
+		
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
+
+	#[tokio::test]
+	async fn test_get_peers_empty() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response(
+			&mock_server,
+			"getpeers",
+			json!([]),
+			json!({
+				"unconnected": [],
+				"bad": [],
+				"connected": []
+			}),
+		)
+		.await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
+			"jsonrpc": "2.0",
+			"method": "getpeers",
+			"params": [],
+			"id": 1
+		}}"#
+		);
+
+		
+
+		let result = provider.get_peers().await;
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let peers = result.unwrap();
+		assert_eq!(peers.unconnected.len(), 0);
+		assert_eq!(peers.bad.len(), 0);
+		assert_eq!(peers.connected.len(), 0);
+		
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
 
@@ -3704,20 +3776,26 @@ mod tests {
 			"getversion",
 			json!([]),
 			json!( {
-				"tcpport": 10333,
-				"wsport": 10334,
-				"nonce": 1930156121,
-				"useragent": "/Neo:3.0.3/",
+				"tcpport": 40333,
+				"wsport": 40334,
+				"nonce": 224036820,
+				"useragent": "/Neo:3.0.0/",
 				"protocol": {
-					"addressversion": 53,
-					"network": 860833102,
+					"network": 769,
 					"validatorscount": 7,
 					"msperblock": 15000,
-					"maxtraceableblocks": 2102400,
-					"maxvaliduntilblockincrement": 5760,
-					"maxtransactionsperblock": 512,
-					"memorypoolmaxtransactions": 50000,
-					"initialgasdistribution": 5200000000000000u64
+					"maxvaliduntilblockincrement": 1,
+					"maxtraceableblocks": 3,
+					"addressversion": 53,
+					"maxtransactionsperblock": 150000,
+					"memorypoolmaxtransactions": 34000,
+					"initialgasdistribution": 14,
+					"hardforks": [
+						{
+							"name": "HF_Aspidochelone",
+							"blockheight": 0
+						}
+					]
 				}
 			}),
 		)
