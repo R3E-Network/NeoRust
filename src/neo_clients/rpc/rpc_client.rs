@@ -1269,7 +1269,7 @@ mod tests {
 
 	use crate::{
 		neo_types::{Base64Encode, ToBase64},
-		prelude::{AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, MockClient, NativeContractState, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator},
+		prelude::{AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, MockClient, NativeContractState, NeoVMStateType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator},
 		providers::RpcClient,
 	};
 
@@ -1338,6 +1338,26 @@ mod tests {
 			.respond_with(ResponseTemplate::new(200).set_body_json(json!({
 				"jsonrpc": "2.0",
 				"id": id,
+				"result": result
+			})))
+			.mount(mock_server)
+			.await;
+
+		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
+		let http_client = HttpProvider::new(url);
+		RpcClient::new(http_client)
+	}
+
+	async fn mock_rpc_response_without_request(
+		mock_server: &MockServer,
+		result: serde_json::Value,
+	) -> RpcClient<HttpProvider> {
+
+		Mock::given(http_method("POST"))
+			.and(path("/"))
+			.respond_with(ResponseTemplate::new(200).set_body_json(json!({
+				"jsonrpc": "2.0",
+				"id": 1,
 				"result": result
 			})))
 			.mount(mock_server)
@@ -3976,59 +3996,27 @@ mod tests {
 	#[tokio::test]
 	async fn test_invoke_function() {
 		let mock_server = setup_mock_server().await;
-		let provider = mock_rpc_response(
+		let provider = mock_rpc_response_without_request(
             &mock_server,
-            "invokefunction",
-            json!([
-    "0xa1a375677dded85db80a852c28c2431cab29e2c4",
-    "transfer",
-    [
-            {
-                "type": "Hash160",
-                "value": "0xfa03cb7b40072c69ca41f0ad3606a548f1d59966"
-            },
-            {
-                "type": "Hash160",
-                "value": "0xebae4ab3f21765e5f604dfdd590fdf142cfb89fa"
-            },
-            {
-                "type": "Integer",
-                "value": "10000"
-            },
-            {
-                "type": "String",
-                "value": ""
-            }
-        ],
-        [
-            {
-                "account": "0xfa03cb7b40072c69ca41f0ad3606a548f1d59966",
-                "scopes": "CalledByEntry",
-                "allowedcontracts": [],
-                "allowedgroups": []
-            }
-        ],
-    true
-  ]),
             json!({
-        "script": "DAABECcMFPqJ+ywU3w9Z3d8E9uVlF/KzSq7rDBRmmdXxSKUGNq3wQcppLAdAe8sD+hTAHwwIdHJhbnNmZXIMFMTiKascQ8IoLIUKuF3Y3n1ndaOhQWJ9W1I=",
+        "script": "wh8MFnRva2Vuc1dpdGhXaXRuZXNzQ2hlY2sMFFdiWCF05OK8ywVb+rl30RPV3+zlQWJ9W1I=",
         "state": "HALT",
-        "gasconsumed": "1490312",
+        "gasconsumed": "12908980",
         "exception": null,
         "notifications": [
             {
-                "eventname": "Transfer",
-                "contract": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
+                "eventname": "Mint",
+                "contract": "0xe5ecdfd513d177b9fa5b05cbbce2e47421586257",
                 "state": {
                     "type": "Array",
                     "value": [
                         {
-                            "type": "ByteString",
-                            "value": "ZpnV8UilBjat8EHKaSwHQHvLA/o="
+                            "type": "Integer",
+                            "value": "1"
                         },
                         {
                             "type": "ByteString",
-                            "value": "+on7LBTfD1nd3wT25WUX8rNKrus="
+                            "value": "dG9rZW4x"
                         },
                         {
                             "type": "Integer",
@@ -4036,82 +4024,100 @@ mod tests {
                         }
                     ]
                 }
+            },
+			{
+                "eventname": "StorageUpdate",
+                "contract": "0xe5ecdfd513d177b9fa5b05cbbce2e47421586257",
+                "state": {
+                    "type": "Array",
+                    "value": [
+                        {
+                            "type": "ByteString",
+                            "value": "dG9rZW4x"
+                        },
+                        {
+                            "type": "ByteString",
+                            "value": "Y3JlYXRl"
+                        }
+                    ]
+                }
             }
         ],
-        "diagnostics": {
-            "invokedcontracts": {
-                "hash": "0x9cac876fcc1646f1f017aa49b1fbcf87bd37b043",
-                "call": [
-                    {
-                        "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
-                        "call": [
-                            {
-                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-                            },
-                            {
-                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-                            },
-                            {
-                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-                            },
-                            {
-                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-                            },
-                            {
-                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-                            },
-                            {
-                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-                            },
-                            {
-                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
-                                "call": [
-                                    {
-                                        "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-                                    },
-                                    {
-                                        "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-                                    }
-                                ]
-                            },
-                            {
-                                "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
-                                "call": [
-                                    {
-                                        "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-                                    },
-                                    {
-                                        "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-                                    }
-                                ]
-                            },
-                            {
-                                "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd"
-                            }
-                        ]
-                    }
-                ]
-            },
-            "storagechanges": [
-                {
-                    "state": "Changed",
-                    "key": "BgAAAAEBZpnV8UilBjat8EHKaSwHQHvLA/o=",
-                    "value": "8CTJ5wda"
-                },
-                {
-                    "state": "Added",
-                    "key": "BgAAAAEB+on7LBTfD1nd3wT25WUX8rNKrus=",
-                    "value": "ECc="
-                }
-            ]
-        },
+        // "diagnostics": {
+        //     "invokedcontracts": {
+        //         "hash": "0x9cac876fcc1646f1f017aa49b1fbcf87bd37b043",
+        //         "call": [
+        //             {
+        //                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
+        //                 "call": [
+        //                     {
+        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+        //                     },
+        //                     {
+        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+        //                     },
+        //                     {
+        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+        //                     },
+        //                     {
+        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+        //                     },
+        //                     {
+        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+        //                     },
+        //                     {
+        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+        //                     },
+        //                     {
+        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
+        //                         "call": [
+        //                             {
+        //                                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+        //                             },
+        //                             {
+        //                                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+        //                             }
+        //                         ]
+        //                     },
+        //                     {
+        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
+        //                         "call": [
+        //                             {
+        //                                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+        //                             },
+        //                             {
+        //                                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+        //                             }
+        //                         ]
+        //                     },
+        //                     {
+        //                         "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd"
+        //                     }
+        //                 ]
+        //             }
+        //         ]
+        //     },
+        //     "storagechanges": [
+        //         {
+        //             "state": "Changed",
+        //             "key": "BgAAAAEBZpnV8UilBjat8EHKaSwHQHvLA/o=",
+        //             "value": "8CTJ5wda"
+        //         },
+        //         {
+        //             "state": "Added",
+        //             "key": "BgAAAAEB+on7LBTfD1nd3wT25WUX8rNKrus=",
+        //             "value": "ECc="
+        //         }
+        //     ]
+        // },
         "stack": [
             {
-                "type": "Boolean",
-                "value": true
+                "type": "InteropInterface",
+                "interface": "IIterator",
+				"id": "fcf7b800-192a-488f-95d3-c40ac7b30ef1"
             }
         ],
-        "tx": "AOaXOgSIvRYAAAAAAKzgAQAAAAAAesUGAAFmmdXxSKUGNq3wQcppLAdAe8sD+gEAWQwAARAnDBT6ifssFN8PWd3fBPblZRfys0qu6wwUZpnV8UilBjat8EHKaSwHQHvLA/oUwB8MCHRyYW5zZmVyDBTE4imrHEPCKCyFCrhd2N59Z3WjoUFifVtSAUIMQMTS2HRIO9gDxq/U/lqIB77dLBzVHT4cwKdvqoGOZqm4IoGqHbYzBSYHOPHWGNutWvkjCgIQGQFKK1JGyOR16LwoDCEDrQCtTQQyXXSsHZm3oRiqiAzP00uFPaW9tICYC3D7Bm9BVuezJw=="
+        "session": "6ecb0e24-ce7f-4550-9838-aeb8c9e08570"
     }),
         ).await;
 		// Expected request body
@@ -4184,6 +4190,36 @@ mod tests {
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let invocation_result = result.unwrap();
+		assert_eq!(invocation_result.script, "wh8MFnRva2Vuc1dpdGhXaXRuZXNzQ2hlY2sMFFdiWCF05OK8ywVb+rl30RPV3+zlQWJ9W1I=".to_string());
+		assert_eq!(invocation_result.state, NeoVMStateType::Halt);
+		assert_eq!(invocation_result.gas_consumed, "12908980".to_string());
+		assert!(invocation_result.exception.is_none());
+
+		let notifications = invocation_result.notifications.clone().unwrap();
+		assert_eq!(notifications.len(), 2);
+
+		let mut result = invocation_result.get_notification(2);
+        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+            assert!(msg.contains("Only 2 notifications have been sent in this invocation"));
+        }
+		assert_eq!(invocation_result.get_first_notification(), invocation_result.get_notification(0));
+		assert_eq!(invocation_result.get_notification(0).unwrap().contract, H160::from_str("0xe5ecdfd513d177b9fa5b05cbbce2e47421586257").unwrap());
+		assert_eq!(invocation_result.get_notification(0).unwrap().event_name, "Mint".to_string());
+		assert!(
+			matches!(notifications.get(0).unwrap().state, StackItem::Array { .. }),
+			"The stack item type is not Array as expected"
+		);
+
+		let stack_item_list = notifications.get(0).unwrap().state.as_array().unwrap();
+		let item0 = stack_item_list[0].as_int();
+		assert_eq!(item0, Some(1));
+		assert_eq!(stack_item_list[1].as_string().unwrap(), "token1".to_string());
+
+
+
 	}
 
 	#[tokio::test]

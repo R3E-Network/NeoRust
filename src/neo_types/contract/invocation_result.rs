@@ -10,6 +10,8 @@ use strum_macros::{AsRefStr, Display, EnumString};
 
 use neo::prelude::{deserialize_script_hash, serialize_script_hash, ContractParameter, StackItem};
 
+use crate::prelude::TypeError;
+
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct InvocationResult {
 	#[serde(default)]
@@ -28,9 +30,9 @@ pub struct InvocationResult {
 	pub stack: Vec<StackItem>,
 	#[serde(default)]
 	pub tx: Option<String>,
-	#[serde(default)]
+	#[serde(rename = "pendingsignature", default)]
 	pub pending_signature: Option<PendingSignature>,
-	#[serde(default)]
+	#[serde(rename = "session", default)]
 	pub session_id: Option<String>,
 }
 
@@ -88,6 +90,26 @@ impl InvocationResult {
 	pub fn get_first_stack_item(&self) -> Result<&StackItem, &str> {
 		self.stack.first().ok_or("Stack is empty")
 	}
+
+	pub fn get_first_notification(&self) -> Result<&Notification, TypeError> {
+        if self.notifications.as_ref().unwrap().is_empty() {
+            return Err(TypeError::IndexOutOfBounds(
+                "No notifications have been sent in this invocation.".to_string(),
+            ));
+        }
+        self.get_notification(0)
+    }
+
+    pub fn get_notification(&self, index: usize) -> Result<&Notification, TypeError> {
+        if index >= self.notifications.as_ref().unwrap().len() {
+            return Err(TypeError::IndexOutOfBounds(format!(
+                "Only {} notifications have been sent in this invocation. Tried to access index {} in the invocation result.",
+                self.notifications.as_ref().unwrap().len(),
+                index
+            )));
+        }
+        Ok(&self.notifications.as_ref().unwrap()[index])
+    }
 }
 
 impl Default for InvocationResult {
@@ -109,6 +131,7 @@ impl Default for InvocationResult {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct PendingSignature {
+	#[serde(rename = "type")]
 	pub typ: String,
 	pub data: String,
 	pub items: HashMap<String, Item>,
@@ -127,6 +150,7 @@ impl Hash for PendingSignature {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Item {
 	pub script: String,
+	#[serde(default)]
 	pub parameters: Vec<ContractParameter>,
 	pub signatures: HashMap<String, String>,
 }
@@ -144,7 +168,9 @@ impl Hash for Item {
 // Diagnostics
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Diagnostics {
+	#[serde(rename = "invokedcontracts")]
 	pub invoked_contracts: InvokedContract,
+	#[serde(rename = "storagechanges", default)]
 	pub storage_changes: Vec<StorageChange>,
 }
 
@@ -153,7 +179,8 @@ pub struct InvokedContract {
 	#[serde(deserialize_with = "deserialize_script_hash")]
 	#[serde(serialize_with = "serialize_script_hash")]
 	pub hash: H160,
-	pub invoked_contracts: Option<Vec<InvokedContract>>,
+	#[serde(rename = "call", default)]
+	pub invoked_contracts: Vec<InvokedContract>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
@@ -169,9 +196,10 @@ pub struct Notification {
 	#[serde(deserialize_with = "deserialize_script_hash")]
 	#[serde(serialize_with = "serialize_script_hash")]
 	pub contract: H160,
+	#[serde(rename = "eventname")]
 	pub event_name: String,
-	pub state: NotificationState,
-	pub payload: Vec<u8>,
+	pub state: StackItem,
+	// pub payload: Vec<u8>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Hash)]
