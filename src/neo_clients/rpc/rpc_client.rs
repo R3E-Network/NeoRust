@@ -4217,9 +4217,192 @@ mod tests {
 		let item0 = stack_item_list[0].as_int();
 		assert_eq!(item0, Some(1));
 		assert_eq!(stack_item_list[1].as_string().unwrap(), "token1".to_string());
+		assert_eq!(notifications.get(1).unwrap().contract, H160::from_str("0xe5ecdfd513d177b9fa5b05cbbce2e47421586257").unwrap());
+		assert_eq!(notifications.get(1).unwrap().event_name, "StorageUpdate".to_string());
+		assert!(
+			matches!(notifications.get(1).unwrap().state, StackItem::Array { .. }),
+			"The stack item type is not Array as expected"
+		);
+		let stack_item_list1 = notifications.get(1).unwrap().state.as_array().unwrap();
+		assert_eq!(stack_item_list1[1].as_string().unwrap(), "create".to_string());
 
+		assert_eq!(invocation_result.stack.len(), 1);
+		assert_eq!(invocation_result.get_stack_item(0), invocation_result.get_first_stack_item());
+		assert_eq!(invocation_result.stack.get(0).unwrap().get_iterator_id().unwrap(), &"fcf7b800-192a-488f-95d3-c40ac7b30ef1".to_string());
+		assert_eq!(invocation_result.stack.get(0).unwrap().get_interface_name().unwrap(), &"IIterator".to_string());
+		let mut result = invocation_result.get_stack_item(1);
+        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+            assert!(msg.contains("only 1 items left on the NeoVM stack after"));
+        }
+		assert_eq!(invocation_result.session_id, Some("6ecb0e24-ce7f-4550-9838-aeb8c9e08570".to_string()));
+	}
 
+	#[tokio::test]
+	async fn test_stack_item_invoke_function() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response_without_request(
+            &mock_server,
+            json!({
+        "script": "0c14e6c1013654af113d8a968bdca52c9948a82b953d11c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52",
+        "state": "HALT",
+        "gasconsumed": "2007570",
+        "exception": null,
+        "notifications": [],
+        "stack": [
+            {
+                "type": "Buffer",
+                "value": "dHJhbnNmZXI="
+            },
+			{
+                "type": "Buffer",
+                "value": "lBNDI5IT+g52XxAnznQvSNt3mpY="
+            },
+			{
+                "type": "Buffer",
+                "value": "wWq="
+            },
+			{
+                "type": "Pointer",
+                "value": "123"
+            },
+			{
+                "type": "Map",
+                "value": [
+					{
+						"key": {
+							"type": "ByteString",
+							"value": "lBNDI5IT+g52XxAnznQvSNt3mpY="
+						},
+						"value": {
+							"type": "Pointer",
+							"value": 12
+						}
+					}
+				]
+            },
+        ],
+    }),
+        ).await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
+			"jsonrpc": "2.0",
+			"method": "invokefunction",
+			"params": [
+				"af7c7328eee5a275a3bcaee2bf0cf662b5e739be",
+				"balanceOf",
+				[
+					{{
+						"type": "Hash160",
+						"value": "91b83e96f2a7c4fdf0c1688441ec61986c7cae26"
+					}}
+				],
+				[
+					{{
+						"account": "cadb3dc2faa3ef14a13b619c9a43124755aa2569",
+						"scopes": "CalledByEntry,CustomContracts,CustomGroups,WitnessRules",
+						"allowedcontracts": ["ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"],
+						"allowedgroups": [
+							"033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b"
+						],
+						"rules": [
+							{{
+								"action": "Allow",
+								"condition": {{
+									"type": "CalledByContract",
+									"hash": "{}"
+								}}
+							}}
+						]
+					}}
+				]
+			],
+			"id": 1
+		}}"#,
+			TestConstants::NEO_TOKEN_HASH
+		);
 
+		let public_key = Secp256r1PublicKey::from_bytes(
+			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
+		)
+		.unwrap();
+		let rule = WitnessRule::new(
+			WitnessAction::Allow,
+			WitnessCondition::CalledByContract(
+				H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap(),
+			),
+		);
+
+		let mut signer = AccountSigner::called_by_entry_hash160(
+			H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap(),
+		)
+		.unwrap();
+		signer
+			.set_allowed_contracts(vec![H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap()])
+			.expect("TODO: panic message");
+		signer.set_allowed_groups(vec![public_key]).expect("TODO: panic message");
+		signer.set_rules(vec![rule]).expect("TODO: panic message");
+
+		let result = provider
+			.invoke_function(
+				&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
+				"balanceOf".to_string(),
+				vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()],
+				Some(vec![Account(signer)]),
+			)
+			.await;
+
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+		
+		// Response verification
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let invocation_result = result.unwrap();
+		assert_eq!(invocation_result.script, "0c14e6c1013654af113d8a968bdca52c9948a82b953d11c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52".to_string());
+		assert_eq!(invocation_result.state, NeoVMStateType::Halt);
+		assert_eq!(invocation_result.gas_consumed, "2007570".to_string());
+		assert!(invocation_result.exception.is_none());
+
+		let notifications = invocation_result.notifications.clone().unwrap();
+		assert_eq!(notifications.len(), 0);
+
+		let mut result = invocation_result.get_first_notification();
+        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+            assert!(msg.contains("No notifications have been sent in this invocation"));
+        }
+
+		assert_eq!(invocation_result.stack.len(), 5);
+		let item0 = invocation_result.stack.get(0).unwrap();
+		assert!(
+			matches!(item0, StackItem::Buffer { .. }),
+			"The stack item type is not Buffer as expected"
+		);
+		assert_eq!(item0.as_string().unwrap(), "transfer".to_string());
+
+		let try_base = base64::decode("wWq=".trim_end()).expect(&format!("Failed to decode the string: wWq="));
+
+		// let item1 = invocation_result.stack.get(1).unwrap();
+		// assert!(
+		// 	matches!(item1, StackItem::Buffer { .. }),
+		// 	"The stack item type is not Buffer as expected"
+		// );
+		// assert_eq!(item1.as_address().unwrap(), "NZQvGWfSupuUAYtCH6pje72hdkWJH1jAZP".to_string());
+
+		let item2 = invocation_result.stack.get(2).unwrap();
+		assert!(
+			matches!(item2, StackItem::Buffer { .. }),
+			"The stack item type is not Buffer as expected"
+		);
+		assert_eq!(item2.as_bytes().unwrap(), hex::decode("c16a").unwrap());
+		assert_eq!(item2.as_int().unwrap(), 27329);
+
+		let item3 = invocation_result.stack.get(3).unwrap();
+		assert!(
+			matches!(item2, StackItem::Pointer { .. }),
+			"The stack item type is not Pointer as expected"
+		);
+		assert_eq!(item2.as_int().unwrap(), 123);
 	}
 
 	#[tokio::test]

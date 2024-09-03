@@ -1,11 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 /// This module defines the `StackItem` enum and `MapEntry` struct, which are used to represent items on the Neo virtual machine stack.
 /// `StackItem` is a recursive enum that can represent any type of value that can be stored on the stack, including arrays, maps, and custom types.
 /// `MapEntry` is a simple struct that represents a key-value pair in a `StackItem::Map`.
 /// The `StackItem` enum also provides several utility methods for converting between different types and formats.
 use primitive_types::{H160, H256};
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{de::{Unexpected, Visitor}, Deserialize, Deserializer, Serialize};
 
 use neo::prelude::{Address, ScriptHashExtension, Secp256r1PublicKey};
 
@@ -68,8 +68,48 @@ fn deserialize_integer_from_string<'de, D>(deserializer: D) -> Result<i64, D::Er
 where
 	D: Deserializer<'de>,
 {
-	let value_str = String::deserialize(deserializer)?;
-	value_str.parse::<i64>().map_err(serde::de::Error::custom)
+	// let value_str = String::deserialize(deserializer)?;
+	// value_str.parse::<i64>().map_err(serde::de::Error::custom)
+	// First, try to deserialize the input as a string
+    struct StringOrIntVisitor;
+
+    impl<'de> Visitor<'de> for StringOrIntVisitor {
+        type Value = i64;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string or integer")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            value.parse::<i64>().map_err(serde::de::Error::custom)
+        }
+
+        fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            value.parse::<i64>().map_err(serde::de::Error::custom)
+        }
+
+        fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(value)
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(value as i64)
+        }
+    }
+
+    deserializer.deserialize_any(StringOrIntVisitor)
 }
 
 /// The `MapEntry` struct represents a key-value pair in a `StackItem::Map`.
@@ -201,7 +241,9 @@ impl StackItem {
 	pub fn as_bytes(&self) -> Option<Vec<u8>> {
 		match self {
 			StackItem::ByteString { value } | StackItem::Buffer { value } =>
-				hex::decode(value).ok(),
+				// Some(hex::decode(value).unwrap()),
+				Some(base64::decode(value.trim_end()).expect(&format!("Failed to decode the string: {}", value))),
+				//Some(value.trim_end().as_bytes().to_vec()),
 			StackItem::Integer { value } => {
 				let mut bytes = value.to_be_bytes().to_vec();
 				bytes.reverse();
@@ -301,6 +343,22 @@ impl StackItem {
 	pub fn get(&self, index: usize) -> Option<StackItem> {
 		self.as_array().and_then(|arr| arr.get(index).cloned())
 	}
+
+	pub fn get_iterator_id(&self) -> Option<&String> {
+        if let StackItem::InteropInterface { id, .. } = self {
+            Some(id)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_interface_name(&self) -> Option<&String> {
+        if let StackItem::InteropInterface { interface, .. } = self {
+            Some(interface)
+        } else {
+            None
+        }
+    }
 }
 
 impl From<String> for StackItem {

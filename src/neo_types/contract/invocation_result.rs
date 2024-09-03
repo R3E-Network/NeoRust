@@ -87,9 +87,25 @@ impl InvocationResult {
 		matches!(self.state, NeoVMStateType::Fault)
 	}
 
-	pub fn get_first_stack_item(&self) -> Result<&StackItem, &str> {
-		self.stack.first().ok_or("Stack is empty")
-	}
+	pub fn get_first_stack_item(&self) -> Result<&StackItem, TypeError> {
+        if self.stack.is_empty() {
+            return Err(TypeError::IndexOutOfBounds(
+                "The stack is empty. This means that no items were left on the NeoVM stack after this invocation."
+                    .to_string(),
+            ));
+        }
+        self.get_stack_item(0)
+    }
+
+    pub fn get_stack_item(&self, index: usize) -> Result<&StackItem, TypeError> {
+        if index >= self.stack.len() {
+            return Err(TypeError::IndexOutOfBounds(format!(
+                "There were only {} items left on the NeoVM stack after this invocation",
+                self.stack.len()
+            )));
+        }
+        Ok(&self.stack[index])
+    }
 
 	pub fn get_first_notification(&self) -> Result<&Notification, TypeError> {
         if self.notifications.as_ref().unwrap().is_empty() {
