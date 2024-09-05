@@ -123,7 +123,7 @@ impl JsonRpcProvider for HttpProvider {
 impl Default for HttpProvider {
 	/// Default HTTP Provider from SEED_1
 	fn default() -> Self {
-		Self::new(Url::parse(NeoConstants::SEED_1).unwrap())
+		Self::new(Url::parse(NeoConstants::SEED_1).unwrap()).unwrap()
 	}
 }
 
@@ -133,15 +133,24 @@ impl HttpProvider {
 	/// # Example
 	///
 	/// ```
-	/// use url::Url;
 	/// use NeoRust::prelude::Http;
 	///
+	/// // Using a string
+	/// let provider = HttpProvider::new("http://localhost:8545")?;
+	///
+	/// // Using a &str
+	/// let provider = HttpProvider::new("http://localhost:8545")?;
+	///
+	/// // Using a Url
+	/// use url::Url;
 	/// let url = Url::parse("http://localhost:8545").unwrap();
-	/// let provider = Http::new(url);
+	/// let provider = HttpProvider::new(url)?;
 	/// ```
-	pub fn new(url: impl Into<Url>) -> Self {
-		Self::new_with_client(url, Client::new())
+	pub fn new<T: TryInto<Url>>(url: T) -> Result<Self, T::Error> {
+		let url = url.try_into()?;
+		Ok(Self::new_with_client(url, Client::new()))
 	}
+	
 
 	/// The Url to which requests are made
 	pub fn url(&self) -> &Url {
@@ -193,15 +202,6 @@ impl HttpProvider {
 	/// ```
 	pub fn new_with_client(url: impl Into<Url>, client: reqwest::Client) -> Self {
 		Self { id: AtomicU64::new(1), client, url: url.into() }
-	}
-}
-
-impl FromStr for HttpProvider {
-	type Err = url::ParseError;
-
-	fn from_str(src: &str) -> Result<Self, Self::Err> {
-		let url = Url::parse(src)?;
-		Ok(HttpProvider::new(url))
 	}
 }
 

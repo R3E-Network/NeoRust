@@ -32,13 +32,9 @@ pub struct ContractParameter2 {
 }
 
 impl ContractParameter2 {
-	pub fn new(
-		name: String,
-		typ: ContractParameterType,
-	) -> Self {
+	pub fn new(name: String, typ: ContractParameterType) -> Self {
 		Self { name, typ }
 	}
-	
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone)]

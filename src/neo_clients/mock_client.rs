@@ -41,10 +41,7 @@ impl MockClient {
 			.await;
 	}
 
-	pub async fn mock_response_error(
-		&self,
-		error: serde_json::Value
-	) {
+	pub async fn mock_response_error(&self, error: serde_json::Value) {
 		Mock::given(method("POST"))
 			.and(path("/"))
 			.respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -77,7 +74,9 @@ impl MockClient {
 	}
 
 	pub fn into_client(&self) -> RpcClient<HttpProvider> {
-		let http_provider = HttpProvider::new(self.url());
+		let http_provider = HttpProvider::new(self.url()).map_err(|err| {
+			panic!("Failed to create HTTP provider: {}", err);
+		}).unwrap();
 		RpcClient::new(http_provider)
 	}
 

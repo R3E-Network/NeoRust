@@ -798,7 +798,7 @@ mod tests {
 			.await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		let provider = RpcClient::new(http_client);
 
 		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();

@@ -1,23 +1,24 @@
-use std::hash::{Hash, Hasher};
-use std::str::FromStr;
+use std::{
+	hash::{Hash, Hasher},
+	str::FromStr,
+};
 
 use futures_util::TryFutureExt;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
-use primitive_types::{U256, H256};
+use primitive_types::{H256, U256};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use serde_with::__private__::DeError;
 
-use crate::prelude::TypeError;
 use crate::{
 	neo_clients::JsonRpcProvider,
-	prelude::{NeoConstants, RawTransaction},
+	prelude::{NeoConstants, RawTransaction, TypeError},
 };
 use neo::{
 	prelude::{
 		APITrait, ApplicationLog, Bytes, Decoder, Encoder, HashableForVec, NameOrAddress,
-		NeoSerializable, NeoWitness, VMState, RpcClient, Signer, TransactionAttribute, TransactionError, TransactionSigner ,VarSizeTrait,
-		Witness,
+		NeoSerializable, NeoWitness, RpcClient, Signer, TransactionAttribute, TransactionError,
+		TransactionSigner, VMState, VarSizeTrait, Witness,
 	},
 	// types::ContractParameterType::H256,
 };
@@ -26,7 +27,6 @@ use super::{RTransactionSigner, TransactionAttributeEnum};
 
 #[derive(Serialize, Deserialize, Getters, Setters, MutGetters, CopyGetters, Debug, Clone, Hash)]
 pub struct RTransaction {
-
 	#[serde(rename = "hash")]
 	#[getset(get = "pub", set = "pub")]
 	pub hash: H256,
@@ -86,27 +86,40 @@ pub struct RTransaction {
 	#[serde(rename = "blocktime", default)]
 	#[getset(get = "pub", set = "pub")]
 	pub block_time: i64,
-	
+
 	#[serde(rename = "vmstate", default)]
 	#[getset(get = "pub", set = "pub")]
 	pub vmstate: VMState,
 }
 
 impl RTransaction {
-	pub fn new(hash: H256, size: u64, version:u8, nonce:u64, sender: String ,sys_fee: String, net_fee: String, valid_until_block: u64, signers: Vec<RTransactionSigner>, attributes: Vec<TransactionAttributeEnum>, script: String, witnesses: Vec<NeoWitness>) -> Self {
+	pub fn new(
+		hash: H256,
+		size: u64,
+		version: u8,
+		nonce: u64,
+		sender: String,
+		sys_fee: String,
+		net_fee: String,
+		valid_until_block: u64,
+		signers: Vec<RTransactionSigner>,
+		attributes: Vec<TransactionAttributeEnum>,
+		script: String,
+		witnesses: Vec<NeoWitness>,
+	) -> Self {
 		Self {
-			hash: hash,
-			size: size,
-			version: version,
-			nonce: nonce,
-			sender: sender,
-			sys_fee: sys_fee,
-			net_fee: net_fee,
-			valid_until_block: valid_until_block,
-			signers: signers,
-			attributes: attributes,
-			script: script,
-			witnesses: witnesses,
+			hash,
+			size,
+			version,
+			nonce,
+			sender,
+			sys_fee,
+			net_fee,
+			valid_until_block,
+			signers,
+			attributes,
+			script,
+			witnesses,
 			block_hash: Default::default(),
 			confirmations: Default::default(),
 			block_time: Default::default(),
@@ -134,24 +147,24 @@ impl RTransaction {
 	}
 
 	pub fn get_first_attribute(&self) -> Result<&TransactionAttributeEnum, TypeError> {
-        if self.attributes.is_empty() {
-            return Err(TypeError::IndexOutOfBounds(
-                "This transaction does not have any attributes.".to_string(),
-            ));
-        }
-        self.get_attribute(0)
-    }
+		if self.attributes.is_empty() {
+			return Err(TypeError::IndexOutOfBounds(
+				"This transaction does not have any attributes.".to_string(),
+			));
+		}
+		self.get_attribute(0)
+	}
 
-    pub fn get_attribute(&self, index: usize) -> Result<&TransactionAttributeEnum, TypeError> {
-        if index >= self.attributes.len() {
-            return Err(TypeError::IndexOutOfBounds(format!(
-                "This transaction only has {} attributes. Tried to access index {}.",
-                self.attributes.len(),
-                index
-            )));
-        }
-        Ok(&self.attributes[index])
-    }
+	pub fn get_attribute(&self, index: usize) -> Result<&TransactionAttributeEnum, TypeError> {
+		if index >= self.attributes.len() {
+			return Err(TypeError::IndexOutOfBounds(format!(
+				"This transaction only has {} attributes. Tried to access index {}.",
+				self.attributes.len(),
+				index
+			)));
+		}
+		Ok(&self.attributes[index])
+	}
 }
 
 // impl Default for RTransaction {
@@ -240,31 +253,27 @@ impl RTransaction {
 // 	}
 // }
 
-
-
-
-
 impl Eq for RTransaction {}
 
 impl PartialEq for RTransaction {
-    fn eq(&self, other: &Self) -> bool {
-        self.size == other.size &&
-        self.version == other.version &&
-        self.hash == other.hash &&
-        self.nonce == other.nonce &&
-        self.sender == other.sender &&
-        self.sys_fee == other.sys_fee &&
-        self.net_fee == other.net_fee &&
-        self.valid_until_block == other.valid_until_block &&
-        self.signers == other.signers &&
-        self.attributes == other.attributes &&
-        self.script == other.script &&
-        self.witnesses == other.witnesses &&
-        self.block_hash == other.block_hash &&
-        self.confirmations == other.confirmations &&
-        self.block_time == other.block_time &&
-        self.vmstate == other.vmstate
-    }
+	fn eq(&self, other: &Self) -> bool {
+		self.size == other.size
+			&& self.version == other.version
+			&& self.hash == other.hash
+			&& self.nonce == other.nonce
+			&& self.sender == other.sender
+			&& self.sys_fee == other.sys_fee
+			&& self.net_fee == other.net_fee
+			&& self.valid_until_block == other.valid_until_block
+			&& self.signers == other.signers
+			&& self.attributes == other.attributes
+			&& self.script == other.script
+			&& self.witnesses == other.witnesses
+			&& self.block_hash == other.block_hash
+			&& self.confirmations == other.confirmations
+			&& self.block_time == other.block_time
+			&& self.vmstate == other.vmstate
+	}
 }
 
 // impl PartialEq for Transaction {

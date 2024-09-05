@@ -34,8 +34,8 @@ pub enum VMState {
 }
 
 impl Default for VMState {
-    fn default() -> Self {
-        // Provide a default implementation for VMState
-        VMState::None
-    }
+	fn default() -> Self {
+		// Provide a default implementation for VMState
+		VMState::None
+	}
 }

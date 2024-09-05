@@ -3,25 +3,76 @@ use tokio::io::AsyncReadExt;
 
 use neo::prelude::{BuilderError, Bytes, Decoder, InteropService, OpCode, OperandSize};
 
+/// A utility struct for reading and interpreting Neo smart contract scripts.
 pub struct ScriptReader;
 
 impl ScriptReader {
+	/// Retrieves the InteropService code from a given hash.
+	///
+	/// # Arguments
+	///
+	/// * `_hash` - A string representation of the hash.
+	///
+	/// # Returns
+	///
+	/// An Option containing the InteropService if found, or None if not found.
+	///
+	/// # Example
+	///
+	/// ```rust
+	/// use neo_builder::script::ScriptReader;
+	///
+	/// let hash = "9bf667ce".to_string();
+	/// if let Some(service) = ScriptReader::get_interop_service_code(hash) {
+	///     println!("InteropService found: {:?}", service);
+	/// } else {
+	///     println!("InteropService not found");
+	/// }
+	/// ```
 	pub fn get_interop_service_code(_hash: String) -> Option<InteropService> {
 		InteropService::from_hash(_hash)
 	}
+
+	/// Converts a byte script to a human-readable string of OpCodes.
+	///
+	/// # Arguments
+	///
+	/// * `script` - The byte script to convert.
+	///
+	/// # Returns
+	///
+	/// A string representation of the OpCodes in the script.
+	///
+	/// # Example
+	///
+	/// ```rust
+	/// use neo_builder::script::ScriptReader;
+	/// use rustc_serialize::hex::FromHex;
+	///
+	/// let script = "0c0548656c6c6f".from_hex().unwrap();
+	/// let op_code_string = ScriptReader::convert_to_op_code_string(&script);
+	/// println!("OpCodes: {}", op_code_string);
+	/// // Output: OpCodes: PUSHDATA1 5 48656c6c6f
+	/// ```
 	pub fn convert_to_op_code_string(script: &Bytes) -> String {
 		let mut reader = Decoder::new(script);
 		let mut result = String::new();
+
 		while reader.pointer().clone() < script.len() {
 			if let Ok(op_code) = OpCode::try_from(reader.read_u8()) {
+				// Add the OpCode to the result string
 				result.push_str(&format!("{:?}", op_code).to_uppercase());
+
+				// Handle operands if present
 				if let Some(size) = op_code.operand_size() {
 					if size.size().clone() > 0 {
+						// Fixed size operand
 						result.push_str(&format!(
 							" {}",
 							reader.read_bytes(size.size().clone() as usize).unwrap().to_hex()
 						));
 					} else if size.prefix_size().clone() > 0 {
+						// Variable size operand with prefix
 						let prefix_size = Self::get_prefix_size(&mut reader, size).unwrap();
 						result.push_str(&format!(
 							" {} {}",
@@ -36,6 +87,28 @@ impl ScriptReader {
 		result
 	}
 
+	/// Helper function to get the size of a variable-length operand.
+	///
+	/// # Arguments
+	///
+	/// * `reader` - The Decoder to read from.
+	/// * `size` - The OperandSize specifying the prefix size.
+	///
+	/// # Returns
+	///
+	/// A Result containing the size of the operand or a BuilderError.
+	///
+	/// # Example
+	///
+	/// ```rust
+	/// use neo_builder::script::ScriptReader;
+	/// use neo::prelude::{Decoder, OperandSize};
+	///
+	/// let mut decoder = Decoder::new(&[0x05]); // Example: prefix size of 5
+	/// let operand_size = OperandSize::new(0, 1); // 1-byte prefix
+	/// let size = ScriptReader::get_prefix_size(&mut decoder, operand_size).unwrap();
+	/// assert_eq!(size, 5);
+	/// ```
 	fn get_prefix_size(reader: &mut Decoder, size: OperandSize) -> Result<usize, BuilderError> {
 		match size.prefix_size() {
 			1 => Ok(reader.read_u8() as usize),
@@ -54,16 +127,18 @@ mod tests {
 
 	use super::*;
 
-	// Adjust this to import your ScriptReader and other necessary items.
-
 	#[test]
 	fn test_convert_to_op_code_string() {
+		// Test script in hexadecimal format
 		let script = "0c0548656c6c6f0c05576f726c642150419bf667ce41e63f18841140".from_hex().unwrap();
+
+		// Expected output after conversion
 		let expected_op_code_string = "PUSHDATA1 5 48656c6c6f\nPUSHDATA1 5 576f726c64\nNOP\nSWAP\nSYSCALL 9bf667ce\nSYSCALL e63f1884\nPUSH1\nRET\n";
 
-		// Assuming ScriptReader::convert_to_op_code_string exists and performs as expected
+		// Convert the script to OpCode string
 		let op_code_string = ScriptReader::convert_to_op_code_string(&script);
 
+		// Assert that the conversion matches the expected output
 		assert_eq!(op_code_string.as_str(), expected_op_code_string);
 	}
 }

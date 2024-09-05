@@ -88,44 +88,44 @@ impl InvocationResult {
 	}
 
 	pub fn get_first_stack_item(&self) -> Result<&StackItem, TypeError> {
-        if self.stack.is_empty() {
-            return Err(TypeError::IndexOutOfBounds(
+		if self.stack.is_empty() {
+			return Err(TypeError::IndexOutOfBounds(
                 "The stack is empty. This means that no items were left on the NeoVM stack after this invocation."
                     .to_string(),
             ));
-        }
-        self.get_stack_item(0)
-    }
+		}
+		self.get_stack_item(0)
+	}
 
-    pub fn get_stack_item(&self, index: usize) -> Result<&StackItem, TypeError> {
-        if index >= self.stack.len() {
-            return Err(TypeError::IndexOutOfBounds(format!(
-                "There were only {} items left on the NeoVM stack after this invocation",
-                self.stack.len()
-            )));
-        }
-        Ok(&self.stack[index])
-    }
+	pub fn get_stack_item(&self, index: usize) -> Result<&StackItem, TypeError> {
+		if index >= self.stack.len() {
+			return Err(TypeError::IndexOutOfBounds(format!(
+				"There were only {} items left on the NeoVM stack after this invocation",
+				self.stack.len()
+			)));
+		}
+		Ok(&self.stack[index])
+	}
 
 	pub fn get_first_notification(&self) -> Result<&Notification, TypeError> {
-        if self.notifications.as_ref().unwrap().is_empty() {
-            return Err(TypeError::IndexOutOfBounds(
-                "No notifications have been sent in this invocation.".to_string(),
-            ));
-        }
-        self.get_notification(0)
-    }
+		if self.notifications.as_ref().unwrap().is_empty() {
+			return Err(TypeError::IndexOutOfBounds(
+				"No notifications have been sent in this invocation.".to_string(),
+			));
+		}
+		self.get_notification(0)
+	}
 
-    pub fn get_notification(&self, index: usize) -> Result<&Notification, TypeError> {
-        if index >= self.notifications.as_ref().unwrap().len() {
-            return Err(TypeError::IndexOutOfBounds(format!(
+	pub fn get_notification(&self, index: usize) -> Result<&Notification, TypeError> {
+		if index >= self.notifications.as_ref().unwrap().len() {
+			return Err(TypeError::IndexOutOfBounds(format!(
                 "Only {} notifications have been sent in this invocation. Tried to access index {} in the invocation result.",
                 self.notifications.as_ref().unwrap().len(),
                 index
             )));
-        }
-        Ok(&self.notifications.as_ref().unwrap()[index])
-    }
+		}
+		Ok(&self.notifications.as_ref().unwrap()[index])
+	}
 }
 
 impl Default for InvocationResult {

@@ -118,9 +118,11 @@ where
 				.as_str()
 				.ok_or(serde::de::Error::custom("Expected a string for ScriptHash"))?;
 			// Ok(WitnessCondition::ScriptHash(H160::from_slice(&hash.from_hex().unwrap())))
-			Ok(WitnessCondition::ScriptHash(H160::from_hex(hash.trim_start_matches("0x"))
-			.map_err(|e| serde::de::Error::custom(format!("Failed to parse ScriptHash: {}", e)))?))
-			
+			Ok(WitnessCondition::ScriptHash(
+				H160::from_hex(hash.trim_start_matches("0x")).map_err(|e| {
+					serde::de::Error::custom(format!("Failed to parse ScriptHash: {}", e))
+				})?,
+			))
 		},
 		Some("Group") | Some("CalledByGroup") => {
 			let group = v["group"]

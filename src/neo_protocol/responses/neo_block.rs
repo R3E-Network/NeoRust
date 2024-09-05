@@ -1,6 +1,6 @@
-use std::num::ParseIntError;
 use primitive_types::H256;
 use serde::{Deserialize, Serialize};
+use std::num::ParseIntError;
 
 use crate::prelude::RTransaction;
 use neo::prelude::{
@@ -40,12 +40,12 @@ pub struct NeoBlock {
 }
 
 impl NeoBlock {
-    // Method to convert nonce from hexadecimal string to u64
-    pub fn get_nonce_as_u64(&self) -> Result<u64, ParseIntError> {
-        u64::from_str_radix(&self.nonce, 16)
-    }
+	// Method to convert nonce from hexadecimal string to u64
+	pub fn get_nonce_as_u64(&self) -> Result<u64, ParseIntError> {
+		u64::from_str_radix(&self.nonce, 16)
+	}
 }
 
 fn default_transactions() -> Option<Vec<RTransaction>> {
-    Some(Vec::new())
+	Some(Vec::new())
 }

@@ -68,4 +68,3 @@ mod populated_blocks;
 mod reponse_transaction;
 mod response_transaction_attribute;
 mod response_transaction_signer;
-
