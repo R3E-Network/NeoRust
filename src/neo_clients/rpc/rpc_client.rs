@@ -4530,7 +4530,9 @@ mod tests {
 		);
 		assert_eq!(item0.as_string().unwrap(), "transfer".to_string());
 
+    // jinghui-comment-format-rename
 		let try_base =general_purpose::STANDARD.decode("wWo=".trim_end()).expect(&"Failed to decode the string: wWq=".to_string());
+
 
 		// let item1 = invocation_result.stack.get(1).unwrap();
 		// assert!(
