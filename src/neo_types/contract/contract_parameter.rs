@@ -4,6 +4,7 @@ use std::{
 	hash::{Hash, Hasher},
 };
 
+use getset::Getters;
 use primitive_types::{H160, H256};
 use rustc_serialize::{
 	base64::FromBase64,
@@ -37,12 +38,15 @@ impl ContractParameter2 {
 	}
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Serialize, Clone, Getters)]
 pub struct ContractParameter {
+	#[getset(get = "pub")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	name: Option<String>,
+	#[getset(get = "pub")]
 	#[serde(rename = "type")]
 	typ: ContractParameterType,
+	#[getset(get = "pub")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub value: Option<ParameterValue>,
 }

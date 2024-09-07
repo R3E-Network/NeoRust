@@ -183,6 +183,11 @@ impl StackItem {
 	/// The byte value for `StackItem::InteropInterface`.
 	pub const INTEROP_INTERFACE_BYTE: u8 = 0x60;
 
+	pub fn new_byte_string(byte_array: Vec<u8>) -> Self {
+		let byte_string = base64::encode(byte_array);
+		StackItem::ByteString { value: byte_string }
+	}
+
 	/// Returns the boolean value of a `StackItem::Boolean` or `StackItem::Integer`.
 	pub fn as_bool(&self) -> Option<bool> {
 		match self {
@@ -272,6 +277,7 @@ impl StackItem {
 		match self {
 			StackItem::Integer { value } => Some(*value),
 			StackItem::Boolean { value } => Some(if *value { 1 } else { 0 }),
+			StackItem::Pointer { value } => Some(*value),
 			_ => None,
 		}
 	}

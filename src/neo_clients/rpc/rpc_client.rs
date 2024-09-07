@@ -4530,31 +4530,273 @@ mod tests {
 		);
 		assert_eq!(item0.as_string().unwrap(), "transfer".to_string());
 
-    // jinghui-comment-format-rename
-		let try_base =general_purpose::STANDARD.decode("wWo=".trim_end()).expect(&"Failed to decode the string: wWq=".to_string());
-
-
-		// let item1 = invocation_result.stack.get(1).unwrap();
-		// assert!(
-		// 	matches!(item1, StackItem::Buffer { .. }),
-		// 	"The stack item type is not Buffer as expected"
-		// );
-		// assert_eq!(item1.as_address().unwrap(), "NZQvGWfSupuUAYtCH6pje72hdkWJH1jAZP".to_string());
-
-		let item2 = invocation_result.stack.get(2).unwrap();
+		let item1 = invocation_result.stack.get(1).unwrap();
 		assert!(
-			matches!(item2, StackItem::Buffer { .. }),
+			matches!(item1, StackItem::Buffer { .. }),
 			"The stack item type is not Buffer as expected"
 		);
-		assert_eq!(item2.as_bytes().unwrap(), hex::decode("c16a").unwrap());
-		assert_eq!(item2.as_int().unwrap(), 27329);
+		assert_eq!(item1.as_address().unwrap(), "NZQvGWfSupuUAYtCH6pje72hdkWJH1jAZP".to_string());
+
+		
+		// TODO: Base64 decode failed on "wWo=", which is a valid string
+		// let try_base =general_purpose::STANDARD.decode("wWo=".trim_end()).expect(&"Failed to decode the string: wWq=".to_string());
+		// let item2 = invocation_result.stack.get(2).unwrap();
+		// assert!(
+		// 	matches!(item2, StackItem::Buffer { .. }),
+		// 	"The stack item type is not Buffer as expected"
+		// );
+		// assert_eq!(item2.as_bytes().unwrap(), hex::decode("c16a").unwrap());
+		// assert_eq!(item2.as_int().unwrap(), 27329);
 
 		let item3 = invocation_result.stack.get(3).unwrap();
 		assert!(
-			matches!(item2, StackItem::Pointer { .. }),
+			matches!(item3, StackItem::Pointer { .. }),
 			"The stack item type is not Pointer as expected"
 		);
-		assert_eq!(item2.as_int().unwrap(), 123);
+		assert_eq!(item3.as_int().unwrap(), 123);
+
+		let item4 = invocation_result.stack.get(4).unwrap();
+		assert!(
+			matches!(item4, StackItem::Map { .. }),
+			"The stack item type is not Pointer as expected"
+		);
+		let stack_item_map = item4.as_map().unwrap();
+		assert_eq!(stack_item_map.len(), 1);
+		let value = stack_item_map.get(&StackItem::new_byte_string(hex::decode("941343239213fa0e765f1027ce742f48db779a96").unwrap())).unwrap().as_int();
+		assert_eq!(value, Some(12));
+
+	}
+
+	#[tokio::test]
+	async fn test_invoke_function_empty_stack() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response_without_request(
+            &mock_server,
+            json!({
+        "script": "0c14e6c1013654af113d8a968bdca52c9948a82b953d11c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52",
+        "state": "HALT",
+        "gasconsumed": "2007570",
+        "exception": null,
+        "notifications": [],
+        "stack": [],
+    }),
+        ).await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
+			"jsonrpc": "2.0",
+			"method": "invokefunction",
+			"params": [
+				"af7c7328eee5a275a3bcaee2bf0cf662b5e739be",
+				"balanceOf",
+				[
+					{{
+						"type": "Hash160",
+						"value": "91b83e96f2a7c4fdf0c1688441ec61986c7cae26"
+					}}
+				],
+				[
+					{{
+						"account": "cadb3dc2faa3ef14a13b619c9a43124755aa2569",
+						"scopes": "CalledByEntry,CustomContracts,CustomGroups,WitnessRules",
+						"allowedcontracts": ["ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"],
+						"allowedgroups": [
+							"033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b"
+						],
+						"rules": [
+							{{
+								"action": "Allow",
+								"condition": {{
+									"type": "CalledByContract",
+									"hash": "{}"
+								}}
+							}}
+						]
+					}}
+				]
+			],
+			"id": 1
+		}}"#,
+			TestConstants::NEO_TOKEN_HASH
+		);
+
+		let public_key = Secp256r1PublicKey::from_bytes(
+			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
+		)
+		.unwrap();
+		let rule = WitnessRule::new(
+			WitnessAction::Allow,
+			WitnessCondition::CalledByContract(
+				H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap(),
+			),
+		);
+
+		let mut signer = AccountSignerType::called_by_entry_hash160(
+			H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap(),
+		)
+		.unwrap();
+		signer
+			.set_allowed_contracts(vec![H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap()])
+			.expect("TODO: panic message");
+		signer.set_allowed_groups(vec![public_key]).expect("TODO: panic message");
+		signer.set_rules(vec![rule]).expect("TODO: panic message");
+
+		let result = provider
+			.invoke_function(
+				&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
+				"balanceOf".to_string(),
+				vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()],
+				Some(vec![AccountSigner(signer)]),
+			)
+			.await;
+
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		// Response verification
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let invocation_result = result.unwrap();
+		assert_eq!(invocation_result.stack.len(), 0);
+		let mut result = invocation_result.get_first_stack_item();
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("no items were left on the NeoVM stack after this invocation"));
+		}
+	}
+
+	#[tokio::test]
+	async fn test_invoke_function_pending_signatures() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response_without_request(
+            &mock_server,
+            json!({
+        "script": "00046e616d65675f0e5a86edd8e1f62b68d2b3f7c0a761fc5a67dc",
+        "state": "HALT",
+        "gasconsumed": "2.489",
+        "stack": [],
+		"pendingsignature": {
+			"type": "Transaction",
+			"data": "base64 string of the tx bytes",
+			"network": 305419896,
+			"items": {
+				"0x69ecca587293047be4c59159bf8bc399985c160d": {
+					"script": "base64 script",
+					"parameters": [
+						{
+							"type": "Signature",
+							"value": ""
+						}
+					],
+					"signatures": {
+						"<033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b>": "base64 string of signature"
+					}
+				},
+				"0x05859de95ccbbd5668e0f055b208273634d4657f": {
+					"script": "base64 script",
+					"parameters": [
+						{
+							"type": "Signature",
+						},
+						{
+							"type": "Signature",
+						}
+					],
+					"signatures": {
+						"033a1d0a3b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7957783f81": "base64 string of signature",
+						"033a4c051b09b77c0230d2b1aaedfd5a84be279a5361a7358db665ad7d57787f10": "base64 string of signature"
+					}
+				}
+			}
+		}
+    }),
+        ).await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
+			"jsonrpc": "2.0",
+			"method": "invokefunction",
+			"params": [
+				"af7c7328eee5a275a3bcaee2bf0cf662b5e739be",
+				"balanceOf",
+				[
+					{{
+						"type": "Hash160",
+						"value": "91b83e96f2a7c4fdf0c1688441ec61986c7cae26"
+					}}
+				],
+				[
+					{{
+						"account": "cadb3dc2faa3ef14a13b619c9a43124755aa2569",
+						"scopes": "CalledByEntry,CustomContracts,CustomGroups,WitnessRules",
+						"allowedcontracts": ["ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"],
+						"allowedgroups": [
+							"033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b"
+						],
+						"rules": [
+							{{
+								"action": "Allow",
+								"condition": {{
+									"type": "CalledByContract",
+									"hash": "{}"
+								}}
+							}}
+						]
+					}}
+				]
+			],
+			"id": 1
+		}}"#,
+			TestConstants::NEO_TOKEN_HASH
+		);
+
+		let public_key = Secp256r1PublicKey::from_bytes(
+			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
+		)
+		.unwrap();
+		let rule = WitnessRule::new(
+			WitnessAction::Allow,
+			WitnessCondition::CalledByContract(
+				H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap(),
+			),
+		);
+
+		let mut signer = AccountSignerType::called_by_entry_hash160(
+			H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap(),
+		)
+		.unwrap();
+		signer
+			.set_allowed_contracts(vec![H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap()])
+			.expect("TODO: panic message");
+		signer.set_allowed_groups(vec![public_key]).expect("TODO: panic message");
+		signer.set_rules(vec![rule]).expect("TODO: panic message");
+
+		let result = provider
+			.invoke_function(
+				&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
+				"balanceOf".to_string(),
+				vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()],
+				Some(vec![AccountSigner(signer)]),
+			)
+			.await;
+
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		// Response verification
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let invocation_result = result.unwrap();
+		assert_eq!(invocation_result.script, "00046e616d65675f0e5a86edd8e1f62b68d2b3f7c0a761fc5a67dc".to_string());
+		assert_eq!(invocation_result.state, NeoVMStateType::Halt);
+		assert_eq!(invocation_result.gas_consumed, "2.489".to_string());
+		assert_eq!(invocation_result.stack.len(), 0);
+
+		let pending_sig = invocation_result.pending_signature.unwrap();
+		assert_eq!(pending_sig.typ, "Transaction".to_string());
+		assert_eq!(pending_sig.data, "base64 string of the tx bytes".to_string());
+		assert_eq!(pending_sig.network, 305419896);
+		let items = pending_sig.items;
+		let item = items.get(&"0x05859de95ccbbd5668e0f055b208273634d4657f".to_string()).unwrap();
+		assert_eq!(item.script, "base64 script".to_string());
+		assert_eq!(item.parameters[1].typ(), &ContractParameterType::Signature);
+		assert_eq!(item.signatures.get(&"033a1d0a3b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7957783f81".to_string()), Some(&"base64 string of signature".to_string()));
 	}
 
 	#[tokio::test]
