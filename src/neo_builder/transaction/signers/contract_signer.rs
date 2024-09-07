@@ -10,6 +10,10 @@ use neo::prelude::{
 	SignerTrait, SignerType, TransactionError, VarSizeTrait, WitnessRule, WitnessScope,
 };
 
+/// Represents a contract signer in the NEO blockchain.
+///
+/// This struct contains information about the contract signer, including
+/// the signer hash, scopes, allowed contracts, allowed groups, and witness rules.
 #[derive(Debug, Clone, Serialize, PartialEq, Deserialize)]
 pub struct ContractSigner {
 	#[serde(
@@ -54,7 +58,7 @@ impl Hash for ContractSigner {
 
 impl SignerTrait for ContractSigner {
 	fn get_type(&self) -> SignerType {
-		SignerType::Contract
+		SignerType::ContractSigner
 	}
 
 	fn get_signer_hash(&self) -> &H160 {
@@ -120,10 +124,22 @@ impl ContractSigner {
 		}
 	}
 
+	/// Creates a new `ContractSigner` with the "Called By Entry" scope.
+	///
+	/// # Arguments
+	///
+	/// * `contract_hash` - The hash of the contract.
+	/// * `verify_params` - The parameters for contract verification.
 	pub fn called_by_entry(contract_hash: H160, verify_params: &[ContractParameter]) -> Self {
 		Self::new(contract_hash, WitnessScope::CalledByEntry, verify_params.to_vec())
 	}
 
+	/// Creates a new `ContractSigner` with the "Global" scope.
+	///
+	/// # Arguments
+	///
+	/// * `contract_hash` - The hash of the contract.
+	/// * `verify_params` - The parameters for contract verification.
 	pub fn global(contract_hash: H160, verify_params: &[ContractParameter]) -> Self {
 		Self::new(contract_hash, WitnessScope::Global, verify_params.to_vec())
 	}

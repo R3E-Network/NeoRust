@@ -11,13 +11,15 @@ use neo::prelude::{
 
 use crate::neo_protocol::AccountTrait;
 
+/// Represents the type of signer in the NEO blockchain.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SignerType {
-	Account,
-	Contract,
-	Transaction,
+	AccountSigner,
+	ContractSigner,
+	TransactionSigner,
 }
 
+/// A trait for common signer operations in the NEO blockchain.
 pub trait SignerTrait {
 	fn get_type(&self) -> SignerType;
 
@@ -166,28 +168,31 @@ pub trait SignerTrait {
 	}
 }
 
+/// Represents a signer in the NEO blockchain.
+///
+/// This enum can be either an `AccountSigner`, `ContractSigner`, or `TransactionSigner`.
 #[derive(Debug, Clone, Deserialize)]
 pub enum Signer {
-	Account(AccountSigner),
-	Contract(ContractSigner),
-	Transaction(TransactionSigner),
+	AccountSigner(AccountSigner),
+	ContractSigner(ContractSigner),
+	TransactionSigner(TransactionSigner),
 }
 
 impl PartialEq for Signer {
 	fn eq(&self, other: &Self) -> bool {
 		match self {
-			Signer::Account(account_signer) => match other {
-				Signer::Account(other_account_signer) =>
+			Signer::AccountSigner(account_signer) => match other {
+				Signer::AccountSigner(other_account_signer) =>
 					account_signer.get_signer_hash() == other_account_signer.get_signer_hash(),
 				_ => false,
 			},
-			Signer::Contract(contract_signer) => match other {
-				Signer::Contract(other_contract_signer) =>
+			Signer::ContractSigner(contract_signer) => match other {
+				Signer::ContractSigner(other_contract_signer) =>
 					contract_signer.get_signer_hash() == other_contract_signer.get_signer_hash(),
 				_ => false,
 			},
-			Signer::Transaction(transaction_signer) => match other {
-				Signer::Transaction(other_transaction_signer) =>
+			Signer::TransactionSigner(transaction_signer) => match other {
+				Signer::TransactionSigner(other_transaction_signer) =>
 					transaction_signer.get_signer_hash()
 						== other_transaction_signer.get_signer_hash(),
 				_ => false,
@@ -199,141 +204,155 @@ impl PartialEq for Signer {
 impl SignerTrait for Signer {
 	fn get_type(&self) -> SignerType {
 		match self {
-			Signer::Account(account_signer) => account_signer.get_type(),
-			Signer::Contract(contract_signer) => contract_signer.get_type(),
-			Signer::Transaction(transaction_signer) => transaction_signer.get_type(),
+			Signer::AccountSigner(account_signer) => account_signer.get_type(),
+			Signer::ContractSigner(contract_signer) => contract_signer.get_type(),
+			Signer::TransactionSigner(transaction_signer) => transaction_signer.get_type(),
 		}
 	}
 
 	fn get_signer_hash(&self) -> &H160 {
 		match self {
-			Signer::Account(account_signer) => account_signer.get_signer_hash(),
-			Signer::Contract(contract_signer) => contract_signer.get_signer_hash(),
-			Signer::Transaction(transaction_signer) => transaction_signer.get_signer_hash(),
+			Signer::AccountSigner(account_signer) => account_signer.get_signer_hash(),
+			Signer::ContractSigner(contract_signer) => contract_signer.get_signer_hash(),
+			Signer::TransactionSigner(transaction_signer) => transaction_signer.get_signer_hash(),
 		}
 	}
 
 	fn set_signer_hash(&mut self, signer_hash: H160) {
 		match self {
-			Signer::Account(account_signer) => account_signer.set_signer_hash(signer_hash),
-			Signer::Contract(contract_signer) => contract_signer.set_signer_hash(signer_hash),
-			Signer::Transaction(transaction_signer) =>
+			Signer::AccountSigner(account_signer) => account_signer.set_signer_hash(signer_hash),
+			Signer::ContractSigner(contract_signer) => contract_signer.set_signer_hash(signer_hash),
+			Signer::TransactionSigner(transaction_signer) =>
 				transaction_signer.set_signer_hash(signer_hash),
 		}
 	}
 
 	fn get_scopes(&self) -> &Vec<WitnessScope> {
 		match self {
-			Signer::Account(account_signer) => account_signer.get_scopes(),
-			Signer::Contract(contract_signer) => contract_signer.get_scopes(),
-			Signer::Transaction(transaction_signer) => transaction_signer.get_scopes(),
+			Signer::AccountSigner(account_signer) => account_signer.get_scopes(),
+			Signer::ContractSigner(contract_signer) => contract_signer.get_scopes(),
+			Signer::TransactionSigner(transaction_signer) => transaction_signer.get_scopes(),
 		}
 	}
 
 	fn get_scopes_mut(&mut self) -> &mut Vec<WitnessScope> {
 		match self {
-			Signer::Account(account_signer) => account_signer.get_scopes_mut(),
-			Signer::Contract(contract_signer) => contract_signer.get_scopes_mut(),
-			Signer::Transaction(transaction_signer) => transaction_signer.get_scopes_mut(),
+			Signer::AccountSigner(account_signer) => account_signer.get_scopes_mut(),
+			Signer::ContractSigner(contract_signer) => contract_signer.get_scopes_mut(),
+			Signer::TransactionSigner(transaction_signer) => transaction_signer.get_scopes_mut(),
 		}
 	}
 
 	fn set_scopes(&mut self, scopes: Vec<WitnessScope>) {
 		match self {
-			Signer::Account(account_signer) => account_signer.set_scopes(scopes),
-			Signer::Contract(contract_signer) => contract_signer.set_scopes(scopes),
-			Signer::Transaction(transaction_signer) => transaction_signer.set_scopes(scopes),
+			Signer::AccountSigner(account_signer) => account_signer.set_scopes(scopes),
+			Signer::ContractSigner(contract_signer) => contract_signer.set_scopes(scopes),
+			Signer::TransactionSigner(transaction_signer) => transaction_signer.set_scopes(scopes),
 		}
 	}
 
 	fn get_allowed_contracts(&self) -> &Vec<H160> {
 		match self {
-			Signer::Account(account_signer) => account_signer.get_allowed_contracts(),
-			Signer::Contract(contract_signer) => contract_signer.get_allowed_contracts(),
-			Signer::Transaction(transaction_signer) => transaction_signer.get_allowed_contracts(),
+			Signer::AccountSigner(account_signer) => account_signer.get_allowed_contracts(),
+			Signer::ContractSigner(contract_signer) => contract_signer.get_allowed_contracts(),
+			Signer::TransactionSigner(transaction_signer) =>
+				transaction_signer.get_allowed_contracts(),
 		}
 	}
 
 	fn get_allowed_contracts_mut(&mut self) -> &mut Vec<H160> {
 		match self {
-			Signer::Account(account_signer) => account_signer.get_allowed_contracts_mut(),
-			Signer::Contract(contract_signer) => contract_signer.get_allowed_contracts_mut(),
-			Signer::Transaction(transaction_signer) =>
+			Signer::AccountSigner(account_signer) => account_signer.get_allowed_contracts_mut(),
+			Signer::ContractSigner(contract_signer) => contract_signer.get_allowed_contracts_mut(),
+			Signer::TransactionSigner(transaction_signer) =>
 				transaction_signer.get_allowed_contracts_mut(),
 		}
 	}
 
 	fn get_allowed_groups(&self) -> &Vec<Secp256r1PublicKey> {
 		match self {
-			Signer::Account(account_signer) => account_signer.get_allowed_groups(),
-			Signer::Contract(contract_signer) => contract_signer.get_allowed_groups(),
-			Signer::Transaction(transaction_signer) => transaction_signer.get_allowed_groups(),
+			Signer::AccountSigner(account_signer) => account_signer.get_allowed_groups(),
+			Signer::ContractSigner(contract_signer) => contract_signer.get_allowed_groups(),
+			Signer::TransactionSigner(transaction_signer) =>
+				transaction_signer.get_allowed_groups(),
 		}
 	}
 
 	fn get_allowed_groups_mut(&mut self) -> &mut Vec<Secp256r1PublicKey> {
 		match self {
-			Signer::Account(account_signer) => account_signer.get_allowed_groups_mut(),
-			Signer::Contract(contract_signer) => contract_signer.get_allowed_groups_mut(),
-			Signer::Transaction(transaction_signer) => transaction_signer.get_allowed_groups_mut(),
+			Signer::AccountSigner(account_signer) => account_signer.get_allowed_groups_mut(),
+			Signer::ContractSigner(contract_signer) => contract_signer.get_allowed_groups_mut(),
+			Signer::TransactionSigner(transaction_signer) =>
+				transaction_signer.get_allowed_groups_mut(),
 		}
 	}
 
 	fn get_rules(&self) -> &Vec<WitnessRule> {
 		match self {
-			Signer::Account(account_signer) => account_signer.get_rules(),
-			Signer::Contract(contract_signer) => contract_signer.get_rules(),
-			Signer::Transaction(transaction_signer) => transaction_signer.get_rules(),
+			Signer::AccountSigner(account_signer) => account_signer.get_rules(),
+			Signer::ContractSigner(contract_signer) => contract_signer.get_rules(),
+			Signer::TransactionSigner(transaction_signer) => transaction_signer.get_rules(),
 		}
 	}
 
 	fn get_rules_mut(&mut self) -> &mut Vec<WitnessRule> {
 		match self {
-			Signer::Account(account_signer) => account_signer.get_rules_mut(),
-			Signer::Contract(contract_signer) => contract_signer.get_rules_mut(),
-			Signer::Transaction(transaction_signer) => transaction_signer.get_rules_mut(),
+			Signer::AccountSigner(account_signer) => account_signer.get_rules_mut(),
+			Signer::ContractSigner(contract_signer) => contract_signer.get_rules_mut(),
+			Signer::TransactionSigner(transaction_signer) => transaction_signer.get_rules_mut(),
 		}
 	}
 }
 
 impl Signer {
+	/// Creates a `Signer` from a byte array.
+	///
+	/// # Arguments
+	///
+	/// * `data` - The byte array containing the serialized signer data.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing the deserialized `Signer` or a `TransactionError`.
 	pub fn from_bytes(data: &[u8]) -> Result<Signer, TransactionError> {
 		let mut reader = Decoder::new(data);
 		Signer::decode(&mut reader)
 	}
 
+	/// Returns the type of the signer.
 	pub fn get_type(&self) -> SignerType {
 		match self {
-			Signer::Account(account_signer) => account_signer.get_type(),
-			Signer::Contract(contract_signer) => contract_signer.get_type(),
-			Signer::Transaction(transaction_signer) => transaction_signer.get_type(),
+			Signer::AccountSigner(account_signer) => account_signer.get_type(),
+			Signer::ContractSigner(contract_signer) => contract_signer.get_type(),
+			Signer::TransactionSigner(transaction_signer) => transaction_signer.get_type(),
 		}
 	}
+	/// Returns a reference to the signer's script hash.
 	pub fn get_signer_hash(&self) -> &H160 {
 		match self {
-			Signer::Account(account_signer) => account_signer.get_signer_hash(),
-			Signer::Contract(contract_signer) => contract_signer.get_signer_hash(),
-			Signer::Transaction(transaction_signer) => transaction_signer.get_signer_hash(),
+			Signer::AccountSigner(account_signer) => account_signer.get_signer_hash(),
+			Signer::ContractSigner(contract_signer) => contract_signer.get_signer_hash(),
+			Signer::TransactionSigner(transaction_signer) => transaction_signer.get_signer_hash(),
 		}
 	}
 
 	pub fn as_account_signer(&self) -> Option<&AccountSigner> {
 		match self {
-			Signer::Account(account_signer) => Some(account_signer),
+			Signer::AccountSigner(account_signer) => Some(account_signer),
 			_ => None,
 		}
 	}
 
 	pub fn as_contract_signer(&self) -> Option<&ContractSigner> {
 		match self {
-			Signer::Contract(contract_signer) => Some(contract_signer),
+			Signer::ContractSigner(contract_signer) => Some(contract_signer),
 			_ => None,
 		}
 	}
 
 	pub fn as_transaction_signer(&self) -> Option<&TransactionSigner> {
 		match self {
-			Signer::Transaction(transaction_signer) => Some(transaction_signer),
+			Signer::TransactionSigner(transaction_signer) => Some(transaction_signer),
 			_ => None,
 		}
 	}
@@ -342,29 +361,29 @@ impl Signer {
 impl Hash for Signer {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		match self {
-			Signer::Account(account_signer) => account_signer.hash(state),
-			Signer::Contract(contract_signer) => contract_signer.hash(state),
-			Signer::Transaction(transaction_signer) => transaction_signer.hash(state),
+			Signer::AccountSigner(account_signer) => account_signer.hash(state),
+			Signer::ContractSigner(contract_signer) => contract_signer.hash(state),
+			Signer::TransactionSigner(transaction_signer) => transaction_signer.hash(state),
 		}
 	}
 }
 
 impl From<AccountSigner> for Signer {
 	fn from(account_signer: AccountSigner) -> Self {
-		Signer::Account(account_signer)
+		Signer::AccountSigner(account_signer)
 	}
 }
 
 impl From<ContractSigner> for Signer {
 	fn from(contract_signer: ContractSigner) -> Self {
-		Signer::Contract(contract_signer)
+		Signer::ContractSigner(contract_signer)
 	}
 }
 
 impl Into<AccountSigner> for Signer {
 	fn into(self) -> AccountSigner {
 		match self {
-			Signer::Account(account_signer) => account_signer,
+			Signer::AccountSigner(account_signer) => account_signer,
 			_ => panic!("Cannot convert ContractSigner into AccountSigner"),
 		}
 	}
@@ -373,21 +392,21 @@ impl Into<AccountSigner> for Signer {
 impl Into<TransactionSigner> for Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::Account(account_signer) => TransactionSigner::new_full(
+			Signer::AccountSigner(account_signer) => TransactionSigner::new_full(
 				account_signer.account.get_script_hash(),
 				account_signer.get_scopes().to_vec(),
 				account_signer.get_allowed_contracts().to_vec(),
 				account_signer.get_allowed_groups().to_vec(),
 				account_signer.get_rules().to_vec(),
 			),
-			Signer::Contract(contract_signer) => TransactionSigner::new_full(
+			Signer::ContractSigner(contract_signer) => TransactionSigner::new_full(
 				*contract_signer.get_signer_hash(),
 				contract_signer.get_scopes().to_vec(),
 				contract_signer.get_allowed_contracts().to_vec(),
 				contract_signer.get_allowed_groups().to_vec(),
 				contract_signer.get_rules().to_vec(),
 			),
-			Signer::Transaction(transaction_signer) => transaction_signer,
+			Signer::TransactionSigner(transaction_signer) => transaction_signer,
 		}
 	}
 }
@@ -395,14 +414,14 @@ impl Into<TransactionSigner> for Signer {
 impl Into<TransactionSigner> for &Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::Account(account_signer) => TransactionSigner::new_full(
+			Signer::AccountSigner(account_signer) => TransactionSigner::new_full(
 				account_signer.account.get_script_hash(),
 				account_signer.get_scopes().to_vec(),
 				account_signer.get_allowed_contracts().to_vec(),
 				account_signer.get_allowed_groups().to_vec(),
 				account_signer.get_rules().to_vec(),
 			),
-			Signer::Contract(contract_signer) => TransactionSigner::new_full(
+			Signer::ContractSigner(contract_signer) => TransactionSigner::new_full(
 				*contract_signer.get_signer_hash(),
 				contract_signer.get_scopes().to_vec(),
 				contract_signer.get_allowed_contracts().to_vec(),
@@ -413,7 +432,7 @@ impl Into<TransactionSigner> for &Signer {
 			// 	panic!("Cannot convert AccountSigner into TransactionSigner"),
 			// Signer::Contract(_contract_signer) =>
 			// 	panic!("Cannot convert ContractSigner into AccountSigner"),
-			Signer::Transaction(transaction_signer) => transaction_signer.clone(),
+			Signer::TransactionSigner(transaction_signer) => transaction_signer.clone(),
 		}
 	}
 }
@@ -421,11 +440,11 @@ impl Into<TransactionSigner> for &Signer {
 impl Into<TransactionSigner> for &mut Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::Account(_account_signer) =>
+			Signer::AccountSigner(_account_signer) =>
 				panic!("Cannot convert AccountSigner into TransactionSigner"),
-			Signer::Contract(_contract_signer) =>
+			Signer::ContractSigner(_contract_signer) =>
 				panic!("Cannot convert ContractSigner into AccountSigner"),
-			Signer::Transaction(transaction_signer) => transaction_signer.clone(),
+			Signer::TransactionSigner(transaction_signer) => transaction_signer.clone(),
 		}
 	}
 }
@@ -433,10 +452,10 @@ impl Into<TransactionSigner> for &mut Signer {
 impl Into<AccountSigner> for &mut Signer {
 	fn into(self) -> AccountSigner {
 		match self {
-			Signer::Account(account_signer) => account_signer.clone(),
-			Signer::Contract(_contract_signer) =>
+			Signer::AccountSigner(account_signer) => account_signer.clone(),
+			Signer::ContractSigner(_contract_signer) =>
 				panic!("Cannot convert ContractSigner into AccountSigner"),
-			Signer::Transaction(_transaction_signer) =>
+			Signer::TransactionSigner(_transaction_signer) =>
 				panic!("Cannot convert TransactionSigner into AccountSigner"),
 		}
 	}
@@ -445,10 +464,10 @@ impl Into<AccountSigner> for &mut Signer {
 impl Into<ContractSigner> for &mut Signer {
 	fn into(self) -> ContractSigner {
 		match self {
-			Signer::Account(_account_signer) =>
+			Signer::AccountSigner(_account_signer) =>
 				panic!("Cannot convert AccountSigner into ContractSigner"),
-			Signer::Contract(contract_signer) => contract_signer.clone(),
-			Signer::Transaction(_transaction_signer) =>
+			Signer::ContractSigner(contract_signer) => contract_signer.clone(),
+			Signer::TransactionSigner(_transaction_signer) =>
 				panic!("Cannot convert TransactionSigner into ContractSigner"),
 		}
 	}
@@ -457,10 +476,10 @@ impl Into<ContractSigner> for &mut Signer {
 impl Into<ContractSigner> for Signer {
 	fn into(self) -> ContractSigner {
 		match self {
-			Signer::Account(_account_signer) =>
+			Signer::AccountSigner(_account_signer) =>
 				panic!("Cannot convert AccountSigner into ContractSigner"),
-			Signer::Contract(contract_signer) => contract_signer,
-			Signer::Transaction(_transaction_signer) =>
+			Signer::ContractSigner(contract_signer) => contract_signer,
+			Signer::TransactionSigner(_transaction_signer) =>
 				panic!("Cannot convert TransactionSigner into ContractSigner"),
 		}
 	}
@@ -472,9 +491,10 @@ impl Serialize for Signer {
 		S: Serializer,
 	{
 		match self {
-			Signer::Account(account_signer) => account_signer.serialize(serializer),
-			Signer::Contract(contract_signer) => contract_signer.serialize(serializer),
-			Signer::Transaction(transaction_signer) => transaction_signer.serialize(serializer),
+			Signer::AccountSigner(account_signer) => account_signer.serialize(serializer),
+			Signer::ContractSigner(contract_signer) => contract_signer.serialize(serializer),
+			Signer::TransactionSigner(transaction_signer) =>
+				transaction_signer.serialize(serializer),
 		}
 	}
 }
@@ -484,8 +504,8 @@ impl NeoSerializable for Signer {
 
 	fn size(&self) -> usize {
 		match self {
-			Signer::Account(account_signer) => account_signer.size(),
-			Signer::Contract(contract_signer) => contract_signer.size(),
+			Signer::AccountSigner(account_signer) => account_signer.size(),
+			Signer::ContractSigner(contract_signer) => contract_signer.size(),
 			// Signer::Transaction(transaction_signer) => transaction_signer.size(),
 			_ => panic!("Unsupported signer type"),
 		}
@@ -493,8 +513,8 @@ impl NeoSerializable for Signer {
 
 	fn encode(&self, writer: &mut Encoder) {
 		match self {
-			Signer::Account(account_signer) => account_signer.encode(writer),
-			Signer::Contract(contract_signer) => contract_signer.encode(writer),
+			Signer::AccountSigner(account_signer) => account_signer.encode(writer),
+			Signer::ContractSigner(contract_signer) => contract_signer.encode(writer),
 			// Signer::Transaction(transaction_signer) => transaction_signer.encode(writer),
 			_ => panic!("Unsupported signer type"),
 		}
@@ -505,8 +525,8 @@ impl NeoSerializable for Signer {
 		Self: Sized,
 	{
 		match reader.read_u8() {
-			0 => Ok(Signer::Account(AccountSigner::decode(reader)?)),
-			1 => Ok(Signer::Contract(ContractSigner::decode(reader)?)),
+			0 => Ok(Signer::AccountSigner(AccountSigner::decode(reader)?)),
+			1 => Ok(Signer::ContractSigner(ContractSigner::decode(reader)?)),
 			//_ => Ok(Signer::Transaction(TransactionSigner::decode(reader)?)),
 			_ => Err(TransactionError::InvalidTransaction),
 		}
@@ -514,8 +534,8 @@ impl NeoSerializable for Signer {
 
 	fn to_array(&self) -> Vec<u8> {
 		match self {
-			Signer::Account(account_signer) => account_signer.to_array(),
-			Signer::Contract(contract_signer) => contract_signer.to_array(),
+			Signer::AccountSigner(account_signer) => account_signer.to_array(),
+			Signer::ContractSigner(contract_signer) => contract_signer.to_array(),
 			// Signer::Transaction(transaction_signer) => transaction_signer.to_array(),
 			_ => panic!("Unsupported signer type"),
 		}

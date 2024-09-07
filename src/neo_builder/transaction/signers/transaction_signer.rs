@@ -11,6 +11,10 @@ use neo::prelude::{
 	VarSizeTrait, WitnessRule, WitnessScope,
 };
 
+/// Represents a transaction signer in the NEO blockchain.
+///
+/// This struct contains information about the signer, including the account,
+/// scopes, allowed contracts, allowed groups, and witness rules.
 #[derive(Default, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct TransactionSigner {
 	#[serde(rename = "account")]
@@ -53,10 +57,25 @@ impl Hash for TransactionSigner {
 }
 
 impl TransactionSigner {
+	/// Creates a new `TransactionSigner` with basic information.
+	///
+	/// # Arguments
+	///
+	/// * `account` - The account hash of the signer.
+	/// * `scopes` - The witness scopes for this signer.
 	pub fn new(account: H160, scopes: Vec<WitnessScope>) -> Self {
 		Self { account, scopes, allowed_contracts: None, allowed_groups: None, rules: None }
 	}
 
+	/// Creates a new `TransactionSigner` with full information.
+	///
+	/// # Arguments
+	///
+	/// * `account` - The account hash of the signer.
+	/// * `scopes` - The witness scopes for this signer.
+	/// * `allowed_contracts` - The list of allowed contract script hashes.
+	/// * `allowed_groups` - The list of allowed group public keys.
+	/// * `rules` - The list of witness rules.
 	pub fn new_full(
 		account: H160,
 		scopes: Vec<WitnessScope>,
@@ -76,7 +95,7 @@ impl TransactionSigner {
 
 impl SignerTrait for TransactionSigner {
 	fn get_type(&self) -> SignerType {
-		SignerType::Transaction
+		SignerType::TransactionSigner
 	}
 
 	fn get_signer_hash(&self) -> &H160 {
@@ -128,6 +147,7 @@ impl SignerTrait for TransactionSigner {
 impl NeoSerializable for TransactionSigner {
 	type Error = TransactionError;
 
+	/// Calculates the size of the serialized `TransactionSigner`.
 	fn size(&self) -> usize {
 		let mut size = (NeoConstants::HASH160_SIZE + 1) as usize;
 		if self.scopes.contains(&WitnessScope::CustomContracts) {
@@ -144,6 +164,7 @@ impl NeoSerializable for TransactionSigner {
 		size
 	}
 
+	/// Encodes the `TransactionSigner` into bytes.
 	fn encode(&self, writer: &mut Encoder) {
 		writer.write_serializable_fixed(self.get_signer_hash());
 		writer.write_u8(WitnessScope::combine(self.scopes.as_slice()));
@@ -158,6 +179,7 @@ impl NeoSerializable for TransactionSigner {
 		}
 	}
 
+	/// Decodes a `TransactionSigner` from bytes.
 	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error>
 	where
 		Self: Sized,
@@ -178,6 +200,7 @@ impl NeoSerializable for TransactionSigner {
 		Ok(signer)
 	}
 
+	/// Converts the `TransactionSigner` into a byte array.
 	fn to_array(&self) -> Vec<u8> {
 		let writer = &mut Encoder::new();
 		self.encode(writer);

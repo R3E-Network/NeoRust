@@ -98,7 +98,6 @@ impl InvocationScript {
 		Self::decode(&mut decoder).unwrap()
 	}
 
-
 	/// Creates an invocation script from the given signature.
 	///
 	/// # Arguments
@@ -153,7 +152,6 @@ impl InvocationScript {
 }
 
 impl InvocationScript {
-
 	/// Unbundles the script into a list of signatures if this invocation script contains signatures.
 	///
 	/// # Returns

@@ -1,7 +1,11 @@
 use async_trait::async_trait;
 use futures_util::lock::Mutex;
 use primitive_types::{H160, H256};
-use rustc_serialize::{base64, base64::ToBase64, hex::FromHex, hex::ToHex};
+use rustc_serialize::{
+	base64,
+	base64::ToBase64,
+	hex::{FromHex, ToHex},
+};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, value::Value};
 use std::{
@@ -626,10 +630,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		from: u64,
 	) -> Result<Nep17Transfers, ProviderError> {
 		// let params = [script_hash.to_value(), from.to_value()].to_vec();
-		self.request(
-			"getnep17transfers", 
-			json!([script_hash.to_address(), from]))
-			.await
+		self.request("getnep17transfers", json!([script_hash.to_address(), from])).await
 	}
 
 	/// Gets all the NEP17 transaction information occurred in the specified script hash in the specified time range.
@@ -739,7 +740,11 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	) -> Result<String, ProviderError> {
 		self.request(
 			"getproof",
-			json!([root_hash.0.to_hex(), contract_hash.to_hex(), Base64Encode::to_base64(&key.to_string())]),
+			json!([
+				root_hash.0.to_hex(),
+				contract_hash.to_hex(),
+				Base64Encode::to_base64(&key.to_string())
+			]),
 		)
 		.await
 	}
@@ -774,7 +779,11 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	) -> Result<String, ProviderError> {
 		self.request(
 			"getstate",
-			json!([root_hash.0.to_hex(), contract_hash.to_hex(), Base64Encode::to_base64(&key.to_string())]), //key.to_base64()],
+			json!([
+				root_hash.0.to_hex(),
+				contract_hash.to_hex(),
+				Base64Encode::to_base64(&key.to_string())
+			]), //key.to_base64()],
 		)
 		.await
 	}
@@ -797,7 +806,11 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		start_key: Option<&str>,
 		count: Option<u32>,
 	) -> Result<States, ProviderError> {
-		let mut params = json!([root_hash.0.to_hex(), contract_hash.to_hex(), Base64Encode::to_base64(&key_prefix.to_string())]);
+		let mut params = json!([
+			root_hash.0.to_hex(),
+			contract_hash.to_hex(),
+			Base64Encode::to_base64(&key_prefix.to_string())
+		]);
 		if let (Some(start_key), Some(count)) = (start_key, count) {
 			params = json!([
 				root_hash.0.to_hex(),
@@ -822,7 +835,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 				Base64Encode::to_base64(&start_key.to_string()),
 			]);
 		}
-		
+
 		// if let Some(start_key) = start_key {
 		// 	params.push(start_key.to_value())
 		// }
@@ -962,11 +975,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		send_token: &TransactionSendToken,
 	) -> Result<Transaction, ProviderError> {
 		// let params = [send_token.to_value()].to_vec();
-		let params = json!([
-			send_token.token.to_hex(),
-			send_token.address,
-			send_token.value,
-		]);
+		let params = json!([send_token.token.to_hex(), send_token.address, send_token.value,]);
 		self.request("sendtoaddress", params).await
 	}
 
@@ -995,10 +1004,8 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		if signers.is_empty() {
 			return Err(ProviderError::CustomError("signers must not be empty".into()));
 		}
-		let signer_addresses: Vec<String> = signers
-								.into_iter()
-        						.map(|signer| signer.to_address())
-        						.collect();
+		let signer_addresses: Vec<String> =
+			signers.into_iter().map(|signer| signer.to_address()).collect();
 		let params = json!([
 			txHash.0.to_hex(),
 			signer_addresses,
@@ -1007,8 +1014,6 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		// let params = [from.to_value(), vec![send_token.to_value()].into()].to_vec();
 		self.request("canceltransaction", params).await
 	}
-
-
 }
 
 impl<P: JsonRpcProvider> RpcClient<P> {
@@ -1082,7 +1087,7 @@ impl TryFrom<&str> for RpcClient<Http> {
 	type Error = ParseError;
 
 	fn try_from(src: &str) -> Result<Self, Self::Error> {
-		Ok(RpcClient::new(Http::new(Url::parse(src)?)))
+		Ok(RpcClient::new(Http::new(src)?))
 	}
 }
 
@@ -1108,7 +1113,7 @@ impl RpcClient<RetryClient<Http>> {
 	/// if `src` is not a valid URL
 	pub fn new_client(src: &str, max_retry: u32, initial_backoff: u64) -> Result<Self, ParseError> {
 		Ok(RpcClient::new(RetryClient::new(
-			Http::new(Url::parse(src)?),
+			Http::new(src)?,
 			Box::new(HttpRateLimitRetryPolicy),
 			max_retry,
 			initial_backoff,
@@ -1231,7 +1236,8 @@ pub fn is_local_endpoint(endpoint: &str) -> bool {
 					domain.contains("localhost") || domain.contains("localdev.me"),
 				Host::Ipv4(ipv4) =>
 					ipv4 == Ipv4Addr::LOCALHOST
-						|| ipv4.is_link_local() || ipv4.is_loopback()
+						|| ipv4.is_link_local()
+						|| ipv4.is_loopback()
 						|| ipv4.is_private(),
 				Host::Ipv6(ipv6) => ipv6.is_loopback(),
 			};
@@ -1243,7 +1249,8 @@ pub fn is_local_endpoint(endpoint: &str) -> bool {
 #[cfg(test)]
 mod tests {
 	use std::{any::Any, str::FromStr, sync::Mutex};
-
+	use base64::Engine;
+	use base64::engine::general_purpose;
 	use blake2::digest::Mac;
 	use lazy_static::lazy_static;
 	use log::debug;
@@ -1261,18 +1268,26 @@ mod tests {
 		Mock, MockServer, ResponseTemplate,
 	};
 
-	use neo::prelude::{
-		AccountSigner, HttpProvider, NeoWitness, ProviderError, RTransaction, ScriptHashExtension, Secp256r1PublicKey, Signer, Signer::Account,
-		SignerTrait, TestConstants, Transaction, TransactionSendToken, TransactionSigner, Witness, WitnessAction, WitnessCondition,
-		WitnessRule, WitnessScope
+	use neo::prelude::{HttpProvider, NeoWitness, ProviderError, RTransaction, ScriptHashExtension,
+		Secp256r1PublicKey, Signer, SignerTrait, TestConstants, Transaction,
+		TransactionSendToken, TransactionSigner, Witness, WitnessAction, WitnessCondition,
+		WitnessRule, WitnessScope,
 	};
 
 	use crate::{
 		neo_types::{Base64Encode, ToBase64},
-		prelude::{AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, MockClient, NativeContractState, NeoVMStateType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator},
+		prelude::{
+			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod,
+			ContractNef, ContractParameter2, ContractParameterType, ContractPermission,
+			ContractState, HighPriorityAttribute, MockClient, NativeContractState, NeoVMStateType,
+			NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode,
+			RTransactionSigner, StackItem, SubmitBlock, TransactionAttributeEnum, TypeError,
+			VMState, Validator,
+		},
 		providers::RpcClient,
 	};
-
+	use crate::builder::AccountSigner as AccountSignerType;
+	use crate::builder::Signer::AccountSigner;
 	use crate::neo_clients::api_trait::APITrait;
 
 	async fn setup_mock_server() -> MockServer {
@@ -1291,11 +1306,11 @@ mod tests {
 		// 	"id": 1,
 		// 	"result": result
 		// });
-	
+
 		// // Convert JSON response to a pretty-printed string
 		// let json_response_str = serde_json::to_string_pretty(&json_response)
 		// 	.expect("Failed to serialize JSON");
-	
+
 		// // Print the JSON response
 		// println!("Formed JSON response:\n{}", json_response_str);
 
@@ -1316,7 +1331,7 @@ mod tests {
 			.await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		RpcClient::new(http_client)
 	}
 
@@ -1344,7 +1359,7 @@ mod tests {
 			.await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		RpcClient::new(http_client)
 	}
 
@@ -1352,7 +1367,6 @@ mod tests {
 		mock_server: &MockServer,
 		result: serde_json::Value,
 	) -> RpcClient<HttpProvider> {
-
 		Mock::given(http_method("POST"))
 			.and(path("/"))
 			.respond_with(ResponseTemplate::new(200).set_body_json(json!({
@@ -1364,7 +1378,7 @@ mod tests {
 			.await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		RpcClient::new(http_client)
 	}
 
@@ -1374,13 +1388,11 @@ mod tests {
 
 		let mock_provider = MockClient::new().await;
 		mock_provider
-			.mock_response_error(
-				json!({
-					"code": -32602,
-					"message": "Invalid address length, expected 40 got 64 bytes",
-					"data": null
-				}),
-			)
+			.mock_response_error(json!({
+				"code": -32602,
+				"message": "Invalid address length, expected 40 got 64 bytes",
+				"data": null
+			}))
 			.await;
 		let provider = mock_provider.into_client();
 		let result = provider.get_best_block_hash().await;
@@ -1399,15 +1411,13 @@ mod tests {
 
 		let mock_provider = MockClient::new().await;
 		mock_provider
-			.mock_response_error(
-				json!({
-					"code": -32602,
-					"message": "Invalid address length, expected 40 got 64 bytes",
-					"data": {
-						"foo": "bar"
-					}
-				}),
-			)
+			.mock_response_error(json!({
+				"code": -32602,
+				"message": "Invalid address length, expected 40 got 64 bytes",
+				"data": {
+					"foo": "bar"
+				}
+			}))
 			.await;
 		let provider = mock_provider.into_client();
 		let result = provider.get_best_block_hash().await;
@@ -1446,7 +1456,11 @@ mod tests {
             "params": [],
             "id": 1
         }"#;
-		assert_eq!(result.unwrap(), H256::from_str("0x3d1e051247f246f60dd2ba4f90f799578b5d394157b1f2b012c016b29536b899").unwrap());
+		assert_eq!(
+			result.unwrap(),
+			H256::from_str("0x3d1e051247f246f60dd2ba4f90f799578b5d394157b1f2b012c016b29536b899")
+				.unwrap()
+		);
 		verify_request(mock_provider.server(), expected_request_body).await.unwrap();
 	}
 
@@ -1471,7 +1485,11 @@ mod tests {
 
 		let result = provider.get_block_hash(16293).await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
-		assert_eq!(result.unwrap(), H256::from_str("0x147ad6a26f1d5a9bb2bea3f0b2ca9fab3824873beaf8887e87d08c8fd98a81b3").unwrap());
+		assert_eq!(
+			result.unwrap(),
+			H256::from_str("0x147ad6a26f1d5a9bb2bea3f0b2ca9fab3824873beaf8887e87d08c8fd98a81b3")
+				.unwrap()
+		);
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
@@ -1566,11 +1584,23 @@ mod tests {
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let neo_block = result.unwrap();
-		assert_eq!(neo_block.hash, H256::from_str("0x1de7e5eaab0f74ac38f5191c038e009d3c93ef5c392d1d66fa95ab164ba308b8").unwrap());
+		assert_eq!(
+			neo_block.hash,
+			H256::from_str("0x1de7e5eaab0f74ac38f5191c038e009d3c93ef5c392d1d66fa95ab164ba308b8")
+				.unwrap()
+		);
 		assert_eq!(neo_block.size, 1217);
 		assert_eq!(neo_block.version, 0);
-		assert_eq!(neo_block.prev_block_hash, H256::from_str("0x045cabde4ecbd50f5e4e1b141eaf0842c1f5f56517324c8dcab8ccac924e3a39").unwrap());
-		assert_eq!(neo_block.merkle_root_hash, H256::from_str("0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7").unwrap());
+		assert_eq!(
+			neo_block.prev_block_hash,
+			H256::from_str("0x045cabde4ecbd50f5e4e1b141eaf0842c1f5f56517324c8dcab8ccac924e3a39")
+				.unwrap()
+		);
+		assert_eq!(
+			neo_block.merkle_root_hash,
+			H256::from_str("0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7")
+				.unwrap()
+		);
 		assert_eq!(neo_block.time, 1539968858);
 		assert_eq!(neo_block.nonce, "7F8EEE652D4BC959");
 		assert_eq!(neo_block.get_nonce_as_u64().unwrap(), 9191546007828810073);
@@ -1640,8 +1670,11 @@ mod tests {
 
 		assert_eq!(neo_block.transactions.clone().unwrap(), expected_transactions);
 		assert_eq!(neo_block.confirmations, 7878);
-		assert_eq!(neo_block.next_block_hash.unwrap(), H256::from_str("0x4a97ca89199627f877b6bffe865b8327be84b368d62572ef20953829c3501643").unwrap());
-
+		assert_eq!(
+			neo_block.next_block_hash.unwrap(),
+			H256::from_str("0x4a97ca89199627f877b6bffe865b8327be84b368d62572ef20953829c3501643")
+				.unwrap()
+		);
 
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1686,11 +1719,23 @@ mod tests {
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let neo_block = result.unwrap();
-		assert_eq!(neo_block.hash, H256::from_str("0x1de7e5eaab0f74ac38f5191c038e009d3c93ef5c392d1d66fa95ab164ba308b8").unwrap());
+		assert_eq!(
+			neo_block.hash,
+			H256::from_str("0x1de7e5eaab0f74ac38f5191c038e009d3c93ef5c392d1d66fa95ab164ba308b8")
+				.unwrap()
+		);
 		assert_eq!(neo_block.size, 1217);
 		assert_eq!(neo_block.version, 0);
-		assert_eq!(neo_block.prev_block_hash, H256::from_str("0x045cabde4ecbd50f5e4e1b141eaf0842c1f5f56517324c8dcab8ccac924e3a39").unwrap());
-		assert_eq!(neo_block.merkle_root_hash, H256::from_str("0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7").unwrap());
+		assert_eq!(
+			neo_block.prev_block_hash,
+			H256::from_str("0x045cabde4ecbd50f5e4e1b141eaf0842c1f5f56517324c8dcab8ccac924e3a39")
+				.unwrap()
+		);
+		assert_eq!(
+			neo_block.merkle_root_hash,
+			H256::from_str("0x6afa63201b88b55ad2213e5a69a1ad5f0db650bc178fc2bedd2fb301c1278bf7")
+				.unwrap()
+		);
 		assert_eq!(neo_block.time, 1539968858);
 		assert_eq!(neo_block.nonce, "7F8EEE652D4BC95A");
 		assert_eq!(neo_block.get_nonce_as_u64().unwrap(), 9191546007828810074);
@@ -1706,7 +1751,11 @@ mod tests {
 		assert!(neo_block.transactions.is_some());
 		assert_eq!(neo_block.transactions.clone().unwrap().len(), 0);
 		assert_eq!(neo_block.confirmations, 7878);
-		assert_eq!(neo_block.next_block_hash.unwrap(), H256::from_str("0x4a97ca89199627f877b6bffe865b8327be84b368d62572ef20953829c3501643").unwrap());
+		assert_eq!(
+			neo_block.next_block_hash.unwrap(),
+			H256::from_str("0x4a97ca89199627f877b6bffe865b8327be84b368d62572ef20953829c3501643")
+				.unwrap()
+		);
 
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -1715,10 +1764,12 @@ mod tests {
 	async fn test_get_block_by_hash() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
-            &mock_server,
-            "getblock",
-            json!(["2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d", 1]),
-            json!([])).await;
+			&mock_server,
+			"getblock",
+			json!(["2240b34669038f82ac492150d391dfc3d7fe5e3c1d34e5b547d50e99c09b468d", 1]),
+			json!([]),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = r#"{
@@ -1820,7 +1871,8 @@ mod tests {
 	async fn test_get_block_count() {
 		let mock_server = setup_mock_server().await;
 		let provider =
-		mock_rpc_response_with_id(&mock_server, "getblockcount", json!([]), json!(1234), 67).await;
+			mock_rpc_response_with_id(&mock_server, "getblockcount", json!([]), json!(1234), 67)
+				.await;
 		// Expected request body
 		let expected_request_body = r#"{
             "jsonrpc": "2.0",
@@ -2160,22 +2212,25 @@ mod tests {
 		assert_eq!(native_contracts.len(), 3);
 		let c1 = native_contracts.get(0).unwrap();
 		assert_eq!(c1.id, -6);
-		assert_eq!(c1.hash(), &H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap());
+		assert_eq!(
+			c1.hash(),
+			&H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap()
+		);
 		let nef1 = &c1.nef;
 		assert_eq!(nef1.magic, 860243278);
 		assert_eq!(nef1.compiler, "neo-core-v3.0".to_string());
 		assert_eq!(nef1.source, "variable-size-source-gastoken".to_string());
 		assert_eq!(nef1.tokens.len(), 0);
 		let mut result = nef1.get_first_token();
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("does not have any method tokens"));
-        }
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("does not have any method tokens"));
+		}
 		let mut result = nef1.get_token(0);
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("only has 0 method tokens"));
-        }
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("only has 0 method tokens"));
+		}
 		assert_eq!(nef1.script, "EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0A=".to_string());
 		assert_eq!(nef1.checksum, 2663858513);
 		let manifest1 = c1.manifest();
@@ -2185,23 +2240,29 @@ mod tests {
 		assert_eq!(manifest1.supported_standards.get(0).unwrap(), &"NEP-17".to_string());
 		assert_eq!(*manifest1.get_supported_standard(0).unwrap(), manifest1.supported_standards[0]);
 		let mut result = manifest1.get_supported_standard(1);
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("only supports 1 standards"));
-        }
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("only supports 1 standards"));
+		}
 		assert_eq!(manifest1.abi.clone().unwrap().methods.len(), 5);
 		assert_eq!(manifest1.abi.clone().unwrap().events.len(), 1);
-		assert_eq!(manifest1.abi.clone().unwrap().get_first_event(), manifest1.abi.clone().unwrap().get_event(0));
+		assert_eq!(
+			manifest1.abi.clone().unwrap().get_first_event(),
+			manifest1.abi.clone().unwrap().get_event(0)
+		);
 		let binding = manifest1.abi.clone().unwrap();
 		let mut result = binding.get_event(1);
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("only has 1 events"));
-        }
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("only has 1 events"));
+		}
 
 		let c2 = native_contracts.get(1).unwrap();
 		assert_eq!(c2.id, -8);
-		assert_eq!(c2.hash(), &H160::from_str("0x49cf4e5378ffcd4dec034fd98a174c5491e395e2").unwrap());
+		assert_eq!(
+			c2.hash(),
+			&H160::from_str("0x49cf4e5378ffcd4dec034fd98a174c5491e395e2").unwrap()
+		);
 		let nef2 = &c2.nef;
 		assert_eq!(nef2.magic, 860243278);
 		assert_eq!(nef2.compiler, "neo-core-v3.0".to_string());
@@ -2214,22 +2275,25 @@ mod tests {
 		assert_eq!(manifest2.groups.len(), 0);
 		assert_eq!(manifest2.supported_standards.len(), 0);
 		let mut result = manifest2.get_first_supported_standard();
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("does not support any standard"));
-        }
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("does not support any standard"));
+		}
 		assert_eq!(manifest2.abi.clone().unwrap().methods.len(), 2);
 		assert_eq!(manifest2.abi.clone().unwrap().events.len(), 0);
 		let binding2 = manifest2.abi.clone().unwrap();
 		let mut result = binding2.get_first_event();
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("does not have any events"));
-        }
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("does not have any events"));
+		}
 
 		let c3 = native_contracts.get(2).unwrap();
 		assert_eq!(c3.id, -9);
-		assert_eq!(c3.hash(), &H160::from_str("0xfe924b7cfe89ddd271abaf7210a80a7e11178758").unwrap());
+		assert_eq!(
+			c3.hash(),
+			&H160::from_str("0xfe924b7cfe89ddd271abaf7210a80a7e11178758").unwrap()
+		);
 		let nef3 = &c3.nef;
 		assert_eq!(nef3.magic, 860243278);
 		assert_eq!(nef3.compiler, "neo-core-v3.0".to_string());
@@ -2362,118 +2426,119 @@ mod tests {
 	async fn test_get_contract_state() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
-            &mock_server,
-            "getcontractstate",
-            json!(["dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f"]),
-            json!({
-        "id": -4,
-        "updatecounter": 0,
-        "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
-        "nef": {
-            "magic": 860243278,
-            "compiler": "neo-core-v3.0",
-            "source": "variable-size-source-ledgercontract",
-            "tokens": [
-                // {
-                //     "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
-                //     "method": "update",
-                //     "paramcount": 3,
-                //     "hasreturnvalue": false,
-                //     "callflags": "All"
-                // },
-                // {
-                //     "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
-                //     "method": "destroy",
-                //     "paramcount": 0,
-                //     "hasreturnvalue": false,
-                //     "callflags": "All"
-                // },
-                // {
-                //     "hash": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
-                //     "method": "request",
-                //     "paramcount": 5,
-                //     "hasreturnvalue": false,
-                //     "callflags": "All"
-                // },
-                // {
-                //     "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
-                //     "method": "itoa",
-                //     "paramcount": 1,
-                //     "hasreturnvalue": true,
-                //     "callflags": "All"
-                // },
-                // {
-                //     "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
-                //     "method": "jsonDeserialize",
-                //     "paramcount": 1,
-                //     "hasreturnvalue": true,
-                //     "callflags": "All"
-                // },
-                // {
-                //     "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
-                //     "method": "getContract",
-                //     "paramcount": 1,
-                //     "hasreturnvalue": true,
-                //     "callflags": "All"
-                // },
-                // {
-                //     "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
-                //     "method": "getTransaction",
-                //     "paramcount": 1,
-                //     "hasreturnvalue": true,
-                //     "callflags": "All"
-                // },
-                // {
-                //     "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
-                //     "method": "getTransactionState",
-                //     "paramcount": 1,
-                //     "hasreturnvalue": true,
-                //     "callflags": "All"
-                // }
-            ],
-            "script": "EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0AQQRr3e2dA",
-            "checksum": 529571427
-        },
-        "manifest": {
-            "name": "LedgerContract",
-            "groups": [],
-            "features": {},
-            "supportedstandards": [],
-            "abi": {
-                "methods": [
-                    {
-                        "name": "currentHash",
-                        "parameters": [],
-                        "returntype": "Hash256",
-                        "offset": 0,
-                        "safe": true
-                    },
-                    {
-                        "name": "getTransactionHeight",
-                        "parameters": [
+			&mock_server,
+			"getcontractstate",
+			json!(["dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f"]),
+			json!({
+				"id": -4,
+				"updatecounter": 0,
+				"hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+				"nef": {
+					"magic": 860243278,
+					"compiler": "neo-core-v3.0",
+					"source": "variable-size-source-ledgercontract",
+					"tokens": [
+						// {
+						//     "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+						//     "method": "update",
+						//     "paramcount": 3,
+						//     "hasreturnvalue": false,
+						//     "callflags": "All"
+						// },
+						// {
+						//     "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+						//     "method": "destroy",
+						//     "paramcount": 0,
+						//     "hasreturnvalue": false,
+						//     "callflags": "All"
+						// },
+						// {
+						//     "hash": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
+						//     "method": "request",
+						//     "paramcount": 5,
+						//     "hasreturnvalue": false,
+						//     "callflags": "All"
+						// },
+						// {
+						//     "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
+						//     "method": "itoa",
+						//     "paramcount": 1,
+						//     "hasreturnvalue": true,
+						//     "callflags": "All"
+						// },
+						// {
+						//     "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
+						//     "method": "jsonDeserialize",
+						//     "paramcount": 1,
+						//     "hasreturnvalue": true,
+						//     "callflags": "All"
+						// },
+						// {
+						//     "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
+						//     "method": "getContract",
+						//     "paramcount": 1,
+						//     "hasreturnvalue": true,
+						//     "callflags": "All"
+						// },
+						// {
+						//     "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+						//     "method": "getTransaction",
+						//     "paramcount": 1,
+						//     "hasreturnvalue": true,
+						//     "callflags": "All"
+						// },
+						// {
+						//     "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+						//     "method": "getTransactionState",
+						//     "paramcount": 1,
+						//     "hasreturnvalue": true,
+						//     "callflags": "All"
+						// }
+					],
+					"script": "EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0AQQRr3e2dA",
+					"checksum": 529571427
+				},
+				"manifest": {
+					"name": "LedgerContract",
+					"groups": [],
+					"features": {},
+					"supportedstandards": [],
+					"abi": {
+						"methods": [
 							{
-								"name": "hash",
-								"type": "Hash256"
+								"name": "currentHash",
+								"parameters": [],
+								"returntype": "Hash256",
+								"offset": 0,
+								"safe": true
+							},
+							{
+								"name": "getTransactionHeight",
+								"parameters": [
+									{
+										"name": "hash",
+										"type": "Hash256"
+									}
+								],
+								"returntype": "Integer",
+								"offset": 35,
+								"safe": true
 							}
 						],
-                        "returntype": "Integer",
-                        "offset": 35,
-                        "safe": true
-                    }
-                ],
-                "events": []
-            },
-            "permissions": [
-                {
-                    "contract": "*",
-                    "methods": "*"
-                }
-            ],
-            "trusts": [],
-            "extra": null
-        }
-    }),
-        ).await;
+						"events": []
+					},
+					"permissions": [
+						{
+							"contract": "*",
+							"methods": "*"
+						}
+					],
+					"trusts": [],
+					"extra": null
+				}
+			}),
+		)
+		.await;
 		// Expected request body
 		let expected_request_body = r#"{
             "jsonrpc": "2.0",
@@ -2490,12 +2555,18 @@ mod tests {
 		let contract_state = result.unwrap();
 		assert_eq!(contract_state.id, -4);
 		assert_eq!(contract_state.update_counter, 0);
-		assert_eq!(contract_state.hash, H160::from_str("0xda65b600f7124ce6c79950c1772a36403104f2be").unwrap());
+		assert_eq!(
+			contract_state.hash,
+			H160::from_str("0xda65b600f7124ce6c79950c1772a36403104f2be").unwrap()
+		);
 		let nef = contract_state.clone().nef;
 		assert_eq!(nef.magic, 860243278);
 		assert_eq!(nef.compiler, "neo-core-v3.0".to_string());
 		assert_eq!(nef.source, "variable-size-source-ledgercontract".to_string());
-		assert_eq!(nef.script, "EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0AQQRr3e2dA".to_string());
+		assert_eq!(
+			nef.script,
+			"EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0AQQRr3e2dA".to_string()
+		);
 		assert_eq!(nef.tokens.len(), 0);
 		assert_eq!(nef.checksum, 529571427);
 
@@ -2517,64 +2588,58 @@ mod tests {
 		assert_eq!(abi.get_method(1).unwrap().parameters[0].typ, ContractParameterType::H256);
 		assert_eq!(abi.get_method(1).unwrap().return_type, ContractParameterType::Integer);
 		let mut result = abi.get_method(2);
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("only contains 2 methods"));
-        }
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("only contains 2 methods"));
+		}
 
 		assert_eq!(abi.events.len(), 0);
 
 		assert_eq!(manifest.permissions.len(), 1);
 		let mut result = manifest.get_permission(1);
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("only has permission for 1 contracts"));
-        }
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("only has permission for 1 contracts"));
+		}
 		assert_eq!(manifest.get_first_permission().unwrap().contract, "*".to_string());
 		assert_eq!(manifest.get_permission(0).unwrap().methods.len(), 1);
 		assert_eq!(manifest.get_permission(0).unwrap().methods[0], "*".to_string());
 
 		assert_eq!(manifest.trusts.len(), 0);
 		let mut result = manifest.get_first_trust();
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("does not trust any other contracts"));
-        }
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("does not trust any other contracts"));
+		}
 
 		assert!(manifest.extra.is_none());
 		let id = -4;
 		let update_counter = 0;
 		let hash = H160::from_str("0xda65b600f7124ce6c79950c1772a36403104f2be").unwrap();
 		let nef2 = ContractNef::new(
-			860243278, 
-			"neo-core-v3.0".to_string(), 
-			Some("variable-size-source-ledgercontract".to_string()), 
-			Vec::new(), 
-			"EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0AQQRr3e2dA".to_string(), 
-			529571427
+			860243278,
+			"neo-core-v3.0".to_string(),
+			Some("variable-size-source-ledgercontract".to_string()),
+			Vec::new(),
+			"EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0AQQRr3e2dA".to_string(),
+			529571427,
 		);
 		let method1 = ContractMethod::new(
 			"currentHash".to_string(),
 			Some(Vec::new()),
 			0,
 			ContractParameterType::H256,
-			true
+			true,
 		);
 		let method2 = ContractMethod::new(
 			"getTransactionHeight".to_string(),
 			Some(vec![ContractParameter2::new("hash".to_string(), ContractParameterType::H256)]),
 			35,
 			ContractParameterType::Integer,
-			true
+			true,
 		);
-		let contract_abi = ContractABI::new(
-			Some(vec![method1, method2]),
-			Some(vec![])
-		);
-		let contract_permission = ContractPermission::new(
-			"*".to_string(),
-			vec!["*".to_string()]
-		);
+		let contract_abi = ContractABI::new(Some(vec![method1, method2]), Some(vec![]));
+		let contract_permission = ContractPermission::new("*".to_string(), vec!["*".to_string()]);
 		let contract_manifest = ContractManifest::new(
 			Some("LedgerContract".to_string()),
 			vec![],
@@ -2583,15 +2648,9 @@ mod tests {
 			Some(contract_abi),
 			vec![contract_permission],
 			vec![],
-			None
+			None,
 		);
-		let expected_equal = ContractState::new(
-			id,
-			update_counter,
-			hash,
-			nef2,
-			contract_manifest
-		);
+		let expected_equal = ContractState::new(id, update_counter, hash, nef2, contract_manifest);
 		assert_eq!(contract_state, expected_equal);
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
@@ -2600,26 +2659,27 @@ mod tests {
 	async fn test_get_contract_state_missing_array_values_should_be_empty() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
-            &mock_server,
-            "getcontractstate",
-            json!(["dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f"]),
-            json!({
-        "nef": {
-            "tokens": [],
-        },
-        "manifest": {
-            "groups": [],
-            "supportedstandards": [],
-            "abi": {
-                "methods": [],
-                "events": []
-            },
-            "permissions": [],
-            "trusts": [],
-            "extra": null
-        }
-    }),
-        ).await;
+			&mock_server,
+			"getcontractstate",
+			json!(["dc675afc61a7c0f7b3d2682bf6e1d8ed865a0e5f"]),
+			json!({
+				"nef": {
+					"tokens": [],
+				},
+				"manifest": {
+					"groups": [],
+					"supportedstandards": [],
+					"abi": {
+						"methods": [],
+						"events": []
+					},
+					"permissions": [],
+					"trusts": [],
+					"extra": null
+				}
+			}),
+		)
+		.await;
 		// Expected request body
 		let expected_request_body = r#"{
             "jsonrpc": "2.0",
@@ -3104,17 +3164,31 @@ mod tests {
 		let mem_pool_details = result.unwrap();
 		assert_eq!(mem_pool_details.height, 5492);
 		assert_eq!(mem_pool_details.verified.len(), 2);
-		assert_eq!(mem_pool_details.verified,
+		assert_eq!(
+			mem_pool_details.verified,
 			vec![
-				H256::from_str("0x9786cce0dddb524c40ddbdd5e31a41ed1f6b5c8a683c122f627ca4a007a7cf4e").unwrap(),
-				H256::from_str("0xb488ad25eb474f89d5ca3f985cc047ca96bc7373a6d3da8c0f192722896c1cd7").unwrap()
+				H256::from_str(
+					"0x9786cce0dddb524c40ddbdd5e31a41ed1f6b5c8a683c122f627ca4a007a7cf4e"
+				)
+				.unwrap(),
+				H256::from_str(
+					"0xb488ad25eb474f89d5ca3f985cc047ca96bc7373a6d3da8c0f192722896c1cd7"
+				)
+				.unwrap()
 			]
 		);
 		assert_eq!(mem_pool_details.unverified.len(), 2);
-		assert_eq!(mem_pool_details.unverified,
+		assert_eq!(
+			mem_pool_details.unverified,
 			vec![
-				H256::from_str("0x9786cce0dddb524c40ddbdd5e31a41ed1f6b5c8a683c122f627ca4a007a7cf4e").unwrap(),
-				H256::from_str("0xb488ad25eb474f89d5ca3f985cc047ca96bc7373a6d3da8c0f192722896c1cd7").unwrap()
+				H256::from_str(
+					"0x9786cce0dddb524c40ddbdd5e31a41ed1f6b5c8a683c122f627ca4a007a7cf4e"
+				)
+				.unwrap(),
+				H256::from_str(
+					"0xb488ad25eb474f89d5ca3f985cc047ca96bc7373a6d3da8c0f192722896c1cd7"
+				)
+				.unwrap()
 			]
 		);
 
@@ -3133,7 +3207,7 @@ mod tests {
 			  "verified": [],
 			  "unverified": []
 			}),
-			67
+			67,
 		)
 		.await;
 
@@ -3182,11 +3256,21 @@ mod tests {
 		let result = provider.get_raw_mem_pool().await;
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
-		assert_eq!(result.unwrap(),
+		assert_eq!(
+			result.unwrap(),
 			vec![
-				H256::from_str("0x9786cce0dddb524c40ddbdd5e31a41ed1f6b5c8a683c122f627ca4a007a7cf4e").unwrap(),
-				H256::from_str("0xb488ad25eb474f89d5ca3f985cc047ca96bc7373a6d3da8c0f192722896c1cd7").unwrap(),
-				H256::from_str("0xf86f6f2c08fbf766ebe59dc84bc3b8829f1053f0a01deb26bf7960d99fa86cd6").unwrap()
+				H256::from_str(
+					"0x9786cce0dddb524c40ddbdd5e31a41ed1f6b5c8a683c122f627ca4a007a7cf4e"
+				)
+				.unwrap(),
+				H256::from_str(
+					"0xb488ad25eb474f89d5ca3f985cc047ca96bc7373a6d3da8c0f192722896c1cd7"
+				)
+				.unwrap(),
+				H256::from_str(
+					"0xf86f6f2c08fbf766ebe59dc84bc3b8829f1053f0a01deb26bf7960d99fa86cd6"
+				)
+				.unwrap()
 			]
 		);
 
@@ -3196,13 +3280,7 @@ mod tests {
 	#[tokio::test]
 	async fn test_get_raw_mem_pool_empty() {
 		let mock_server = setup_mock_server().await;
-		let provider = mock_rpc_response(
-			&mock_server,
-			"getrawmempool",
-			json!([]),
-			json!([]),
-		)
-		.await;
+		let provider = mock_rpc_response(&mock_server, "getrawmempool", json!([]), json!([])).await;
 
 		// Expected request body
 		let expected_request_body = r#"{
@@ -3313,7 +3391,11 @@ mod tests {
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let transaction = result.unwrap();
-		assert_eq!(*transaction.hash(), H256::from_str("0x8b8b222ba4ae17eaf37d444210920690d0981b02c368f4f1973c8fd662438d89").unwrap());
+		assert_eq!(
+			*transaction.hash(),
+			H256::from_str("0x8b8b222ba4ae17eaf37d444210920690d0981b02c368f4f1973c8fd662438d89")
+				.unwrap()
+		);
 		assert_eq!(*transaction.size(), 267);
 		assert_eq!(*transaction.version(), 0);
 		assert_eq!(*transaction.nonce(), 1046354582);
@@ -3325,79 +3407,129 @@ mod tests {
 		let signers = transaction.signers();
 		assert_eq!(signers.len(), 1);
 		let mut result = transaction.get_signer(1);
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("only has 1 signers"));
-        }
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("only has 1 signers"));
+		}
 
 		let first_signer = transaction.get_first_signer().unwrap();
-		assert_eq!(first_signer.account, H160::from_str("69ecca587293047be4c59159bf8bc399985c160d").unwrap());
+		assert_eq!(
+			first_signer.account,
+			H160::from_str("69ecca587293047be4c59159bf8bc399985c160d").unwrap()
+		);
 		assert_eq!(first_signer.get_scopes().len(), 3);
 		assert_eq!(*first_signer.get_first_scope().unwrap(), WitnessScope::CustomContracts);
 		assert_eq!(*first_signer.get_scope(1).unwrap(), WitnessScope::CustomGroups);
 		assert_eq!(*first_signer.get_scope(2).unwrap(), WitnessScope::WitnessRules);
 		let mut result = first_signer.get_scope(3);
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("only has 3 witness scopes"));
-        }
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("only has 3 witness scopes"));
+		}
 		assert_eq!(first_signer.allowed_contracts.len(), 2);
-		assert_eq!(first_signer.get_first_allowed_contract().unwrap(), &H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap());
-		assert_eq!(first_signer.get_allowed_contract(1).unwrap(), &H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap());
+		assert_eq!(
+			first_signer.get_first_allowed_contract().unwrap(),
+			&H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap()
+		);
+		assert_eq!(
+			first_signer.get_allowed_contract(1).unwrap(),
+			&H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap()
+		);
 		let mut result = first_signer.get_allowed_contract(2);
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("only allows 2 contracts"));
-        }
-		assert_eq!(first_signer.allowed_groups[0], "033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b".to_string());
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("only allows 2 contracts"));
+		}
+		assert_eq!(
+			first_signer.allowed_groups[0],
+			"033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b".to_string()
+		);
 		let mut result = first_signer.get_allowed_group(1);
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("only allows 1 groups"));
-        }
-		assert_eq!(first_signer.get_first_allowed_group().unwrap(), &"033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b".to_string());
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("only allows 1 groups"));
+		}
+		assert_eq!(
+			first_signer.get_first_allowed_group().unwrap(),
+			&"033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b".to_string()
+		);
 
 		let rule = first_signer.get_rules().get(0).unwrap();
 		let first_rule = first_signer.get_first_rule().unwrap();
 		let mut result = first_signer.get_rule(1);
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("only has 1 witness rules"));
-        }
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("only has 1 witness rules"));
+		}
 		assert_eq!(rule, first_rule);
 		assert_eq!(rule.action, WitnessAction::Allow);
-		assert_eq!(rule.condition, WitnessCondition::ScriptHash(H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap()));
+		assert_eq!(
+			rule.condition,
+			WitnessCondition::ScriptHash(
+				H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap()
+			)
+		);
 
 		let attributes = transaction.attributes();
 		assert_eq!(attributes.len(), 5);
 		let mut result = transaction.get_attribute(5);
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("only has 5 attributes"));
-        }
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("only has 5 attributes"));
+		}
 
-		assert_eq!(transaction.get_first_attribute().unwrap(), &TransactionAttributeEnum::HighPriority(HighPriorityAttribute{}));
+		assert_eq!(
+			transaction.get_first_attribute().unwrap(),
+			&TransactionAttributeEnum::HighPriority(HighPriorityAttribute {})
+		);
 
-		assert_eq!(attributes.get(1).unwrap(), &TransactionAttributeEnum::OracleResponse(OracleResponseAttribute{oracle_response: OracleResponse{id: 0, response_code: OracleResponseCode::Success, result: "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw==".to_string()}}));
+		assert_eq!(
+			attributes.get(1).unwrap(),
+			&TransactionAttributeEnum::OracleResponse(OracleResponseAttribute {
+				oracle_response: OracleResponse {
+					id: 0,
+					response_code: OracleResponseCode::Success,
+					result: "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+						.to_string()
+				}
+			})
+		);
 
-		assert_eq!(attributes.get(2).unwrap(), &TransactionAttributeEnum::NotValidBefore(NotValidBeforeAttribute{height: 10500}));
+		assert_eq!(
+			attributes.get(2).unwrap(),
+			&TransactionAttributeEnum::NotValidBefore(NotValidBeforeAttribute { height: 10500 })
+		);
 
-		let conflict_hash1 = H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e80321a").unwrap();
-		assert_eq!(attributes.get(3).unwrap(), &TransactionAttributeEnum::Conflicts(ConflictsAttribute{hash: conflict_hash1}));
+		let conflict_hash1 =
+			H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e80321a")
+				.unwrap();
+		assert_eq!(
+			attributes.get(3).unwrap(),
+			&TransactionAttributeEnum::Conflicts(ConflictsAttribute { hash: conflict_hash1 })
+		);
 
-		let conflict_hash2 = H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e80321b").unwrap();
-		assert_eq!(attributes.get(4).unwrap(), &TransactionAttributeEnum::Conflicts(ConflictsAttribute{hash: conflict_hash2}));
+		let conflict_hash2 =
+			H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e80321b")
+				.unwrap();
+		assert_eq!(
+			attributes.get(4).unwrap(),
+			&TransactionAttributeEnum::Conflicts(ConflictsAttribute { hash: conflict_hash2 })
+		);
 
 		assert_eq!(transaction.script(), &"AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjg=".to_string());
 		assert_eq!(transaction.witnesses().len(), 1);
 		assert_eq!(transaction.witnesses(), &vec![
 			NeoWitness::new("DEBhsuS9LxQ2PKpx2XJJ/aGEr/pZ7qfZy77OyhDmWx+BobkQAnDPLg6ohOa9SSHa0OMDavUl7zpmJip3r8T5Dr1L".to_string(),"EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw==".to_string())
 		]);
-		assert_eq!(transaction.block_hash(), &H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e803299").unwrap());
+		assert_eq!(
+			transaction.block_hash(),
+			&H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e803299")
+				.unwrap()
+		);
 		assert_eq!(transaction.confirmations(), &1388);
 		assert_eq!(transaction.block_time(), &1589019142879);
 		assert_eq!(transaction.vmstate(), &VMState::Halt);
-		
+
 		verify_request(&mock_server, expected_request_body).await.unwrap();
 	}
 
@@ -3599,16 +3731,19 @@ mod tests {
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let next_validators = result.unwrap();
 		assert_eq!(next_validators.len(), 2);
-		assert_eq!(next_validators,
+		assert_eq!(
+			next_validators,
 			vec![
 				Validator::new(
-					"03f1ec3c1e283e880de6e9c489f0f27c19007c53385aaa4c0c917c320079edadf2".to_string(), 
-					"0".to_string(), 
+					"03f1ec3c1e283e880de6e9c489f0f27c19007c53385aaa4c0c917c320079edadf2"
+						.to_string(),
+					"0".to_string(),
 					false
 				),
 				Validator::new(
-					"02494f3ff953e45ca4254375187004f17293f90a1aa4b1a89bc07065bc1da521f6".to_string(), 
-					"91600000".to_string(), 
+					"02494f3ff953e45ca4254375187004f17293f90a1aa4b1a89bc07065bc1da521f6"
+						.to_string(),
+					"91600000".to_string(),
 					true
 				)
 			]
@@ -3619,13 +3754,8 @@ mod tests {
 	#[tokio::test]
 	async fn test_get_next_block_validators_empty() {
 		let mock_server = setup_mock_server().await;
-		let provider = mock_rpc_response(
-			&mock_server,
-			"getnextblockvalidators",
-			json!([]),
-			json!([]),
-		)
-		.await;
+		let provider =
+			mock_rpc_response(&mock_server, "getnextblockvalidators", json!([]), json!([])).await;
 		// Expected request body
 		let expected_request_body = format!(
 			r#"{{
@@ -3743,26 +3873,28 @@ mod tests {
 		}}"#
 		);
 
-		
-
 		let result = provider.get_peers().await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let peers = result.unwrap();
 		assert_eq!(peers.unconnected.len(), 3);
-		assert_eq!(peers.unconnected, vec![
-			AddressEntry::new("127.0.0.1".to_string(), 20335),
-			AddressEntry::new("127.0.0.1".to_string(), 20336),
-			AddressEntry::new("127.0.0.1".to_string(), 20337)
-		]);
+		assert_eq!(
+			peers.unconnected,
+			vec![
+				AddressEntry::new("127.0.0.1".to_string(), 20335),
+				AddressEntry::new("127.0.0.1".to_string(), 20336),
+				AddressEntry::new("127.0.0.1".to_string(), 20337)
+			]
+		);
 		assert_eq!(peers.bad.len(), 1);
-		assert_eq!(peers.bad, vec![
-			AddressEntry::new("127.0.0.1".to_string(), 20333)
-		]);
-		assert_eq!(peers.connected, vec![
-			AddressEntry::new("172.18.0.3".to_string(), 40333),
-			AddressEntry::new("172.18.0.4".to_string(), 20333)
-		]);
-		
+		assert_eq!(peers.bad, vec![AddressEntry::new("127.0.0.1".to_string(), 20333)]);
+		assert_eq!(
+			peers.connected,
+			vec![
+				AddressEntry::new("172.18.0.3".to_string(), 40333),
+				AddressEntry::new("172.18.0.4".to_string(), 20333)
+			]
+		);
+
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
 
@@ -3790,15 +3922,13 @@ mod tests {
 		}}"#
 		);
 
-		
-
 		let result = provider.get_peers().await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let peers = result.unwrap();
 		assert_eq!(peers.unconnected.len(), 0);
 		assert_eq!(peers.bad.len(), 0);
 		assert_eq!(peers.connected.len(), 0);
-		
+
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
 
@@ -3953,7 +4083,11 @@ mod tests {
 
 		let result = provider.send_raw_transaction(tx_hex).await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
-		assert_eq!(result.unwrap().hash, H256::from_str("0xb0748d216c9c0d0498094cdb50407035917b350fc0338c254b78f944f723b770").unwrap());
+		assert_eq!(
+			result.unwrap().hash,
+			H256::from_str("0xb0748d216c9c0d0498094cdb50407035917b350fc0338c254b78f944f723b770")
+				.unwrap()
+		);
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
 
@@ -3964,13 +4098,8 @@ mod tests {
 		// let block_hex = block_base64.from_base64().unwrap().to_hex();
 		let block_hex = "00000000000000000000000000000000".to_string();
 
-		let provider = mock_rpc_response(
-			&mock_server,
-			"submitblock",
-			json!([block_hex]),
-			json!(true),
-		)
-		.await;
+		let provider =
+			mock_rpc_response(&mock_server, "submitblock", json!([block_hex]), json!(true)).await;
 		// Expected request body
 		let expected_request_body = format!(
 			r#"{{
@@ -3981,14 +4110,13 @@ mod tests {
 		}}"#,
 			block_hex
 		);
-		
+
 		let result = provider.submit_block(block_hex).await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		assert_eq!(result.unwrap().get_submit_block(), true);
-		
 	}
 
 	// SmartContract Methods
@@ -3997,129 +4125,130 @@ mod tests {
 	async fn test_invoke_function() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response_without_request(
-            &mock_server,
-            json!({
-        "script": "wh8MFnRva2Vuc1dpdGhXaXRuZXNzQ2hlY2sMFFdiWCF05OK8ywVb+rl30RPV3+zlQWJ9W1I=",
-        "state": "HALT",
-        "gasconsumed": "12908980",
-        "exception": null,
-        "notifications": [
-            {
-                "eventname": "Mint",
-                "contract": "0xe5ecdfd513d177b9fa5b05cbbce2e47421586257",
-                "state": {
-                    "type": "Array",
-                    "value": [
-                        {
-                            "type": "Integer",
-                            "value": "1"
-                        },
-                        {
-                            "type": "ByteString",
-                            "value": "dG9rZW4x"
-                        },
-                        {
-                            "type": "Integer",
-                            "value": "10000"
-                        }
-                    ]
-                }
-            },
-			{
-                "eventname": "StorageUpdate",
-                "contract": "0xe5ecdfd513d177b9fa5b05cbbce2e47421586257",
-                "state": {
-                    "type": "Array",
-                    "value": [
-                        {
-                            "type": "ByteString",
-                            "value": "dG9rZW4x"
-                        },
-                        {
-                            "type": "ByteString",
-                            "value": "Y3JlYXRl"
-                        }
-                    ]
-                }
-            }
-        ],
-        // "diagnostics": {
-        //     "invokedcontracts": {
-        //         "hash": "0x9cac876fcc1646f1f017aa49b1fbcf87bd37b043",
-        //         "call": [
-        //             {
-        //                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
-        //                 "call": [
-        //                     {
-        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-        //                     },
-        //                     {
-        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-        //                     },
-        //                     {
-        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-        //                     },
-        //                     {
-        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-        //                     },
-        //                     {
-        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-        //                     },
-        //                     {
-        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-        //                     },
-        //                     {
-        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
-        //                         "call": [
-        //                             {
-        //                                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-        //                             },
-        //                             {
-        //                                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-        //                             }
-        //                         ]
-        //                     },
-        //                     {
-        //                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
-        //                         "call": [
-        //                             {
-        //                                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-        //                             },
-        //                             {
-        //                                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
-        //                             }
-        //                         ]
-        //                     },
-        //                     {
-        //                         "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd"
-        //                     }
-        //                 ]
-        //             }
-        //         ]
-        //     },
-        //     "storagechanges": [
-        //         {
-        //             "state": "Changed",
-        //             "key": "BgAAAAEBZpnV8UilBjat8EHKaSwHQHvLA/o=",
-        //             "value": "8CTJ5wda"
-        //         },
-        //         {
-        //             "state": "Added",
-        //             "key": "BgAAAAEB+on7LBTfD1nd3wT25WUX8rNKrus=",
-        //             "value": "ECc="
-        //         }
-        //     ]
-        // },
-        "stack": [
-            {
-                "type": "InteropInterface",
-                "interface": "IIterator",
-				"id": "fcf7b800-192a-488f-95d3-c40ac7b30ef1"
-            }
-        ],
-        "session": "6ecb0e24-ce7f-4550-9838-aeb8c9e08570"
-    }),
-        ).await;
+			&mock_server,
+			json!({
+				"script": "wh8MFnRva2Vuc1dpdGhXaXRuZXNzQ2hlY2sMFFdiWCF05OK8ywVb+rl30RPV3+zlQWJ9W1I=",
+				"state": "HALT",
+				"gasconsumed": "12908980",
+				"exception": null,
+				"notifications": [
+					{
+						"eventname": "Mint",
+						"contract": "0xe5ecdfd513d177b9fa5b05cbbce2e47421586257",
+						"state": {
+							"type": "Array",
+							"value": [
+								{
+									"type": "Integer",
+									"value": "1"
+								},
+								{
+									"type": "ByteString",
+									"value": "dG9rZW4x"
+								},
+								{
+									"type": "Integer",
+									"value": "10000"
+								}
+							]
+						}
+					},
+					{
+						"eventname": "StorageUpdate",
+						"contract": "0xe5ecdfd513d177b9fa5b05cbbce2e47421586257",
+						"state": {
+							"type": "Array",
+							"value": [
+								{
+									"type": "ByteString",
+									"value": "dG9rZW4x"
+								},
+								{
+									"type": "ByteString",
+									"value": "Y3JlYXRl"
+								}
+							]
+						}
+					}
+				],
+				// "diagnostics": {
+				//     "invokedcontracts": {
+				//         "hash": "0x9cac876fcc1646f1f017aa49b1fbcf87bd37b043",
+				//         "call": [
+				//             {
+				//                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
+				//                 "call": [
+				//                     {
+				//                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+				//                     },
+				//                     {
+				//                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+				//                     },
+				//                     {
+				//                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+				//                     },
+				//                     {
+				//                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+				//                     },
+				//                     {
+				//                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+				//                     },
+				//                     {
+				//                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+				//                     },
+				//                     {
+				//                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
+				//                         "call": [
+				//                             {
+				//                                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+				//                             },
+				//                             {
+				//                                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+				//                             }
+				//                         ]
+				//                     },
+				//                     {
+				//                         "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4",
+				//                         "call": [
+				//                             {
+				//                                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+				//                             },
+				//                             {
+				//                                 "hash": "0xa1a375677dded85db80a852c28c2431cab29e2c4"
+				//                             }
+				//                         ]
+				//                     },
+				//                     {
+				//                         "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd"
+				//                     }
+				//                 ]
+				//             }
+				//         ]
+				//     },
+				//     "storagechanges": [
+				//         {
+				//             "state": "Changed",
+				//             "key": "BgAAAAEBZpnV8UilBjat8EHKaSwHQHvLA/o=",
+				//             "value": "8CTJ5wda"
+				//         },
+				//         {
+				//             "state": "Added",
+				//             "key": "BgAAAAEB+on7LBTfD1nd3wT25WUX8rNKrus=",
+				//             "value": "ECc="
+				//         }
+				//     ]
+				// },
+				"stack": [
+					{
+						"type": "InteropInterface",
+						"interface": "IIterator",
+						"id": "fcf7b800-192a-488f-95d3-c40ac7b30ef1"
+					}
+				],
+				"session": "6ecb0e24-ce7f-4550-9838-aeb8c9e08570"
+			}),
+		)
+		.await;
 		// Expected request body
 		let expected_request_body = format!(
 			r#"{{
@@ -4170,7 +4299,7 @@ mod tests {
 			),
 		);
 
-		let mut signer = AccountSigner::called_by_entry_hash160(
+		let mut signer = AccountSignerType::called_by_entry_hash160(
 			H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap(),
 		)
 		.unwrap();
@@ -4185,14 +4314,17 @@ mod tests {
 				&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
 				"balanceOf".to_string(),
 				vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()],
-				Some(vec![Account(signer)]),
+				Some(vec![AccountSigner(signer)]),
 			)
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let invocation_result = result.unwrap();
-		assert_eq!(invocation_result.script, "wh8MFnRva2Vuc1dpdGhXaXRuZXNzQ2hlY2sMFFdiWCF05OK8ywVb+rl30RPV3+zlQWJ9W1I=".to_string());
+		assert_eq!(
+			invocation_result.script,
+			"wh8MFnRva2Vuc1dpdGhXaXRuZXNzQ2hlY2sMFFdiWCF05OK8ywVb+rl30RPV3+zlQWJ9W1I=".to_string()
+		);
 		assert_eq!(invocation_result.state, NeoVMStateType::Halt);
 		assert_eq!(invocation_result.gas_consumed, "12908980".to_string());
 		assert!(invocation_result.exception.is_none());
@@ -4201,12 +4333,18 @@ mod tests {
 		assert_eq!(notifications.len(), 2);
 
 		let mut result = invocation_result.get_notification(2);
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("Only 2 notifications have been sent in this invocation"));
-        }
-		assert_eq!(invocation_result.get_first_notification(), invocation_result.get_notification(0));
-		assert_eq!(invocation_result.get_notification(0).unwrap().contract, H160::from_str("0xe5ecdfd513d177b9fa5b05cbbce2e47421586257").unwrap());
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("Only 2 notifications have been sent in this invocation"));
+		}
+		assert_eq!(
+			invocation_result.get_first_notification(),
+			invocation_result.get_notification(0)
+		);
+		assert_eq!(
+			invocation_result.get_notification(0).unwrap().contract,
+			H160::from_str("0xe5ecdfd513d177b9fa5b05cbbce2e47421586257").unwrap()
+		);
 		assert_eq!(invocation_result.get_notification(0).unwrap().event_name, "Mint".to_string());
 		assert!(
 			matches!(notifications.get(0).unwrap().state, StackItem::Array { .. }),
@@ -4217,7 +4355,10 @@ mod tests {
 		let item0 = stack_item_list[0].as_int();
 		assert_eq!(item0, Some(1));
 		assert_eq!(stack_item_list[1].as_string().unwrap(), "token1".to_string());
-		assert_eq!(notifications.get(1).unwrap().contract, H160::from_str("0xe5ecdfd513d177b9fa5b05cbbce2e47421586257").unwrap());
+		assert_eq!(
+			notifications.get(1).unwrap().contract,
+			H160::from_str("0xe5ecdfd513d177b9fa5b05cbbce2e47421586257").unwrap()
+		);
 		assert_eq!(notifications.get(1).unwrap().event_name, "StorageUpdate".to_string());
 		assert!(
 			matches!(notifications.get(1).unwrap().state, StackItem::Array { .. }),
@@ -4228,14 +4369,23 @@ mod tests {
 
 		assert_eq!(invocation_result.stack.len(), 1);
 		assert_eq!(invocation_result.get_stack_item(0), invocation_result.get_first_stack_item());
-		assert_eq!(invocation_result.stack.get(0).unwrap().get_iterator_id().unwrap(), &"fcf7b800-192a-488f-95d3-c40ac7b30ef1".to_string());
-		assert_eq!(invocation_result.stack.get(0).unwrap().get_interface_name().unwrap(), &"IIterator".to_string());
+		assert_eq!(
+			invocation_result.stack.get(0).unwrap().get_iterator_id().unwrap(),
+			&"fcf7b800-192a-488f-95d3-c40ac7b30ef1".to_string()
+		);
+		assert_eq!(
+			invocation_result.stack.get(0).unwrap().get_interface_name().unwrap(),
+			&"IIterator".to_string()
+		);
 		let mut result = invocation_result.get_stack_item(1);
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("only 1 items left on the NeoVM stack after"));
-        }
-		assert_eq!(invocation_result.session_id, Some("6ecb0e24-ce7f-4550-9838-aeb8c9e08570".to_string()));
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("only 1 items left on the NeoVM stack after"));
+		}
+		assert_eq!(
+			invocation_result.session_id,
+			Some("6ecb0e24-ce7f-4550-9838-aeb8c9e08570".to_string())
+		);
 	}
 
 	#[tokio::test]
@@ -4334,7 +4484,7 @@ mod tests {
 			),
 		);
 
-		let mut signer = AccountSigner::called_by_entry_hash160(
+		let mut signer = AccountSignerType::called_by_entry_hash160(
 			H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap(),
 		)
 		.unwrap();
@@ -4349,12 +4499,12 @@ mod tests {
 				&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
 				"balanceOf".to_string(),
 				vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()],
-				Some(vec![Account(signer)]),
+				Some(vec![AccountSigner(signer)]),
 			)
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
-		
+
 		// Response verification
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let invocation_result = result.unwrap();
@@ -4367,10 +4517,10 @@ mod tests {
 		assert_eq!(notifications.len(), 0);
 
 		let mut result = invocation_result.get_first_notification();
-        assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
-        if let Err(TypeError::IndexOutOfBounds(msg)) = result {
-            assert!(msg.contains("No notifications have been sent in this invocation"));
-        }
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("No notifications have been sent in this invocation"));
+		}
 
 		assert_eq!(invocation_result.stack.len(), 5);
 		let item0 = invocation_result.stack.get(0).unwrap();
@@ -4380,8 +4530,9 @@ mod tests {
 		);
 		assert_eq!(item0.as_string().unwrap(), "transfer".to_string());
 
-		// Base64 decode failed on valid string.
-		let try_base = base64::decode("wWq=".trim_end()).expect(&format!("Failed to decode the string: wWq="));
+    // jinghui-comment-format-rename
+		let try_base =general_purpose::STANDARD.decode("wWo=".trim_end()).expect(&"Failed to decode the string: wWq=".to_string());
+
 
 		// let item1 = invocation_result.stack.get(1).unwrap();
 		// assert!(
@@ -4530,7 +4681,7 @@ mod tests {
 			WitnessCondition::Not(Box::new(WitnessCondition::CalledByEntry)),
 		);
 
-		let mut signer = AccountSigner::called_by_entry_hash160(
+		let mut signer = AccountSignerType::called_by_entry_hash160(
 			H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap(),
 		)
 		.unwrap();
@@ -4545,7 +4696,7 @@ mod tests {
 				&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
 				"balanceOf".to_string(),
 				vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()],
-				Some(vec![Account(signer)]),
+				Some(vec![AccountSigner(signer)]),
 			)
 			.await;
 
@@ -4623,7 +4774,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		let provider = RpcClient::new(http_client);
 
 		// Expected request body
@@ -4660,7 +4811,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		let provider = RpcClient::new(http_client);
 
 		// Expected request body
@@ -4696,7 +4847,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		let provider = RpcClient::new(http_client);
 
 		// Expected request body
@@ -4729,7 +4880,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		let provider = RpcClient::new(http_client);
 
 		// Expected request body
@@ -4763,7 +4914,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		let provider = RpcClient::new(http_client);
 
 		// Expected request body
@@ -4787,7 +4938,7 @@ mod tests {
 		}}"#
 		);
 
-		let signer = AccountSigner::called_by_entry_hash160(
+		let signer = AccountSignerType::called_by_entry_hash160(
 			H160::from_str("0xcc45cc8987b0e35371f5685431e3c8eeea306722").unwrap(),
 		)
 		.unwrap();
@@ -4796,7 +4947,7 @@ mod tests {
 			.invoke_script(
 				"10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52"
 					.to_string(),
-				vec![Account(signer)],
+				vec![AccountSigner(signer)],
 			)
 			.await;
 
@@ -4809,7 +4960,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		let provider = RpcClient::new(http_client);
 
 		// Expected request body
@@ -4834,7 +4985,7 @@ mod tests {
 		}}"#
 		);
 
-		let signer = AccountSigner::called_by_entry_hash160(
+		let signer = AccountSignerType::called_by_entry_hash160(
 			H160::from_str("0xcc45cc8987b0e35371f5685431e3c8eeea306722").unwrap(),
 		)
 		.unwrap();
@@ -4843,7 +4994,7 @@ mod tests {
 			.invoke_script_diagnostics(
 				"10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52"
 					.to_string(),
-				vec![Account(signer)],
+				vec![AccountSigner(signer)],
 			)
 			.await;
 
@@ -4856,7 +5007,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		let provider = RpcClient::new(http_client);
 
 		// Expected request body
@@ -4890,7 +5041,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		let provider = RpcClient::new(http_client);
 
 		// Expected request body
@@ -4916,7 +5067,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		let provider = RpcClient::new(http_client);
 
 		// Expected request body
@@ -4950,7 +5101,7 @@ mod tests {
 		}}"#
 		);
 
-		let signer = AccountSigner::called_by_entry_hash160(
+		let signer = AccountSignerType::called_by_entry_hash160(
 			H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap(),
 		)
 		.unwrap();
@@ -4959,7 +5110,7 @@ mod tests {
 			.invoke_contract_verify(
 				H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
 				vec!["a string".to_string().into(), "another string".to_string().into()],
-				vec![Account(signer)],
+				vec![AccountSigner(signer)],
 			)
 			.await;
 
@@ -4972,7 +5123,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		let provider = RpcClient::new(http_client);
 
 		// Expected request body
@@ -5003,334 +5154,371 @@ mod tests {
 	// Utility methods
 
 	#[tokio::test]
-    async fn test_list_plugins() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_list_plugins() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "listplugins",
 			"params": [],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-		
+		let _ = provider.list_plugins().await;
 
-        let _ = provider.list_plugins().await;
-
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_validate_address() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_validate_address() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "validateaddress",
 			"params": ["NTzVAPBpnUUCvrA6tFPxBHGge8Kyw8igxX"],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-		
+		let _ = provider.validate_address("NTzVAPBpnUUCvrA6tFPxBHGge8Kyw8igxX").await;
 
-        let _ = provider.validate_address("NTzVAPBpnUUCvrA6tFPxBHGge8Kyw8igxX").await;
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
-
-		// Wallet Methods
+	// Wallet Methods
 
 	#[tokio::test]
 	async fn test_close_wallet() {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
-	
+
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url);
+		let http_client = HttpProvider::new(url).unwrap();
 		let provider = RpcClient::new(http_client);
-	
+
 		// Expected request body
-		let expected_request_body = format!(r#"{{
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "closewallet",
 			"params": [],
 			"id": 1
-		}}"#);
-	
-			
-	
+		}}"#
+		);
+
 		let _ = provider.close_wallet().await;
-	
+
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 	}
 
 	#[tokio::test]
-    async fn test_open_wallet() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_open_wallet() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "openwallet",
 			"params": ["wallet.json","one"],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-		
+		let _ = provider.open_wallet("wallet.json".to_string(), "one".to_string()).await;
 
-        let _ = provider.open_wallet("wallet.json".to_string(), "one".to_string()).await;
-
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_dump_priv_key() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_dump_priv_key() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "dumpprivkey",
 			"params": ["NdWaiUoBWbPxGsm5wXPjXYJxCyuY1Zw8uW"],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-		
+		let _ = provider
+			.dump_priv_key(H160::from_str("c11d816956b6682c3406bb99b7ec8a3e93f005c1").unwrap())
+			.await;
 
-        let _ = provider.dump_priv_key(H160::from_str("c11d816956b6682c3406bb99b7ec8a3e93f005c1").unwrap()).await;
-
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_wallet_balance() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_wallet_balance() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getwalletbalance",
 			"params": ["de5f57d430d3dece511cf975a8d37848cb9e0525"],
 			"id": 1
-		}}"#);
+		}}"#
+		);
 
-        let _ = provider.get_wallet_balance(H160::from_str("de5f57d430d3dece511cf975a8d37848cb9e0525").unwrap()).await;
+		let _ = provider
+			.get_wallet_balance(H160::from_str("de5f57d430d3dece511cf975a8d37848cb9e0525").unwrap())
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_new_address() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_new_address() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getnewaddress",
 			"params": [],
 			"id": 1
-		}}"#);
-        let _ = provider.get_new_address().await;
+		}}"#
+		);
+		let _ = provider.get_new_address().await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_wallet_unclaimed_gas() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_wallet_unclaimed_gas() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getwalletunclaimedgas",
 			"params": [],
 			"id": 1
-		}}"#);
-        let _ = provider.get_wallet_unclaimed_gas().await;
+		}}"#
+		);
+		let _ = provider.get_wallet_unclaimed_gas().await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_unclaimed_gas() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_unclaimed_gas() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getunclaimedgas",
 			"params": ["NaQ6Kj6qYinh1frv1wrn53wbPFe5BH5T7g"],
 			"id": 1
-		}}"#);
-        let _ = provider.get_unclaimed_gas(H160::from_str("ffa6adbb5f82ad2a1aafa22ce6aaf05dad5de39e").unwrap()).await;
+		}}"#
+		);
+		let _ = provider
+			.get_unclaimed_gas(H160::from_str("ffa6adbb5f82ad2a1aafa22ce6aaf05dad5de39e").unwrap())
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_import_priv_key() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_import_priv_key() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "importprivkey",
 			"params": ["L5c6jz6Rh8arFJW3A5vg7Suaggo28ApXVF2EPzkAXbm94ThqaA6r"],
 			"id": 1
-		}}"#);
-        let _ = provider.import_priv_key("L5c6jz6Rh8arFJW3A5vg7Suaggo28ApXVF2EPzkAXbm94ThqaA6r".to_string()).await;
+		}}"#
+		);
+		let _ = provider
+			.import_priv_key("L5c6jz6Rh8arFJW3A5vg7Suaggo28ApXVF2EPzkAXbm94ThqaA6r".to_string())
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_calculate_network_fee() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_calculate_network_fee() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "calculatenetworkfee",
 			"params": ["bmVvdzNq"],
 			"id": 1
-		}}"#);
-        let _ = provider.calculate_network_fee("6e656f77336a".to_string()).await;
+		}}"#
+		);
+		let _ = provider.calculate_network_fee("6e656f77336a".to_string()).await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_list_address() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_list_address() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "listaddress",
 			"params": [],
 			"id": 1
-		}}"#);
-        let _ = provider.list_address().await;
+		}}"#
+		);
+		let _ = provider.list_address().await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_send_from() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_send_from() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "sendfrom",
 			"params": ["de5f57d430d3dece511cf975a8d37848cb9e0525", "NaxePjypvtsQ5GVi6S1jBsSjXribTSUKRu", "NbD6be5uYezFZRSBDt6aBfYR9bYsAk8Yui", 10],
 			"id": 1
-		}}"#);
-        let _ = provider.send_from(
-			H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(), 
-			H160::from_str("8cdb257b8873049918fe5a1e7f6289f75d720ba5").unwrap(), 
-			H160::from_str("db1acbae4dbae55f8325724cf080ed782925c7a7").unwrap(), 
-			10).await;
+		}}"#
+		);
+		let _ = provider
+			.send_from(
+				H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(),
+				H160::from_str("8cdb257b8873049918fe5a1e7f6289f75d720ba5").unwrap(),
+				H160::from_str("db1acbae4dbae55f8325724cf080ed782925c7a7").unwrap(),
+				10,
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_send_from_transaction_send_asset() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_send_from_transaction_send_asset() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "sendfrom",
 			"params": ["de5f57d430d3dece511cf975a8d37848cb9e0525", "Ng9E3D4DpM6JrgSxizhanJ6zm6BjvZ2XkM", "NUokBS9rfH8qncwFdfByBTT9yJjxQv8h2h", 10],
 			"id": 1
-		}}"#);
-        let _ = provider.send_from_send_token(
-			&TransactionSendToken::new(H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(), 10, "NUokBS9rfH8qncwFdfByBTT9yJjxQv8h2h".to_string()),
-			H160::from_str("44b159ceed1bfbd753748227309428f54f52e4dd").unwrap()).await;
+		}}"#
+		);
+		let _ = provider
+			.send_from_send_token(
+				&TransactionSendToken::new(
+					H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(),
+					10,
+					"NUokBS9rfH8qncwFdfByBTT9yJjxQv8h2h".to_string(),
+				),
+				H160::from_str("44b159ceed1bfbd753748227309428f54f52e4dd").unwrap(),
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_send_many() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_send_many() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "sendmany",
 			"params": [
@@ -5348,55 +5536,66 @@ mod tests {
 				]
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.send_many(
-			None,
-			vec![
-				TransactionSendToken::new(H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(), 100, "NRkkHsxkzFxGz77mJtJgYZ3FnBm8baU5Um".to_string()),
-				TransactionSendToken::new(H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(), 10, "NNFGNNK1HXSSnA7yKLzRpr8YXwcdgTrsCu".to_string())
-				]
-			).await;
+		}}"#
+		);
+		let _ = provider
+			.send_many(
+				None,
+				vec![
+					TransactionSendToken::new(
+						H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(),
+						100,
+						"NRkkHsxkzFxGz77mJtJgYZ3FnBm8baU5Um".to_string(),
+					),
+					TransactionSendToken::new(
+						H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(),
+						10,
+						"NNFGNNK1HXSSnA7yKLzRpr8YXwcdgTrsCu".to_string(),
+					),
+				],
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_send_many_empty_transaction() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_send_many_empty_transaction() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "sendmany",
 			"params": [
 				[]
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.send_many(
-			None,
-			Vec::<TransactionSendToken>::new()
-			).await;
+		}}"#
+		);
+		let _ = provider.send_many(None, Vec::<TransactionSendToken>::new()).await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_send_many_with_from() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_send_many_with_from() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "sendmany",
 			"params": [
@@ -5415,76 +5614,99 @@ mod tests {
 				]
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.send_many(
-			Some(H160::from_address("NiVNRW6cBXwkvrZnetZToaHPGSSGgV1HmA").unwrap()),
-			vec![
-				TransactionSendToken::new(H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(), 100, "Nhsi2q3hkByxcH2uBQw7cjc2qEpzXSEKTC".to_string()),
-				TransactionSendToken::new(H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(), 10, "NcwVWxJZh9fxncJ9Sq8msVLotJDsAD3ZD8".to_string())
-				]
-			).await;
+		}}"#
+		);
+		let _ = provider
+			.send_many(
+				Some(H160::from_address("NiVNRW6cBXwkvrZnetZToaHPGSSGgV1HmA").unwrap()),
+				vec![
+					TransactionSendToken::new(
+						H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(),
+						100,
+						"Nhsi2q3hkByxcH2uBQw7cjc2qEpzXSEKTC".to_string(),
+					),
+					TransactionSendToken::new(
+						H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(),
+						10,
+						"NcwVWxJZh9fxncJ9Sq8msVLotJDsAD3ZD8".to_string(),
+					),
+				],
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_send_to_address() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_send_to_address() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "sendtoaddress",
 			"params": ["de5f57d430d3dece511cf975a8d37848cb9e0525", "NRCcuUUxKCa3sp45o7bjXetyxUeq58T4ED", 10],
 			"id": 1
-		}}"#);
-        let _ = provider.send_to_address(
-			H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(), 
-			H160::from_str("674231bd321880fc5c4a73994c87870e52c5fe39").unwrap(),
-			10).await;
+		}}"#
+		);
+		let _ = provider
+			.send_to_address(
+				H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(),
+				H160::from_str("674231bd321880fc5c4a73994c87870e52c5fe39").unwrap(),
+				10,
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_send_to_address_transaction_send_asset() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_send_to_address_transaction_send_asset() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "sendtoaddress",
 			"params": ["de5f57d430d3dece511cf975a8d37848cb9e0525", "NaCsFrmoJepqCJSxnTyb41CXVSjr3dMjuL", 10],
 			"id": 1
-		}}"#);
-        let _ = provider.send_to_address_send_token(
-			&TransactionSendToken::new(H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(), 10, "NaCsFrmoJepqCJSxnTyb41CXVSjr3dMjuL".to_string())
-		).await;
+		}}"#
+		);
+		let _ = provider
+			.send_to_address_send_token(&TransactionSendToken::new(
+				H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(),
+				10,
+				"NaCsFrmoJepqCJSxnTyb41CXVSjr3dMjuL".to_string(),
+			))
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_cancel_transaction() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_cancel_transaction() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "canceltransaction",
 			"params": [
@@ -5496,164 +5718,193 @@ mod tests {
 				"3333"
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.cancel_transaction(
-			H256::zero(),
-			vec![H160::zero(), H160::zero()],
-			Some(3333)
-		).await;
+		}}"#
+		);
+		let _ = provider
+			.cancel_transaction(H256::zero(), vec![H160::zero(), H160::zero()], Some(3333))
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	// TokenTracker: Nep17
 
 	#[tokio::test]
-    async fn test_get_nep17_transfers() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_nep17_transfers() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getnep17transfers",
 			"params": ["NekZLTu93WgrdFHxzBEJUYgLTQMAT85GLi"],
 			"id": 1
-		}}"#);
-        let _ = provider.get_nep17_transfers(
-			H160::from_str("04457ce4219e462146ac00b09793f81bc5bca2ce").unwrap()).await;
+		}}"#
+		);
+		let _ = provider
+			.get_nep17_transfers(
+				H160::from_str("04457ce4219e462146ac00b09793f81bc5bca2ce").unwrap(),
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_nep17_transfers_date() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_nep17_transfers_date() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getnep17transfers",
 			"params": ["NSH1UeM96PKhjuzVBKcyWeNNuQkT3sHGmA", 1553105830],
 			"id": 1
-		}}"#);
-        let _ = provider.get_nep17_transfers_from(
-			H160::from_str("8bed27d0e88266807a6339270f0593510967cb45").unwrap(), 1553105830).await;
+		}}"#
+		);
+		let _ = provider
+			.get_nep17_transfers_from(
+				H160::from_str("8bed27d0e88266807a6339270f0593510967cb45").unwrap(),
+				1553105830,
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_nep17_transfers_date_from_to() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_nep17_transfers_date_from_to() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getnep17transfers",
 			"params": ["NfWL3Kx7qtZzXrajmggAD4b6r2kGzajbaJ", 1553105830, 1557305830],
 			"id": 1
-		}}"#);
-        let _ = provider.get_nep17_transfers_range(
-			H160::from_str("2eeda865e7824c71b3fe14bed35d04d0f2f0e9d6").unwrap(), 1553105830, 1557305830).await;
+		}}"#
+		);
+		let _ = provider
+			.get_nep17_transfers_range(
+				H160::from_str("2eeda865e7824c71b3fe14bed35d04d0f2f0e9d6").unwrap(),
+				1553105830,
+				1557305830,
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_nep17_balances() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_nep17_balances() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getnep17balances",
 			"params": ["NY9zhKwcmht5cQJ3oRqjJGo3QuVLwXwTzL"],
 			"id": 1
-		}}"#);
-        let _ = provider.get_nep17_balances(
-			H160::from_str("5d75775015b024970bfeacf7c6ab1b0ade974886").unwrap()).await;
+		}}"#
+		);
+		let _ = provider
+			.get_nep17_balances(H160::from_str("5d75775015b024970bfeacf7c6ab1b0ade974886").unwrap())
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	// ApplicationLogs
 
 	#[tokio::test]
-    async fn test_get_application_log() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_application_log() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getapplicationlog",
 			"params": ["420d1eb458c707d698c6d2ba0f91327918ddb3b7bae2944df070f3f4e579078b"],
 			"id": 1
-		}}"#);
-        let _ = provider.get_application_log(
-			H256::from_str("420d1eb458c707d698c6d2ba0f91327918ddb3b7bae2944df070f3f4e579078b").unwrap()).await;
+		}}"#
+		);
+		let _ = provider
+			.get_application_log(
+				H256::from_str("420d1eb458c707d698c6d2ba0f91327918ddb3b7bae2944df070f3f4e579078b")
+					.unwrap(),
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	// StateService
 
 	#[tokio::test]
-    async fn test_get_state_root() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_state_root() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getstateroot",
 			"params": [52],
 			"id": 1
-		}}"#);
-        let _ = provider.get_state_root(52).await;
+		}}"#
+		);
+		let _ = provider.get_state_root(52).await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_proof() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_proof() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getproof",
 			"params": [
@@ -5662,27 +5913,34 @@ mod tests {
 				"YW55dGhpbmc="
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.get_proof(
-			H256::from_str("0x7bf925dbd33af0e00d392b92313da59369ed86c82494d0e02040b24faac0a3ca").unwrap(),
-			H160::from_str("0x79bcd398505eb779df6e67e4be6c14cded08e2f2").unwrap(),
-			"616e797468696e67"
-		).await;
+		}}"#
+		);
+		let _ = provider
+			.get_proof(
+				H256::from_str(
+					"0x7bf925dbd33af0e00d392b92313da59369ed86c82494d0e02040b24faac0a3ca",
+				)
+				.unwrap(),
+				H160::from_str("0x79bcd398505eb779df6e67e4be6c14cded08e2f2").unwrap(),
+				"616e797468696e67",
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_verify_proof() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_verify_proof() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "verifyproof",
 			"params": [
@@ -5690,48 +5948,51 @@ mod tests {
 				"Bfv///8XBiQBAQ8DRzb6Vkdw0r5nxMBp6Z5nvbyXiupMvffwm0v5GdB6jHvyAAQEBAQEBAQEA7l84HFtRI5V11s58vA+8CZ5GArFLkGUYLO98RLaMaYmA5MEnx0upnVI45XTpoUDRvwrlPD59uWy9aIrdS4T0D2cA6Rwv/l3GmrctRzL1me+iTUFdDgooaz+esFHFXJdDANfA2bdshZMp5ox2goVAOMjvoxNIWWOqjJoRPu6ZOw2kdj6A8xovEK1Mp6cAG9z/jfFDrSEM60kuo97MNaVOP/cDZ1wA1nf4WdI+jksYz0EJgzBukK8rEzz8jE2cb2Zx2fytVyQBANC7v2RaLMCRF1XgLpSri12L2IwL9Zcjz5LZiaB5nHKNgQpAQYPDw8PDw8DggFffnsVMyqAfZjg+4gu97N/gKpOsAK8Q27s56tijRlSAAMm26DYxOdf/IjEgkE/u/CoRL6dDnzvs1dxCg/00esMvgPGioeOqQCkDOTfliOnCxYjbY/0XvVUOXkceuDm1W0FzQQEBAQEBAQEBAQEBAQEBJIABAPH1PnX/P8NOgV4KHnogwD7xIsD8KvNhkTcDxgCo7Ec6gPQs1zD4igSJB4M9jTREq+7lQ5PbTH/6d138yUVvtM8bQP9Df1kh7asXrYjZolKhLcQ1NoClQgEzbcJfYkCHXv6DQQEBAOUw9zNl/7FJrWD7rCv0mbOoy6nLlHWiWuyGsA12ohRuAQEBAQEBAQEBAYCBAIAAgA="
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.verify_proof(
+		}}"#
+		);
+		let _ = provider.verify_proof(
 			H256::from_str("0x7bf925dbd33af0e00d392b92313da59369ed86c82494d0e02040b24faac0a3ca").unwrap(),
 			"05fbffffff17062401010f034736fa564770d2be67c4c069e99e67bdbc978aea4cbdf7f09b4bf919d07a8c7bf200040404040404040403b97ce0716d448e55d75b39f2f03ef02679180ac52e419460b3bdf112da31a6260393049f1d2ea67548e395d3a6850346fc2b94f0f9f6e5b2f5a22b752e13d03d9c03a470bff9771a6adcb51ccbd667be893505743828a1acfe7ac14715725d0c035f0366ddb2164ca79a31da0a1500e323be8c4d21658eaa326844fbba64ec3691d8fa03cc68bc42b5329e9c006f73fe37c50eb48433ad24ba8f7b30d69538ffdc0d9d700359dfe16748fa392c633d04260cc1ba42bcac4cf3f2313671bd99c767f2b55c90040342eefd9168b302445d5780ba52ae2d762f62302fd65c8f3e4b662681e671ca36042901060f0f0f0f0f0f0382015f7e7b15332a807d98e0fb882ef7b37f80aa4eb002bc436eece7ab628d1952000326dba0d8c4e75ffc88c482413fbbf0a844be9d0e7cefb357710a0ff4d1eb0cbe03c68a878ea900a40ce4df9623a70b16236d8ff45ef55439791c7ae0e6d56d05cd04040404040404040404040404040492000403c7d4f9d7fcff0d3a05782879e88300fbc48b03f0abcd8644dc0f1802a3b11cea03d0b35cc3e22812241e0cf634d112afbb950e4f6d31ffe9dd77f32515bed33c6d03fd0dfd6487b6ac5eb62366894a84b710d4da02950804cdb7097d89021d7bfa0d0404040394c3dccd97fec526b583eeb0afd266cea32ea72e51d6896bb21ac035da8851b804040404040404040406020402000200"
 		).await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_state_height() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_state_height() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getstateheight",
 			"params": [],
 			"id": 1
-		}}"#);
-        let _ = provider.get_state_height().await;
+		}}"#
+		);
+		let _ = provider.get_state_height().await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
-
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_state() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_state() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getstate",
 			"params": [
@@ -5740,27 +6001,34 @@ mod tests {
 				"QQEhB4DRxWFfeRI="
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.get_state(
-			H256::from_str("0x7bf925dbd33af0e00d392b92313da59369ed86c82494d0e02040b24faac0a3ca").unwrap(),
-			H160::from_str("7c5832ba81fd0af40ec11e96b1c26613466dae02").unwrap(),
-			"4101210780d1c5615f7912"
-		).await;
+		}}"#
+		);
+		let _ = provider
+			.get_state(
+				H256::from_str(
+					"0x7bf925dbd33af0e00d392b92313da59369ed86c82494d0e02040b24faac0a3ca",
+				)
+				.unwrap(),
+				H160::from_str("7c5832ba81fd0af40ec11e96b1c26613466dae02").unwrap(),
+				"4101210780d1c5615f7912",
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_find_states() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_find_states() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "findstates",
 			"params": [
@@ -5771,29 +6039,36 @@ mod tests {
 				2
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.find_states(
-			H256::from_str("0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f").unwrap(),
-			H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
-			"0bfe",
-			Some("0b"),
-			Some(2)
-		).await;
+		}}"#
+		);
+		let _ = provider
+			.find_states(
+				H256::from_str(
+					"0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f",
+				)
+				.unwrap(),
+				H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
+				"0bfe",
+				Some("0b"),
+				Some(2),
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_find_states_nocount() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_find_states_nocount() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "findstates",
 			"params": [
@@ -5803,29 +6078,36 @@ mod tests {
 				"Cw=="
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.find_states(
-			H256::from_str("0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f").unwrap(),
-			H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
-			"0bfe",
-			Some("0b"),
-			None
-		).await;
+		}}"#
+		);
+		let _ = provider
+			.find_states(
+				H256::from_str(
+					"0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f",
+				)
+				.unwrap(),
+				H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
+				"0bfe",
+				Some("0b"),
+				None,
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_find_states_nostartkey_withcount() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_find_states_nostartkey_withcount() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "findstates",
 			"params": [
@@ -5836,29 +6118,36 @@ mod tests {
 				53
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.find_states(
-			H256::from_str("0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f").unwrap(),
-			H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
-			"0bfe",
-			None,
-			Some(53)
-		).await;
+		}}"#
+		);
+		let _ = provider
+			.find_states(
+				H256::from_str(
+					"0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f",
+				)
+				.unwrap(),
+				H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
+				"0bfe",
+				None,
+				Some(53),
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_find_states_nostartkey_nocount() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_find_states_nostartkey_nocount() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "findstates",
 			"params": [
@@ -5867,102 +6156,115 @@ mod tests {
 				"C/4="
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.find_states(
-			H256::from_str("0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f").unwrap(),
-			H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
-			"0bfe",
-			None,
-			None
-		).await;
+		}}"#
+		);
+		let _ = provider
+			.find_states(
+				H256::from_str(
+					"0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f",
+				)
+				.unwrap(),
+				H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
+				"0bfe",
+				None,
+				None,
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	// Neo-express related tests
 	// #[tokio::test]
-    // async fn test_express_get_populated_blocks() {
-    //     // Access the global mock server
-    //     let mock_server = setup_mock_server().await;
+	// async fn test_express_get_populated_blocks() {
+	//     // Access the global mock server
+	//     let mock_server = setup_mock_server().await;
 
 	// 	let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    // 	let http_client = HttpProvider::new(url);
-    // 	let provider = RpcClient::new(http_client);
+	// 	let http_client = HttpProvider::new(url).unwrap();
+	// 	let provider = RpcClient::new(http_client);
 
-    //     // Expected request body
+	//     // Expected request body
 	// 	let expected_request_body = format!(r#"{{
 	// 		"jsonrpc": "2.0",
 	// 		"method": "expressgetpopulatedblocks",
 	// 		"params": [],
 	// 		"id": 1
 	// 	}}"#);
-    //     let _ = provider.express().await;
+	//     let _ = provider.express().await;
 
-    //     verify_request(&mock_server, &expected_request_body).await.unwrap();
-    // }
+	//     verify_request(&mock_server, &expected_request_body).await.unwrap();
+	// }
 
 	// TokenTracker: Nep11
 	#[tokio::test]
-    async fn test_get_nep11_balance() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_nep11_balance() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getnep11balances",
 			"params": [
 				"NY9zhKwcmht5cQJ3oRqjJGo3QuVLwXwTzL"
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.get_nep11_balances(
-			H160::from_str("5d75775015b024970bfeacf7c6ab1b0ade974886").unwrap()
-		).await;
+		}}"#
+		);
+		let _ = provider
+			.get_nep11_balances(H160::from_str("5d75775015b024970bfeacf7c6ab1b0ade974886").unwrap())
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_nep11_transfers() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_nep11_transfers() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getnep11transfers",
 			"params": [
 				"NekZLTu93WgrdFHxzBEJUYgLTQMAT85GLi"
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.get_nep11_transfers(
-			H160::from_str("04457ce4219e462146ac00b09793f81bc5bca2ce").unwrap()
-		).await;
+		}}"#
+		);
+		let _ = provider
+			.get_nep11_transfers(
+				H160::from_str("04457ce4219e462146ac00b09793f81bc5bca2ce").unwrap(),
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_nep11_transfers_date() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_nep11_transfers_date() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getnep11transfers",
 			"params": [
@@ -5970,26 +6272,30 @@ mod tests {
 				1553105830
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.get_nep11_transfers_from(
-			H160::from_str("8bed27d0e88266807a6339270f0593510967cb45").unwrap(),
-			1553105830
-		).await;
+		}}"#
+		);
+		let _ = provider
+			.get_nep11_transfers_from(
+				H160::from_str("8bed27d0e88266807a6339270f0593510967cb45").unwrap(),
+				1553105830,
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_nep11_transfers_from_to() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_nep11_transfers_from_to() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getnep11transfers",
 			"params": [
@@ -5998,27 +6304,31 @@ mod tests {
 				1557305830
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.get_nep11_transfers_range(
-			H160::from_str("2eeda865e7824c71b3fe14bed35d04d0f2f0e9d6").unwrap(),
-			1553105830,
-			1557305830
-		).await;
+		}}"#
+		);
+		let _ = provider
+			.get_nep11_transfers_range(
+				H160::from_str("2eeda865e7824c71b3fe14bed35d04d0f2f0e9d6").unwrap(),
+				1553105830,
+				1557305830,
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	#[tokio::test]
-    async fn test_get_nep11_properties() {
-        // Access the global mock server
-        let mock_server = setup_mock_server().await;
+	async fn test_get_nep11_properties() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
 
 		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-    	let http_client = HttpProvider::new(url);
-    	let provider = RpcClient::new(http_client);
+		let http_client = HttpProvider::new(url).unwrap();
+		let provider = RpcClient::new(http_client);
 
-        // Expected request body
-		let expected_request_body = format!(r#"{{
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
 			"jsonrpc": "2.0",
 			"method": "getnep11properties",
 			"params": [
@@ -6026,18 +6336,17 @@ mod tests {
 				"12345"
 			],
 			"id": 1
-		}}"#);
-        let _ = provider.get_nep11_properties(
-			H160::from_str("2eeda865e7824c71b3fe14bed35d04d0f2f0e9d6").unwrap(),
-			"12345"
-		).await;
+		}}"#
+		);
+		let _ = provider
+			.get_nep11_properties(
+				H160::from_str("2eeda865e7824c71b3fe14bed35d04d0f2f0e9d6").unwrap(),
+				"12345",
+			)
+			.await;
 
-        verify_request(&mock_server, &expected_request_body).await.unwrap();
-    }
-
-	
-
-
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+	}
 
 	async fn verify_request(
 		mock_server: &MockServer,

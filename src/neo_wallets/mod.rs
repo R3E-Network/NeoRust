@@ -7,11 +7,6 @@ use p256::NistP256;
 pub use yubihsm;
 
 pub use error::*;
-#[cfg(all(feature = "ledger", not(target_arch = "wasm32")))]
-pub use ledger::{
-	app::LedgerNeo as Ledger,
-	types::{DerivationType as HDPath, LedgerError},
-};
 use neo::prelude::Account;
 pub use wallet::*;
 pub use wallet_signer::WalletSigner;
@@ -27,8 +22,6 @@ pub type LocalWallet = WalletSigner<Account>;
 /// A wallet instantiated with a YubiHSM
 pub type YubiWallet = WalletSigner<yubihsm::ecdsa::Signer<NistP256>>;
 
-#[cfg(all(feature = "ledger", not(target_arch = "wasm32")))]
-mod ledger;
 // #[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
 mod yubi;
 

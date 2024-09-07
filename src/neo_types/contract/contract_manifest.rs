@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use neo::prelude::{ContractParameter, ContractParameterType};
 
-use crate::prelude::{ContractParameter2, serialize_wildcard, deserialize_wildcard, TypeError};
+use crate::prelude::{deserialize_wildcard, serialize_wildcard, ContractParameter2, TypeError};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ContractManifest {
@@ -29,7 +29,7 @@ pub struct ContractManifest {
 	pub extra: Option<HashMap<String, serde_json::Value>>,
 }
 
-impl ContractManifest{
+impl ContractManifest {
 	pub fn new(
 		name: Option<String>,
 		groups: Vec<ContractGroup>,
@@ -40,15 +40,15 @@ impl ContractManifest{
 		trusts: Vec<String>,
 		extra: Option<HashMap<String, serde_json::Value>>,
 	) -> Self {
-		Self { 
-			name, 
+		Self {
+			name,
 			groups,
-			features: features.unwrap_or_else(|| HashMap::new()), 
-			supported_standards, 
-			abi, 
-			permissions, 
-			trusts, 
-			extra
+			features: features.unwrap_or_else(|| HashMap::new()),
+			supported_standards,
+			abi,
+			permissions,
+			trusts,
+			extra,
 		}
 	}
 
@@ -99,7 +99,7 @@ impl ContractManifest{
 		}
 		self.get_trust(0)
 	}
-	
+
 	pub fn get_trust(&self, index: usize) -> Result<&String, TypeError> {
 		if index >= self.trusts.len() {
 			return Err(TypeError::IndexOutOfBounds(format!(
@@ -110,8 +110,6 @@ impl ContractManifest{
 		}
 		Ok(&self.trusts[index])
 	}
-	
-
 }
 
 // impl Eq for ContractManifest
@@ -155,34 +153,32 @@ pub struct ContractABI {
 	pub events: Vec<ContractEvent>,
 }
 
-impl  ContractABI {
-	pub fn new(
-		methods: Option<Vec<ContractMethod>>,
-		events: Option<Vec<ContractEvent>>,
-	) -> Self {
-		Self { 
-			methods: methods.unwrap_or_else(|| Vec::new()), 
-			events: events.unwrap_or_else(|| Vec::new()) }
+impl ContractABI {
+	pub fn new(methods: Option<Vec<ContractMethod>>, events: Option<Vec<ContractEvent>>) -> Self {
+		Self {
+			methods: methods.unwrap_or_else(|| Vec::new()),
+			events: events.unwrap_or_else(|| Vec::new()),
+		}
 	}
 
 	pub fn get_first_method(&self) -> Result<&ContractMethod, TypeError> {
-    	if self.methods.is_empty() {
-        	return Err(TypeError::IndexOutOfBounds(
+		if self.methods.is_empty() {
+			return Err(TypeError::IndexOutOfBounds(
             	"This ABI does not contain any methods. It might be malformed, since every contract needs at least one method to be functional.".to_string(),
         	));
-    	}
-    	self.get_method(0)
+		}
+		self.get_method(0)
 	}
 
 	pub fn get_method(&self, index: usize) -> Result<&ContractMethod, TypeError> {
-    	if index >= self.methods.len() {
-        	return Err(TypeError::IndexOutOfBounds(format!(
-            	"This ABI only contains {} methods. Tried to access index {}.",
-            	self.methods.len(),
-            	index
-        	)));
-    	}
-    	Ok(&self.methods[index])
+		if index >= self.methods.len() {
+			return Err(TypeError::IndexOutOfBounds(format!(
+				"This ABI only contains {} methods. Tried to access index {}.",
+				self.methods.len(),
+				index
+			)));
+		}
+		Ok(&self.methods[index])
 	}
 
 	pub fn get_first_event(&self) -> Result<&ContractEvent, TypeError> {
@@ -203,7 +199,6 @@ impl  ContractABI {
 		}
 		Ok(&self.events[index])
 	}
-	
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
@@ -222,15 +217,15 @@ impl ContractMethod {
 		parameters: Option<Vec<ContractParameter2>>,
 		offset: usize,
 		return_type: ContractParameterType,
-		safe: bool
+		safe: bool,
 	) -> Self {
-		Self{
+		Self {
 			name,
 			parameters: parameters.unwrap_or_else(|| Vec::new()),
 			offset,
 			return_type,
-			safe
-		}	
+			safe,
+		}
 	}
 }
 
@@ -249,10 +244,7 @@ pub struct ContractPermission {
 }
 
 impl ContractPermission {
-	pub fn new(
-		contract: String,
-		methods: Vec<String>
-	) -> Self {
-		Self { contract, methods}
+	pub fn new(contract: String, methods: Vec<String>) -> Self {
+		Self { contract, methods }
 	}
 }

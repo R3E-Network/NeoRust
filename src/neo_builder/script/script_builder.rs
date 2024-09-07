@@ -12,6 +12,25 @@ use neo::prelude::{
 	ScriptHashExtension, *,
 };
 
+/// A builder for constructing Neo smart contract scripts.
+///
+/// The `ScriptBuilder` provides methods to create and manipulate scripts
+/// by adding opcodes, pushing data, and performing various operations
+/// required for Neo smart contract execution.
+///
+/// # Examples
+///
+/// ```rust
+/// use NeoRust::prelude::ScriptBuilder;
+/// use num_bigint::BigInt;
+///
+/// let mut builder = ScriptBuilder::new();
+/// builder.push_integer(BigInt::from(42))
+///        .push_data("Hello, Neo!".as_bytes().to_vec())
+///        .op_code(&[OpCode::Add]);
+///
+/// let script = builder.to_bytes();
+/// ```
 #[derive(Debug, PartialEq, Eq, Hash, Getters, Setters)]
 pub struct ScriptBuilder {
 	#[getset(get = "pub")]
@@ -19,9 +38,37 @@ pub struct ScriptBuilder {
 }
 
 impl ScriptBuilder {
+	/// Creates a new `ScriptBuilder` instance.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::ScriptBuilder;
+	///
+	/// let builder = ScriptBuilder::new();
+	/// ```
 	pub fn new() -> Self {
 		Self { script: Encoder::new() }
 	}
+
+	/// Appends one or more opcodes to the script.
+	///
+	/// # Arguments
+	///
+	/// * `op_codes` - A slice of `OpCode` values to append to the script.
+	///
+	/// # Returns
+	///
+	/// A mutable reference to the `ScriptBuilder` for method chaining.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::{ScriptBuilder, OpCode};
+	///
+	/// let mut builder = ScriptBuilder::new();
+	/// builder.op_code(&[OpCode::Push1, OpCode::Push2, OpCode::Add]);
+	/// ```
 	pub fn op_code(&mut self, op_codes: &[OpCode]) -> &mut Self {
 		for opcode in op_codes {
 			self.script.write_u8(opcode.opcode());
@@ -29,12 +76,59 @@ impl ScriptBuilder {
 		self
 	}
 
+	/// Appends an opcode with an argument to the script.
+	///
+	/// # Arguments
+	///
+	/// * `opcode` - The `OpCode` to append.
+	/// * `argument` - The data argument for the opcode.
+	///
+	/// # Returns
+	///
+	/// A mutable reference to the `ScriptBuilder` for method chaining.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::{ScriptBuilder, OpCode};
+	///
+	/// let mut builder = ScriptBuilder::new();
+	/// builder.op_code_with_arg(OpCode::PushData1, vec![0x01, 0x02, 0x03]);
+	/// ```
 	pub fn op_code_with_arg(&mut self, opcode: OpCode, argument: Bytes) -> &mut Self {
 		self.script.write_u8(opcode.opcode());
 		let _ = self.script.write_bytes(&argument);
 		self
 	}
 
+	/// Appends a contract call operation to the script.
+	///
+	/// # Arguments
+	///
+	/// * `hash160` - The 160-bit hash of the contract to call.
+	/// * `method` - The name of the method to call.
+	/// * `params` - A slice of `ContractParameter` values to pass as arguments to the method.
+	/// * `call_flags` - An optional `CallFlags` value specifying the call flags.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing a mutable reference to the `ScriptBuilder` for method chaining,
+	/// or a `BuilderError` if an error occurs.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::{ScriptBuilder, H160, ContractParameter, CallFlags};
+	///
+	/// let mut builder = ScriptBuilder::new();
+	/// let contract_hash = H160::from_slice(&[0; 20]);
+	/// let result = builder.contract_call(
+	///     &contract_hash,
+	///     "transfer",
+	///     &[ContractParameter::from("NeoToken"), ContractParameter::from(1000)],
+	///     Some(CallFlags::All)
+	/// );
+	/// ```
 	pub fn contract_call(
 		&mut self,
 		hash160: &H160,
@@ -58,10 +152,50 @@ impl ScriptBuilder {
 			.sys_call(InteropService::SystemContractCall))
 	}
 
+	/// Appends a system call operation to the script.
+	///
+	/// # Arguments
+	///
+	/// * `operation` - The `InteropService` to call.
+	///
+	/// # Returns
+	///
+	/// A mutable reference to the `ScriptBuilder` for method chaining.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::{ScriptBuilder, InteropService};
+	///
+	/// let mut builder = ScriptBuilder::new();
+	/// builder.sys_call(InteropService::SystemRuntimeCheckWitness);
+	/// ```
 	pub fn sys_call(&mut self, operation: InteropService) -> &mut Self {
 		self.push_opcode_bytes(OpCode::Syscall, operation.hash().from_hex().unwrap())
 	}
 
+	/// Pushes an array of contract parameters to the script.
+	///
+	/// # Arguments
+	///
+	/// * `params` - A slice of `ContractParameter` values to push to the script.
+	///
+	/// # Returns
+	///
+	/// A mutable reference to the `ScriptBuilder` for method chaining.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::{ScriptBuilder, ContractParameter};
+	///
+	/// let mut builder = ScriptBuilder::new();
+	/// builder.push_params(&[
+	///     ContractParameter::from("param1"),
+	///     ContractParameter::from(42),
+	///     ContractParameter::from(true)
+	/// ]);
+	/// ```
 	pub fn push_params(&mut self, params: &[ContractParameter]) -> &mut Self {
 		for param in params {
 			self.push_param(param).unwrap();
@@ -70,6 +204,25 @@ impl ScriptBuilder {
 		self.push_integer(BigInt::from(params.len())).op_code(&[OpCode::Pack])
 	}
 
+	/// Pushes a single contract parameter to the script.
+	///
+	/// # Arguments
+	///
+	/// * `param` - The `ContractParameter` value to push to the script.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing a mutable reference to the `ScriptBuilder` for method chaining,
+	/// or a `BuilderError` if an error occurs.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::{ScriptBuilder, ContractParameter};
+	///
+	/// let mut builder = ScriptBuilder::new();
+	/// builder.push_param(&ContractParameter::from("Hello, Neo!")).unwrap();
+	/// ```
 	pub fn push_param(&mut self, param: &ContractParameter) -> Result<&mut Self, BuilderError> {
 		if param.get_type() == ContractParameterType::Any {
 			self.op_code(&[OpCode::PushNull]);
@@ -102,18 +255,18 @@ impl ScriptBuilder {
 	///
 	/// * `i` - The integer to push to the script
 	///
-	/// # Errors
+	/// # Returns
 	///
-	/// Returns an error if the integer is larger than 32 bytes when encoded.
+	/// A mutable reference to the `ScriptBuilder` for method chaining.
 	///
 	/// # Examples
 	///
-	/// ```
+	/// ```rust
+	/// use neo::prelude::ScriptBuilder;
 	/// use num_bigint::BigInt;
-	/// use NeoRust::prelude::ScriptBuilder;
 	///
 	/// let mut builder = ScriptBuilder::new();
-	/// builder.push_integer(BigInt::from(15));
+	/// builder.push_integer(BigInt::from(42));
 	/// ```
 	pub fn push_integer(&mut self, i: BigInt) -> &mut Self {
 		if i >= BigInt::from(-1) && i <= BigInt::from(16) {
@@ -160,12 +313,17 @@ impl ScriptBuilder {
 	/// * `opcode` - The opcode to append
 	/// * `argument` - The data argument for the opcode
 	///
+	/// # Returns
+	///
+	/// A mutable reference to the `ScriptBuilder` for method chaining.
+	///
 	/// # Examples
 	///
-	/// ```
-	/// use NeoRust::prelude::{OpCode, ScriptBuilder};
+	/// ```rust
+	/// use neo::prelude::{ScriptBuilder, OpCode};
+	///
 	/// let mut builder = ScriptBuilder::new();
-	/// builder.push_opcode_bytes(OpCode::PushData1, vec![0x01]);
+	/// builder.push_opcode_bytes(OpCode::PushData1, vec![0x01, 0x02, 0x03]);
 	/// ```
 	pub fn push_opcode_bytes(&mut self, opcode: OpCode, argument: Vec<u8>) -> &mut ScriptBuilder {
 		self.script.write_u8(opcode as u8);
@@ -185,6 +343,24 @@ impl ScriptBuilder {
 
 	// Push data handling
 
+	/// Pushes data to the script.
+	///
+	/// # Arguments
+	///
+	/// * `data` - The data to push to the script.
+	///
+	/// # Returns
+	///
+	/// A mutable reference to the `ScriptBuilder` for method chaining.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::ScriptBuilder;
+	///
+	/// let mut builder = ScriptBuilder::new();
+	/// builder.push_data("Hello, Neo!".as_bytes().to_vec());
+	/// ```
 	pub fn push_data(&mut self, data: Vec<u8>) -> &mut Self {
 		match data.len() {
 			0..=0xff => {
@@ -206,6 +382,24 @@ impl ScriptBuilder {
 		self
 	}
 
+	/// Pushes a boolean value to the script.
+	///
+	/// # Arguments
+	///
+	/// * `b` - The boolean value to push to the script.
+	///
+	/// # Returns
+	///
+	/// A mutable reference to the `ScriptBuilder` for method chaining.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::ScriptBuilder;
+	///
+	/// let mut builder = ScriptBuilder::new();
+	/// builder.push_bool(true);
+	/// ```
 	pub fn push_bool(&mut self, b: bool) -> &mut Self {
 		if b {
 			self.op_code(&[OpCode::PushTrue])
@@ -215,6 +409,17 @@ impl ScriptBuilder {
 		self
 	}
 
+	/// Pushes an array of contract parameters to the script.
+	///
+	/// # Arguments
+	///
+	/// * `arr` - A slice of `ContractParameter` values to push to the script.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing a mutable reference to the `ScriptBuilder` for method chaining,
+	/// or a `BuilderError` if an error occurs.
+	///
 	pub fn push_array(&mut self, arr: &[ContractParameter]) -> Result<&mut Self, BuilderError> {
 		if arr.is_empty() {
 			self.op_code(&[OpCode::NewArray0]);
@@ -224,6 +429,16 @@ impl ScriptBuilder {
 		Ok(self)
 	}
 
+	/// Pushes a map of contract parameters to the script.
+	///
+	/// # Arguments
+	///
+	/// * `map` - A reference to a `HashMap` mapping `ContractParameter` keys to `ContractParameter` values.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing a mutable reference to the `ScriptBuilder` for method chaining,
+	/// or a `BuilderError` if an error occurs.
 	pub fn push_map(
 		&mut self,
 		map: &HashMap<ContractParameter, ContractParameter>,
@@ -238,14 +453,29 @@ impl ScriptBuilder {
 		Ok(self.push_integer(BigInt::from(map.len())).op_code(&[OpCode::PackMap]))
 	}
 
+	/// Appends the `Pack` opcode to the script.
+	///
+	/// # Returns
+	///
+	/// A mutable reference to the `ScriptBuilder` for method chaining.
 	pub fn pack(&mut self) -> &mut Self {
 		self.op_code(&[OpCode::Pack])
 	}
 
+	/// Returns the script as a `Bytes` object.
 	pub fn to_bytes(&self) -> Bytes {
 		self.script.to_bytes()
 	}
 
+	/// Builds a verification script for the given public key.
+	///
+	/// # Arguments
+	///
+	/// * `pub_key` - The public key to use for verification.
+	///
+	/// # Returns
+	///
+	/// A `Bytes` object containing the verification script.
 	pub fn build_verification_script(pub_key: &Secp256r1PublicKey) -> Bytes {
 		let mut sb = ScriptBuilder::new();
 		sb.push_data(pub_key.get_encoded(true))
@@ -253,6 +483,17 @@ impl ScriptBuilder {
 		sb.to_bytes()
 	}
 
+	/// Builds a multi-signature script for the given public keys and threshold.
+	///
+	/// # Arguments
+	///
+	/// * `pubkeys` - A mutable slice of `Secp256r1PublicKey` values representing the public keys.
+	/// * `threshold` - The minimum number of signatures required to validate the script.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing a `Bytes` object containing the multi-signature script,
+	/// or a `BuilderError` if an error occurs.
 	pub fn build_multi_sig_script(
 		pubkeys: &mut [Secp256r1PublicKey],
 		threshold: u8,
@@ -268,6 +509,18 @@ impl ScriptBuilder {
 		Ok(sb.to_bytes())
 	}
 
+	/// Builds a contract script for the given sender, NEF checksum, and contract name.
+	///
+	/// # Arguments
+	///
+	/// * `sender` - The 160-bit hash of the contract sender.
+	/// * `nef_checksum` - The checksum of the NEF file.
+	/// * `name` - The name of the contract.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing a `Bytes` object containing the contract script,
+	/// or a `BuilderError` if an error occurs.
 	pub fn build_contract_script(
 		sender: &H160,
 		nef_checksum: u32,
@@ -281,6 +534,20 @@ impl ScriptBuilder {
 		Ok(sb.to_bytes())
 	}
 
+	/// Builds a script that calls a contract method and unwraps the iterator result.
+	///
+	/// # Arguments
+	///
+	/// * `contract_hash` - The 160-bit hash of the contract to call.
+	/// * `method` - The name of the method to call.
+	/// * `params` - A slice of `ContractParameter` values to pass as arguments to the method.
+	/// * `max_items` - The maximum number of items to retrieve from the iterator.
+	/// * `call_flags` - An optional `CallFlags` value specifying the call flags.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing a `Bytes` object containing the script,
+	/// or a `BuilderError` if an error occurs.
 	pub fn build_contract_call_and_unwrap_iterator(
 		contract_hash: &H160,
 		method: &str,
@@ -333,6 +600,7 @@ impl ScriptBuilder {
 		Ok(script)
 	}
 
+	/// Returns the length of the script in bytes.
 	pub fn len(&self) -> usize {
 		self.script().size()
 	}

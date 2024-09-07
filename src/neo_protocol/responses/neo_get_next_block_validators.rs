@@ -10,6 +10,6 @@ pub struct Validator {
 
 impl Validator {
 	pub fn new(public_key: String, votes: String, active: bool) -> Self {
-		Self {public_key, votes, active }	
+		Self { public_key, votes, active }
 	}
 }

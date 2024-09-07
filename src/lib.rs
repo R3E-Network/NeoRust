@@ -1,82 +1,149 @@
 #![allow(warnings)]
 
-//! # neo-rs
+//! # NeoRust
 //!
-//! A complete neo Rust library.
+//! A comprehensive Rust library for interacting with the Neo blockchain.
 //!
-//! ## Quickstart: `prelude`
+//! ## Quick Start
 //!
-//! A prelude is provided which imports all the important data types and traits for you. Use this
-//! when you want to quickly bootstrap a new project.
+//! Import all essential types and traits using the `prelude`:
 //!
 //! ```rust
 //! use NeoRust::prelude::*;
 //! ```
 //!
-//! Examples on how you can use the types imported by the prelude can be found in the
-//! [`examples` directory of the repository](https://github.com/R3E-Network/NeoRust/tree/master/examples)
-//! and in the `tests/` directories of each crate.
+//! ## Usage Examples
 //!
-//! ## Modules
+//! ### Connecting to a Neo node
 //!
-//! The following paragraphs are a quick explanation of each module in ascending order of
-//! abstraction. More details can be found in [the book](https://gakonst.com/neo-rs).
+//! ```rust
+//! use NeoRust::prelude::*;
 //!
-//! ### `core`
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let provider = JsonRpcProvider::new("http://seed1.neo.org:10332");
+//!     let block_count = provider.get_block_count().await?;
+//!     println!("Current block count: {}", block_count);
+//!     Ok(())
+//! }
+//! ```
 //!
-//! Contains all the [necessary data structures](core::types) for interacting with neo, along
-//! with cryptographic utilities for signing and verifying ECDSA signatures on `secp256k1`. Bindings
-//! to the Solidity compiler, Anvil and Ganace are also provided as helpers.
-//! To simplify your imports, consider using the re-exported modules described in the next
-//! subsection.
+//! ### Creating and sending a transaction
 //!
-//! ### `utils`, `types`
+//! ```rust
+//! use NeoRust::prelude::*;
 //!
-//! These are re-exports of the [`utils`], [`types`] and [`abi`] modules from the [`core`] crate.
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Initialize the JSON-RPC provider
+//!     let provider = JsonRpcProvider::new("http://seed1.neo.org:10332");
 //!
-//! ### `providers`
+//!     // Create accounts for the sender and recipient
+//!     let sender = Account::from_wif("YOUR_SENDER_WIF_HERE")?;
+//!     let recipient = H160::from_str("NbTiM6h8r99kpRtb428XcsUk1TzKed2gTc")?;
 //!
-//! Contains the [`Provider`] struct, an abstraction of a connection to the neo network, which
-//! alongside the [`Middleware`] trait provides a concise, consistent interface to standard neo
-//! node functionality,
+//!     // Create a new TransactionBuilder
+//!     let mut tx_builder = TransactionBuilder::with_client(&provider);
 //!
-//! ### `signers`
+//!     // Build the transaction
+//!     tx_builder
+//!         .set_script(Some(
+//!             ScriptBuilder::new()
+//!                 .contract_call(
+//!                     &H160::from_str(NeoConstants::NEO_TOKEN_HASH)?,
+//!                     "transfer",
+//!                     &[
+//!                         ContractParameter::hash160(&sender.get_script_hash()),
+//!                         ContractParameter::hash160(&recipient),
+//!                         ContractParameter::integer(1_0000_0000), // 1 NEO
+//!                         ContractParameter::any(),
+//!                     ],
+//!                     None,
+//!                 )
+//!                 .unwrap()
+//!                 .to_bytes(),
+//!         ))
+//!         .set_signers(vec![AccountSigner::called_by_entry(&sender)?])
+//!         .valid_until_block(provider.get_block_count().await? + 5760)?; // Valid for ~1 day
 //!
-//! Provides a [`Signer`] trait which can be used for signing messages or transactions. A [`Wallet`]
-//! type is implemented which can be used with a raw private key or a YubiHSM2. Ledger and Trezor
-//! support are also provided.
+//!     // Sign the transaction
+//!     let mut signed_tx = tx_builder.sign().await?;
 //!
-//! ### `contract`
+//!     // Send the transaction
+//!     let raw_tx = signed_tx.send_tx(&provider).await?;
 //!
-//! Interacting with neo is not restricted to sending or receiving funds. It also involves
-//! using smart contracts, which can be thought of as programs with persistent storage.
+//!     println!("Transaction sent: {}", raw_tx.hash);
 //!
-//! Interacting with a smart contract requires broadcasting carefully crafted
-//! [transactions](core::types::Transaction) where the `data` field contains
-//! the [function's
-//! selector](https://neo.stackexchange.com/questions/72363/what-is-a-function-selector)
-//! along with the arguments of the called function. This module provides the
-//! [`Contract`] and [`ContractFactory`] abstractions so that you do not have to worry about that.
+//!     // Wait for the transaction to be confirmed
+//!     loop {
+//!         tokio::time::sleep(std::time::Duration::from_secs(15)).await;
+//!         match signed_tx.get_application_log(&provider).await {
+//!             Ok(app_log) => {
+//!                 println!("Transaction confirmed!");
+//!                 println!("Application log: {:?}", app_log);
+//!                 break;
+//!             }
+//!             Err(_) => {
+//!                 println!("Transaction not yet confirmed. Waiting...");
+//!             }
+//!         }
+//!     }
 //!
+//!     Ok(())
+//! }
+//! ```
 //!
-//! ### `middleware`
+//! ### Interacting with a smart contract
 //!
-//! In order to keep the neo architecture as modular as possible, providers define a
-//! [`Middleware`] trait which defines all the methods to interact with a neo node. By
-//! implementing the middleware trait, you are able to override the default behavior of methods and
-//! do things such as using other gas oracles, escalating your transactions' gas prices, or signing
-//! your transactions with a [`Signer`]. The middleware architecture allows users to either use one
-//! of the existing middleware, or they are free to write on of their own.
+//! ```rust
+//! use NeoRust::prelude::*;
 //!
-//! [`Provider`]: providers::RpcClient
-//! [`Middleware`]: providers::api_trait
-//! [`Wallet`]: signers::Wallet
-//! [`Signer`]: signers::SignerTrait
-//! [`ContractFactory`]: contract::ContractFactory
-//! [`Contract`]: contract::Contract
-//! [`utils`]: core::utils
-//! [`abi`]: core::abi
-//! [`types`]: core::types
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     let provider = JsonRpcProvider::new("http://seed1.neo.org:10332");
+//!     let contract_hash = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+//!     
+//!     let result: String = provider
+//!         .invoke_function(contract_hash, "name", vec![], None)
+//!         .await?;
+//!     
+//!     println!("Contract name: {}", result);
+//!     Ok(())
+//! }
+//! ```
+//!
+//! For more usage examples, refer to the [`examples` directory](https://github.com/R3E-Network/NeoRust/tree/master/examples) in the repository.
+//!
+//! ## Project Structure
+//!
+//! ```
+//! NeoRust
+//! ├── examples
+//! └── src
+//!     ├── neo_builder
+//!     ├── neo_clients
+//!     ├── neo_codec
+//!     ├── neo_config
+//!     ├── neo_contract
+//!     ├── neo_crypto
+//!     ├── neo_protocol
+//!     ├── neo_types
+//!     └── neo_wallets
+//! ```
+//!
+//! ## Module Overview
+//!
+//! - **neo_builder**: Transaction and script building utilities.
+//! - **neo_clients**: Neo node interaction clients (RPC and WebSocket).
+//! - **neo_codec**: Encoding and decoding for Neo-specific data structures.
+//! - **neo_config**: Network and client configuration management.
+//! - **neo_contract**: Smart contract interaction abstractions.
+//! - **neo_crypto**: Neo-specific cryptographic operations.
+//! - **neo_protocol**: Neo network protocol implementation.
+//! - **neo_types**: Core Neo ecosystem data types.
+//! - **neo_wallets**: Neo asset and account management.
+//!
+//! For detailed information, consult the documentation of each module.
 
 #![warn(missing_debug_implementations, missing_docs, rust_2018_idioms, unreachable_pub)]
 #![deny(rustdoc::broken_intra_doc_links)]
@@ -89,23 +156,23 @@
 extern crate self as neo;
 
 #[doc(inline)]
-use neo_builder as builder;
+pub use neo_builder as builder;
 #[doc(inline)]
-use neo_clients as providers;
+pub use neo_clients as providers;
 #[doc(inline)]
-use neo_codec as codec;
+pub use neo_codec as codec;
 #[doc(inline)]
-use neo_config as config;
+pub use neo_config as config;
 #[doc(inline)]
-use neo_contract as contract;
+pub use neo_contract as contract;
 #[doc(inline)]
-use neo_crypto as crypto;
+pub use neo_crypto as crypto;
 #[doc(inline)]
-use neo_protocol as protocol;
+pub use neo_protocol as protocol;
 #[doc(inline)]
-use neo_types as types;
+pub use neo_types as types;
 #[doc(inline)]
-use neo_wallets as wallets;
+pub use neo_wallets as wallets;
 
 pub mod neo_builder;
 pub mod neo_clients;
@@ -118,12 +185,79 @@ pub mod neo_protocol;
 pub mod neo_types;
 pub mod neo_wallets;
 
-/// Easy imports of frequently used type definitions and traits.
-#[doc(hidden)]
-#[allow(unknown_lints, ambiguous_glob_reexports)]
+/// Convenient imports for commonly used types and traits.
 pub mod prelude {
 	pub use super::{
 		builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
 		providers::*, types::*, wallets::*,
 	};
+}
+
+#[cfg(test)]
+mod tests {
+	use super::prelude::*;
+	use primitive_types::H160;
+	use std::str::FromStr;
+	use tokio;
+	use url::Url;
+
+	#[tokio::test]
+	async fn test_create_and_send_transaction() -> Result<(), Box<dyn std::error::Error>> {
+		// Initialize the JSON-RPC provider
+		let http_provider = HttpProvider::new("http://seed1.neo.org:10332")?;
+		let rpc_client = RpcClient::new(http_provider);
+
+		// Create accounts for the sender and recipient
+		let sender = Account::from_wif("YOUR_SENDER_WIF_HERE")?;
+		let recipient = Account::from_address("NbTiM6h8r99kpRtb428XcsUk1TzKed2gTc")?;
+
+		// Create a new TransactionBuilder
+		let mut tx_builder = TransactionBuilder::with_client(&rpc_client);
+
+		// Build the transaction
+		tx_builder
+			.set_script(Some(
+				ScriptBuilder::new()
+					.contract_call(
+						&H160::from_str(TestConstants::NEO_TOKEN_HASH)?,
+						"transfer",
+						&[
+							ContractParameter::h160(&sender.get_script_hash()),
+							ContractParameter::h160(&recipient.get_script_hash()),
+							ContractParameter::integer(1_0000_0000), // 1 NEO
+							ContractParameter::any(),
+						],
+						None,
+					)
+					.unwrap()
+					.to_bytes(),
+			))
+			.set_signers(vec![AccountSigner::called_by_entry(&sender)?.into()])
+			.valid_until_block(rpc_client.get_block_count().await? + 5760)?; // Valid for ~1 day
+
+		// Sign the transaction
+		let mut signed_tx = tx_builder.sign().await?;
+
+		// Send the transaction
+		let raw_tx = signed_tx.send_tx(&rpc_client).await?;
+
+		println!("Transaction sent: {}", raw_tx.hash);
+
+		// Wait for the transaction to be confirmed
+		loop {
+			tokio::time::sleep(std::time::Duration::from_secs(15)).await;
+			match signed_tx.get_application_log(&rpc_client).await {
+				Ok(app_log) => {
+					println!("Transaction confirmed!");
+					println!("Application log: {:?}", app_log);
+					break;
+				},
+				Err(_) => {
+					println!("Transaction not yet confirmed. Waiting...");
+				},
+			}
+		}
+
+		Ok(())
+	}
 }

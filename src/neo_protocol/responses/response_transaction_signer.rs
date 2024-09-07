@@ -5,10 +5,11 @@ use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
 	deserialize_scopes, deserialize_script_hash, deserialize_vec_public_key_option,
-	deserialize_vec_script_hash_option, deserialize_vec_script_hash, serialize_scopes, serialize_script_hash,
-	serialize_vec_public_key_option, serialize_vec_script_hash_option, serialize_vec_script_hash, Decoder, Encoder,
-	NeoConstants, NeoSerializable, Secp256r1PublicKey, SignerTrait, SignerType, TransactionError,
-	VarSizeTrait, WitnessRule, WitnessScope,
+	deserialize_vec_script_hash, deserialize_vec_script_hash_option, serialize_scopes,
+	serialize_script_hash, serialize_vec_public_key_option, serialize_vec_script_hash,
+	serialize_vec_script_hash_option, Decoder, Encoder, NeoConstants, NeoSerializable,
+	Secp256r1PublicKey, SignerTrait, SignerType, TransactionError, VarSizeTrait, WitnessRule,
+	WitnessScope,
 };
 
 use crate::prelude::TypeError;
@@ -64,13 +65,7 @@ impl RTransactionSigner {
 		allowed_groups: Vec<String>,
 		rules: Vec<WitnessRule>,
 	) -> Self {
-		Self {
-			account,
-			scopes,
-			allowed_contracts: allowed_contracts,
-			allowed_groups: allowed_groups,
-			rules: rules,
-		}
+		Self { account, scopes, allowed_contracts, allowed_groups, rules }
 	}
 
 	pub fn get_first_scope(&self) -> Result<&WitnessScope, TypeError> {
@@ -134,29 +129,29 @@ impl RTransactionSigner {
 	}
 
 	pub fn get_first_rule(&self) -> Result<&WitnessRule, TypeError> {
-        if self.rules.is_empty() {
-            return Err(TypeError::IndexOutOfBounds(
-                "This transaction signer does not have any witness rules.".to_string(),
-            ));
-        }
-        self.get_rule(0)
-    }
+		if self.rules.is_empty() {
+			return Err(TypeError::IndexOutOfBounds(
+				"This transaction signer does not have any witness rules.".to_string(),
+			));
+		}
+		self.get_rule(0)
+	}
 
-    pub fn get_rule(&self, index: usize) -> Result<&WitnessRule, TypeError> {
-        if index >= self.rules.len() {
-            return Err(TypeError::IndexOutOfBounds(format!(
-                "This transaction signer only has {} witness rules. Tried to access index {}.",
-                self.rules.len(),
-                index
-            )));
-        }
-        Ok(&self.rules[index])
-    }
+	pub fn get_rule(&self, index: usize) -> Result<&WitnessRule, TypeError> {
+		if index >= self.rules.len() {
+			return Err(TypeError::IndexOutOfBounds(format!(
+				"This transaction signer only has {} witness rules. Tried to access index {}.",
+				self.rules.len(),
+				index
+			)));
+		}
+		Ok(&self.rules[index])
+	}
 }
 
 impl SignerTrait for RTransactionSigner {
 	fn get_type(&self) -> SignerType {
-		SignerType::Transaction
+		SignerType::TransactionSigner
 	}
 
 	fn get_signer_hash(&self) -> &H160 {

@@ -14,6 +14,10 @@ use neo::prelude::{
 
 use crate::prelude::Secp256r1PublicKey;
 
+/// Represents an account signer in the NEO blockchain.
+///
+/// This struct contains information about the account signer, including
+/// the signer hash, scopes, allowed contracts, allowed groups, and witness rules.
 #[derive(Debug, Clone, Serialize, Deserialize, Getters, Setters)]
 pub struct AccountSigner {
 	#[serde(
@@ -35,6 +39,45 @@ pub struct AccountSigner {
 	rules: Vec<WitnessRule>,
 	#[getset(get = "pub")]
 	pub account: Account,
+}
+
+impl AccountSigner {
+	/// Creates a new `AccountSigner` with no scope.
+	///
+	/// # Arguments
+	///
+	/// * `account` - The account to create the signer for.
+	pub fn none(account: &Account) -> Result<Self, TransactionError> {
+		Ok(Self::new(account, WitnessScope::None))
+	}
+
+	/// Creates a new `AccountSigner` with the "Called By Entry" scope.
+	///
+	/// # Arguments
+	///
+	/// * `account` - The account to create the signer for.
+	pub fn called_by_entry(account: &Account) -> Result<Self, TransactionError> {
+		Ok(Self::new(account, WitnessScope::CalledByEntry))
+	}
+
+	/// Creates a new `AccountSigner` with the "Global" scope.
+	///
+	/// # Arguments
+	///
+	/// * `account` - The account to create the signer for.
+	pub fn global(account: &Account) -> Result<Self, TransactionError> {
+		Ok(Self::new(account, WitnessScope::Global))
+	}
+
+	/// Checks if the account is a multi-signature account.
+	pub fn is_multi_sig(&self) -> bool {
+		matches!(&self.account.verification_script(), Some(script) if script.is_multi_sig())
+	}
+
+	/// Returns the script hash of the account.
+	pub fn get_script_hash(&self) -> H160 {
+		self.account.get_script_hash().clone()
+	}
 }
 
 impl NeoSerializable for AccountSigner {
@@ -155,7 +198,7 @@ impl Hash for AccountSigner {
 
 impl SignerTrait for AccountSigner {
 	fn get_type(&self) -> SignerType {
-		SignerType::Account
+		SignerType::AccountSigner
 	}
 
 	fn get_signer_hash(&self) -> &H160 {
@@ -215,17 +258,9 @@ impl AccountSigner {
 		}
 	}
 
-	pub fn none(account: &Account) -> Result<Self, TransactionError> {
-		Ok(Self::new(account, WitnessScope::None))
-	}
-
 	pub fn none_hash160(account_hash: H160) -> Result<Self, TransactionError> {
 		let account = Account::from_address(account_hash.to_address().as_str()).unwrap();
 		Ok(Self::new(&account, WitnessScope::None))
-	}
-
-	pub fn called_by_entry(account: &Account) -> Result<Self, TransactionError> {
-		Ok(Self::new(account, WitnessScope::CalledByEntry))
 	}
 
 	pub fn called_by_entry_hash160(account_hash: H160) -> Result<Self, TransactionError> {
@@ -233,20 +268,8 @@ impl AccountSigner {
 		Ok(Self::new(&account, WitnessScope::CalledByEntry))
 	}
 
-	pub fn global(account: &Account) -> Result<Self, TransactionError> {
-		Ok(Self::new(account, WitnessScope::Global))
-	}
-
 	pub fn global_hash160(account_hash: H160) -> Result<Self, TransactionError> {
 		let account = Account::from_address(account_hash.to_address().as_str()).unwrap();
 		Ok(Self::new(&account, WitnessScope::Global))
-	}
-
-	pub fn is_multi_sig(&self) -> bool {
-		matches!(&self.account.verification_script(), Some(script) if script.is_multi_sig())
-	}
-
-	pub fn get_script_hash(&self) -> H160 {
-		self.account.get_script_hash().clone()
 	}
 }

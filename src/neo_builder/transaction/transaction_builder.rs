@@ -1,3 +1,41 @@
+/// A builder for constructing and configuring NEO blockchain transactions.
+///
+/// The `TransactionBuilder` provides a fluent interface for setting various transaction parameters
+/// such as version, nonce, validity period, signers, fees, and script. Once configured, it can
+/// generate an unsigned transaction.
+///
+/// # Fields
+///
+/// - `client`: An optional reference to an RPC client for network operations.
+/// - `version`: The transaction version.
+/// - `nonce`: A random number to prevent transaction duplication.
+/// - `valid_until_block`: The block height until which the transaction is valid.
+/// - `signers`: A list of transaction signers.
+/// - `additional_network_fee`: Additional network fee for the transaction.
+/// - `additional_system_fee`: Additional system fee for the transaction.
+/// - `attributes`: Transaction attributes.
+/// - `script`: The transaction script.
+/// - `fee_consumer`: An optional closure for fee-related operations.
+/// - `fee_error`: An optional error related to fee calculations.
+///
+/// # Example
+///
+/// ```rust
+/// use NeoRust::prelude::TransactionBuilder;
+///
+/// let mut tx_builder = TransactionBuilder::new();
+/// tx_builder.version(0)
+///           .nonce(1)
+///           .valid_until_block(100)
+///           .extend_script(vec![0x01, 0x02, 0x03]);
+///
+/// let unsigned_tx = tx_builder.get_unsigned_tx().await.unwrap();
+/// ```
+///
+/// # Note
+///
+/// This builder implements `Debug`, `Clone`, `Eq`, `PartialEq`, and `Hash` traits.
+/// It uses generics to allow for different types of JSON-RPC providers.
 use futures_util::TryFutureExt;
 use std::{
 	cell::RefCell,
@@ -8,24 +46,6 @@ use std::{
 	str::FromStr,
 };
 
-/// This module contains the implementation of the `TransactionBuilder` struct, which is used to build and configure transactions.
-///
-/// The `TransactionBuilder` struct has various fields that can be set using its methods. Once the fields are set, the `get_unsigned_tx` method can be called to obtain an unsigned transaction.
-///
-/// The `TransactionBuilder` struct implements various traits such as `Debug`, `Clone`, `Eq`, `PartialEq`, and `Hash`.
-///
-/// # Example
-///
-/// ```
-///
-/// use NeoRust::prelude::TransactionBuilder;
-/// let mut tx_builder = TransactionBuilder::new();
-/// tx_builder.version(0)
-///           .nonce(1)
-///           .valid_until_block(100)
-///           .set_script(vec![0x01, 0x02, 0x03])
-///           .get_unsigned_tx();
-/// ```
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use once_cell::sync::Lazy;
 use primitive_types::H160;
@@ -356,7 +376,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	}
 
 	fn is_account_signer(signer: &Signer) -> bool {
-		if signer.get_type() == SignerType::Account {
+		if signer.get_type() == SignerType::AccountSigner {
 			return true;
 		}
 		return false;
@@ -774,7 +794,7 @@ mod tests {
 		.into()]);
 		assert_eq!(
 			tb.signers()[0],
-			Signer::Account(AccountSigner::global(ACCOUNT1.deref()).unwrap())
+			Signer::AccountSigner(AccountSigner::global(ACCOUNT1.deref()).unwrap())
 		);
 
 		tb.set_signers(vec![AccountSigner::global(ACCOUNT2.deref()).unwrap().into()]);
@@ -1370,9 +1390,9 @@ mod tests {
 			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
 
-		let tx =match  tx_builder.get_unsigned_tx().await {
+		let tx = match tx_builder.get_unsigned_tx().await {
 			Ok(tx) => tx,
-			Err(e) => panic!("Error: {}", e)
+			Err(e) => panic!("Error: {}", e),
 		};
 
 		assert_eq!(tx.version, 0);
@@ -1410,9 +1430,9 @@ mod tests {
 			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
 
-		let tx =match  tx_builder.get_unsigned_tx().await {
+		let tx = match tx_builder.get_unsigned_tx().await {
 			Ok(tx) => tx,
-			Err(e) => panic!("Error: {}", e)
+			Err(e) => panic!("Error: {}", e),
 		};
 
 		assert_eq!(tx.version, 1);
@@ -1444,9 +1464,9 @@ mod tests {
 			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(&account).unwrap().into()]);
 
-		let tx =match tx_builder.get_unsigned_tx().await {
+		let tx = match tx_builder.get_unsigned_tx().await {
 			Ok(tx) => tx,
-			Err(e) => panic!("Error: {}", e)
+			Err(e) => panic!("Error: {}", e),
 		};
 		assert_eq!(tx.net_fee, 1230610);
 
@@ -1458,7 +1478,7 @@ mod tests {
 
 		let tx = match tx_builder.get_unsigned_tx().await {
 			Ok(tx) => tx,
-			Err(e) => panic!("Error: {}", e)
+			Err(e) => panic!("Error: {}", e),
 		};
 
 		assert_eq!(tx.net_fee, 1230610 + 2000);
@@ -1492,9 +1512,9 @@ mod tests {
 			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(&account).unwrap().into()]);
 
-		let tx =match  tx_builder.get_unsigned_tx().await {
+		let tx = match tx_builder.get_unsigned_tx().await {
 			Ok(tx) => tx,
-			Err(e) => panic!("Error: {}", e)
+			Err(e) => panic!("Error: {}", e),
 		};
 
 		assert_eq!(tx.sys_fee, 984060);
@@ -1505,9 +1525,9 @@ mod tests {
 			.set_signers(vec![AccountSigner::none(&account).unwrap().into()])
 			.set_additional_system_fee(3000);
 
-		let tx =match  tx_builder.get_unsigned_tx().await {
+		let tx = match tx_builder.get_unsigned_tx().await {
 			Ok(tx) => tx,
-			Err(e) => panic!("Error: {}", e)
+			Err(e) => panic!("Error: {}", e),
 		};
 		assert_eq!(tx.sys_fee, 984060 + 3000);
 	}
@@ -1921,9 +1941,9 @@ mod tests {
 		let result = tx_builder.call_invoke_script().await;
 		assert!(result.has_state_fault());
 
-		let tx =match  tx_builder.get_unsigned_tx().await {
+		let tx = match tx_builder.get_unsigned_tx().await {
 			Ok(tx) => tx,
-			Err(e) => panic!("Error: {}", e)
+			Err(e) => panic!("Error: {}", e),
 		};
 		assert_eq!(tx.sys_fee, 984060);
 

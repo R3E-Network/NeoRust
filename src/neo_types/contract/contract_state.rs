@@ -6,7 +6,6 @@ use neo::prelude::{
 	InvocationResult, StackItem, *,
 };
 
-
 #[derive(Clone, Debug, Hash, Serialize, Deserialize, PartialEq)]
 pub struct ContractState {
 	#[serde(default)]

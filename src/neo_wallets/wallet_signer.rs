@@ -9,15 +9,14 @@ use neo::prelude::{APITrait, Transaction, WalletError};
 
 use crate::{neo_types::Address, prelude::HashableForVec};
 
-/// An Ethereum private-public key pair which can be used for signing messages.
+/// A Neo private-public key pair which can be used for signing messages.
 ///
 /// # Examples
 ///
 /// ## Signing and Verifying a message
 ///
 /// The wallet can be used to produce ECDSA [`p256::NistP256`] objects, which can be
-/// then verified. Note that this uses [`hash_message`] under the hood which will
-/// prefix the message being hashed with the `Ethereum Signed Message` domain separator.
+/// then verified.
 ///
 /// ```
 ///
@@ -41,8 +40,7 @@ use crate::{neo_types::Address, prelude::HashableForVec};
 /// # }
 /// ```
 ///
-/// [`p256::NistP256`]: ethers_core::types::p256::NistP256
-/// [`hash_message`]: fn@ethers_core::utils::hash_message
+/// [`p256::NistP256`]: p256::NistP256
 #[derive(Clone)]
 pub struct WalletSigner<D: PrehashSigner<Signature<NistP256>>> {
 	/// The WalletSigner's private Key
