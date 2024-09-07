@@ -4380,6 +4380,7 @@ mod tests {
 		);
 		assert_eq!(item0.as_string().unwrap(), "transfer".to_string());
 
+		// Base64 decode failed on valid string.
 		let try_base = base64::decode("wWq=".trim_end()).expect(&format!("Failed to decode the string: wWq="));
 
 		// let item1 = invocation_result.stack.get(1).unwrap();
