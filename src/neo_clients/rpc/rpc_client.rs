@@ -1277,12 +1277,7 @@ mod tests {
 	use crate::{
 		neo_types::{Base64Encode, ToBase64},
 		prelude::{
-			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod,
-			ContractNef, ContractParameter2, ContractParameterType, ContractPermission,
-			ContractState, HighPriorityAttribute, MockClient, NativeContractState, NeoVMStateType,
-			NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode,
-			RTransactionSigner, StackItem, SubmitBlock, TransactionAttributeEnum, TypeError,
-			VMState, Validator,
+			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, InvocationResult, MockClient, NativeContractState, NeoVMStateType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator
 		},
 		providers::RpcClient,
 	};
@@ -4800,6 +4795,166 @@ mod tests {
 	}
 
 	#[tokio::test]
+	async fn test_invoke_function_without_or_empty_params() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response_without_request(
+            &mock_server,
+            json!({
+        "script": "10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52",
+        "state": "FAULT",
+        "gasconsumed": "2007390",
+		"exception": null,
+		"notifications": [],
+        "stack": []
+    	}),
+        ).await;
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
+			"jsonrpc": "2.0",
+			"method": "invokefunction",
+			"params": [
+				"af7c7328eee5a275a3bcaee2bf0cf662b5e739be",
+				"balanceOf",
+				[
+					{{
+						"type": "Hash160",
+						"value": "91b83e96f2a7c4fdf0c1688441ec61986c7cae26"
+					}}
+				],
+				[
+					{{
+						"account": "cadb3dc2faa3ef14a13b619c9a43124755aa2569",
+						"scopes": "CalledByEntry,CustomContracts,CustomGroups,WitnessRules",
+						"allowedcontracts": ["ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"],
+						"allowedgroups": [
+							"033a4d051b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7857787f1b"
+						],
+						"rules": [
+							{{
+								"action": "Allow",
+								"condition": {{
+									"type": "CalledByContract",
+									"hash": "{}"
+								}}
+							}}
+						]
+					}}
+				]
+			],
+			"id": 1
+		}}"#,
+			TestConstants::NEO_TOKEN_HASH
+		);
+
+		let public_key = Secp256r1PublicKey::from_bytes(
+			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
+		)
+		.unwrap();
+		let rule = WitnessRule::new(
+			WitnessAction::Allow,
+			WitnessCondition::CalledByContract(
+				H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap(),
+			),
+		);
+
+		let mut signer = AccountSignerType::called_by_entry_hash160(
+			H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap(),
+		)
+		.unwrap();
+		signer
+			.set_allowed_contracts(vec![H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap()])
+			.expect("TODO: panic message");
+		signer.set_allowed_groups(vec![public_key]).expect("TODO: panic message");
+		signer.set_rules(vec![rule]).expect("TODO: panic message");
+
+		let result = provider
+			.invoke_function(
+				&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
+				"balanceOf".to_string(),
+				vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()],
+				Some(vec![AccountSigner(signer)]),
+			)
+			.await;
+
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		// Response verification
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let invocation_result = result.unwrap();
+		assert_eq!(invocation_result.script, "10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52".to_string());
+		assert_eq!(invocation_result.state, NeoVMStateType::Fault);
+		assert_eq!(invocation_result.gas_consumed, "2007390".to_string());
+		assert_eq!(invocation_result.stack.len(), 0);
+		let expected_result = InvocationResult::new(
+			"10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52".to_string(),
+			NeoVMStateType::Fault,
+			"2007390".to_string(),
+			None,
+			Some(vec![]),
+			None,
+			vec![],
+			None,
+			None,
+			None
+		);
+	}
+
+	#[tokio::test]
+	async fn test_invoke_function_empty_state() {
+		let mock_server = setup_mock_server().await;
+		let provider = mock_rpc_response_without_request(
+            &mock_server,
+            json!({
+        "script": "10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52",
+        "state": "",
+        "gasconsumed": "2007390",
+        "stack": []
+    	}),
+        ).await;
+
+		let public_key = Secp256r1PublicKey::from_bytes(
+			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
+		)
+		.unwrap();
+		let rule = WitnessRule::new(
+			WitnessAction::Allow,
+			WitnessCondition::CalledByContract(
+				H160::from_hex(TestConstants::NEO_TOKEN_HASH).unwrap(),
+			),
+		);
+
+		let mut signer = AccountSignerType::called_by_entry_hash160(
+			H160::from_str("0xcadb3dc2faa3ef14a13b619c9a43124755aa2569").unwrap(),
+		)
+		.unwrap();
+		signer
+			.set_allowed_contracts(vec![H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap()])
+			.expect("TODO: panic message");
+		signer.set_allowed_groups(vec![public_key]).expect("TODO: panic message");
+		signer.set_rules(vec![rule]).expect("TODO: panic message");
+
+		let result = provider
+			.invoke_function(
+				&H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
+				"balanceOf".to_string(),
+				vec![H160::from_hex("91b83e96f2a7c4fdf0c1688441ec61986c7cae26").unwrap().into()],
+				Some(vec![AccountSigner(signer)]),
+			)
+			.await;
+
+		// Response verification
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let invocation_result = result.unwrap();
+		assert_eq!(invocation_result.script, "10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52".to_string());
+		assert_eq!(invocation_result.state, NeoVMStateType::None);
+		assert_eq!(invocation_result.gas_consumed, "2007390".to_string());
+		assert_eq!(invocation_result.stack.len(), 0);
+	}
+
+	
+
+	#[tokio::test]
 	async fn test_invoke_function_witnessrules() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
@@ -4963,7 +5118,70 @@ mod tests {
 				[],
 				true
 			]),
-			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+			json!({
+				"script": "wh8MC2NhbGxTeW1ib2xzDBQ35AiF8REp1Iy5N6DbcAjECghSDkFifVtS",
+				"state": "HALT",
+				"gasconsumed": "4845600",
+				"exception": null,
+				"notifications": [],
+				"diagnostics": {
+					"invokedcontracts": {
+						"hash": "0x7df45ba2d3a0c0520ceef7a73f8d1c404cc59a48",
+						"call": [
+							{
+								"hash": "0x0e52080ac40870dba037b98cd42911f18508e437",
+								"call": [
+									{
+										"hash": "0x0e52080ac40870dba037b98cd42911f18508e437"
+									},
+									{
+										"hash": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"
+									},
+									{
+										"hash": "0xd2a4cff31913016155e38e474a2c06d08be276cf"
+									}
+								]
+							}
+						]
+					},
+					"storagechanges": [
+						{
+							"state": "Deleted",
+							"key": "BgAAAP8=",
+							"value": "DRZcmJnDi79ZkcXkewSTcljK7Gk="
+						},
+						{
+							"state": "Changed",
+							"key": "+v///xQNFlyYmcOLv1mRxeR7BJNyWMrsaQ==",
+							"value": "QQEhBQAb1mAS"
+						},
+						{
+							"state": "Added",
+							"key": "+v///xRjv+9gkFzYfFbaQGRkS+b3ro7EiA==",
+							"value": "QQEhAQo="
+						}
+					]
+				},
+				"stack": [
+					{
+						"type": "Array",
+						"value": [
+							{
+								"type": "ByteString",
+								"value": "TkVP"
+							},
+							{
+								"type": "ByteString",
+								"value": "R0FT"
+							},
+							{
+								"type": "ByteString",
+								"value": "TkVP"
+							}
+						]
+					}
+				]
+			}),
 		)
 		.await;
 		// Expected request body
@@ -5008,6 +5226,19 @@ mod tests {
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let invocation_result = result.unwrap();
+		let dignostics = invocation_result.diagnostics.unwrap();
+
+		let invoked_contracts = dignostics.invoked_contracts;
+		assert_eq!(invoked_contracts.hash, H160::from_str("0x7df45ba2d3a0c0520ceef7a73f8d1c404cc59a48").unwrap());
+
+		let calls = invoked_contracts.invoked_contracts;
+		assert_eq!(calls.len(), 1);
+		assert_eq!(calls.get(0).unwrap().hash, H160::from_str("0x0e52080ac40870dba037b98cd42911f18508e437").unwrap())
+
+
+
 	}
 
 	#[tokio::test]

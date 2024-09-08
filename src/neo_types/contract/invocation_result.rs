@@ -4,7 +4,8 @@ use std::{
 };
 
 use primitive_types::H160;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+use serde::de::{self, Unexpected};
 use strum;
 use strum_macros::{AsRefStr, Display, EnumString};
 
@@ -36,10 +37,11 @@ pub struct InvocationResult {
 	pub session_id: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, EnumString, AsRefStr, Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Serialize, EnumString, AsRefStr, Debug, PartialEq, Eq, Clone, Hash)]
 #[strum(serialize_all = "UPPERCASE")]
 #[serde(rename_all = "UPPERCASE")]
 pub enum NeoVMStateType {
+	None,
 	Halt,
 	Fault,
 	Break,
@@ -53,6 +55,33 @@ impl Default for NeoVMStateType {
 	fn default() -> Self {
 		NeoVMStateType::Halt
 	}
+}
+
+// Custom deserialization logic
+impl<'de> Deserialize<'de> for NeoVMStateType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+
+        if value.is_empty() {
+            return Ok(NeoVMStateType::None);  // Handle empty string as `None`
+        }
+		let value_lower = value.to_lowercase();
+
+        match value_lower.as_str() {
+            "none" => Ok(NeoVMStateType::None),
+            "halt" => Ok(NeoVMStateType::Halt),
+            "fault" => Ok(NeoVMStateType::Fault),
+            "break" => Ok(NeoVMStateType::Break),
+            "stepInto" => Ok(NeoVMStateType::StepInto),
+            "stepOut" => Ok(NeoVMStateType::StepOut),
+            "stepOver" => Ok(NeoVMStateType::StepOver),
+            "exception" => Ok(NeoVMStateType::Exception),
+            _ => Err(de::Error::invalid_value(Unexpected::Str(&value), &"a valid NeoVMStateType string")),
+        }
+    }
 }
 
 impl InvocationResult {
