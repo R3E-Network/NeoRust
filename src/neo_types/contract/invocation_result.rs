@@ -1,6 +1,5 @@
 use std::{
-	collections::HashMap,
-	hash::{Hash, Hasher},
+	collections::HashMap, default, hash::{Hash, Hasher}
 };
 
 use primitive_types::H160;
@@ -219,6 +218,15 @@ pub struct Diagnostics {
 	pub storage_changes: Vec<StorageChange>,
 }
 
+impl Diagnostics {
+	pub fn new(
+		invoked_contracts: InvokedContract,
+		storage_changes: Vec<StorageChange>
+	) -> Self {
+		Self { invoked_contracts: invoked_contracts, storage_changes: storage_changes }
+	}
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct InvokedContract {
 	#[serde(deserialize_with = "deserialize_script_hash")]
@@ -228,11 +236,36 @@ pub struct InvokedContract {
 	pub invoked_contracts: Vec<InvokedContract>,
 }
 
+impl InvokedContract {
+	pub fn new(
+		hash: H160,
+		invoked_contracts: Vec<InvokedContract>
+	) -> Self {
+		Self { hash: hash, invoked_contracts: invoked_contracts }
+	}
+
+	pub fn new_hash(
+		hash: H160
+	) -> Self {
+		Self { hash: hash, invoked_contracts: vec![] }
+	}
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StorageChange {
 	pub state: String,
 	pub key: String,
 	pub value: String,
+}
+
+impl StorageChange {
+	pub fn new(
+		state: String,
+		key: String,
+		value: String
+	) -> Self {
+		Self { state: state, key: key, value: value }
+	}
 }
 
 // Notification

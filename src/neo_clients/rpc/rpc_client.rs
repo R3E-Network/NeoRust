@@ -1248,7 +1248,7 @@ pub fn is_local_endpoint(endpoint: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-	use std::{any::Any, str::FromStr, sync::Mutex};
+	use std::{any::Any, hash::Hash, str::FromStr, sync::Mutex};
 	use base64::Engine;
 	use base64::engine::general_purpose;
 	use blake2::digest::Mac;
@@ -1275,7 +1275,7 @@ mod tests {
 	};
 
 	use crate::{
-		neo_types::{Base64Encode, ToBase64},
+		neo_types::{Base64Encode, Diagnostics, InvokedContract, StorageChange, ToBase64},
 		prelude::{
 			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, InvocationResult, MockClient, NativeContractState, NeoVMStateType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator
 		},
@@ -5230,15 +5230,42 @@ mod tests {
 		let invocation_result = result.unwrap();
 		let dignostics = invocation_result.diagnostics.unwrap();
 
-		let invoked_contracts = dignostics.invoked_contracts;
+		let invoked_contracts = dignostics.clone().invoked_contracts;
 		assert_eq!(invoked_contracts.hash, H160::from_str("0x7df45ba2d3a0c0520ceef7a73f8d1c404cc59a48").unwrap());
 
 		let calls = invoked_contracts.invoked_contracts;
 		assert_eq!(calls.len(), 1);
-		assert_eq!(calls.get(0).unwrap().hash, H160::from_str("0x0e52080ac40870dba037b98cd42911f18508e437").unwrap())
+		assert_eq!(calls.get(0).unwrap().hash, H160::from_str("0x0e52080ac40870dba037b98cd42911f18508e437").unwrap());
 
+		let nested_invoked_contrats = &calls.get(0).unwrap().invoked_contracts;
+		assert_eq!(nested_invoked_contrats.len(), 3);
+		assert_eq!(nested_invoked_contrats.get(0).unwrap().hash, H160::from_str("0x0e52080ac40870dba037b98cd42911f18508e437").unwrap());
+		assert_eq!(nested_invoked_contrats.get(0).unwrap().invoked_contracts.len(), 0);
+		assert_eq!(nested_invoked_contrats.get(1).unwrap().hash, H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap());
+		assert_eq!(nested_invoked_contrats.get(1).unwrap().invoked_contracts.len(), 0);
+		assert_eq!(nested_invoked_contrats.get(2).unwrap().hash, H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap());
+		assert_eq!(nested_invoked_contrats.get(2).unwrap().invoked_contracts.len(), 0);
 
+		let storage_changes = dignostics.clone().storage_changes;
+		assert_eq!(storage_changes.len(), 3);
+		let storage_change1 = storage_changes.get(0).unwrap();
+		let expected_storage_change1 = StorageChange::new("Deleted".to_string(), "BgAAAP8=".to_string(), "DRZcmJnDi79ZkcXkewSTcljK7Gk=".to_string());
+		assert_eq!(storage_change1, &expected_storage_change1);
+		let storage_change2 = storage_changes.get(1).unwrap();
+		let expected_storage_change2 = StorageChange::new("Changed".to_string(), "+v///xQNFlyYmcOLv1mRxeR7BJNyWMrsaQ==".to_string(), "QQEhBQAb1mAS".to_string());
+		assert_eq!(storage_change2, &expected_storage_change2);
+		let storage_change3 = storage_changes.get(2).unwrap();
+		let expected_storage_change3 = StorageChange::new("Added".to_string(), "+v///xRjv+9gkFzYfFbaQGRkS+b3ro7EiA==".to_string(), "QQEhAQo=".to_string());
+		assert_eq!(storage_change3, &expected_storage_change3);
 
+		let called_contract_call = InvokedContract::new_hash(H160::from_str("0x0e52080ac40870dba037b98cd42911f18508e437").unwrap());
+		let neo_token_call = InvokedContract::new_hash(H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap());
+		let gas_token_call = InvokedContract::new_hash(H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap());
+		let call2 = vec![called_contract_call, neo_token_call, gas_token_call];
+		let call1 = InvokedContract::new(H160::from_str("0x0e52080ac40870dba037b98cd42911f18508e437").unwrap(), call2);
+		let expected_invoked_contract = InvokedContract::new(H160::from_str("0x7df45ba2d3a0c0520ceef7a73f8d1c404cc59a48").unwrap(), vec![call1]);
+		let expected_diagnostics = Diagnostics::new(expected_invoked_contract, vec![expected_storage_change1, expected_storage_change2, expected_storage_change3]);
+		assert_eq!(dignostics, expected_diagnostics);
 	}
 
 	#[tokio::test]
@@ -5319,9 +5346,21 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+            &mock_server,
+            json!({
+        		"script": "10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52",
+        		"state": "HALT",
+        		"gasconsumed": "0.161",
+        		"stack": [
+					{
+						"type": "ByteString",
+						"value": "VHJhbnNmZXI="
+					}
+				]
+    		}),
+        ).await;
+
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -5336,7 +5375,7 @@ mod tests {
 		}}"#
 		);
 
-		let _ = provider
+		let result = provider
 			.invoke_script(
 				"10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52"
 					.to_string(),
@@ -5345,6 +5384,13 @@ mod tests {
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let invocation_result = result.unwrap();
+		assert_eq!(invocation_result.script, "10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52".to_string());
+		assert_eq!(invocation_result.state, NeoVMStateType::Halt);
+		assert_eq!(invocation_result.gas_consumed, "0.161".to_string());
+		assert_eq!(invocation_result.stack.len(), 1);
+		assert_eq!(invocation_result.stack, vec![StackItem::new_byte_string("Transfer".as_bytes().to_vec())]);
 	}
 
 	#[tokio::test]
