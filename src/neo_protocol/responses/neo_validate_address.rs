@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ValidateAddress {
 	pub address: String,
+	#[serde(rename = "isvalid")]
 	pub is_valid: bool,
 }
 

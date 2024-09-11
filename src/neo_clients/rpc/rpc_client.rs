@@ -1277,7 +1277,7 @@ mod tests {
 	use crate::{
 		neo_types::{Base64Encode, Diagnostics, InvokedContract, StorageChange, ToBase64},
 		prelude::{
-			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, InvocationResult, MockClient, NativeContractState, NeoVMStateType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator
+			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, InvocationResult, MockClient, NativeContractState, NeoVMStateType, NodePluginType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator
 		},
 		providers::RpcClient,
 	};
@@ -5525,9 +5525,27 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+            &mock_server,
+            json!([
+				{
+					"type": "ByteString",
+					"value": "dG9rZW5PbmU="
+				},
+				{
+					"type": "ByteString",
+					"value": "dG9rZW5Ud28="
+				},
+				{
+					"type": "ByteString",
+					"value": "dG9rZW5UaHJlZQ="
+				},
+				{
+					"type": "ByteString",
+					"value": "dG9rZW5Gb3Vy"
+				}
+			]),
+        ).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -5543,15 +5561,19 @@ mod tests {
 		}}"#
 		);
 
-		let _ = provider
+		let result = provider
 			.traverse_iterator(
 				"127d3320-db35-48d5-b6d3-ca22dca4a370".to_string(),
 				"cb7ef774-1ade-4a83-914b-94373ca92010".to_string(),
 				100,
 			)
 			.await;
-
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let iterator_list = result.unwrap();
+		assert_eq!(iterator_list.len(), 4);
+		assert_eq!(iterator_list.get(3).unwrap().as_string(), Some("tokenFour".to_string()));
 	}
 
 	#[tokio::test]
@@ -5559,10 +5581,10 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
-
+		let provider = mock_rpc_response_without_request(
+            &mock_server,
+            json!(true),
+        ).await;
 		// Expected request body
 		let expected_request_body = format!(
 			r#"{{
@@ -5575,9 +5597,11 @@ mod tests {
 		}}"#
 		);
 
-		let _ = provider.terminate_session("127d3320-db35-48d5-b6d3-ca22dca4a370").await;
+		let result = provider.terminate_session("127d3320-db35-48d5-b6d3-ca22dca4a370").await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), true);
 	}
 
 	#[tokio::test]
@@ -5585,9 +5609,21 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+            &mock_server,
+            json!({
+        		"script": "VgEMFJOtFXKks1xLklSDzhcBt4dC3EYPYEBXAAIhXwAhQfgn7IxA",
+        		"state": "FAULT",
+        		"gasconsumed": "0.0103542",
+				"exception": "Specified argument was out of the range of valid values. (Parameter 'index')",
+        		"stack": [
+					{
+						"type": "Buffer",
+						"value": "dHJhbnNmZXI="
+					}
+				]
+    		}),
+        ).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -5625,7 +5661,7 @@ mod tests {
 		)
 		.unwrap();
 
-		let _ = provider
+		let result = provider
 			.invoke_contract_verify(
 				H160::from_str("af7c7328eee5a275a3bcaee2bf0cf662b5e739be").unwrap(),
 				vec!["a string".to_string().into(), "another string".to_string().into()],
@@ -5634,6 +5670,20 @@ mod tests {
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let invocation_result = result.unwrap();
+		assert_eq!(invocation_result.script, "VgEMFJOtFXKks1xLklSDzhcBt4dC3EYPYEBXAAIhXwAhQfgn7IxA".to_string());
+		assert_eq!(invocation_result.state, NeoVMStateType::Fault);
+		assert_eq!(invocation_result.gas_consumed, "0.0103542".to_string());
+		assert_eq!(invocation_result.exception, Some("Specified argument was out of the range of valid values. (Parameter 'index')".to_string()));
+		assert_eq!(invocation_result.stack.len(), 1);
+		let stack_item = invocation_result.stack.get(0).unwrap();
+		assert!(
+			matches!(stack_item, StackItem::Buffer { .. }),
+			"The stack item type is not Buffer as expected"
+		);
+		assert_eq!(stack_item.as_string(), Some("transfer".to_string()));
+
 	}
 
 	#[tokio::test]
@@ -5677,9 +5727,54 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+            &mock_server,
+            json!([
+				{
+					"name": "ApplicationLogs",
+					"version": "3.0.0.0",
+					"interfaces": [
+						"IPersistencePlugin"
+					]
+				},
+				{
+					"name": "LevelDBStore",
+					"version": "3.0.0.0",
+					"interfaces": []
+				},
+				{
+					"name": "RocksDBStore",
+					"version": "3.0.0.0",
+					"interfaces": []
+				},
+				{
+					"name": "RpcNep17Tracker",
+					"version": "3.0.0.0",
+					"interfaces": [
+						"IPersistencePlugin"
+					]
+				},
+				{
+					"name": "RpcServerPlugin",
+					"version": "3.0.0.0",
+					"interfaces": []
+				},
+				{
+					"name": "StatesDumper",
+					"version": "3.0.0.0",
+					"interfaces": [
+						"IPersistencePlugin"
+					]
+				},
+				{
+					"name": "SystemLog",
+					"version": "3.0.0.0",
+					"interfaces": [
+						"ILogPlugin"
+					]
+				}
+			]),
+        ).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -5691,9 +5786,53 @@ mod tests {
 		}}"#
 		);
 
-		let _ = provider.list_plugins().await;
+		let result = provider.list_plugins().await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let list_plugins = result.unwrap();
+		assert_eq!(list_plugins.len(), 7);
+
+		let mut plugin = list_plugins.get(0).unwrap();
+		assert_eq!(NodePluginType::value_of_name(&plugin.name), Ok(NodePluginType::ApplicationLogs));
+		assert_eq!(plugin.version, "3.0.0.0".to_string());
+		assert_eq!(plugin.interfaces.len(), 1);
+		assert_eq!(plugin.interfaces, vec!["IPersistencePlugin"]);
+
+		let mut plugin = list_plugins.get(1).unwrap();
+		assert_eq!(NodePluginType::value_of_name(&plugin.name), Ok(NodePluginType::LevelDbStore));
+		assert_eq!(plugin.version, "3.0.0.0".to_string());
+		assert_eq!(plugin.interfaces.len(), 0);
+
+		let mut plugin = list_plugins.get(2).unwrap();
+		assert_eq!(NodePluginType::value_of_name(&plugin.name), Ok(NodePluginType::RocksDbStore));
+		assert_eq!(plugin.version, "3.0.0.0".to_string());
+		assert_eq!(plugin.interfaces.len(), 0);
+
+		let mut plugin = list_plugins.get(3).unwrap();
+		assert_eq!(NodePluginType::value_of_name(&plugin.name), Ok(NodePluginType::RpcNep17Tracker));
+		assert_eq!(plugin.version, "3.0.0.0".to_string());
+		assert_eq!(plugin.interfaces.len(), 1);
+		assert_eq!(plugin.interfaces, vec!["IPersistencePlugin"]);
+
+		let mut plugin = list_plugins.get(4).unwrap();
+		assert_eq!(NodePluginType::value_of_name(&plugin.name), Ok(NodePluginType::RpcServerPlugin));
+		assert_eq!(plugin.version, "3.0.0.0".to_string());
+		assert_eq!(plugin.interfaces.len(), 0);
+
+		let mut plugin = list_plugins.get(5).unwrap();
+		assert_eq!(NodePluginType::value_of_name(&plugin.name), Ok(NodePluginType::StatesDumper));
+		assert_eq!(plugin.version, "3.0.0.0".to_string());
+		assert_eq!(plugin.interfaces.len(), 1);
+		assert_eq!(plugin.interfaces, vec!["IPersistencePlugin"]);
+
+		let mut plugin = list_plugins.get(6).unwrap();
+		assert_eq!(NodePluginType::value_of_name(&plugin.name), Ok(NodePluginType::SystemLog));
+		assert_eq!(plugin.version, "3.0.0.0".to_string());
+		assert_eq!(plugin.interfaces.len(), 1);
+		assert_eq!(plugin.interfaces, vec!["ILogPlugin"]);
+
 	}
 
 	#[tokio::test]
@@ -5701,9 +5840,15 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+            &mock_server,
+            json!(
+				{
+					"address": "AQVh2pG732YvtNaxEGkQUei3YA4cvo7d2i",
+					"isvalid": true
+				}
+				),
+        ).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -5715,9 +5860,13 @@ mod tests {
 		}}"#
 		);
 
-		let _ = provider.validate_address("NTzVAPBpnUUCvrA6tFPxBHGge8Kyw8igxX").await;
+		let result = provider.validate_address("NTzVAPBpnUUCvrA6tFPxBHGge8Kyw8igxX").await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let validate_address = result.unwrap();
+		assert_eq!(validate_address.address, "AQVh2pG732YvtNaxEGkQUei3YA4cvo7d2i".to_string());
+		assert_eq!(validate_address.is_valid, true);
 	}
 
 	// Wallet Methods
