@@ -3,16 +3,16 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Hash)]
 pub struct NeoVersion {
-	#[serde(default = "default_tcp_port")]
-	pub tcp_port: Option<u16>,
-	#[serde(default = "default_ws_port")]
-	pub ws_port: Option<u16>,
-	#[serde(default = "default_nonce")]
-	pub nonce: u32,
-	#[serde(default = "default_user_agent")]
-	pub user_agent: String,
-	#[serde(default = "default_protocol")]
-	pub protocol: Option<NeoProtocol>,
+    #[serde(rename = "tcpport", default = "default_tcp_port")]
+    pub tcp_port: Option<u16>,
+    #[serde(rename = "wsport", default = "default_ws_port")]
+    pub ws_port: Option<u16>,
+    #[serde(default = "default_nonce")]
+    pub nonce: u32,
+    #[serde(rename = "useragent", default = "default_user_agent")]
+    pub user_agent: String,
+    #[serde(default = "default_protocol")]
+    pub protocol: Option<NeoProtocol>,
 }
 
 impl Default for NeoVersion {
