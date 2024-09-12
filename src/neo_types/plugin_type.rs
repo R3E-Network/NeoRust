@@ -30,10 +30,10 @@ pub enum NodePluginType {
 }
 
 impl NodePluginType {
-    pub fn value_of_name(name: &str) -> Result<Self, &'static str> {
-        match name.parse::<NodePluginType>() {
-            Ok(plugin_type) => Ok(plugin_type),
-            Err(_) => Err("Invalid plugin type"),
-        }
-    }
+	pub fn value_of_name(name: &str) -> Result<Self, &'static str> {
+		match name.parse::<NodePluginType>() {
+			Ok(plugin_type) => Ok(plugin_type),
+			Err(_) => Err("Invalid plugin type"),
+		}
+	}
 }

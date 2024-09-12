@@ -19,7 +19,7 @@ use std::{
 	sync::Arc,
 	time::Duration,
 };
-use tracing::trace;
+use tracing::{debug, trace};
 use tracing_futures::Instrument;
 use url::{Host, ParseError, Url};
 
@@ -124,14 +124,13 @@ impl<P: JsonRpcProvider> RpcClient<P> {
 		T: Debug + Serialize + Send + Sync,
 		R: Serialize + DeserializeOwned + Debug + Send,
 	{
-		let span =
-			tracing::trace_span!("rpc", method = method, params = ?serde_json::to_string(&params)?);
+		let span = tracing::trace_span!("rpc: ", method = method, params = ?serde_json::to_string(&params)?);
 		// https://docs.rs/tracing/0.1.22/tracing/span/struct.Span.html#in-asynchronous-code
 		let res = async move {
 			trace!("tx");
 			let fetched = self.provider.fetch(method, params).await;
 			let res: R = fetched.map_err(Into::into)?;
-			debug!("{:?}", res);
+			debug!("Response: = {:?}", res);
 			trace!(rx = ?serde_json::to_string(&res)?);
 			Ok::<_, ProviderError>(res)
 		}
@@ -152,6 +151,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	}
 
 	async fn network(&self) -> u32 {
+		trace!("network = {:?}", self.get_version().await.unwrap());
 		self.get_version().await.unwrap().protocol.unwrap().network
 	}
 
@@ -593,6 +593,27 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		self.request("sendtoaddress", params).await
 	}
 
+	async fn cancel_transaction(
+		&self,
+		txHash: H256,
+		signers: Vec<H160>,
+		extra_fee: Option<u64>,
+	) -> Result<Transaction, ProviderError> {
+		//to be implemented
+		if signers.is_empty() {
+			return Err(ProviderError::CustomError("signers must not be empty".into()));
+		}
+		let signer_addresses: Vec<String> =
+			signers.into_iter().map(|signer| signer.to_address()).collect();
+		let params = json!([
+			txHash.0.to_hex(),
+			signer_addresses,
+			extra_fee.map_or("".to_string(), |fee| fee.to_string())
+		]);
+		// let params = [from.to_value(), vec![send_token.to_value()].into()].to_vec();
+		self.request("canceltransaction", params).await
+	}
+
 	/// Gets the application logs of the specified transaction hash.
 	/// - Parameter txHash: The transaction hash
 	/// - Returns: The request object
@@ -993,27 +1014,6 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		// let params = [from.to_value(), vec![send_token.to_value()].into()].to_vec();
 		self.request("sendfrom", params).await
 	}
-
-	async fn cancel_transaction(
-		&self,
-		txHash: H256,
-		signers: Vec<H160>,
-		extra_fee: Option<u64>,
-	) -> Result<Transaction, ProviderError> {
-		//to be implemented
-		if signers.is_empty() {
-			return Err(ProviderError::CustomError("signers must not be empty".into()));
-		}
-		let signer_addresses: Vec<String> =
-			signers.into_iter().map(|signer| signer.to_address()).collect();
-		let params = json!([
-			txHash.0.to_hex(),
-			signer_addresses,
-			extra_fee.map_or("".to_string(), |fee| fee.to_string())
-		]);
-		// let params = [from.to_value(), vec![send_token.to_value()].into()].to_vec();
-		self.request("canceltransaction", params).await
-	}
 }
 
 impl<P: JsonRpcProvider> RpcClient<P> {
@@ -1248,9 +1248,7 @@ pub fn is_local_endpoint(endpoint: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-	use std::{any::Any, hash::Hash, str::FromStr, sync::Mutex};
-	use base64::Engine;
-	use base64::engine::general_purpose;
+	use base64::{engine::general_purpose, Engine};
 	use blake2::digest::Mac;
 	use lazy_static::lazy_static;
 	use log::debug;
@@ -1260,7 +1258,11 @@ mod tests {
 		hex::{FromHex, ToHex},
 	};
 	use serde_json::{json, Value};
-	use tokio::{self, sync::OnceCell};
+	use std::{any::Any, hash::Hash, str::FromStr, sync::Arc};
+	use tokio::{
+		self,
+		sync::{Mutex, OnceCell},
+	};
 	use tracing::field::debug;
 	use url::Url;
 	use wiremock::{
@@ -1268,22 +1270,26 @@ mod tests {
 		Mock, MockServer, ResponseTemplate,
 	};
 
-	use neo::prelude::{HttpProvider, NeoWitness, ProviderError, RTransaction, ScriptHashExtension,
-		Secp256r1PublicKey, Signer, SignerTrait, TestConstants, Transaction,
-		TransactionSendToken, TransactionSigner, Witness, WitnessAction, WitnessCondition,
-		WitnessRule, WitnessScope,
+	use neo::prelude::{
+		HttpProvider, NeoWitness, ProviderError, RTransaction, ScriptHashExtension,
+		Secp256r1PublicKey, Signer, SignerTrait, TestConstants, Transaction, TransactionSendToken,
+		TransactionSigner, Witness, WitnessAction, WitnessCondition, WitnessRule, WitnessScope,
 	};
 
 	use crate::{
+		builder::{AccountSigner as AccountSignerType, Signer::AccountSigner},
+		neo_clients::api_trait::APITrait,
 		neo_types::{Base64Encode, Diagnostics, InvokedContract, StorageChange, ToBase64},
 		prelude::{
-			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, InvocationResult, MockClient, NativeContractState, NeoVMStateType, NodePluginType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator
+			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod,
+			ContractNef, ContractParameter2, ContractParameterType, ContractPermission,
+			ContractState, HighPriorityAttribute, InvocationResult, MockClient,
+			NativeContractState, NeoVMStateType, NodePluginType, NotValidBeforeAttribute,
+			OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner,
+			StackItem, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator,
 		},
 		providers::RpcClient,
 	};
-	use crate::builder::AccountSigner as AccountSignerType;
-	use crate::builder::Signer::AccountSigner;
-	use crate::neo_clients::api_trait::APITrait;
 
 	async fn setup_mock_server() -> MockServer {
 		MockServer::start().await
@@ -1381,15 +1387,21 @@ mod tests {
 	async fn test_error_reponse() {
 		let _ = env_logger::builder().is_test(true).try_init();
 
-		let mock_provider = MockClient::new().await;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		mock_provider
+			.lock()
+			.await
 			.mock_response_error(json!({
 				"code": -32602,
 				"message": "Invalid address length, expected 40 got 64 bytes",
 				"data": null
 			}))
 			.await;
-		let provider = mock_provider.into_client();
+		let provider = mock_provider.lock().await.into_client();
 		let result = provider.get_best_block_hash().await;
 
 		// Assert that the error is a JsonRpcError
@@ -1404,8 +1416,14 @@ mod tests {
 	async fn test_error_reponse_complex_data() {
 		let _ = env_logger::builder().is_test(true).try_init();
 
-		let mock_provider = MockClient::new().await;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		mock_provider
+			.lock()
+			.await
 			.mock_response_error(json!({
 				"code": -32602,
 				"message": "Invalid address length, expected 40 got 64 bytes",
@@ -1414,7 +1432,7 @@ mod tests {
 				}
 			}))
 			.await;
-		let provider = mock_provider.into_client();
+		let provider = mock_provider.lock().await.into_client();
 		let result = provider.get_best_block_hash().await;
 
 		// Assert that the error is a JsonRpcError
@@ -1432,15 +1450,21 @@ mod tests {
 	async fn test_get_best_block_hash() {
 		let _ = env_logger::builder().is_test(true).try_init();
 
-		let mock_provider = MockClient::new().await;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		mock_provider
+			.lock()
+			.await
 			.mock_response(
 				"getbestblockhash",
 				json!([]),
 				json!("0x3d1e051247f246f60dd2ba4f90f799578b5d394157b1f2b012c016b29536b899"),
 			)
 			.await;
-		let provider = mock_provider.into_client();
+		let provider = mock_provider.lock().await.into_client();
 		let result = provider.get_best_block_hash().await;
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 
@@ -1456,7 +1480,9 @@ mod tests {
 			H256::from_str("0x3d1e051247f246f60dd2ba4f90f799578b5d394157b1f2b012c016b29536b899")
 				.unwrap()
 		);
-		verify_request(mock_provider.server(), expected_request_body).await.unwrap();
+		verify_request(mock_provider.lock().await.server(), expected_request_body)
+			.await
+			.unwrap();
 	}
 
 	#[tokio::test]
@@ -4532,7 +4558,6 @@ mod tests {
 		);
 		assert_eq!(item1.as_address().unwrap(), "NZQvGWfSupuUAYtCH6pje72hdkWJH1jAZP".to_string());
 
-		
 		// TODO: Base64 decode failed on "wWo=", which is a valid string
 		// let try_base =general_purpose::STANDARD.decode("wWo=".trim_end()).expect(&"Failed to decode the string: wWq=".to_string());
 		// let item2 = invocation_result.stack.get(2).unwrap();
@@ -4557,9 +4582,13 @@ mod tests {
 		);
 		let stack_item_map = item4.as_map().unwrap();
 		assert_eq!(stack_item_map.len(), 1);
-		let value = stack_item_map.get(&StackItem::new_byte_string(hex::decode("941343239213fa0e765f1027ce742f48db779a96").unwrap())).unwrap().as_int();
+		let value = stack_item_map
+			.get(&StackItem::new_byte_string(
+				hex::decode("941343239213fa0e765f1027ce742f48db779a96").unwrap(),
+			))
+			.unwrap()
+			.as_int();
 		assert_eq!(value, Some(12));
-
 	}
 
 	#[tokio::test]
@@ -4778,7 +4807,10 @@ mod tests {
 		// Response verification
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let invocation_result = result.unwrap();
-		assert_eq!(invocation_result.script, "00046e616d65675f0e5a86edd8e1f62b68d2b3f7c0a761fc5a67dc".to_string());
+		assert_eq!(
+			invocation_result.script,
+			"00046e616d65675f0e5a86edd8e1f62b68d2b3f7c0a761fc5a67dc".to_string()
+		);
 		assert_eq!(invocation_result.state, NeoVMStateType::Halt);
 		assert_eq!(invocation_result.gas_consumed, "2.489".to_string());
 		assert_eq!(invocation_result.stack.len(), 0);
@@ -4791,23 +4823,29 @@ mod tests {
 		let item = items.get(&"0x05859de95ccbbd5668e0f055b208273634d4657f".to_string()).unwrap();
 		assert_eq!(item.script, "base64 script".to_string());
 		assert_eq!(item.parameters[1].typ(), &ContractParameterType::Signature);
-		assert_eq!(item.signatures.get(&"033a1d0a3b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7957783f81".to_string()), Some(&"base64 string of signature".to_string()));
+		assert_eq!(
+			item.signatures.get(
+				&"033a1d0a3b04b7fc0230d2b1aaedfd5a84be279a5361a7358db665ad7957783f81".to_string()
+			),
+			Some(&"base64 string of signature".to_string())
+		);
 	}
 
 	#[tokio::test]
 	async fn test_invoke_function_without_or_empty_params() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response_without_request(
-            &mock_server,
-            json!({
-        "script": "10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52",
-        "state": "FAULT",
-        "gasconsumed": "2007390",
-		"exception": null,
-		"notifications": [],
-        "stack": []
-    	}),
-        ).await;
+			&mock_server,
+			json!({
+			"script": "10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52",
+			"state": "FAULT",
+			"gasconsumed": "2007390",
+			"exception": null,
+			"notifications": [],
+			"stack": []
+			}),
+		)
+		.await;
 		// Expected request body
 		let expected_request_body = format!(
 			r#"{{
@@ -4882,12 +4920,17 @@ mod tests {
 		// Response verification
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let invocation_result = result.unwrap();
-		assert_eq!(invocation_result.script, "10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52".to_string());
+		assert_eq!(
+			invocation_result.script,
+			"10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52"
+				.to_string()
+		);
 		assert_eq!(invocation_result.state, NeoVMStateType::Fault);
 		assert_eq!(invocation_result.gas_consumed, "2007390".to_string());
 		assert_eq!(invocation_result.stack.len(), 0);
 		let expected_result = InvocationResult::new(
-			"10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52".to_string(),
+			"10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52"
+				.to_string(),
 			NeoVMStateType::Fault,
 			"2007390".to_string(),
 			None,
@@ -4896,7 +4939,7 @@ mod tests {
 			vec![],
 			None,
 			None,
-			None
+			None,
 		);
 	}
 
@@ -4904,14 +4947,15 @@ mod tests {
 	async fn test_invoke_function_empty_state() {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response_without_request(
-            &mock_server,
-            json!({
-        "script": "10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52",
-        "state": "",
-        "gasconsumed": "2007390",
-        "stack": []
-    	}),
-        ).await;
+			&mock_server,
+			json!({
+			"script": "10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52",
+			"state": "",
+			"gasconsumed": "2007390",
+			"stack": []
+			}),
+		)
+		.await;
 
 		let public_key = Secp256r1PublicKey::from_bytes(
 			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY).unwrap(),
@@ -4946,13 +4990,15 @@ mod tests {
 		// Response verification
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let invocation_result = result.unwrap();
-		assert_eq!(invocation_result.script, "10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52".to_string());
+		assert_eq!(
+			invocation_result.script,
+			"10c00c0962616c616e63654f660c14897720d8cd76f4f00abfa37c0edd889c208fde9b41627d5b52"
+				.to_string()
+		);
 		assert_eq!(invocation_result.state, NeoVMStateType::None);
 		assert_eq!(invocation_result.gas_consumed, "2007390".to_string());
 		assert_eq!(invocation_result.stack.len(), 0);
 	}
-
-	
 
 	#[tokio::test]
 	async fn test_invoke_function_witnessrules() {
@@ -5231,40 +5277,82 @@ mod tests {
 		let dignostics = invocation_result.diagnostics.unwrap();
 
 		let invoked_contracts = dignostics.clone().invoked_contracts;
-		assert_eq!(invoked_contracts.hash, H160::from_str("0x7df45ba2d3a0c0520ceef7a73f8d1c404cc59a48").unwrap());
+		assert_eq!(
+			invoked_contracts.hash,
+			H160::from_str("0x7df45ba2d3a0c0520ceef7a73f8d1c404cc59a48").unwrap()
+		);
 
 		let calls = invoked_contracts.invoked_contracts;
 		assert_eq!(calls.len(), 1);
-		assert_eq!(calls.get(0).unwrap().hash, H160::from_str("0x0e52080ac40870dba037b98cd42911f18508e437").unwrap());
+		assert_eq!(
+			calls.get(0).unwrap().hash,
+			H160::from_str("0x0e52080ac40870dba037b98cd42911f18508e437").unwrap()
+		);
 
 		let nested_invoked_contrats = &calls.get(0).unwrap().invoked_contracts;
 		assert_eq!(nested_invoked_contrats.len(), 3);
-		assert_eq!(nested_invoked_contrats.get(0).unwrap().hash, H160::from_str("0x0e52080ac40870dba037b98cd42911f18508e437").unwrap());
+		assert_eq!(
+			nested_invoked_contrats.get(0).unwrap().hash,
+			H160::from_str("0x0e52080ac40870dba037b98cd42911f18508e437").unwrap()
+		);
 		assert_eq!(nested_invoked_contrats.get(0).unwrap().invoked_contracts.len(), 0);
-		assert_eq!(nested_invoked_contrats.get(1).unwrap().hash, H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap());
+		assert_eq!(
+			nested_invoked_contrats.get(1).unwrap().hash,
+			H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap()
+		);
 		assert_eq!(nested_invoked_contrats.get(1).unwrap().invoked_contracts.len(), 0);
-		assert_eq!(nested_invoked_contrats.get(2).unwrap().hash, H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap());
+		assert_eq!(
+			nested_invoked_contrats.get(2).unwrap().hash,
+			H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap()
+		);
 		assert_eq!(nested_invoked_contrats.get(2).unwrap().invoked_contracts.len(), 0);
 
 		let storage_changes = dignostics.clone().storage_changes;
 		assert_eq!(storage_changes.len(), 3);
 		let storage_change1 = storage_changes.get(0).unwrap();
-		let expected_storage_change1 = StorageChange::new("Deleted".to_string(), "BgAAAP8=".to_string(), "DRZcmJnDi79ZkcXkewSTcljK7Gk=".to_string());
+		let expected_storage_change1 = StorageChange::new(
+			"Deleted".to_string(),
+			"BgAAAP8=".to_string(),
+			"DRZcmJnDi79ZkcXkewSTcljK7Gk=".to_string(),
+		);
 		assert_eq!(storage_change1, &expected_storage_change1);
 		let storage_change2 = storage_changes.get(1).unwrap();
-		let expected_storage_change2 = StorageChange::new("Changed".to_string(), "+v///xQNFlyYmcOLv1mRxeR7BJNyWMrsaQ==".to_string(), "QQEhBQAb1mAS".to_string());
+		let expected_storage_change2 = StorageChange::new(
+			"Changed".to_string(),
+			"+v///xQNFlyYmcOLv1mRxeR7BJNyWMrsaQ==".to_string(),
+			"QQEhBQAb1mAS".to_string(),
+		);
 		assert_eq!(storage_change2, &expected_storage_change2);
 		let storage_change3 = storage_changes.get(2).unwrap();
-		let expected_storage_change3 = StorageChange::new("Added".to_string(), "+v///xRjv+9gkFzYfFbaQGRkS+b3ro7EiA==".to_string(), "QQEhAQo=".to_string());
+		let expected_storage_change3 = StorageChange::new(
+			"Added".to_string(),
+			"+v///xRjv+9gkFzYfFbaQGRkS+b3ro7EiA==".to_string(),
+			"QQEhAQo=".to_string(),
+		);
 		assert_eq!(storage_change3, &expected_storage_change3);
 
-		let called_contract_call = InvokedContract::new_hash(H160::from_str("0x0e52080ac40870dba037b98cd42911f18508e437").unwrap());
-		let neo_token_call = InvokedContract::new_hash(H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap());
-		let gas_token_call = InvokedContract::new_hash(H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap());
+		let called_contract_call = InvokedContract::new_hash(
+			H160::from_str("0x0e52080ac40870dba037b98cd42911f18508e437").unwrap(),
+		);
+		let neo_token_call = InvokedContract::new_hash(
+			H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(),
+		);
+		let gas_token_call = InvokedContract::new_hash(
+			H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
+		);
 		let call2 = vec![called_contract_call, neo_token_call, gas_token_call];
-		let call1 = InvokedContract::new(H160::from_str("0x0e52080ac40870dba037b98cd42911f18508e437").unwrap(), call2);
-		let expected_invoked_contract = InvokedContract::new(H160::from_str("0x7df45ba2d3a0c0520ceef7a73f8d1c404cc59a48").unwrap(), vec![call1]);
-		let expected_diagnostics = Diagnostics::new(expected_invoked_contract, vec![expected_storage_change1, expected_storage_change2, expected_storage_change3]);
+		let call1 = InvokedContract::new(
+			H160::from_str("0x0e52080ac40870dba037b98cd42911f18508e437").unwrap(),
+			call2,
+		);
+		let expected_invoked_contract = InvokedContract::new(
+			H160::from_str("0x7df45ba2d3a0c0520ceef7a73f8d1c404cc59a48").unwrap(),
+			vec![call1],
+		);
+		let expected_diagnostics = Diagnostics::new(
+			expected_invoked_contract,
+			vec![expected_storage_change1, expected_storage_change2, expected_storage_change3],
+		);
 		assert_eq!(dignostics, expected_diagnostics);
 	}
 
@@ -5347,20 +5435,20 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-            &mock_server,
-            json!({
-        		"script": "10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52",
-        		"state": "HALT",
-        		"gasconsumed": "0.161",
-        		"stack": [
+			&mock_server,
+			json!({
+				"script": "10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52",
+				"state": "HALT",
+				"gasconsumed": "0.161",
+				"stack": [
 					{
 						"type": "ByteString",
 						"value": "VHJhbnNmZXI="
 					}
 				]
-    		}),
-        ).await;
-
+			}),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -5386,11 +5474,18 @@ mod tests {
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let invocation_result = result.unwrap();
-		assert_eq!(invocation_result.script, "10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52".to_string());
+		assert_eq!(
+			invocation_result.script,
+			"10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52"
+				.to_string()
+		);
 		assert_eq!(invocation_result.state, NeoVMStateType::Halt);
 		assert_eq!(invocation_result.gas_consumed, "0.161".to_string());
 		assert_eq!(invocation_result.stack.len(), 1);
-		assert_eq!(invocation_result.stack, vec![StackItem::new_byte_string("Transfer".as_bytes().to_vec())]);
+		assert_eq!(
+			invocation_result.stack,
+			vec![StackItem::new_byte_string("Transfer".as_bytes().to_vec())]
+		);
 	}
 
 	#[tokio::test]
@@ -5526,8 +5621,8 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-            &mock_server,
-            json!([
+			&mock_server,
+			json!([
 				{
 					"type": "ByteString",
 					"value": "dG9rZW5PbmU="
@@ -5545,7 +5640,8 @@ mod tests {
 					"value": "dG9rZW5Gb3Vy"
 				}
 			]),
-        ).await;
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -5581,10 +5677,7 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let provider = mock_rpc_response_without_request(
-            &mock_server,
-            json!(true),
-        ).await;
+		let provider = mock_rpc_response_without_request(&mock_server, json!(true)).await;
 		// Expected request body
 		let expected_request_body = format!(
 			r#"{{
@@ -5610,20 +5703,21 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-            &mock_server,
-            json!({
-        		"script": "VgEMFJOtFXKks1xLklSDzhcBt4dC3EYPYEBXAAIhXwAhQfgn7IxA",
-        		"state": "FAULT",
-        		"gasconsumed": "0.0103542",
+			&mock_server,
+			json!({
+				"script": "VgEMFJOtFXKks1xLklSDzhcBt4dC3EYPYEBXAAIhXwAhQfgn7IxA",
+				"state": "FAULT",
+				"gasconsumed": "0.0103542",
 				"exception": "Specified argument was out of the range of valid values. (Parameter 'index')",
-        		"stack": [
+				"stack": [
 					{
 						"type": "Buffer",
 						"value": "dHJhbnNmZXI="
 					}
 				]
-    		}),
-        ).await;
+			}),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -5672,10 +5766,19 @@ mod tests {
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let invocation_result = result.unwrap();
-		assert_eq!(invocation_result.script, "VgEMFJOtFXKks1xLklSDzhcBt4dC3EYPYEBXAAIhXwAhQfgn7IxA".to_string());
+		assert_eq!(
+			invocation_result.script,
+			"VgEMFJOtFXKks1xLklSDzhcBt4dC3EYPYEBXAAIhXwAhQfgn7IxA".to_string()
+		);
 		assert_eq!(invocation_result.state, NeoVMStateType::Fault);
 		assert_eq!(invocation_result.gas_consumed, "0.0103542".to_string());
-		assert_eq!(invocation_result.exception, Some("Specified argument was out of the range of valid values. (Parameter 'index')".to_string()));
+		assert_eq!(
+			invocation_result.exception,
+			Some(
+				"Specified argument was out of the range of valid values. (Parameter 'index')"
+					.to_string()
+			)
+		);
 		assert_eq!(invocation_result.stack.len(), 1);
 		let stack_item = invocation_result.stack.get(0).unwrap();
 		assert!(
@@ -5683,7 +5786,6 @@ mod tests {
 			"The stack item type is not Buffer as expected"
 		);
 		assert_eq!(stack_item.as_string(), Some("transfer".to_string()));
-
 	}
 
 	#[tokio::test]
@@ -5728,8 +5830,8 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-            &mock_server,
-            json!([
+			&mock_server,
+			json!([
 				{
 					"name": "ApplicationLogs",
 					"version": "3.0.0.0",
@@ -5774,7 +5876,8 @@ mod tests {
 					]
 				}
 			]),
-        ).await;
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -5795,7 +5898,10 @@ mod tests {
 		assert_eq!(list_plugins.len(), 7);
 
 		let mut plugin = list_plugins.get(0).unwrap();
-		assert_eq!(NodePluginType::value_of_name(&plugin.name), Ok(NodePluginType::ApplicationLogs));
+		assert_eq!(
+			NodePluginType::value_of_name(&plugin.name),
+			Ok(NodePluginType::ApplicationLogs)
+		);
 		assert_eq!(plugin.version, "3.0.0.0".to_string());
 		assert_eq!(plugin.interfaces.len(), 1);
 		assert_eq!(plugin.interfaces, vec!["IPersistencePlugin"]);
@@ -5811,13 +5917,19 @@ mod tests {
 		assert_eq!(plugin.interfaces.len(), 0);
 
 		let mut plugin = list_plugins.get(3).unwrap();
-		assert_eq!(NodePluginType::value_of_name(&plugin.name), Ok(NodePluginType::RpcNep17Tracker));
+		assert_eq!(
+			NodePluginType::value_of_name(&plugin.name),
+			Ok(NodePluginType::RpcNep17Tracker)
+		);
 		assert_eq!(plugin.version, "3.0.0.0".to_string());
 		assert_eq!(plugin.interfaces.len(), 1);
 		assert_eq!(plugin.interfaces, vec!["IPersistencePlugin"]);
 
 		let mut plugin = list_plugins.get(4).unwrap();
-		assert_eq!(NodePluginType::value_of_name(&plugin.name), Ok(NodePluginType::RpcServerPlugin));
+		assert_eq!(
+			NodePluginType::value_of_name(&plugin.name),
+			Ok(NodePluginType::RpcServerPlugin)
+		);
 		assert_eq!(plugin.version, "3.0.0.0".to_string());
 		assert_eq!(plugin.interfaces.len(), 0);
 
@@ -5832,7 +5944,6 @@ mod tests {
 		assert_eq!(plugin.version, "3.0.0.0".to_string());
 		assert_eq!(plugin.interfaces.len(), 1);
 		assert_eq!(plugin.interfaces, vec!["ILogPlugin"]);
-
 	}
 
 	#[tokio::test]
@@ -5841,14 +5952,15 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-            &mock_server,
-            json!(
-				{
-					"address": "AQVh2pG732YvtNaxEGkQUei3YA4cvo7d2i",
-					"isvalid": true
-				}
-				),
-        ).await;
+			&mock_server,
+			json!(
+			{
+				"address": "AQVh2pG732YvtNaxEGkQUei3YA4cvo7d2i",
+				"isvalid": true
+			}
+			),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(

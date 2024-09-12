@@ -1,10 +1,10 @@
-use std::collections::HashMap;
-
+use futures_util::future::ok;
 use getset::{Getters, Setters};
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
 use primitive_types::H160;
 use rustc_serialize::hex::FromHex;
+use std::{cmp::PartialEq, collections::HashMap};
 use tokio::io::AsyncWriteExt;
 
 use neo::prelude::{
@@ -198,7 +198,7 @@ impl ScriptBuilder {
 	/// ```
 	pub fn push_params(&mut self, params: &[ContractParameter]) -> &mut Self {
 		for param in params {
-			self.push_param(param).unwrap();
+			self.push_param(param).expect("Its expected to be a successful push.");
 		}
 
 		self.push_integer(BigInt::from(params.len())).op_code(&[OpCode::Pack])
@@ -226,6 +226,7 @@ impl ScriptBuilder {
 	pub fn push_param(&mut self, param: &ContractParameter) -> Result<&mut Self, BuilderError> {
 		if param.get_type() == ContractParameterType::Any {
 			self.op_code(&[OpCode::PushNull]);
+			return Ok(self);
 		}
 		match &param.value.clone().unwrap() {
 			ParameterValue::Boolean(b) => self.push_bool(*b),
