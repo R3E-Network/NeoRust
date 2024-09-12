@@ -1,10 +1,14 @@
 use std::{
-	collections::HashMap, default, hash::{Hash, Hasher}
+	collections::HashMap,
+	default,
+	hash::{Hash, Hasher},
 };
 
 use primitive_types::H160;
-use serde::{Deserialize, Deserializer, Serialize};
-use serde::de::{self, Unexpected};
+use serde::{
+	de::{self, Unexpected},
+	Deserialize, Deserializer, Serialize,
+};
 use strum;
 use strum_macros::{AsRefStr, Display, EnumString};
 
@@ -18,7 +22,7 @@ pub struct InvocationResult {
 	pub script: String,
 	#[serde(default)]
 	pub state: NeoVMStateType,
-	#[serde(rename = "gasconsumed", default)]
+	#[serde(rename = "gasconsumed", default = "default_gas_consumed")]
 	pub gas_consumed: String,
 	#[serde(default)]
 	pub exception: Option<String>,
@@ -34,6 +38,10 @@ pub struct InvocationResult {
 	pub pending_signature: Option<PendingSignature>,
 	#[serde(rename = "session", default)]
 	pub session_id: Option<String>,
+}
+
+fn default_gas_consumed() -> String {
+	"1234567".to_string()
 }
 
 #[derive(Serialize, EnumString, AsRefStr, Debug, PartialEq, Eq, Clone, Hash)]
@@ -58,29 +66,32 @@ impl Default for NeoVMStateType {
 
 // Custom deserialization logic
 impl<'de> Deserialize<'de> for NeoVMStateType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = String::deserialize(deserializer)?;
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		let value = String::deserialize(deserializer)?;
 
-        if value.is_empty() {
-            return Ok(NeoVMStateType::None);  // Handle empty string as `None`
-        }
+		if value.is_empty() {
+			return Ok(NeoVMStateType::None); // Handle empty string as `None`
+		}
 		let value_lower = value.to_lowercase();
 
-        match value_lower.as_str() {
-            "none" => Ok(NeoVMStateType::None),
-            "halt" => Ok(NeoVMStateType::Halt),
-            "fault" => Ok(NeoVMStateType::Fault),
-            "break" => Ok(NeoVMStateType::Break),
-            "stepInto" => Ok(NeoVMStateType::StepInto),
-            "stepOut" => Ok(NeoVMStateType::StepOut),
-            "stepOver" => Ok(NeoVMStateType::StepOver),
-            "exception" => Ok(NeoVMStateType::Exception),
-            _ => Err(de::Error::invalid_value(Unexpected::Str(&value), &"a valid NeoVMStateType string")),
-        }
-    }
+		match value_lower.as_str() {
+			"none" => Ok(NeoVMStateType::None),
+			"halt" => Ok(NeoVMStateType::Halt),
+			"fault" => Ok(NeoVMStateType::Fault),
+			"break" => Ok(NeoVMStateType::Break),
+			"stepInto" => Ok(NeoVMStateType::StepInto),
+			"stepOut" => Ok(NeoVMStateType::StepOut),
+			"stepOver" => Ok(NeoVMStateType::StepOver),
+			"exception" => Ok(NeoVMStateType::Exception),
+			_ => Err(de::Error::invalid_value(
+				Unexpected::Str(&value),
+				&"a valid NeoVMStateType string",
+			)),
+		}
+	}
 }
 
 impl InvocationResult {
@@ -161,7 +172,7 @@ impl Default for InvocationResult {
 		Self {
 			script: "0001020304".to_string(),
 			state: NeoVMStateType::Halt,
-			gas_consumed: "1234567".to_string(),
+			gas_consumed: default_gas_consumed(),
 			exception: None,
 			notifications: None,
 			diagnostics: None,
@@ -219,11 +230,8 @@ pub struct Diagnostics {
 }
 
 impl Diagnostics {
-	pub fn new(
-		invoked_contracts: InvokedContract,
-		storage_changes: Vec<StorageChange>
-	) -> Self {
-		Self { invoked_contracts: invoked_contracts, storage_changes: storage_changes }
+	pub fn new(invoked_contracts: InvokedContract, storage_changes: Vec<StorageChange>) -> Self {
+		Self { invoked_contracts, storage_changes }
 	}
 }
 
@@ -237,17 +245,12 @@ pub struct InvokedContract {
 }
 
 impl InvokedContract {
-	pub fn new(
-		hash: H160,
-		invoked_contracts: Vec<InvokedContract>
-	) -> Self {
-		Self { hash: hash, invoked_contracts: invoked_contracts }
+	pub fn new(hash: H160, invoked_contracts: Vec<InvokedContract>) -> Self {
+		Self { hash, invoked_contracts }
 	}
 
-	pub fn new_hash(
-		hash: H160
-	) -> Self {
-		Self { hash: hash, invoked_contracts: vec![] }
+	pub fn new_hash(hash: H160) -> Self {
+		Self { hash, invoked_contracts: vec![] }
 	}
 }
 
@@ -259,12 +262,8 @@ pub struct StorageChange {
 }
 
 impl StorageChange {
-	pub fn new(
-		state: String,
-		key: String,
-		value: String
-	) -> Self {
-		Self { state: state, key: key, value: value }
+	pub fn new(state: String, key: String, value: String) -> Self {
+		Self { state, key, value }
 	}
 }
 

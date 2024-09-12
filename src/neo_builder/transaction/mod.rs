@@ -21,9 +21,21 @@ mod signers;
 mod transaction;
 mod transaction_attribute;
 mod transaction_builder;
+mod transaction_builder_tests;
 mod transaction_error;
 mod transaction_send_token;
 mod verification_script;
 mod witness;
 mod witness_rule;
 mod witness_scope;
+
+use std::sync::Once;
+use tracing_subscriber;
+
+static INIT: Once = Once::new();
+
+pub fn init_logger() {
+	INIT.call_once(|| {
+		tracing_subscriber::fmt().with_max_level(tracing::Level::TRACE).init();
+	});
+}

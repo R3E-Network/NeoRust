@@ -348,10 +348,8 @@ impl Secp256r1Signature {
 	///
 	/// - Returns: A `Secp256r1Signature`.
 	pub fn from_u256(r: U256, s: U256) -> Self {
-		let mut x = [0u8; 32];
-		let mut y = [0u8; 32];
-		r.to_big_endian(&mut x);
-		s.to_big_endian(&mut y);
+		let x = r.to_big_endian();
+		let y = s.to_big_endian();
 		Secp256r1Signature::from_scalars(x, y).unwrap()
 	}
 

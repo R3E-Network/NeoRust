@@ -150,7 +150,6 @@ impl HttpProvider {
 		let url = url.try_into()?;
 		Ok(Self::new_with_client(url, Client::new()))
 	}
-	
 
 	/// The Url to which requests are made
 	pub fn url(&self) -> &Url {
