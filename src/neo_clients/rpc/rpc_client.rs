@@ -1388,21 +1388,23 @@ mod tests {
 		let _ = env_logger::builder().is_test(true).try_init();
 
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
-		let client = {
-			let mock_provider = mock_provider.lock().await;
-			Arc::new(mock_provider.into_client())
-		};
-		mock_provider
-			.lock()
-			.await
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		mock_provider_guard
 			.mock_response_error(json!({
 				"code": -32602,
 				"message": "Invalid address length, expected 40 got 64 bytes",
 				"data": null
 			}))
-			.await;
-		let provider = mock_provider.lock().await.into_client();
-		let result = provider.get_best_block_hash().await;
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+		let result = client.get_best_block_hash().await;
 
 		// Assert that the error is a JsonRpcError
 		assert!(matches!(result, Err(ProviderError::JsonRpcError(_))), "Expected a JsonRpcError.");
@@ -1417,13 +1419,9 @@ mod tests {
 		let _ = env_logger::builder().is_test(true).try_init();
 
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
-		let client = {
-			let mock_provider = mock_provider.lock().await;
-			Arc::new(mock_provider.into_client())
-		};
-		mock_provider
-			.lock()
-			.await
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		mock_provider_guard
 			.mock_response_error(json!({
 				"code": -32602,
 				"message": "Invalid address length, expected 40 got 64 bytes",
@@ -1431,9 +1429,15 @@ mod tests {
 					"foo": "bar"
 				}
 			}))
-			.await;
-		let provider = mock_provider.lock().await.into_client();
-		let result = provider.get_best_block_hash().await;
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+		let result = client.get_best_block_hash().await;
 
 		// Assert that the error is a JsonRpcError
 		assert!(matches!(result, Err(ProviderError::JsonRpcError(_))), "Expected a JsonRpcError.");
@@ -1448,25 +1452,30 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_get_best_block_hash() {
-		let _ = env_logger::builder().is_test(true).try_init();
+		let _ = env_logger::builder().is_test(false).try_init();
 
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		
+		// Set the mock response before using the client
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		mock_provider_guard
+        		.mock_response(
+            		"getbestblockhash",
+            		json!([]),
+            		json!("0x3d1e051247f246f60dd2ba4f90f799578b5d394157b1f2b012c016b29536b899"),
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+
 		let client = {
 			let mock_provider = mock_provider.lock().await;
 			Arc::new(mock_provider.into_client())
 		};
-		mock_provider
-			.lock()
-			.await
-			.mock_response(
-				"getbestblockhash",
-				json!([]),
-				json!("0x3d1e051247f246f60dd2ba4f90f799578b5d394157b1f2b012c016b29536b899"),
-			)
-			.await;
-		let provider = mock_provider.lock().await.into_client();
-		let result = provider.get_best_block_hash().await;
-		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		
+		let result = client.get_best_block_hash().await;
+		
 
 		// Expected request body
 		let expected_request_body = r#"{
@@ -1475,14 +1484,17 @@ mod tests {
             "params": [],
             "id": 1
         }"#;
+
+		verify_request(mock_provider.lock().await.server(), expected_request_body)
+			.await
+			.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		assert_eq!(
 			result.unwrap(),
 			H256::from_str("0x3d1e051247f246f60dd2ba4f90f799578b5d394157b1f2b012c016b29536b899")
 				.unwrap()
 		);
-		verify_request(mock_provider.lock().await.server(), expected_request_body)
-			.await
-			.unwrap();
 	}
 
 	#[tokio::test]
@@ -5988,9 +6000,7 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(&mock_server, json!(true)).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6002,9 +6012,13 @@ mod tests {
 		}}"#
 		);
 
-		let _ = provider.close_wallet().await;
+		let result = provider.close_wallet().await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), true);
+
 	}
 
 	#[tokio::test]
@@ -6012,9 +6026,7 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(&mock_server, json!(true)).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6026,9 +6038,12 @@ mod tests {
 		}}"#
 		);
 
-		let _ = provider.open_wallet("wallet.json".to_string(), "one".to_string()).await;
+		let result = provider.open_wallet("wallet.json".to_string(), "one".to_string()).await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), true);
 	}
 
 	#[tokio::test]
@@ -6036,9 +6051,7 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(&mock_server, json!("L1ZW4aRmy4MMG3x3wk9S6WEJJxcaZi72YxPx854Lspdo9jNFxEoJ")).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6050,11 +6063,14 @@ mod tests {
 		}}"#
 		);
 
-		let _ = provider
+		let result = provider
 			.dump_priv_key(H160::from_str("c11d816956b6682c3406bb99b7ec8a3e93f005c1").unwrap())
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), "L1ZW4aRmy4MMG3x3wk9S6WEJJxcaZi72YxPx854Lspdo9jNFxEoJ".to_string());
 	}
 
 	#[tokio::test]
@@ -6062,9 +6078,14 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!(
+				{
+					"balance": "200"
+				}
+			)
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6076,11 +6097,46 @@ mod tests {
 		}}"#
 		);
 
-		let _ = provider
+		let result = provider
 			.get_wallet_balance(H160::from_str("de5f57d430d3dece511cf975a8d37848cb9e0525").unwrap())
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap().balance, "200".to_string())
+	}
+
+	#[tokio::test]
+	async fn test_get_wallet_balance_upper_case() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
+
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!(
+				{
+					"Balance": "199999990.0"
+				}
+			)
+		).await;
+
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
+			"jsonrpc": "2.0",
+			"method": "getwalletbalance",
+			"params": ["de5f57d430d3dece511cf975a8d37848cb9e0525"],
+			"id": 1
+		}}"#
+		);
+
+		let result = provider
+			.get_wallet_balance(H160::from_str("de5f57d430d3dece511cf975a8d37848cb9e0525").unwrap())
+			.await;
+
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap().balance, "199999990.0".to_string())
 	}
 
 	#[tokio::test]
@@ -6088,9 +6144,12 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!(
+				"APuGosNQYQoRYYMxvay3yZsragzvfBMdNs"
+			)
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6101,9 +6160,12 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider.get_new_address().await;
+		let result = provider.get_new_address().await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), "APuGosNQYQoRYYMxvay3yZsragzvfBMdNs".to_string())
 	}
 
 	#[tokio::test]
@@ -6111,9 +6173,12 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!(
+				"289799420400"
+			)
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6124,9 +6189,12 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider.get_wallet_unclaimed_gas().await;
+		let result = provider.get_wallet_unclaimed_gas().await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), "289799420400".to_string())
 	}
 
 	#[tokio::test]
@@ -6134,9 +6202,15 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!(
+				{
+					"unclaimed": "79199824176",
+					"address": "AGZLEiwUyCC4wiL5sRZA3LbxWPs9WrZeyN"
+				}
+			)
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6147,11 +6221,16 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider
+		let result = provider
 			.get_unclaimed_gas(H160::from_str("ffa6adbb5f82ad2a1aafa22ce6aaf05dad5de39e").unwrap())
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let unclaimed_gas = result.unwrap();
+		assert_eq!(unclaimed_gas.unclaimed, "79199824176".to_string());
+		assert_eq!(unclaimed_gas.address, "AGZLEiwUyCC4wiL5sRZA3LbxWPs9WrZeyN".to_string());
 	}
 
 	#[tokio::test]
