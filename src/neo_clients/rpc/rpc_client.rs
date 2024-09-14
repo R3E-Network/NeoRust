@@ -552,7 +552,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		from: H160,
 		to: H160,
 		amount: u32,
-	) -> Result<Transaction, ProviderError> {
+	) -> Result<RTransaction, ProviderError> {
 		// let params =
 		// 	[token_hash.to_value(), from.to_value(), to.to_value(), amount.to_value()].to_vec();
 		let params = json!([token_hash.to_hex(), from.to_address(), to.to_address(), amount,]);
@@ -568,7 +568,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		&self,
 		from: Option<H160>,
 		send_tokens: Vec<TransactionSendToken>,
-	) -> Result<Transaction, ProviderError> {
+	) -> Result<RTransaction, ProviderError> {
 		let params = match from {
 			Some(f) => json!([f.to_address(), send_tokens]),
 			None => json!([send_tokens]),
@@ -598,7 +598,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		txHash: H256,
 		signers: Vec<H160>,
 		extra_fee: Option<u64>,
-	) -> Result<Transaction, ProviderError> {
+	) -> Result<RTransaction, ProviderError> {
 		//to be implemented
 		if signers.is_empty() {
 			return Err(ProviderError::CustomError("signers must not be empty".into()));
@@ -6238,9 +6238,17 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!(
+				{
+					"address": "AYhJaF5oqUscfNfH87KQHm1YwuKrwPgkMA",
+					"haskey": true,
+					"label": null,
+					"watchonly": false
+				}
+			)
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6251,11 +6259,18 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider
+		let result = provider
 			.import_priv_key("L5c6jz6Rh8arFJW3A5vg7Suaggo28ApXVF2EPzkAXbm94ThqaA6r".to_string())
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let address = result.unwrap();
+		assert_eq!(address.address, "AYhJaF5oqUscfNfH87KQHm1YwuKrwPgkMA".to_string());
+		assert_eq!(address.has_key, true);
+		assert!(address.label.is_none());
+		assert_eq!(address.watch_only, false);
 	}
 
 	#[tokio::test]
@@ -6286,9 +6301,25 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!(
+				[
+					{
+						"address": "AK5AmzrrM3sw3kbCHXpHNeuK3kkjnneUrb",
+						"haskey": true,
+						"label": "hodl",
+						"watchonly": false
+					},
+					{
+						"address": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
+						"haskey": false,
+						"label": null,
+						"watchonly": true
+					}
+				]
+			)
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6299,9 +6330,25 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider.list_address().await;
+		let result = provider.list_address().await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let list_address = result.unwrap();
+		assert_eq!(list_address.len(), 2);
+
+		let mut address = list_address.get(0).unwrap();
+		assert_eq!(address.address, "AK5AmzrrM3sw3kbCHXpHNeuK3kkjnneUrb".to_string());
+		assert_eq!(address.has_key, true);
+		assert_eq!(address.label, Some("hodl".to_string()));
+		assert_eq!(address.watch_only, false);
+
+		let mut address = list_address.get(1).unwrap();
+		assert_eq!(address.address, "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4".to_string());
+		assert_eq!(address.has_key, false);
+		assert_eq!(address.label, None);
+		assert_eq!(address.watch_only, true);
 	}
 
 	#[tokio::test]
@@ -6309,10 +6356,35 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
-
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!(
+				{
+					"hash": "0x6818f446c2e503998ac766a8a175f86d9a89885423f6b055aa123c984625833e",
+					"size": 266,
+					"version": 0,
+					"nonce": 1762654532,
+					"sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
+					"sysfee": "9007810",
+					"netfee": "1266450",
+					"validuntilblock": 2106392,
+					"signers": [
+						{
+							"account": "0xf68f181731a47036a99f04dad90043a744edec0f",
+							"scopes": "CalledByEntry"
+						}
+					],
+					"attributes": [],
+					"script": "GgwU5sEBNlSvET2KlovcpSyZSKgrlT0MFA/s7USnQwDZ2gSfqTZwpDEXGI/2E8AMCHRyYW5zZmVyDBSJdyDYzXb08Aq/o3wO3YicII/em0FifVtSOA==",
+					"witnesses": [
+						{
+							"invocation": "DEAZaoPvbyaQyUYqIBc4MyDCGxGhxlPCuBbcHn5cYMpHPi2JD4PX2I1EsDPNtrEESPo//WBnsKyl5o5ViR5YDcJR",
+							"verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+						}
+					],
+				}
+			)
+		).await;
 		// Expected request body
 		let expected_request_body = format!(
 			r#"{{
@@ -6322,7 +6394,7 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider
+		let result = provider
 			.send_from(
 				H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(),
 				H160::from_str("8cdb257b8873049918fe5a1e7f6289f75d720ba5").unwrap(),
@@ -6332,6 +6404,37 @@ mod tests {
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let tx = result.unwrap();
+		assert_eq!(tx.hash(), &H256::from_str("0x6818f446c2e503998ac766a8a175f86d9a89885423f6b055aa123c984625833e").unwrap());
+		assert_eq!(tx.size(), &266);
+		assert_eq!(tx.nonce(), &1762654532);
+		assert_eq!(tx.sender(), &"AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4".to_string());
+		assert_eq!(tx.sys_fee(), &"9007810".to_string());
+		assert_eq!(tx.net_fee(), &"1266450".to_string());
+		assert_eq!(tx.valid_until_block(), &2106392);
+
+		assert_eq!(tx.signers().len(), 1);
+		let signer = tx.signers().get(0).unwrap();
+		assert_eq!(signer.account, H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap());
+		assert_eq!(signer.scopes.len(), 1);
+		assert_eq!(signer.scopes[0], WitnessScope::CalledByEntry);
+
+		assert_eq!(tx.attributes().len(), 0);
+		let mut result = tx.get_first_attribute();
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("does not have any attributes"));
+		}
+
+		assert_eq!(tx.script(), &"GgwU5sEBNlSvET2KlovcpSyZSKgrlT0MFA/s7USnQwDZ2gSfqTZwpDEXGI/2E8AMCHRyYW5zZmVyDBSJdyDYzXb08Aq/o3wO3YicII/em0FifVtSOA==".to_string());
+
+		assert_eq!(tx.witnesses().len(), 1);
+		assert_eq!(tx.witnesses(), &vec![
+			NeoWitness::new("DEAZaoPvbyaQyUYqIBc4MyDCGxGhxlPCuBbcHn5cYMpHPi2JD4PX2I1EsDPNtrEESPo//WBnsKyl5o5ViR5YDcJR".to_string(), "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw==".to_string())
+		]);
+
 	}
 
 	#[tokio::test]
@@ -6371,9 +6474,39 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!(
+				{
+					"hash": "0xf60ec3b0810fb8c17a9a05eaeb3b361ead889a38d3fd1bf2d561a6e7001bb2f5",
+					"size": 352,
+					"version": 0,
+					"nonce": 1256822346,
+					"sender": "AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4",
+					"sysfee": "18015620",
+					"netfee": "1352450",
+					"validuntilblock": 2106840,
+					"signers": [
+						{
+							"account": "0xbe175fb771d5782282b7598b56c26a2f5ebf2d24",
+							"scopes": "CalledByEntry"
+						},
+						{
+							"account": "0xf68f181731a47036a99f04dad90043a744edec0f",
+							"scopes": "CalledByEntry"
+						}
+					],
+					"attributes": [],
+					"script": "AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjgaDBQP7O1Ep0MA2doEn6k2cKQxFxiP9gwUD+ztRKdDANnaBJ+pNnCkMRcYj/YTwAwIdHJhbnNmZXIMFIl3INjNdvTwCr+jfA7diJwgj96bQWJ9W1I4",
+					"witnesses": [
+						{
+							"invocation": "DEDjHdgTfdXKx1R9f4D1lRklhisjDOkkMt7t1fO1CPO31gVQZUiWJc7GvJqjkR35iDjJjGIwd3s/Lm7q71rwdVC4",
+							"verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+						}
+					],
+				}
+			)
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6397,7 +6530,7 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider
+		let result = provider
 			.send_many(
 				None,
 				vec![
@@ -6416,6 +6549,57 @@ mod tests {
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let tx = result.unwrap();
+		assert_eq!(tx.hash(), &H256::from_str("0xf60ec3b0810fb8c17a9a05eaeb3b361ead889a38d3fd1bf2d561a6e7001bb2f5").unwrap());
+		assert_eq!(tx.size(), &352);
+		assert_eq!(tx.version(), &0);
+		assert_eq!(tx.nonce(), &1256822346);
+		assert_eq!(tx.sender(), &"AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4".to_string());
+		assert_eq!(tx.sys_fee(), &"18015620".to_string());
+		assert_eq!(tx.net_fee(), &"1352450".to_string());
+		assert_eq!(tx.valid_until_block(), &2106840);
+
+		assert_eq!(tx.signers().len(), 2);
+		let signer = tx.signers().get(0).unwrap();
+		assert_eq!(signer.account, H160::from_str("0xbe175fb771d5782282b7598b56c26a2f5ebf2d24").unwrap());
+		assert_eq!(signer.scopes.len(), 1);
+		assert_eq!(signer.scopes.get(0), Some(&WitnessScope::CalledByEntry));
+		assert_eq!(tx.signers(), &vec![
+			RTransactionSigner::new(
+				H160::from_str("0xbe175fb771d5782282b7598b56c26a2f5ebf2d24").unwrap(), 
+				vec![WitnessScope::CalledByEntry]
+			),
+			RTransactionSigner::new(
+				H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap(), 
+				vec![WitnessScope::CalledByEntry]
+			)
+		]);
+
+		let mut result = tx.get_first_signer().clone().unwrap().get_first_allowed_contract();
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("does not allow any specific contract"));
+		}
+
+		let mut result = tx.get_first_signer().clone().unwrap().get_first_allowed_group();
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("does not allow any specific group"));
+		}
+
+		assert_eq!(tx.attributes().len(), 0);
+
+		assert_eq!(tx.script(), &"AGQMFObBATZUrxE9ipaL3KUsmUioK5U9DBQP7O1Ep0MA2doEn6k2cKQxFxiP9hPADAh0cmFuc2ZlcgwUiXcg2M129PAKv6N8Dt2InCCP3ptBYn1bUjgaDBQP7O1Ep0MA2doEn6k2cKQxFxiP9gwUD+ztRKdDANnaBJ+pNnCkMRcYj/YTwAwIdHJhbnNmZXIMFIl3INjNdvTwCr+jfA7diJwgj96bQWJ9W1I4".to_string());
+
+		assert_eq!(tx.witnesses().len(), 1);
+		assert_eq!(tx.witnesses(), &vec![
+			NeoWitness::new(
+				"DEDjHdgTfdXKx1R9f4D1lRklhisjDOkkMt7t1fO1CPO31gVQZUiWJc7GvJqjkR35iDjJjGIwd3s/Lm7q71rwdVC4".to_string(),
+				"EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw==".to_string()
+			)
+		]);
 	}
 
 	#[tokio::test]
@@ -6559,9 +6743,40 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!(
+				{
+					"hash": "0x8916c94bb7c4a63f117ca873c9224955bf9ad00b1149a0173e33614559713425",
+					"size": 192,
+					"version": 0,
+					"nonce": 1749194511,
+					"sender": "NM7Aky765FG8NhhwtxjXRx7jEL1cnw7PBP",
+					"sysfee": "0",
+					"netfee": "2343101",
+					"validuntilblock": 86401,
+					"signers": [
+						{
+							"account": "0x69ecca587293047be4c59159bf8bc399985c160d",
+							"scopes": "None"
+						}
+					],
+					"attributes": [
+						{
+							"type": "Conflicts",
+							"hash": "0x830869b930477c50c91a11569821a4d665d4a61af78a092e3c1a8690f846fc82"
+						}
+					],
+					"script": "QA==",
+					"witnesses": [
+						{
+							"invocation": "DEBoureAXZRM9wyjX/xZP3Di8Q006H3mb\\u002B6DqWbjAjnIVP/Zd/uG57SecDqO2mZAX\\u002B5eoHQYAGRI6/nrOuwP\\u002BrLU",
+							"verification": "DCEDOk0FGwS3/AIw0rGq7f1ahL4nmlNhpzWNtmWteFd4fxtBVuezJw=="
+						}
+					],
+				}
+			)
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6579,11 +6794,15 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider
+		let result = provider
 			.cancel_transaction(H256::zero(), vec![H160::zero(), H160::zero()], Some(3333))
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let tx = result.unwrap();
+		assert_eq!(tx.hash(), &H256::from_str("0x8916c94bb7c4a63f117ca873c9224955bf9ad00b1149a0173e33614559713425").unwrap());
 	}
 
 	// TokenTracker: Nep17

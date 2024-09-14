@@ -167,7 +167,7 @@ pub trait APITrait: Sync + Send + Debug {
 		from: H160,
 		to: H160,
 		amount: u32,
-	) -> Result<Transaction, Self::Error>;
+	) -> Result<RTransaction, Self::Error>;
 
 	// Transaction methods
 
@@ -175,7 +175,7 @@ pub trait APITrait: Sync + Send + Debug {
 		&self,
 		from: Option<H160>,
 		send_tokens: Vec<TransactionSendToken>,
-	) -> Result<Transaction, Self::Error>;
+	) -> Result<RTransaction, Self::Error>;
 
 	async fn send_to_address(
 		&self,
@@ -189,7 +189,7 @@ pub trait APITrait: Sync + Send + Debug {
 		txHash: H256,
 		signers: Vec<H160>,
 		extra_fee: Option<u64>,
-	) -> Result<Transaction, ProviderError>;
+	) -> Result<RTransaction, ProviderError>;
 
 	async fn get_application_log(&self, tx_hash: H256) -> Result<ApplicationLog, Self::Error>;
 
