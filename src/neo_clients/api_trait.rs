@@ -182,7 +182,7 @@ pub trait APITrait: Sync + Send + Debug {
 		token_hash: H160,
 		to: H160,
 		amount: u32,
-	) -> Result<Transaction, Self::Error>;
+	) -> Result<RTransaction, Self::Error>;
 
 	async fn cancel_transaction(
 		&self,
@@ -310,11 +310,11 @@ pub trait APITrait: Sync + Send + Debug {
 	async fn send_to_address_send_token(
 		&self,
 		send_token: &TransactionSendToken,
-	) -> Result<Transaction, Self::Error>;
+	) -> Result<RTransaction, Self::Error>;
 
 	async fn send_from_send_token(
 		&self,
 		send_token: &TransactionSendToken,
 		from: H160,
-	) -> Result<Transaction, Self::Error>;
+	) -> Result<RTransaction, Self::Error>;
 }

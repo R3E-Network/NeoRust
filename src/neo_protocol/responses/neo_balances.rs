@@ -34,7 +34,7 @@ pub struct Nep11Token {
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Nep17Balances {
 	pub address: String,
-	#[serde(rename = "balance")]
+	#[serde(rename = "balance", default)]
 	pub balances: Vec<Nep17Balance>,
 }
 
@@ -50,4 +50,25 @@ pub struct Nep17Balance {
 	#[serde(deserialize_with = "deserialize_script_hash")]
 	#[serde(serialize_with = "serialize_script_hash")]
 	pub asset_hash: ScriptHash,
+}
+
+impl Nep17Balance {
+    // Constructor equivalent to the Java constructor
+    pub fn new(
+        asset_hash: ScriptHash,
+        name: Option<String>,
+        symbol: Option<String>,
+        decimals: Option<String>,
+        amount: String,
+        last_updated_block: u32,
+    ) -> Self {
+        Self {
+            name,
+            symbol,
+            decimals,
+            amount,
+            last_updated_block,
+            asset_hash,
+        }
+    }
 }

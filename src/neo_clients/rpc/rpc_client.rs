@@ -588,7 +588,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		token_hash: H160,
 		to: H160,
 		amount: u32,
-	) -> Result<Transaction, ProviderError> {
+	) -> Result<RTransaction, ProviderError> {
 		let params = json!([token_hash.to_hex(), to.to_address(), amount]);
 		self.request("sendtoaddress", params).await
 	}
@@ -994,7 +994,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	async fn send_to_address_send_token(
 		&self,
 		send_token: &TransactionSendToken,
-	) -> Result<Transaction, ProviderError> {
+	) -> Result<RTransaction, ProviderError> {
 		// let params = [send_token.to_value()].to_vec();
 		let params = json!([send_token.token.to_hex(), send_token.address, send_token.value,]);
 		self.request("sendtoaddress", params).await
@@ -1004,7 +1004,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		&self,
 		send_token: &TransactionSendToken,
 		from: H160,
-	) -> Result<Transaction, ProviderError> {
+	) -> Result<RTransaction, ProviderError> {
 		let params = json!([
 			send_token.token.to_hex(),
 			from.to_address(),
@@ -1281,12 +1281,7 @@ mod tests {
 		neo_clients::api_trait::APITrait,
 		neo_types::{Base64Encode, Diagnostics, InvokedContract, StorageChange, ToBase64},
 		prelude::{
-			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod,
-			ContractNef, ContractParameter2, ContractParameterType, ContractPermission,
-			ContractState, HighPriorityAttribute, InvocationResult, MockClient,
-			NativeContractState, NeoVMStateType, NodePluginType, NotValidBeforeAttribute,
-			OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner,
-			StackItem, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator,
+			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, InvocationResult, MockClient, NativeContractState, NeoVMStateType, Nep17Balance, Nep17Transfer, NodePluginType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator
 		},
 		providers::RpcClient,
 	};
@@ -6625,6 +6620,30 @@ mod tests {
 		let _ = provider.send_many(None, Vec::<TransactionSendToken>::new()).await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+
+		let _ = env_logger::builder().is_test(true).try_init();
+
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		mock_provider_guard
+			.mock_response_error(json!({
+				"code": -32602,
+				"message": "Invalid params"
+			}))
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+		let result = client.send_many(None, Vec::<TransactionSendToken>::new()).await;
+
+		// Assert that the error is a JsonRpcError
+		assert!(matches!(result, Err(ProviderError::JsonRpcError(_))), "Expected a JsonRpcError.");
 	}
 
 	#[tokio::test]
@@ -6685,9 +6704,39 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!(
+				{
+					"hash": "0xabd78548399bbe684fac50b6a71d0ce3f689497d4e79cb26a2b4dfb211782c39",
+					"size": 375,
+					"version": 0,
+					"nonce": 1509730265,
+					"sender": "AK5AmzrrM3sw3kbCHXpHNeuK3kkjnneUrb",
+					"sysfee": "9007810",
+					"netfee": "2375840",
+					"validuntilblock": 2106930,
+					"signers": [
+						{
+							"account": "0xf68f181731a47036a99f04dad90043a744edec0f",
+							"scopes": "CalledByEntry"
+						}
+					],
+					"attributes": [],
+					"script": "GgwU5sEBNlSvET2KlovcpSyZSKgrlT0MFA/s7USnQwDZ2gSfqTZwpDEXGI/2E8AMCHRyYW5zZmVyDBSJdyDYzXb08Aq/o3wO3YicII/em0FifVtSOA==",
+					"witnesses": [
+						{
+							"invocation": "DECstBmb75AW65NjA35fFlSxszuLRDUzd0nnbfyH8MlnSA02f6B1XlvItpZQBsAd7Pvqa7S+olPAKDO0qtq3ZtOB",
+							"verification": "DCED8ew8Hig+iA3m6cSJ8PJ8GQB8UzhaqkwMkXwyAHntrfILQQqQatQ="
+						},
+						{
+							"invocation": "DED6KQHcomjUhyLcmIcPwM1iWkbOlgDnidWZP+PLDWLQRk2rKLg5B/sY1YD1bqylF0zmtDCSIQKeMivAGJyOSXi4",
+							"verification": "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw=="
+						}
+					],
+				}
+			)
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6698,7 +6747,7 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider
+		let result = provider
 			.send_to_address(
 				H160::from_str("0xde5f57d430d3dece511cf975a8d37848cb9e0525").unwrap(),
 				H160::from_str("674231bd321880fc5c4a73994c87870e52c5fe39").unwrap(),
@@ -6707,6 +6756,38 @@ mod tests {
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let tx = result.unwrap();
+		assert_eq!(tx.hash(), &H256::from_str("0xabd78548399bbe684fac50b6a71d0ce3f689497d4e79cb26a2b4dfb211782c39").unwrap());
+		assert_eq!(tx.size(), &375);
+		assert_eq!(tx.version(), &0);
+		assert_eq!(tx.nonce(), &1509730265);
+		assert_eq!(tx.sender(), &"AK5AmzrrM3sw3kbCHXpHNeuK3kkjnneUrb".to_string());
+		assert_eq!(tx.sys_fee(), &"9007810".to_string());
+		assert_eq!(tx.net_fee(), &"2375840".to_string());
+		assert_eq!(tx.valid_until_block(), &2106930);
+
+		assert_eq!(tx.signers().len(), 1);
+		let signer = tx.signers().get(0).unwrap();
+		assert_eq!(signer.account, H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap());
+		assert_eq!(signer.scopes.len(), 1);
+		assert_eq!(signer.scopes.get(0), Some(&WitnessScope::CalledByEntry));
+		assert_eq!(tx.attributes().len(), 0);
+
+		assert_eq!(tx.script(), &"GgwU5sEBNlSvET2KlovcpSyZSKgrlT0MFA/s7USnQwDZ2gSfqTZwpDEXGI/2E8AMCHRyYW5zZmVyDBSJdyDYzXb08Aq/o3wO3YicII/em0FifVtSOA==".to_string());
+
+		assert_eq!(tx.witnesses().len(), 2);
+		assert_eq!(tx.witnesses(), &vec![
+			NeoWitness::new(
+				"DECstBmb75AW65NjA35fFlSxszuLRDUzd0nnbfyH8MlnSA02f6B1XlvItpZQBsAd7Pvqa7S+olPAKDO0qtq3ZtOB".to_string(),
+				"DCED8ew8Hig+iA3m6cSJ8PJ8GQB8UzhaqkwMkXwyAHntrfILQQqQatQ=".to_string()
+			),
+			NeoWitness::new(
+				"DED6KQHcomjUhyLcmIcPwM1iWkbOlgDnidWZP+PLDWLQRk2rKLg5B/sY1YD1bqylF0zmtDCSIQKeMivAGJyOSXi4".to_string(),
+				"EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw==".to_string()
+			)
+		]);
 	}
 
 	#[tokio::test]
@@ -6812,9 +6893,44 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!({
+				"sent": [
+					{
+						"timestamp": 1554283931,
+						"assethash": "1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3",
+						"transferaddress": "AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis",
+						"amount": "100000000000",
+						"blockindex": 368082,
+						"transfernotifyindex": 0,
+						"txhash": "240ab1369712ad2782b99a02a8f9fcaa41d1e96322017ae90d0449a3ba52a564"
+					},
+					{
+						"timestamp": 1554880287,
+						"assethash": "1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3",
+						"transferaddress": "AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis",
+						"amount": "100000000000",
+						"blockindex": 397769,
+						"transfernotifyindex": 0,
+						"txhash": "12fdf7ce8b2388d23ab223854cb29e5114d8288c878de23b7924880f82dfc834"
+					}
+				],
+				"received": [
+					{
+						"timestamp": 1555651816,
+						"assethash": "600c4f5200db36177e3e8a09e9f18e2fc7d12a0f",
+						"transferaddress": "AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis",
+						"amount": "1000000",
+						"blockindex": 436036,
+						"transfernotifyindex": 0,
+						"txhash": "df7683ece554ecfb85cf41492c5f143215dd43ef9ec61181a28f922da06aba58"
+					}
+				],
+				"address": "AbHgdBaWEnHkCiLtDZXjhvhaAK2cwFh5pF"
+			})
+		).await;
+
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6825,13 +6941,53 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider
+		let result = provider
 			.get_nep17_transfers(
 				H160::from_str("04457ce4219e462146ac00b09793f81bc5bca2ce").unwrap(),
 			)
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+
+		let transfers = result.unwrap();
+		let sent = transfers.sent;
+		assert_eq!(sent.len(), 2);
+		assert_eq!(sent, vec![
+			Nep17Transfer::new(
+				1554283931,
+				H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(),
+				"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
+				100000000000,
+				368082,
+				0,
+				H256::from_str("240ab1369712ad2782b99a02a8f9fcaa41d1e96322017ae90d0449a3ba52a564").unwrap()
+			),
+			Nep17Transfer::new(
+				1554880287,
+				H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(),
+				"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
+				100000000000,
+				397769,
+				0,
+				H256::from_str("12fdf7ce8b2388d23ab223854cb29e5114d8288c878de23b7924880f82dfc834").unwrap()
+			)
+		]);
+
+		let received = transfers.received;
+		assert_eq!(received.len(), 1);
+		assert_eq!(received, vec![
+			Nep17Transfer::new(
+				1555651816,
+				H160::from_str("600c4f5200db36177e3e8a09e9f18e2fc7d12a0f").unwrap(),
+				"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
+				1000000,
+				436036,
+				0,
+				H256::from_str("df7683ece554ecfb85cf41492c5f143215dd43ef9ec61181a28f922da06aba58").unwrap()
+			)
+		]);
 	}
 
 	#[tokio::test]
@@ -6896,9 +7052,30 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!({
+				"address": "NXXazKH39yNFWWZF5MJ8tEN98VYHwzn7g3",
+        		"balance": [
+            		{
+                		"assethash": "a48b6e1291ba24211ad11bb90ae2a10bf1fcd5a8",
+                		"name": "SomeToken",
+                		"symbol": "SOTO",
+                		"decimals": "4", 
+                		"amount": "50000000000", 
+                		"lastupdatedblock": 251604
+            		},
+            		{
+                		"assethash": "1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3",
+                		"name": "RandomToken",
+                		"symbol": "RATO",
+                		"decimals": "2", 
+                		"amount": "100000000", 
+                		"lastupdatedblock": 251600
+            		}
+        		]
+			})
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6909,11 +7086,36 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider
+		let result = provider
 			.get_nep17_balances(H160::from_str("5d75775015b024970bfeacf7c6ab1b0ade974886").unwrap())
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+
+		let nep17_balances = result.unwrap();
+		assert_eq!(nep17_balances.address, "NXXazKH39yNFWWZF5MJ8tEN98VYHwzn7g3".to_string());
+		let balance_list = nep17_balances.balances;
+		assert_eq!(balance_list.len(), 2);
+		assert_eq!(balance_list, vec![
+			Nep17Balance::new(
+				H160::from_str("a48b6e1291ba24211ad11bb90ae2a10bf1fcd5a8").unwrap(), 
+				Some("SomeToken".to_string()), 
+				Some("SOTO".to_string()), 
+				Some("4".to_string()), 
+				"50000000000".to_string(), 
+				251604
+			),
+			Nep17Balance::new(
+				H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(), 
+				Some("RandomToken".to_string()), 
+				Some("RATO".to_string()), 
+				Some("2".to_string()), 
+				"100000000".to_string(), 
+				251600
+			),
+		]);
 	}
 
 	// ApplicationLogs
