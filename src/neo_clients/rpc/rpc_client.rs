@@ -7125,9 +7125,69 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!({
+				"txid": "0x01bcf2edbd27abb8d660b6a06113b84d02f635fed836ce46a38b4d67eae80109",
+				"executions": [
+					{
+						"trigger": "Application",
+						"vmstate": "HALT",
+						"exception": "asdf",
+						"gasconsumed": "9007810",
+						"stack": [
+							{
+								"type": "Integer",
+								"value": "1"
+							}
+						],
+						"notifications": [
+							{
+								"contract": "0x70e2301955bf1e74cbb31d18c2f96972abadb328",
+								"eventname": "Transfer",
+								"state": {
+									"type": "Array",
+									"value": [
+										{
+											"type": "Any"
+										},
+										{
+											"type": "ByteString",
+											"value": "ev0gMlXLKXK9CmqCfnTjh+0yK+w="
+										},
+										{
+											"type": "Integer",
+											"value": "600000000"
+										}
+									]
+								}
+							},
+							{
+								"contract": "0xf61eebf573ea36593fd43aa150c055ad7906ab83",
+								"eventname": "Transfer",
+								"state": {
+									"type": "Array",
+									"value": [
+										{
+											"type": "ByteString",
+											"value": "VHJhbnNmZXI="
+										},
+										{
+											"type": "ByteString",
+											"value": "CaVYdMLaS4bl1J/1MKGxU+sSx9Y="
+										},
+										{
+											"type": "Integer",
+											"value": "100"
+										}
+									]
+								}
+							}
+						]
+					}
+				]
+			})
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7138,7 +7198,7 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider
+		let result = provider
 			.get_application_log(
 				H256::from_str("420d1eb458c707d698c6d2ba0f91327918ddb3b7bae2944df070f3f4e579078b")
 					.unwrap(),
@@ -7146,8 +7206,138 @@ mod tests {
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+
+		let app_log = result.unwrap();
+		assert_eq!(app_log.transaction_id, H256::from_str("0x01bcf2edbd27abb8d660b6a06113b84d02f635fed836ce46a38b4d67eae80109").unwrap());
+		assert_eq!(app_log.executions.len(), 1);
+		assert_eq!(app_log.get_execution(0), app_log.get_first_execution());
+		let mut result = app_log.get_execution(1);
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("has only 1 executions"));
+		}
+		let execution = app_log.executions.get(0).unwrap();
+		assert_eq!(execution.trigger, "Application".to_string());
+		assert_eq!(execution.state, VMState::Halt);
+		assert_eq!(execution.gas_consumed, "9007810".to_string());
+		assert_eq!(execution.stack.len(), 1);
+		assert_eq!(execution.get_first_stack_item(), execution.get_stack_item(0));
+		let stack_item = execution.get_stack_item(0).unwrap();
+		assert!(
+			matches!(stack_item, StackItem::Integer { .. }),
+			"The stack item type is not Integer as expected"
+		);
+		assert_eq!(stack_item.as_int(), Some(1));
+		let mut result = execution.get_stack_item(1);
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("only 1 items left on the NeoVM stack after"));
+		}
+
+		assert_eq!(execution.notifications.len(), 2);
+		assert_eq!(execution.get_first_notification(), execution.get_notification(0));
+		let mut result = execution.get_notification(2);
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("only sent 2 notifications"));
+		}
+
+		let notifcation0 = execution.get_notification(0).unwrap();
+		assert_eq!(notifcation0.contract, H160::from_str("0x70e2301955bf1e74cbb31d18c2f96972abadb328").unwrap());
+		assert!(
+			matches!(notifcation0.state, StackItem::Array { .. }),
+			"The stack item type is not Array as expected"
+		);
+		assert_eq!(notifcation0.event_name, "Transfer".to_string());
+
+		let notifcation_0_array = notifcation0.state.as_array().unwrap();
+		
+		let from0 = notifcation_0_array.get(0);
+		let to0 = notifcation_0_array.get(1).unwrap().as_address().unwrap();
+		let amount0 = notifcation_0_array.get(2).unwrap().as_int().unwrap();
+
+		assert!(from0.is_some());
+		assert_eq!(to0, "NX8GreRFGFK5wpGMWetpX93HmtrezGogzk".to_string());
+		assert_eq!(amount0, 600000000);
+
+		let notifcation1 = execution.get_notification(1).unwrap();
+		assert_eq!(notifcation1.contract, H160::from_str("0xf61eebf573ea36593fd43aa150c055ad7906ab83").unwrap());
+		assert!(
+			matches!(notifcation1.state, StackItem::Array { .. }),
+			"The stack item type is not Array as expected"
+		);
+		assert_eq!(notifcation1.event_name, "Transfer".to_string());
+
+		let notifcation_1_array = notifcation1.state.as_array().unwrap();
+		
+		let event_name1 = notifcation_1_array.get(0).unwrap().as_string().unwrap();
+		let from1 = notifcation_1_array.get(1).unwrap().as_address().unwrap();
+		let amount1 = notifcation_1_array.get(2).unwrap().as_int().unwrap();
+
+		assert_eq!(event_name1, "Transfer".to_string());
+		assert_eq!(from1, "NLnyLtep7jwyq1qhNPkwXbJpurC4jUT8ke".to_string());
+		assert_eq!(amount1, 100);
+
 	}
 
+	#[tokio::test]
+	async fn test_get_application_log_empty_stack() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
+
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!({
+				"txid": "0x01bcf2edbd27abb8d660b6a06113b84d02f635fed836ce46a38b4d67eae80109",
+				"executions": [
+					{
+						"trigger": "Application",
+						"vmstate": "HALT",
+						"exception": "asdf",
+						"gasconsumed": "9007810",
+						"stack": [],
+						"notifications": []
+					}
+				]
+			})
+		).await;
+
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
+			"jsonrpc": "2.0",
+			"method": "getapplicationlog",
+			"params": ["420d1eb458c707d698c6d2ba0f91327918ddb3b7bae2944df070f3f4e579078b"],
+			"id": 1
+		}}"#
+		);
+		let result = provider
+			.get_application_log(
+				H256::from_str("420d1eb458c707d698c6d2ba0f91327918ddb3b7bae2944df070f3f4e579078b")
+					.unwrap(),
+			)
+			.await;
+
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+
+		let app_log = result.unwrap();
+		let execution = app_log.executions.get(0).unwrap();
+		let mut result = execution.get_first_stack_item();
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("no items were left on the NeoVM stack after"));
+		}
+
+		let mut result = execution.get_first_notification();
+		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
+		if let Err(TypeError::IndexOutOfBounds(msg)) = result {
+			assert!(msg.contains("did not send any notifications"));
+		}
+	}
 	// StateService
 
 	#[tokio::test]
