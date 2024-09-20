@@ -247,7 +247,7 @@ pub trait APITrait: Sync + Send + Debug {
 		key: &str,
 	) -> Result<String, Self::Error>;
 
-	async fn verify_proof(&self, root_hash: H256, proof: &str) -> Result<bool, Self::Error>;
+	async fn verify_proof(&self, root_hash: H256, proof: &str) -> Result<String, Self::Error>;
 
 	async fn get_state_height(&self) -> Result<StateHeight, Self::Error>;
 

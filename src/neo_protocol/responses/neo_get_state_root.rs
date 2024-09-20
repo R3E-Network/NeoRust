@@ -1,7 +1,9 @@
 use primitive_types::H256;
 use serde::{Deserialize, Serialize};
 
-use neo::prelude::{deserialize_h256, serialize_h256, Witness};
+use neo::prelude::{deserialize_h256, serialize_h256};
+
+use super::NeoWitness;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct StateRoot {
@@ -11,5 +13,6 @@ pub struct StateRoot {
 	#[serde(serialize_with = "serialize_h256")]
 	#[serde(deserialize_with = "deserialize_h256")]
 	pub root_hash: H256,
-	pub witnesses: Vec<Witness>,
+	#[serde(default)]
+	pub witnesses: Vec<NeoWitness>,
 }
