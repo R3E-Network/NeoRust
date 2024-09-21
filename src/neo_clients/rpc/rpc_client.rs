@@ -1281,7 +1281,7 @@ mod tests {
 		neo_clients::api_trait::APITrait,
 		neo_types::{Base64Encode, Diagnostics, InvokedContract, StorageChange, ToBase64},
 		prelude::{
-			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, InvocationResult, MockClient, NativeContractState, NeoVMStateType, Nep17Balance, Nep17Transfer, NodePluginType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator
+			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, InvocationResult, MockClient, NativeContractState, NeoVMStateType, Nep17Balance, Nep17Transfer, NodePluginType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, StateResult, States, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator
 		},
 		providers::RpcClient,
 	};
@@ -7462,9 +7462,13 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!({
+				"localrootindex": 212,
+				"validatedrootindex": 211
+			})
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7475,9 +7479,14 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider.get_state_height().await;
+		let result = provider.get_state_height().await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let state_height = result.unwrap();
+		assert_eq!(state_height.local_root_index, 212);
+		assert_eq!(state_height.validated_root_index, 211);
 	}
 
 	#[tokio::test]
@@ -7485,9 +7494,10 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!("QQEhBwAA1VhfeRI=")
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7502,7 +7512,7 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider
+		let result = provider
 			.get_state(
 				H256::from_str(
 					"0x7bf925dbd33af0e00d392b92313da59369ed86c82494d0e02040b24faac0a3ca",
@@ -7514,6 +7524,9 @@ mod tests {
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap(), "QQEhBwAA1VhfeRI=".to_string());
 	}
 
 	#[tokio::test]
@@ -7521,9 +7534,24 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!({
+				"firstProof": "Gfr///8UDRZcmJnDi79ZkcXkewSTcljK7GkIJAEBDwOakA9CYtxDPpx00gKk0RCLmrtNtpTsY2rXB/RqfGHIPLIABAQEBAQEBAMe+jlFz2/5ZKl+ycxczvmS75mO9ssmFZef+WHov7XIHQQDiT6zHh/siCZ0c2bfBEymPmRNTiXSAKFIammjmnnBnJYDh0IX5YfZdqNZkfFN/6VaLZ6kX+N+bBGdlNVUyP7pwJ4DrpFUvhWA+kXVxDLE8qKtLcQimKQY1RcWw14bsjURuRYEBAQDsyA6/WuQyV98xH99kDVz3bhQHmUNBIQqJd0x0R/+TGwEKQEGDw8PDw8PAzKhCJmqIIilFwEfMQJDUEMXInq+AbRk8Jfnoi1weu8aUgADo6udX84sFVzKZLdtwtJ6TIMgQOrYZQ+7yKG+5TlliscDzboXdiwLKASBJeAVtNTl7NHqclD6UBe4XrwJQQYJIDQEBAQEBAQEBAQEBAQEBAQkAQEEA6pd1tKBerO8Qub4cvuKEpXDlGCJsktZ4Vk0xT+D6Av5UgADBr2ExYHjKsB15w2Ra40oWm7iPwdhWEVf6nHV6St/W8gEBAQEBAQDufefqjG8jPxPHOFpyF8LE16aXEzlFeuts4vaQ+wGCL4EBAQEBAQEBARKAScNAQYFDAkICQkMAwgLCw8FCQkBDAUOBAcLAAQJAwcCBQgMCg4MBgkDzXuGD6B7eZe7+IxNOv1j48vZn5A9qz4nzzvdSqSQRr8LAglBASEFACrPdwI=",
+				"lastProof": "Gfr///8Uf2XUNDYnCLJV8OBoVr3LXOmdhQUIJAEBDwOakA9CYtxDPpx00gKk0RCLmrtNtpTsY2rXB/RqfGHIPLIABAQEBAQEBAMe+jlFz2/5ZKl+ycxczvmS75mO9ssmFZef+WHov7XIHQQDiT6zHh/siCZ0c2bfBEymPmRNTiXSAKFIammjmnnBnJYDh0IX5YfZdqNZkfFN/6VaLZ6kX+N+bBGdlNVUyP7pwJ4DrpFUvhWA+kXVxDLE8qKtLcQimKQY1RcWw14bsjURuRYEBAQDsyA6/WuQyV98xH99kDVz3bhQHmUNBIQqJd0x0R/+TGwEKQEGDw8PDw8PAzKhCJmqIIilFwEfMQJDUEMXInq+AbRk8Jfnoi1weu8aUgADo6udX84sFVzKZLdtwtJ6TIMgQOrYZQ+7yKG+5TlliscDzboXdiwLKASBJeAVtNTl7NHqclD6UBe4XrwJQQYJIDQEBAQEBAQEBAQEBAQEBAQkAQEEA6pd1tKBerO8Qub4cvuKEpXDlGCJsktZ4Vk0xT+D6Av5UgADBr2ExYHjKsB15w2Ra40oWm7iPwdhWEVf6nHV6St/W8gEBAQEBAQDufefqjG8jPxPHOFpyF8LE16aXEzlFeuts4vaQ+wGCL4EBAQEBAQEBARKAScPBgUNBAMEAwYCBwAICwIFBQ8ADgAGCAUGCw0MCwUMDgkJDQgFAAUDkvma2Sek54h+A0fdKAxoUjETufDdw3bX/Crnad92qPUNAgtBASEHAADVWF95Eg==",
+				"truncated": false,
+				"results": [
+					{
+						"key": "FA0WXJiZw4u/WZHF5HsEk3JYyuxp",
+						"value": "QQEhBQAqz3cC"
+					},
+					{
+						"key": "FH9l1DQ2JwiyVfDgaFa9y1zpnYUF",
+						"value": "QQEhBwAA1VhfeRI="
+					}
+				]
+			})
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7540,7 +7568,7 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider
+		let result = provider
 			.find_states(
 				H256::from_str(
 					"0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f",
@@ -7554,6 +7582,42 @@ mod tests {
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let states = result.unwrap();
+		let first_proof = "Gfr///8UDRZcmJnDi79ZkcXkewSTcljK7GkIJAEBDwOakA9CYtxDPpx00gKk0RCLmrtNtpTsY2rXB\
+		/RqfGHIPLIABAQEBAQEBAMe+jlFz2/5ZKl+ycxczvmS75mO9ssmFZef+WHov7XIHQQDiT6zHh\
+		/siCZ0c2bfBEymPmRNTiXSAKFIammjmnnBnJYDh0IX5YfZdqNZkfFN/6VaLZ6kX+N+bBGdlNVUyP7pwJ4DrpFUvhWA\
+		+kXVxDLE8qKtLcQimKQY1RcWw14bsjURuRYEBAQDsyA6/WuQyV98xH99kDVz3bhQHmUNBIQqJd0x0R\
+		/+TGwEKQEGDw8PDw8PAzKhCJmqIIilFwEfMQJDUEMXInq+AbRk8Jfnoi1weu8aUgADo6udX84sFVzKZLdtwtJ6TIMgQOrYZQ+7yKG\
+		+5TlliscDzboXdiwLKASBJeAVtNTl7NHqclD6UBe4XrwJQQYJIDQEBAQEBAQEBAQEBAQEBAQkAQEEA6pd1tKBerO8Qub4cvuKEpXDlGCJsktZ4Vk0xT+D6Av5UgADBr2ExYHjKsB15w2Ra40oWm7iPwdhWEVf6nHV6St/W8gEBAQEBAQDufefqjG8jPxPHOFpyF8LE16aXEzlFeuts4vaQ+wGCL4EBAQEBAQEBARKAScNAQYFDAkICQkMAwgLCw8FCQkBDAUOBAcLAAQJAwcCBQgMCg4MBgkDzXuGD6B7eZe7+IxNOv1j48vZn5A9qz4nzzvdSqSQRr8LAglBASEFACrPdwI=";
+		assert_eq!(states.first_proof, Some(first_proof.to_string()));
+		let last_proof = "Gfr///8Uf2XUNDYnCLJV8OBoVr3LXOmdhQUIJAEBDwOakA9CYtxDPpx00gKk0RCLmrtNtpTsY2rXB\
+		/RqfGHIPLIABAQEBAQEBAMe+jlFz2/5ZKl+ycxczvmS75mO9ssmFZef+WHov7XIHQQDiT6zHh\
+		/siCZ0c2bfBEymPmRNTiXSAKFIammjmnnBnJYDh0IX5YfZdqNZkfFN/6VaLZ6kX+N+bBGdlNVUyP7pwJ4DrpFUvhWA\
+		+kXVxDLE8qKtLcQimKQY1RcWw14bsjURuRYEBAQDsyA6/WuQyV98xH99kDVz3bhQHmUNBIQqJd0x0R\
+		/+TGwEKQEGDw8PDw8PAzKhCJmqIIilFwEfMQJDUEMXInq+AbRk8Jfnoi1weu8aUgADo6udX84sFVzKZLdtwtJ6TIMgQOrYZQ+7yKG\
+		+5TlliscDzboXdiwLKASBJeAVtNTl7NHqclD6UBe4XrwJQQYJIDQEBAQEBAQEBAQEBAQEBAQkAQEEA6pd1tKBerO8Qub4cvuKEpXDlGCJsktZ4Vk0xT+D6Av5UgADBr2ExYHjKsB15w2Ra40oWm7iPwdhWEVf6nHV6St/W8gEBAQEBAQDufefqjG8jPxPHOFpyF8LE16aXEzlFeuts4vaQ+wGCL4EBAQEBAQEBARKAScPBgUNBAMEAwYCBwAICwIFBQ8ADgAGCAUGCw0MCwUMDgkJDQgFAAUDkvma2Sek54h+A0fdKAxoUjETufDdw3bX/Crnad92qPUNAgtBASEHAADVWF95Eg==";
+		assert_eq!(states.last_proof, Some(last_proof.to_string()));
+		assert_eq!(states.truncated, false);
+		let results = states.results.clone();
+		assert_eq!(results.len(), 2);
+		let key1 = "FA0WXJiZw4u/WZHF5HsEk3JYyuxp".to_string();
+		let value1 = "QQEhBQAqz3cC".to_string();
+		let key2 = "FH9l1DQ2JwiyVfDgaFa9y1zpnYUF".to_string();
+		let value2 = "QQEhBwAA1VhfeRI=".to_string();
+		let result0 = results.get(0).clone().unwrap();
+		assert_eq!(result0.key, key1);
+		assert_eq!(result0.value, value1);
+
+		let expected_result1 = StateResult{key: key1, value: value1};
+		let expected_result2 = StateResult{key: key2, value: value2};
+		let expected_results = vec![expected_result1, expected_result2];
+		let expected_states = States{first_proof: Some(first_proof.to_string()), last_proof: Some(last_proof.to_string()), truncated: false, results: expected_results};
+		assert_eq!(states, expected_states);
+
+
+
 	}
 
 	#[tokio::test]
