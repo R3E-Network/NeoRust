@@ -22,6 +22,25 @@ pub struct Nep11Balance {
 	pub asset_hash: ScriptHash,
 }
 
+impl Nep11Balance {
+    // Constructor function to create a new Nep11Balance instance
+    pub fn new(
+		asset_hash: ScriptHash,
+        name: String,
+        symbol: String,
+        decimals: String,
+        tokens: Vec<Nep11Token>,  
+    ) -> Self {
+        Nep11Balance {
+            name,
+            symbol,
+            decimals,
+            tokens,
+            asset_hash,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Nep11Token {
 	#[serde(rename = "tokenid")]
@@ -29,6 +48,17 @@ pub struct Nep11Token {
 	pub amount: String,
 	#[serde(rename = "lastupdatedblock")]
 	pub last_updated_block: u32,
+}
+
+impl Nep11Token {
+    // Constructor function to create a new Nep11Token instance
+    pub fn new(token_id: String, amount: String, last_updated_block: u32) -> Self {
+        Nep11Token {
+            token_id,
+            amount,
+            last_updated_block,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]

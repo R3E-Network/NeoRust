@@ -1281,7 +1281,7 @@ mod tests {
 		neo_clients::api_trait::APITrait,
 		neo_types::{Base64Encode, Diagnostics, InvokedContract, StorageChange, ToBase64},
 		prelude::{
-			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, InvocationResult, MockClient, NativeContractState, NeoVMStateType, Nep17Balance, Nep17Transfer, NodePluginType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, StateResult, States, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator
+			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, InvocationResult, MockClient, NativeContractState, NeoVMStateType, Nep11Balance, Nep11Token, Nep17Balance, Nep17Transfer, NodePluginType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, StateResult, States, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator
 		},
 		providers::RpcClient,
 	};
@@ -7621,6 +7621,128 @@ mod tests {
 	}
 
 	#[tokio::test]
+	async fn test_find_states_single_result() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
+
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!({
+				"firstProof": "Bfr///8LBiQBAQ8DqDawCFNqYkkQC+no3z6WbmuP8DJmy9e4MMK\
+				+QzHITdGyAAQEBAQEBAQDHvo5Rc9v+WSpfsnMXM75ku+ZjvbLJhWXn/lh6L+1yB0EA4k\
+				+sx4f7IgmdHNm3wRMpj5kTU4l0gChSGppo5p5wZyWA7QRkH8fw1R6WnCQfRWk96ZKPBPSeOU\
+				+gvwQuwjznHjfA66RVL4VgPpF1cQyxPKirS3EIpikGNUXFsNeG7I1EbkWBAQEA7MgOv1rkMlffMR\
+				/fZA1c924UB5lDQSEKiXdMdEf/kxsBCkBBg8PDw8PDwMJqhMyRWjael2lcsob2BXims/yMjMrrSkkWY\
+				/MsReC7lIAAzP6dmF3DTZHkfcXYHO6On6KQucSwUv9UryMqImoBKrLA27ebHC45rpr3EGcLJ7D7EAm\
+				/JihcES3pIzYVxgh6hSrBAQEBAQEBAQEBAQEBAQEJAEBCwMWm2J/uEa8sf+ET9RUiBXqOLuLQ\
+				/dr4V494mGlwcp9DAkCBwCY0uJieRI=",
+				"truncated": true,
+				"results": [
+					{
+						"key": "Cw==",
+						"value": "AJjS4mJ5Eg=="
+					}
+				]
+			})
+		).await;
+
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
+			"jsonrpc": "2.0",
+			"method": "findstates",
+			"params": [
+				"76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f", 
+				"d2a4cff31913016155e38e474a2c06d08be276cf",
+				"C/4=",
+				"Cw==",
+				2
+			],
+			"id": 1
+		}}"#
+		);
+		let result = provider
+			.find_states(
+				H256::from_str(
+					"0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f",
+				)
+				.unwrap(),
+				H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
+				"0bfe",
+				Some("0b"),
+				Some(2),
+			)
+			.await;
+
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let states = result.unwrap();
+		let first_proof = "Bfr///8LBiQBAQ8DqDawCFNqYkkQC+no3z6WbmuP8DJmy9e4MMK\
+				+QzHITdGyAAQEBAQEBAQDHvo5Rc9v+WSpfsnMXM75ku+ZjvbLJhWXn/lh6L+1yB0EA4k\
+				+sx4f7IgmdHNm3wRMpj5kTU4l0gChSGppo5p5wZyWA7QRkH8fw1R6WnCQfRWk96ZKPBPSeOU\
+				+gvwQuwjznHjfA66RVL4VgPpF1cQyxPKirS3EIpikGNUXFsNeG7I1EbkWBAQEA7MgOv1rkMlffMR\
+				/fZA1c924UB5lDQSEKiXdMdEf/kxsBCkBBg8PDw8PDwMJqhMyRWjael2lcsob2BXims/yMjMrrSkkWY\
+				/MsReC7lIAAzP6dmF3DTZHkfcXYHO6On6KQucSwUv9UryMqImoBKrLA27ebHC45rpr3EGcLJ7D7EAm\
+				/JihcES3pIzYVxgh6hSrBAQEBAQEBAQEBAQEBAQEJAEBCwMWm2J/uEa8sf+ET9RUiBXqOLuLQ\
+				/dr4V494mGlwcp9DAkCBwCY0uJieRI=";
+		assert_eq!(states.first_proof, Some(first_proof.to_string()));
+		assert!(states.last_proof.is_none());
+		assert_eq!(states.results.len(), 1);
+	}
+
+	#[tokio::test]
+	async fn test_find_states_empty_results() {
+		// Access the global mock server
+		let mock_server = setup_mock_server().await;
+
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!({
+				"truncated": true,
+				"results": []
+			})
+		).await;
+
+		// Expected request body
+		let expected_request_body = format!(
+			r#"{{
+			"jsonrpc": "2.0",
+			"method": "findstates",
+			"params": [
+				"76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f", 
+				"d2a4cff31913016155e38e474a2c06d08be276cf",
+				"C/4=",
+				"Cw==",
+				2
+			],
+			"id": 1
+		}}"#
+		);
+		let result = provider
+			.find_states(
+				H256::from_str(
+					"0x76d6bddf6d9b5979d532877f0617bf31abd03d663c73357dfb2e2417a287b09f",
+				)
+				.unwrap(),
+				H160::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap(),
+				"0bfe",
+				Some("0b"),
+				Some(2),
+			)
+			.await;
+
+		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let states = result.unwrap();
+		assert!(states.first_proof.is_none());
+		assert!(states.last_proof.is_none());
+		assert_eq!(states.truncated, true);
+		assert_eq!(states.results.len(), 0);
+	}
+
+	#[tokio::test]
 	async fn test_find_states_nocount() {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
@@ -7765,9 +7887,50 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!({
+				"address": "NXXazKH39yNFWWZF5MJ8tEN98VYHwzn7g3",
+				"balance": [
+					{
+						"assethash": "a48b6e1291ba24211ad11bb90ae2a10bf1fcd5a8",
+						"name": "FunnyCats",
+						"symbol": "FCS",
+						"decimals": "0",
+						"tokens": [
+							{
+								"tokenid": "1",
+								"amount": "1",
+								"lastupdatedblock": 12345
+							},
+							{
+								"tokenid": "2",
+								"amount": "1",
+								"lastupdatedblock": 123456
+							}
+						]
+					},
+					{
+						"assethash": "1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3",
+						"name": "CuteNeoKittens",
+						"symbol": "CNKS",
+						"decimals": "4",
+						"tokens": [
+							{
+								"tokenid": "4",
+								"amount": "10000",
+								"lastupdatedblock": 12345
+							},
+							{
+								"tokenid": "10",
+								"amount": "6500",
+								"lastupdatedblock": 654321
+							}
+						]
+					}
+				]
+			})
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7780,11 +7943,56 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider
+		let result = provider
 			.get_nep11_balances(H160::from_str("5d75775015b024970bfeacf7c6ab1b0ade974886").unwrap())
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let nep11_balances = result.unwrap();
+		assert_eq!(nep11_balances.address, "NXXazKH39yNFWWZF5MJ8tEN98VYHwzn7g3".to_string());
+		let nep11_balances_list = nep11_balances.balances;
+		assert_eq!(nep11_balances_list.len(), 2);
+		assert_eq!(nep11_balances_list, vec![
+			Nep11Balance::new(
+				H160::from_str("a48b6e1291ba24211ad11bb90ae2a10bf1fcd5a8").unwrap(), 
+				"FunnyCats".to_string(), 
+				"FCS".to_string(), 
+				"0".to_string(), 
+				vec![
+					Nep11Token::new(
+						"1".to_string(),
+						"1".to_string(),
+						12345
+					),
+					Nep11Token::new(
+						"2".to_string(),
+						"1".to_string(),
+						123456
+					)
+				]
+			),
+			Nep11Balance::new(
+				H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(), 
+				"CuteNeoKittens".to_string(), 
+				"CNKS".to_string(), 
+				"4".to_string(), 
+				vec![
+					Nep11Token::new(
+						"4".to_string(),
+						"10000".to_string(),
+						12345
+					),
+					Nep11Token::new(
+						"10".to_string(),
+						"6500".to_string(),
+						654321
+					)
+				]
+			)
+		])
+
 	}
 
 	#[tokio::test]
@@ -7792,9 +8000,46 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!({
+				"sent": [
+					{
+						"tokenid": "1",
+						"timestamp": 1554283931,
+						"assethash": "1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3",
+						"transferaddress": "AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis",
+						"amount": "100000000000",
+						"blockindex": 368082,
+						"transfernotifyindex": 0,
+						"txhash": "240ab1369712ad2782b99a02a8f9fcaa41d1e96322017ae90d0449a3ba52a564"
+					},
+					{
+						"tokenid": "2",
+						"timestamp": 1554880287,
+						"assethash": "1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3",
+						"transferaddress": "AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis",
+						"amount": "100000000000",
+						"blockindex": 397769,
+						"transfernotifyindex": 0,
+						"txhash": "12fdf7ce8b2388d23ab223854cb29e5114d8288c878de23b7924880f82dfc834"
+					}
+				],
+				"received": [
+					{
+						"tokenid": "3",
+						"timestamp": 1555651816,
+						"assethash": "600c4f5200db36177e3e8a09e9f18e2fc7d12a0f",
+						"transferaddress": "AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis",
+						"amount": "1000000",
+						"blockindex": 436036,
+						"transfernotifyindex": 0,
+						"txhash": "df7683ece554ecfb85cf41492c5f143215dd43ef9ec61181a28f922da06aba58"
+					}
+				],
+				"address": "AbHgdBaWEnHkCiLtDZXjhvhaAK2cwFh5pF"
+			})
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7807,13 +8052,15 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider
+		let result = provider
 			.get_nep11_transfers(
 				H160::from_str("04457ce4219e462146ac00b09793f81bc5bca2ce").unwrap(),
 			)
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 	}
 
 	#[tokio::test]

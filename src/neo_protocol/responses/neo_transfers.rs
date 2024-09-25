@@ -25,6 +25,8 @@ pub struct Nep11Transfer {
 	pub asset_hash: ScriptHash,
 	#[serde(rename = "transferaddress")]
 	pub transfer_address: String,
+	#[serde(deserialize_with = "deserialize_amount")]
+	#[serde(serialize_with = "serialize_amount")]
 	pub amount: u64,
 	#[serde(rename = "blockindex")]
 	pub block_index: u32,
@@ -105,3 +107,5 @@ where
 {
     serializer.serialize_str(&amount.to_string())
 }
+
+
