@@ -38,6 +38,30 @@ pub struct Nep11Transfer {
 	pub tx_hash: H256,
 }
 
+impl Nep11Transfer {
+    pub fn new(
+        timestamp: u64,
+        asset_hash: ScriptHash,
+        transfer_address: String,
+        amount: u64,
+        block_index: u32,
+        transfer_notify_index: u32,
+        tx_hash: H256,
+		token_id: String,
+    ) -> Self {
+        Nep11Transfer {
+            token_id,
+            timestamp,
+            asset_hash,
+            transfer_address,
+            amount,
+            block_index,
+            transfer_notify_index,
+            tx_hash,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Nep17Transfers {
 	pub sent: Vec<Nep17Transfer>,

@@ -1281,7 +1281,7 @@ mod tests {
 		neo_clients::api_trait::APITrait,
 		neo_types::{Base64Encode, Diagnostics, InvokedContract, StorageChange, ToBase64},
 		prelude::{
-			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, InvocationResult, MockClient, NativeContractState, NeoVMStateType, Nep11Balance, Nep11Token, Nep17Balance, Nep17Transfer, NodePluginType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, StateResult, States, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator
+			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, InvocationResult, MockClient, NativeContractState, NeoVMStateType, Nep11Balance, Nep11Token, Nep11Transfer, Nep17Balance, Nep17Transfer, NodePluginType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, StateResult, States, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator
 		},
 		providers::RpcClient,
 	};
@@ -8061,6 +8061,46 @@ mod tests {
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		let transfers = result.unwrap();
+		let sent = transfers.sent;
+		assert_eq!(sent.len(), 2);
+		assert_eq!(sent, vec![
+			Nep11Transfer::new(
+				1554283931,
+				H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(),
+				"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
+				100000000000,
+				368082,
+				0,
+				H256::from_str("240ab1369712ad2782b99a02a8f9fcaa41d1e96322017ae90d0449a3ba52a564").unwrap(),
+				"1".to_string()
+			),
+			Nep11Transfer::new(
+				1554880287,
+				H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(),
+				"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
+				100000000000,
+				397769,
+				0,
+				H256::from_str("12fdf7ce8b2388d23ab223854cb29e5114d8288c878de23b7924880f82dfc834").unwrap(),
+				"2".to_string()
+			)
+		]);
+
+		let received = transfers.received;
+		assert_eq!(received.len(), 1);
+		assert_eq!(received, vec![
+			Nep11Transfer::new(
+				1555651816,
+				H160::from_str("600c4f5200db36177e3e8a09e9f18e2fc7d12a0f").unwrap(),
+				"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
+				1000000,
+				436036,
+				0,
+				H256::from_str("df7683ece554ecfb85cf41492c5f143215dd43ef9ec61181a28f922da06aba58").unwrap(),
+				"3".to_string()
+			)
+		]);
 	}
 
 	#[tokio::test]
@@ -8132,9 +8172,13 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!({
+				"keyProp1": "valueProp1",
+				"keyProp2": "valueProp2"
+			})
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -8148,7 +8192,7 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider
+		let result = provider
 			.get_nep11_properties(
 				H160::from_str("2eeda865e7824c71b3fe14bed35d04d0f2f0e9d6").unwrap(),
 				"12345",
@@ -8156,6 +8200,13 @@ mod tests {
 			.await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+
+		let properties = result.unwrap();
+		assert_eq!(properties.len(), 2);
+		assert_eq!(properties.get("keyProp1"), Some(&"valueProp1".to_string()));
+		assert_eq!(properties.get("keyProp2"), Some(&"valueProp2".to_string()));
 	}
 
 	async fn verify_request(
