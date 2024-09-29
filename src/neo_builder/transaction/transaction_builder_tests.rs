@@ -64,9 +64,35 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_build_transaction_with_correct_nonce() {
+		// let _ = env_logger::builder().is_test(true).try_init();
 		let mut nonce = 1;
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
-		let mut tx = TransactionBuilder::with_client(&client)
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		
+		// Set the mock response before using the client
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_necessary_mock.json",
+        		)
+        		.await;
+			// mock_provider_guard
+        	// 	.mock_response_with_file_ignore_param(
+            // 		"calculatenetworkfee",
+            // 		"calculatenetworkfee.json",
+        	// 	)
+        	// 	.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+		// let client = CLIENT.get_or_init(|| async { mock_provider.into_client() }).await;
+		let mut transaction_builder = TransactionBuilder::with_client(&client);
+		let mut tx = transaction_builder
 			.valid_until_block(1)
 			.unwrap()
 			.set_script(Some(vec![1, 2, 3]))
@@ -80,7 +106,8 @@ mod tests {
 		assert_eq!(*tx.nonce(), nonce);
 
 		nonce = 0;
-		tx = TransactionBuilder::with_client(&client)
+		transaction_builder = TransactionBuilder::with_client(&client);
+		tx = transaction_builder
 			.valid_until_block(1)
 			.unwrap()
 			.set_script(Some(vec![1, 2, 3]))
@@ -93,7 +120,8 @@ mod tests {
 		assert_eq!(*tx.nonce(), nonce);
 
 		nonce = u32::MAX;
-		tx = TransactionBuilder::with_client(&client)
+		transaction_builder = TransactionBuilder::with_client(&client);
+		tx = transaction_builder
 			.valid_until_block(1)
 			.unwrap()
 			.set_script(Some(vec![1, 2, 3]))
@@ -179,7 +207,8 @@ mod tests {
 		};
 		let script = vec![0x01u8, 0x02u8, 0x03u8];
 
-		let tx = TransactionBuilder::with_client(&client)
+		let mut transaction_builder = TransactionBuilder::with_client(&client);
+		let tx = transaction_builder
 			.set_script(Some(script))
 			.set_signers(vec![
 				AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(),

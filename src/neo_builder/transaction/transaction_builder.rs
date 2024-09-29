@@ -253,7 +253,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	}
 
 	// Get unsigned transaction
-	pub async fn get_unsigned_tx(&mut self) -> Result<Transaction, TransactionError> {
+	pub async fn get_unsigned_tx(&mut self) -> Result<Transaction<P>, TransactionError> {
 		// Validate configuration
 		if self.signers.is_empty() {
 			return Err(TransactionError::NoSigners);
@@ -302,7 +302,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 
 		// Check sender balance if needed
 		let mut tx = Transaction {
-			network: Some(self.client.unwrap().network().await),
+			network: Some(self.client.unwrap()),
 			version: self.version,
 			nonce: self.nonce,
 			valid_until_block: self.valid_until_block.unwrap_or(100),
@@ -313,7 +313,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 			attributes: self.attributes.clone(),
 			script: self.script.clone().unwrap(), // We've already checked for None case above
 			witnesses: vec![],
-			block_time: None,
+			// block_time: None,
 			block_count_when_sent: None,
 		};
 
@@ -383,7 +383,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	}
 
 	// Sign transaction
-	pub async fn sign(&mut self) -> Result<Transaction, BuilderError> {
+	pub async fn sign(&mut self) -> Result<Transaction<P>, BuilderError> {
 		let mut unsigned_tx = self.get_unsigned_tx().await?;
 		// let client = self.client.unwrap();
 		let tx_bytes = unsigned_tx.get_hash_data().await?;

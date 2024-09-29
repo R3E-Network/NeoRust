@@ -9,7 +9,7 @@ use serde_with::__private__::DeError;
 
 use crate::{
 	neo_clients::JsonRpcProvider,
-	prelude::{NeoConstants, RawTransaction},
+	prelude::{HttpProvider, NeoConstants, RawTransaction},
 };
 use neo::{
 	prelude::{
@@ -21,10 +21,10 @@ use neo::{
 };
 
 #[derive(Serialize, Getters, Setters, MutGetters, CopyGetters, Debug, Clone)]
-pub struct Transaction {
+pub struct Transaction<'a, P: JsonRpcProvider + 'static> {
 	#[serde(skip)]
 	#[getset(get = "pub", set = "pub")]
-	pub network: Option<u32>,
+	pub network: Option<&'a RpcClient<P>>,
 
 	#[serde(rename = "version")]
 	#[getset(get = "pub", set = "pub")]
@@ -66,14 +66,14 @@ pub struct Transaction {
 	#[getset(get = "pub", set = "pub")]
 	pub witnesses: Vec<Witness>,
 
-	#[serde(rename = "blocktime")]
-	#[getset(get = "pub", set = "pub")]
-	pub block_time: Option<i32>,
+	// #[serde(rename = "blocktime")]
+	// #[getset(get = "pub", set = "pub")]
+	// pub block_time: Option<i32>,
 	#[serde(skip)]
 	pub(crate) block_count_when_sent: Option<u32>,
 }
 
-impl Default for Transaction {
+impl<'a, P: JsonRpcProvider + 'static> Default for Transaction<'a, P> {
 	fn default() -> Self {
 		Transaction {
 			network: None,
@@ -87,13 +87,13 @@ impl Default for Transaction {
 			attributes: Default::default(),
 			script: Default::default(),
 			witnesses: Default::default(),
-			block_time: Default::default(),
+			// block_time: Default::default(),
 			block_count_when_sent: None,
 		}
 	}
 }
 
-impl<'de> Deserialize<'de> for Transaction {
+impl<'de, 'a, P: JsonRpcProvider + 'static> Deserialize<'de> for Transaction<'a, P> {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
 		D: Deserializer<'de>,
@@ -140,7 +140,7 @@ impl<'de> Deserialize<'de> for Transaction {
 			attributes,
 			script,
 			witnesses,
-			block_time,
+			// block_time,
 			// Fill in other fields as necessary
 			block_count_when_sent: None,
 		})
@@ -149,13 +149,13 @@ impl<'de> Deserialize<'de> for Transaction {
 
 // impl<P: JsonRpcClient + 'static> DeserializeOwned for Transaction<P> {}
 
-impl Hash for Transaction {
+impl<'a, P: JsonRpcProvider + 'static> Hash for Transaction<'a, P> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.to_array().hash(state);
 	}
 }
 
-impl Transaction {
+impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 	const HEADER_SIZE: usize = 25;
 	pub fn new() -> Self {
 		Self::default()
@@ -177,7 +177,7 @@ impl Transaction {
 		let mut encoder = Encoder::new();
 		self.serialize_without_witnesses(&mut encoder);
 		let mut data = encoder.to_bytes().hash256();
-		data.splice(0..0, self.network.unwrap().to_be_bytes());
+		data.splice(0..0, self.network.as_ref().unwrap().network().await.to_be_bytes());
 
 		Ok(data)
 	}
@@ -285,19 +285,19 @@ impl Transaction {
 // }
 // }
 
-impl Eq for Transaction {}
+impl<'a, P: JsonRpcProvider + 'static> Eq for Transaction<'a, P> {}
 
-impl PartialEq for Transaction {
+impl<'a, P: JsonRpcProvider + 'static> PartialEq for Transaction<'a, P> {
 	fn eq(&self, other: &Self) -> bool {
 		self.to_array() == other.to_array()
 	}
 }
 
-impl NeoSerializable for Transaction {
+impl<'a, P: JsonRpcProvider + 'static> NeoSerializable for Transaction<'a, P> {
 	type Error = TransactionError;
 
 	fn size(&self) -> usize {
-		Transaction::HEADER_SIZE
+		Transaction::<HttpProvider>::HEADER_SIZE
 			+ self.signers.var_size()
 			+ self.attributes.var_size()
 			+ self.script.var_size()
@@ -345,7 +345,7 @@ impl NeoSerializable for Transaction {
 			attributes,
 			script,
 			witnesses,
-			block_time: None,
+			// block_time: None,
 			block_count_when_sent: None,
 		})
 	}

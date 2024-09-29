@@ -7,7 +7,7 @@ use yubihsm::ecdsa::Signature;
 
 use neo::prelude::{APITrait, Transaction, WalletError};
 
-use crate::{neo_types::Address, prelude::HashableForVec};
+use crate::{neo_types::Address, prelude::{HashableForVec, JsonRpcProvider}};
 
 /// A Neo private-public key pair which can be used for signing messages.
 ///
@@ -76,14 +76,14 @@ impl<D: Sync + Send + PrehashSigner<Signature<NistP256>>> WalletSigner<D> {
 	/// # Returns
 	///
 	/// A `Result` containing the `p256::NistP256` of the transaction, or a `WalletError` on failure.
-	pub(crate) async fn sign_transaction(
+	pub(crate) async fn sign_transaction<'a, P: JsonRpcProvider + 'static>(
 		&self,
-		tx: &Transaction,
+		tx: &Transaction<'a, P>,
 	) -> Result<Signature<NistP256>, WalletError> {
 		let mut tx_with_network = tx.clone();
 		if tx_with_network.network().is_none() {
 			// in the case we don't have a network, let's use the signer chain id instead
-			tx_with_network.set_network(self.network.map(|n| n as u32));
+			// tx_with_network.set_network(self.network.map(|n| n as u32));
 		}
 		self.signer
 			.sign_prehash(&tx_with_network.get_hash_data().await.unwrap())

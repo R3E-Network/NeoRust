@@ -2465,64 +2465,7 @@ mod tests {
 					"magic": 860243278,
 					"compiler": "neo-core-v3.0",
 					"source": "variable-size-source-ledgercontract",
-					"tokens": [
-						// {
-						//     "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
-						//     "method": "update",
-						//     "paramcount": 3,
-						//     "hasreturnvalue": false,
-						//     "callflags": "All"
-						// },
-						// {
-						//     "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
-						//     "method": "destroy",
-						//     "paramcount": 0,
-						//     "hasreturnvalue": false,
-						//     "callflags": "All"
-						// },
-						// {
-						//     "hash": "0xfe924b7cfe89ddd271abaf7210a80a7e11178758",
-						//     "method": "request",
-						//     "paramcount": 5,
-						//     "hasreturnvalue": false,
-						//     "callflags": "All"
-						// },
-						// {
-						//     "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
-						//     "method": "itoa",
-						//     "paramcount": 1,
-						//     "hasreturnvalue": true,
-						//     "callflags": "All"
-						// },
-						// {
-						//     "hash": "0xacce6fd80d44e1796aa0c2c625e9e4e0ce39efc0",
-						//     "method": "jsonDeserialize",
-						//     "paramcount": 1,
-						//     "hasreturnvalue": true,
-						//     "callflags": "All"
-						// },
-						// {
-						//     "hash": "0xfffdc93764dbaddd97c48f252a53ea4643faa3fd",
-						//     "method": "getContract",
-						//     "paramcount": 1,
-						//     "hasreturnvalue": true,
-						//     "callflags": "All"
-						// },
-						// {
-						//     "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
-						//     "method": "getTransaction",
-						//     "paramcount": 1,
-						//     "hasreturnvalue": true,
-						//     "callflags": "All"
-						// },
-						// {
-						//     "hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
-						//     "method": "getTransactionState",
-						//     "paramcount": 1,
-						//     "hasreturnvalue": true,
-						//     "callflags": "All"
-						// }
-					],
+					"tokens": [],
 					"script": "EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0AQQRr3e2dA",
 					"checksum": 529571427
 				},
@@ -2746,9 +2689,59 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 		let provider = mock_rpc_response(
 			&mock_server,
-			"getblockhash",
-			json!([16293]),
-			json!("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"),
+			"getcontractstate",
+			json!(["NeoToken"]),
+			json!({
+				"id": -4,
+				"updatecounter": 0,
+				"hash": "0xda65b600f7124ce6c79950c1772a36403104f2be",
+				"nef": {
+					"magic": 860243278,
+					"compiler": "neo-core-v3.0",
+					"source": "variable-size-source-ledgercontract",
+					"tokens": [],
+					"script": "EEEa93tnQBBBGvd7Z0AQQRr3e2dAEEEa93tnQBBBGvd7Z0AQQRr3e2dA",
+					"checksum": 529571427
+				},
+				"manifest": {
+					"name": "LedgerContract",
+					"groups": [],
+					"features": {},
+					"supportedstandards": [],
+					"abi": {
+						"methods": [
+							{
+								"name": "currentHash",
+								"parameters": [],
+								"returntype": "Hash256",
+								"offset": 0,
+								"safe": true
+							},
+							{
+								"name": "getTransactionHeight",
+								"parameters": [
+									{
+										"name": "hash",
+										"type": "Hash256"
+									}
+								],
+								"returntype": "Integer",
+								"offset": 35,
+								"safe": true
+							}
+						],
+						"events": []
+					},
+					"permissions": [
+						{
+							"contract": "*",
+							"methods": "*"
+						}
+					],
+					"trusts": [],
+					"extra": null
+				}
+			}),
 		)
 		.await;
 		// Expected request body
@@ -5441,8 +5434,10 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let provider = mock_rpc_response_without_request(
+		let provider = mock_rpc_response(
 			&mock_server,
+			"invokescript",
+			json!(["EMAMCGRlY2ltYWxzDBQlBZ7LSHjTqHX5HFHO3tMw1Fdf3kFifVtS", []]),
 			json!({
 				"script": "10c00c08646563696d616c730c1425059ecb4878d3a875f91c51ceded330d4575fde41627d5b52",
 				"state": "HALT",

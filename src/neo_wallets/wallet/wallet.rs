@@ -313,11 +313,11 @@ impl Wallet {
 	/// # Ok(())
 	/// # }
 	/// ```
-	pub async fn get_witness(&self, tx: &Transaction) -> Result<Witness, WalletError> {
+	pub async fn get_witness<'a, P: JsonRpcProvider + 'static>(&self, tx: &Transaction<'a, P>) -> Result<Witness, WalletError> {
 		let mut tx_with_chain = tx.clone();
 		if tx_with_chain.network().is_none() {
 			// in the case we don't have a network, let's use the signer network magic instead
-			tx_with_chain.set_network(Some(self.network()));
+			// tx_with_chain.set_network(Some(self.network()));
 		}
 
 		Witness::create(
