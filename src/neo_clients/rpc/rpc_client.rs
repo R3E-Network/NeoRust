@@ -22,6 +22,7 @@ use std::{
 use tracing::{debug, trace};
 use tracing_futures::Instrument;
 use url::{Host, ParseError, Url};
+use getset::{Getters, Setters};
 
 use neo::prelude::*;
 
@@ -69,13 +70,15 @@ impl FromStr for NeoClient {
 /// # Ok(())
 /// # }
 /// ```
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Getters)]
 pub struct RpcClient<P> {
 	provider: P,
 	nns: Option<Address>,
 	interval: Option<Duration>,
 	from: Option<Address>,
 	_node_client: Arc<Mutex<Option<NeoVersion>>>,
+	#[getset(get = "pub")]
+	allow_transmission_on_fault: bool,
 }
 
 impl<P> AsRef<P> for RpcClient<P> {
@@ -94,6 +97,7 @@ impl<P: JsonRpcProvider> RpcClient<P> {
 			interval: None,
 			from: None,
 			_node_client: Arc::new(Mutex::new(None)),
+			allow_transmission_on_fault: false,
 		}
 	}
 

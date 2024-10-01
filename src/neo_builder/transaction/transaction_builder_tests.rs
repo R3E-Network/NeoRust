@@ -77,12 +77,12 @@ mod tests {
             		"invokescript_necessary_mock.json",
         		)
         		.await;
-			// mock_provider_guard
-        	// 	.mock_response_with_file_ignore_param(
-            // 		"calculatenetworkfee",
-            // 		"calculatenetworkfee.json",
-        	// 	)
-        	// 	.await;
+			mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
 			mock_provider_guard.mount_mocks().await;
 		}
 
@@ -133,6 +133,69 @@ mod tests {
 			.unwrap();
 		debug!("{:?}", tx);
 		assert_eq!(*tx.nonce(), nonce);
+	}
+
+	#[tokio::test]
+	async fn test_build_transaction_automatically_set_nonce() {
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		
+		// Set the mock response before using the client
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_necessary_mock.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"getblockcount",
+            		"getblockcount_1000.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+		// let client = CLIENT.get_or_init(|| async { mock_provider.into_client() }).await;
+		let mut transaction_builder = TransactionBuilder::with_client(&client);
+		let mut tx = transaction_builder
+			.valid_until_block(1)
+			.unwrap()
+			.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
+			.get_unsigned_tx()
+			.await
+			.unwrap();
+		assert_eq!(*tx.nonce(), 0);
+	}
+
+	#[tokio::test]
+	async fn test_build_transaction_fail_building_tx_without_signer() {
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+		// let client = CLIENT.get_or_init(|| async { mock_provider.into_client() }).await;
+		let mut transaction_builder = TransactionBuilder::with_client(&client);
+		let mut tx = transaction_builder
+			.valid_until_block(100)
+			.unwrap()
+			.set_script(Some(vec![1, 2, 3]))
+			.get_unsigned_tx()
+			.await;
+		assert_eq!(tx, Err(TransactionError::NoSigners));
 	}
 
 	#[tokio::test]

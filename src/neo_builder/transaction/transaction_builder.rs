@@ -285,20 +285,15 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		}
 
 		// Get fees
-		let script = self.script.as_ref().unwrap();
-		let response = self
-			.client
-			.unwrap()
-			.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
-			.await
-			.map_err(|e| TransactionError::ProviderError(e))?;
+		// let script = self.script.as_ref().unwrap();
+		// let response = self
+		// 	.client
+		// 	.unwrap()
+		// 	.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
+		// 	.await
+		// 	.map_err(|e| TransactionError::ProviderError(e))?;
 
-		let system_fee = i64::from_str(response.gas_consumed.as_str()).unwrap_or_else(|e| {
-			panic!(
-				"Failed to parse system fee from response: {:?}, error: {:?}",
-				response.gas_consumed, e
-			)
-		});
+		let system_fee = self.get_system_fee().await.unwrap() + self.additional_system_fee as i64;
 
 		// Check sender balance if needed
 		let mut tx = Transaction {
@@ -330,7 +325,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		Ok(tx)
 	}
 
-	pub(crate) async fn get_system_fee(&self) -> Result<u64, TransactionError> {
+	pub(crate) async fn get_system_fee(&self) -> Result<i64, TransactionError> {
 		let script = self.script.as_ref().unwrap();
 
 		let response = self
@@ -339,7 +334,10 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 			.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
 			.await
 			.map_err(|e| TransactionError::ProviderError(e))?;
-		Ok(u64::from_str(response.gas_consumed.as_str()).unwrap()) // example
+		if response.has_state_fault() && !self.client.unwrap().allow_transmission_on_fault() {
+			return Err(TransactionError::TransactionConfiguration(format!("The vm exited due to the following exception: {}", response.exception.unwrap())));
+		}
+		Ok(i64::from_str(response.gas_consumed.as_str()).unwrap()) // example
 	}
 
 	pub(crate) async fn get_network_fee(&mut self) -> Result<i64, TransactionError> {
