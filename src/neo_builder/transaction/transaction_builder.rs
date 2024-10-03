@@ -60,7 +60,7 @@ pub struct TransactionBuilder<'a, P: JsonRpcProvider + 'static> {
 	nonce: u32,
 	valid_until_block: Option<u32>,
 	// setter and getter
-	#[getset(get = "pub", set = "pub")]
+	#[getset(get = "pub")]
 	pub(crate) signers: Vec<Signer>,
 	#[getset(get = "pub", set = "pub")]
 	additional_network_fee: u64,
@@ -437,6 +437,33 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		}
 
 		false
+	}
+
+	pub fn set_signers(&mut self, signers: Vec<Signer>) -> Result<&mut Self, TransactionError> {
+        if self.contains_duplicate_signers(&signers) {
+            return Err(TransactionError::TransactionConfiguration("Cannot add multiple signers concerning the same account.".to_string()));
+        }
+        
+        self.check_and_throw_if_max_attributes_exceeded(signers.len(), self.attributes.len())?;
+        
+        self.signers = signers;
+        Ok(self)
+    }
+
+	fn contains_duplicate_signers(&self, signers: &Vec<Signer>) -> bool {
+		let signer_list: Vec<H160> = signers.iter().map(|s| s.get_signer_hash().clone()).collect();
+		let signer_set: HashSet<_> = signer_list.iter().collect();
+		signer_list.len() != signer_set.len()
+	}
+
+	fn check_and_throw_if_max_attributes_exceeded(&self, total_signers: usize, total_attributes: usize) -> Result<(), TransactionError> {
+		if total_signers + total_attributes > NeoConstants::MAX_TRANSACTION_ATTRIBUTES.try_into().unwrap() {
+			return Err(TransactionError::TransactionConfiguration(format!(
+				"A transaction cannot have more than {} attributes (including signers).",
+				NeoConstants::MAX_TRANSACTION_ATTRIBUTES
+			)));
+		}
+		Ok(())
 	}
 
 	pub fn is_high_priority(&self) -> bool {

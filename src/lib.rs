@@ -233,6 +233,7 @@ mod tests {
 					.to_bytes(),
 			))
 			.set_signers(vec![AccountSigner::called_by_entry(&sender)?.into()])
+			.unwrap()
 			.valid_until_block(rpc_client.get_block_count().await? + 5760)?; // Valid for ~1 day
 
 		// Sign the transaction

@@ -97,6 +97,7 @@ mod tests {
 			.unwrap()
 			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
+			.unwrap()
 			.nonce(nonce)
 			.unwrap()
 			.get_unsigned_tx()
@@ -112,6 +113,7 @@ mod tests {
 			.unwrap()
 			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
+			.unwrap()
 			.nonce(nonce)
 			.unwrap()
 			.get_unsigned_tx()
@@ -126,6 +128,7 @@ mod tests {
 			.unwrap()
 			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
+			.unwrap()
 			.nonce(nonce)
 			.unwrap()
 			.get_unsigned_tx()
@@ -174,6 +177,7 @@ mod tests {
 			.unwrap()
 			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
+			.unwrap()
 			.get_unsigned_tx()
 			.await
 			.unwrap();
@@ -196,6 +200,23 @@ mod tests {
 			.get_unsigned_tx()
 			.await;
 		assert_eq!(tx, Err(TransactionError::NoSigners));
+	}
+
+	#[tokio::test]
+	async fn test_build_transaction_fail_adding_multiple_signers_concerning_the_same_account() {
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+		// let client = CLIENT.get_or_init(|| async { mock_provider.into_client() }).await;
+		let mut transaction_builder = TransactionBuilder::with_client(&client);
+		let mut tx = transaction_builder
+			.valid_until_block(100)
+			.unwrap()
+			.set_script(Some(vec![1, 2, 3]))
+			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(), AccountSigner::global(ACCOUNT1.deref()).unwrap().into()]);
+		assert_eq!(tx, Err(TransactionError::TransactionConfiguration("Cannot add multiple signers concerning the same account.".to_string())));
 	}
 
 	#[tokio::test]
@@ -252,6 +273,7 @@ mod tests {
 		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let err = TransactionBuilder::with_client(&client)
 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
+			.unwrap()
 			.get_unsigned_tx()
 			.await
 			.err()
@@ -277,6 +299,7 @@ mod tests {
 				AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(),
 				AccountSigner::called_by_entry(ACCOUNT2.deref()).unwrap().into(),
 			])
+			.unwrap()
 			.valid_until_block(1000)
 			.unwrap()
 			.sign()
@@ -566,6 +589,7 @@ mod tests {
 		let mut tb = TransactionBuilder::with_client(&client);
 		tb.set_script(Some(script.clone()))
 			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()])
+			.unwrap()
 			.valid_until_block(1000)
 			.unwrap();
 
@@ -581,6 +605,7 @@ mod tests {
 		let mut tb = TransactionBuilder::with_client(&client);
 		tb.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::none(&account_without_keypair).unwrap().into()])
+			.unwrap()
 			.valid_until_block(1000)
 			.unwrap();
 
@@ -643,6 +668,7 @@ mod tests {
 		let mut tb = TransactionBuilder::with_client(&client);
 		tb.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
+			.unwrap()
 			.valid_until_block(1000)
 			.unwrap();
 
@@ -665,6 +691,7 @@ mod tests {
 				ContractSigner::global(contract_hash, &params).into(),
 				AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(),
 			])
+			.unwrap()
 			.valid_until_block(1000)
 			.unwrap();
 
@@ -698,6 +725,7 @@ mod tests {
 		let mut tb = TransactionBuilder::with_client(&client);
 		tb.set_script(Some(script.clone()))
 			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()])
+			.unwrap()
 			.valid_until_block(100)
 			.unwrap();
 
@@ -870,6 +898,7 @@ mod tests {
 		let _ = tx_builder
 			.set_script(Some(script))
 			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()])
+			.unwrap()
 			.valid_until_block(2000000)
 			.unwrap()
 			.do_if_sender_cannot_cover_fees(Box::new(move |fee, balance| {
@@ -943,6 +972,7 @@ mod tests {
 			.valid_until_block(2000000)
 			.unwrap()
 			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()])
+			.unwrap()
 			.throw_if_sender_cannot_cover_fees(TransactionError::InsufficientFunds);
 
 		assert!(tx_builder.get_unsigned_tx().await.is_err());
@@ -1149,6 +1179,7 @@ mod tests {
 		tx_builder
 			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::none(&account).unwrap().into()])
+			.unwrap()
 			.set_additional_network_fee(2000);
 
 		let tx = match tx_builder.get_unsigned_tx().await {
@@ -1196,6 +1227,7 @@ mod tests {
 		tx_builder
 			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::none(&account).unwrap().into()])
+			.unwrap()
 			.set_additional_system_fee(3000);
 
 		let tx = match tx_builder.get_unsigned_tx().await {
