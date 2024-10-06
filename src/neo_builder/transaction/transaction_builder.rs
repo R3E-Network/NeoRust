@@ -283,6 +283,11 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		} else {
 			return Err(TransactionError::NoScript);
 		}
+		
+		// Check committe member
+		if self.is_high_priority() && !self.is_allowed_for_high_priority().await {
+			return Err(TransactionError::IllegalState("This transaction does not have a committee member as signer. Only committee members can send transactions with high priority.".to_string()));
+		}
 
 		// Get fees
 		// let script = self.script.as_ref().unwrap();
@@ -470,6 +475,36 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		self.attributes
 			.iter()
 			.any(|attr| matches!(attr, TransactionAttribute::HighPriority))
+	}
+
+	async fn  is_allowed_for_high_priority(&self) -> bool {
+		let response = self
+			.client
+			.unwrap()
+			.get_committee()
+			.await
+			.map_err(|e| TransactionError::ProviderError(e)).unwrap();
+		// Map the Vec<String> response to Vec<Hash160>
+        let committee: HashSet<H160> = response
+            .iter()
+            .filter_map(|key_str| {
+                // Convert the String to Hash160 (assuming `Hash160::from_str` or similar exists)
+				let public_key = Secp256r1PublicKey::from_encoded(key_str)?;
+
+                Some(public_key_to_script_hash(&public_key))  // Handle potential parsing errors gracefully
+            })
+            .collect();
+
+		let signers_contain_committee_member = self.signers
+            .iter()
+            .map(|signer| signer.get_signer_hash())
+            .any(|script_hash| committee.contains(&script_hash));
+
+        if signers_contain_committee_member {
+            return true;
+        }
+
+		return self.signers_contain_multi_sig_with_committee_member(&committee);
 	}
 
 	/// Checks if the sender account of this transaction can cover the network and system fees.

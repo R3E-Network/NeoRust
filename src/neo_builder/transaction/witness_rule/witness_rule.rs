@@ -149,7 +149,7 @@ mod tests {
 
 	#[test]
 	fn test_called_by_group_condition_serialize_deserialize() {
-		let key = TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY;
+		let key: &str = TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY;
 		let condition =
 			WitnessCondition::CalledByGroup(Secp256r1PublicKey::from_encoded(&key).unwrap());
 

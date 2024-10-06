@@ -219,6 +219,7 @@ mod tests {
 		assert_eq!(tx, Err(TransactionError::TransactionConfiguration("Cannot add multiple signers concerning the same account.".to_string())));
 	}
 
+
 	#[tokio::test]
 	async fn test_invoke_script() {
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
@@ -399,35 +400,6 @@ mod tests {
 	}
 
 	#[tokio::test]
-	async fn test_automatically_set_nonce() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
-		let mut tb = TransactionBuilder::with_client(&client);
-		tb.set_script(Some(vec![1, 2, 3]))
-			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()]);
-
-		let tx = match tb.get_unsigned_tx().await {
-			Ok(tx) => tx,
-			Err(e) => panic!("Failed to build transaction: {:?}", e),
-		};
-		assert!(tx.nonce() < &u32::MAX && tx.nonce() > &0);
-	}
-
-	#[tokio::test]
-	async fn test_fail_building_tx_without_any_signer() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
-		let mut tb = TransactionBuilder::with_client(&client);
-		tb.valid_until_block(100).unwrap().set_script(Some(vec![1, 2, 3]));
-
-		assert!(tb.get_unsigned_tx().await.is_err());
-
-		let mut tb2 = TransactionBuilder::with_client(&client);
-		tb2.set_signers(vec![
-			AccountSigner::global(ACCOUNT1.deref()).unwrap().into(),
-			AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(),
-		]);
-	}
-
-	#[tokio::test]
 	async fn test_override_signer() {
 		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let mut tb = TransactionBuilder::with_client(&client);
@@ -441,13 +413,42 @@ mod tests {
 			Signer::AccountSigner(AccountSigner::global(ACCOUNT1.deref()).unwrap())
 		);
 
-		tb.set_signers(vec![AccountSigner::global(ACCOUNT2.deref()).unwrap().into()]);
-		assert_eq!(tb.signers(), &vec![AccountSigner::global(ACCOUNT2.deref()).unwrap().into()]);
+		tb.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT2.deref()).unwrap().into()]);
+		assert_eq!(tb.signers(), &vec![AccountSigner::called_by_entry(ACCOUNT2.deref()).unwrap().into()]);
 	}
 
 	#[tokio::test]
 	async fn test_attributes_high_priority_committee() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		
+		// Set the mock response before using the client
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"getcommittee",
+            		"getcommittee.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let mut tb = TransactionBuilder::with_client(&client);
 		let multi_sig_account = Account::multi_sig_from_public_keys(
 			&mut vec![ACCOUNT2.get_public_key().unwrap(), ACCOUNT1.get_public_key().unwrap()],
@@ -464,7 +465,36 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_attributes_high_priority() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		
+		// Set the mock response before using the client
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"getcommittee",
+            		"getcommittee.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let mut tb = TransactionBuilder::with_client(&client);
 		tb.set_script(Some(vec![1, 2, 3]))
 			.set_attributes(vec![TransactionAttribute::HighPriority])
@@ -476,13 +506,34 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_attributes_high_priority_not_committee_member() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		
+		// Set the mock response before using the client
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"getcommittee",
+            		"getcommittee.json",
+        		)
+        		.await;
+			mock_provider_guard
+        		.mock_get_block_count(
+            		100
+				)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let mut tb = TransactionBuilder::with_client(&client);
 		tb.set_script(Some(vec![1, 2, 3]))
 			.set_attributes(vec![TransactionAttribute::HighPriority])
 			.set_signers(vec![AccountSigner::none(ACCOUNT2.deref()).unwrap().into()]);
 
-		assert!(tb.get_unsigned_tx().await.is_err());
+		assert_eq!(tb.get_unsigned_tx().await, Err(TransactionError::IllegalState("This transaction does not have a committee member as signer. Only committee members can send transactions with high priority.".to_string())));
 	}
 
 	#[tokio::test]

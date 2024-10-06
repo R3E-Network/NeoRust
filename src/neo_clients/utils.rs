@@ -11,6 +11,8 @@ use neo::prelude::{
 	ScriptHashExtension, Secp256r1PrivateKey, Secp256r1PublicKey, DEFAULT_ADDRESS_VERSION,
 };
 
+use crate::prelude::VerificationScript;
+
 /// A simple gas escalation policy
 pub type EscalationPolicy = Box<dyn Fn(U256, usize) -> U256 + Send + Sync>;
 
@@ -59,8 +61,8 @@ pub fn public_key_to_address(public_key: &Secp256r1PublicKey) -> String {
 
 /// Convert a public key to a script hash.
 pub fn public_key_to_script_hash(public_key: &Secp256r1PublicKey) -> ScriptHash {
-	let script = ScriptBuilder::build_verification_script(public_key);
-	script_hash_from_script(&script)
+	let script = VerificationScript::from_public_key(public_key);
+	ScriptHash::from_script(&script.script())
 }
 
 /// Convert a private key to a script hash.
@@ -78,7 +80,9 @@ pub fn private_key_to_address(private_key: &Secp256r1PrivateKey) -> String {
 /// Convert a script hash to an address.
 pub fn script_hash_to_address(script_hash: &ScriptHash) -> String {
 	let mut data = vec![DEFAULT_ADDRESS_VERSION];
-	data.extend_from_slice(script_hash.as_bytes());
+	let mut script_hash_bytes= script_hash.clone().as_bytes().to_vec();
+	script_hash_bytes.reverse();
+	data.extend_from_slice(&script_hash_bytes);
 	let sha = &data.hash256().hash256();
 	data.extend_from_slice(&sha[..4]);
 	bs58::encode(data).into_string()
