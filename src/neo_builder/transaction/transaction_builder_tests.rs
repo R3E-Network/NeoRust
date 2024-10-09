@@ -456,7 +456,7 @@ mod tests {
 		)
 		.unwrap();
 		tb.set_script(Some(vec![1, 2, 3]))
-			.set_attributes(vec![TransactionAttribute::HighPriority])
+			.add_attributes(vec![TransactionAttribute::HighPriority]).unwrap()
 			.set_signers(vec![AccountSigner::none(&multi_sig_account).unwrap().into()]);
 
 		let tx = tb.get_unsigned_tx().await.unwrap();
@@ -497,7 +497,7 @@ mod tests {
 		};
 		let mut tb = TransactionBuilder::with_client(&client);
 		tb.set_script(Some(vec![1, 2, 3]))
-			.set_attributes(vec![TransactionAttribute::HighPriority])
+			.add_attributes(vec![TransactionAttribute::HighPriority]).unwrap()
 			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()]);
 
 		let tx = tb.get_unsigned_tx().await.unwrap();
@@ -530,7 +530,7 @@ mod tests {
 		};
 		let mut tb = TransactionBuilder::with_client(&client);
 		tb.set_script(Some(vec![1, 2, 3]))
-			.set_attributes(vec![TransactionAttribute::HighPriority])
+			.add_attributes(vec![TransactionAttribute::HighPriority]).unwrap()
 			.set_signers(vec![AccountSigner::none(ACCOUNT2.deref()).unwrap().into()]);
 
 		assert_eq!(tb.get_unsigned_tx().await, Err(TransactionError::IllegalState("This transaction does not have a committee member as signer. Only committee members can send transactions with high priority.".to_string())));
@@ -585,7 +585,7 @@ mod tests {
 			.map(|_| TransactionAttribute::HighPriority)
 			.collect();
 		let mut tb = TransactionBuilder::with_client(&client);
-		// assert!(tb.set_attributes(attrs));
+		// assert!(tb.add_attributes(attrs));
 	}
 
 	#[tokio::test]
@@ -600,14 +600,14 @@ mod tests {
 		let attrs: Vec<TransactionAttribute> = (0..=NeoConstants::MAX_TRANSACTION_ATTRIBUTES - 3)
 			.map(|_| TransactionAttribute::HighPriority)
 			.collect();
-		// assert!(tb.set_attributes(attrs));
+		// assert!(tb.add_attributes(attrs));
 	}
 
 	#[tokio::test]
 	async fn test_fail_adding_more_than_max_attributes_to_tx_signers() {
 		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let mut tb = TransactionBuilder::with_client(&client);
-		tb.set_attributes(vec![TransactionAttribute::HighPriority]);
+		tb.add_attributes(vec![TransactionAttribute::HighPriority]);
 		let signers: Vec<AccountSigner> = (0..NeoConstants::MAX_TRANSACTION_ATTRIBUTES)
 			.map(|_| AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap())
 			.collect();

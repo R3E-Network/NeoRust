@@ -38,12 +38,7 @@
 /// It uses generics to allow for different types of JSON-RPC providers.
 use futures_util::TryFutureExt;
 use std::{
-	cell::RefCell,
-	collections::HashSet,
-	fmt::Debug,
-	hash::{Hash, Hasher},
-	iter::Iterator,
-	str::FromStr,
+	cell::RefCell, collections::HashSet, default, fmt::Debug, hash::{Hash, Hasher}, iter::Iterator, str::FromStr
 };
 
 use getset::{CopyGetters, Getters, MutGetters, Setters};
@@ -66,7 +61,7 @@ pub struct TransactionBuilder<'a, P: JsonRpcProvider + 'static> {
 	additional_network_fee: u64,
 	#[getset(get = "pub", set = "pub")]
 	additional_system_fee: u64,
-	#[getset(get = "pub", set = "pub")]
+	#[getset(get = "pub")]
 	attributes: Vec<TransactionAttribute>,
 	#[getset(get = "pub", set = "pub")]
 	script: Option<Bytes>,
@@ -462,6 +457,9 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
                 TransactionAttribute::HighPriority => {
                     self.add_high_priority_attribute(attr)?;
                 },
+				TransactionAttribute::NotValidBefore { height} => {
+                    self.add_not_valid_before_attribute(attr)?;
+                },
                 // TransactionAttribute::Conflicts => {
                 //     self.add_conflicts_attribute();
                 // },
@@ -488,20 +486,26 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
         Ok(())
     }
 
-	// fn add_not_valid_before_attribute(&mut self, attr: TransactionAttribute) -> Result<(), TransactionError> {
-    //     if self.is_high_priority() {
-    //         return Err(TransactionError::TransactionConfiguration(
-    //             "A transaction can only have one HighPriority attribute.".to_string(),
-    //         ));
-    //     }
-    //     // Add the attribute to the attributes vector
-    //     self.attributes.push(attr);
-    //     Ok(())
-    // }
+	fn add_not_valid_before_attribute(&mut self, attr: TransactionAttribute) -> Result<(), TransactionError> {
+        if self.has_attribute_of_type(TransactionAttribute::NotValidBefore { height: 0 }) {
+            return Err(TransactionError::TransactionConfiguration(
+                "A transaction can only have one NotValidBefore attribute.".to_string(),
+            ));
+        }
+        // Add the attribute to the attributes vector
+        self.attributes.push(attr);
+        Ok(())
+    }
 
 	 // Check if the attributes vector has an attribute of the specified type
 	 fn has_attribute_of_type(&self, attr_type: TransactionAttribute) -> bool {
-        self.attributes.iter().any(|attr| matches!(attr, attr_type))
+        self.attributes.iter().any(|attr| {
+            match (attr, &attr_type) {
+                (TransactionAttribute::NotValidBefore { .. }, TransactionAttribute::NotValidBefore { .. }) => true,
+                (TransactionAttribute::HighPriority, TransactionAttribute::HighPriority) => true,
+                _ => false,
+            }
+        })
     }
 
     // Check specifically for the HighPriority attribute
