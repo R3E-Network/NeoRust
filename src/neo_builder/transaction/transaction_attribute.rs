@@ -18,6 +18,9 @@ pub enum TransactionAttribute {
 	#[serde(rename = "OracleResponse")]
 	OracleResponse(OracleResponse),
 
+	#[serde(rename = "NotValidBefore")]
+	NotValidBeforeValue,
+
 	Conflicts,
 }
 
@@ -91,6 +94,7 @@ impl NeoSerializable for TransactionAttribute {
 				response_code: _,
 				result,
 			}) => 1 + 9 + result.len(),
+			TransactionAttribute::NotValidBeforeValue => 1,
 			// TODO: check the size of the conflicts attribute
 			TransactionAttribute::Conflicts => 1,
 		}

@@ -519,7 +519,7 @@ mod tests {
         		.await;
 			mock_provider_guard
         		.mock_get_block_count(
-            		100
+            		1000
 				)
         		.await;
 			mock_provider_guard.mount_mocks().await;
@@ -537,18 +537,45 @@ mod tests {
 	}
 
 	#[tokio::test]
-	async fn test_attributes_high_priority_only_added_once() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+	async fn test_attributes_high_priority_error_when_multiple() {
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		
+		// Set the mock response before using the client
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard
+        		.mock_get_block_count(
+            		1000
+				)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let mut tb = TransactionBuilder::with_client(&client);
 		tb.set_script(Some(vec![1, 2, 3]))
-			.set_attributes(vec![
+			.add_attributes(vec![
 				TransactionAttribute::HighPriority,
-				TransactionAttribute::HighPriority,
-			])
-			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()]);
+			]);
 
-		let tx = tb.get_unsigned_tx().await.unwrap();
-		assert_eq!(tx.attributes()[0], TransactionAttribute::HighPriority);
+		assert_eq!(
+			tb.add_attributes(vec![TransactionAttribute::HighPriority]), 
+			Err(TransactionError::TransactionConfiguration("A transaction can only have one HighPriority attribute.".to_string(),))
+		);
 	}
 
 	#[tokio::test]

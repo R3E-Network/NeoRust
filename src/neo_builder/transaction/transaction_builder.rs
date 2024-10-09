@@ -455,6 +455,60 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
         Ok(self)
     }
 
+	pub fn add_attributes(&mut self, attributes: Vec<TransactionAttribute>) -> Result<&mut Self, TransactionError> {
+        self.check_and_throw_if_max_attributes_exceeded(self.signers.len(), self.attributes.len() + attributes.len())?;
+        for attr in attributes {
+            match attr {
+                TransactionAttribute::HighPriority => {
+                    self.add_high_priority_attribute(attr)?;
+                },
+                // TransactionAttribute::Conflicts => {
+                //     self.add_conflicts_attribute();
+                // },
+                // TransactionAttribute::OracleResponse(oracle_response) => {
+                //     self.add_oracle_response_attribute(oracle_response);
+                // },
+                _ => {
+                    // For other cases or any default, just add the attribute directly to the Vec
+                    self.attributes.push(attr);
+                }
+            }
+        }
+        Ok(self)
+    }
+
+	fn add_high_priority_attribute(&mut self, attr: TransactionAttribute) -> Result<(), TransactionError> {
+        if self.is_high_priority() {
+            return Err(TransactionError::TransactionConfiguration(
+                "A transaction can only have one HighPriority attribute.".to_string(),
+            ));
+        }
+        // Add the attribute to the attributes vector
+        self.attributes.push(attr);
+        Ok(())
+    }
+
+	// fn add_not_valid_before_attribute(&mut self, attr: TransactionAttribute) -> Result<(), TransactionError> {
+    //     if self.is_high_priority() {
+    //         return Err(TransactionError::TransactionConfiguration(
+    //             "A transaction can only have one HighPriority attribute.".to_string(),
+    //         ));
+    //     }
+    //     // Add the attribute to the attributes vector
+    //     self.attributes.push(attr);
+    //     Ok(())
+    // }
+
+	 // Check if the attributes vector has an attribute of the specified type
+	 fn has_attribute_of_type(&self, attr_type: TransactionAttribute) -> bool {
+        self.attributes.iter().any(|attr| matches!(attr, attr_type))
+    }
+
+    // Check specifically for the HighPriority attribute
+    fn is_high_priority(&self) -> bool {
+        self.has_attribute_of_type(TransactionAttribute::HighPriority)
+    }
+
 	fn contains_duplicate_signers(&self, signers: &Vec<Signer>) -> bool {
 		let signer_list: Vec<H160> = signers.iter().map(|s| s.get_signer_hash().clone()).collect();
 		let signer_set: HashSet<_> = signer_list.iter().collect();
@@ -471,11 +525,11 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		Ok(())
 	}
 
-	pub fn is_high_priority(&self) -> bool {
-		self.attributes
-			.iter()
-			.any(|attr| matches!(attr, TransactionAttribute::HighPriority))
-	}
+	// pub fn is_high_priority(&self) -> bool {
+	// 	self.attributes
+	// 		.iter()
+	// 		.any(|attr| matches!(attr, TransactionAttribute::HighPriority))
+	// }
 
 	async fn  is_allowed_for_high_priority(&self) -> bool {
 		let response = self
