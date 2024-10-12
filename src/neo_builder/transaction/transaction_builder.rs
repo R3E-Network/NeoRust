@@ -1,3 +1,4 @@
+use ethereum_types::H256;
 /// A builder for constructing and configuring NEO blockchain transactions.
 ///
 /// The `TransactionBuilder` provides a fluent interface for setting various transaction parameters
@@ -460,9 +461,9 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 				TransactionAttribute::NotValidBefore { height} => {
                     self.add_not_valid_before_attribute(attr)?;
                 },
-                // TransactionAttribute::Conflicts => {
-                //     self.add_conflicts_attribute();
-                // },
+                TransactionAttribute::Conflicts { hash} => {
+                    self.add_conflicts_attribute(attr)?;
+                },
                 // TransactionAttribute::OracleResponse(oracle_response) => {
                 //     self.add_oracle_response_attribute(oracle_response);
                 // },
@@ -497,8 +498,22 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
         Ok(())
     }
 
+	fn add_conflicts_attribute(&mut self, attr: TransactionAttribute) -> Result<(), TransactionError> {
+        if self.has_attribute(&attr) {
+            return Err(TransactionError::TransactionConfiguration(
+				format!(
+					"There already exists a conflicts attribute for the hash {} in this transaction.",
+					attr.get_hash().unwrap()
+				)
+            ));
+        }
+        // Add the attribute to the attributes vector
+        self.attributes.push(attr);
+        Ok(())
+    }
+
 	 // Check if the attributes vector has an attribute of the specified type
-	 fn has_attribute_of_type(&self, attr_type: TransactionAttribute) -> bool {
+	fn has_attribute_of_type(&self, attr_type: TransactionAttribute) -> bool {
         self.attributes.iter().any(|attr| {
             match (attr, &attr_type) {
                 (TransactionAttribute::NotValidBefore { .. }, TransactionAttribute::NotValidBefore { .. }) => true,
@@ -506,6 +521,10 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
                 _ => false,
             }
         })
+    }
+
+	fn has_attribute(&self, attr: &TransactionAttribute) -> bool {
+        self.attributes.iter().any(|a| a == attr)
     }
 
     // Check specifically for the HighPriority attribute

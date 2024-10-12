@@ -579,6 +579,193 @@ mod tests {
 	}
 
 	#[tokio::test]
+	async fn test_attributes_not_valid_before() {
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		
+		// Set the mock response before using the client
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard
+        		.mock_get_block_count(
+            		1000
+				)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+		let mut tb = TransactionBuilder::with_client(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
+			.add_attributes(vec![TransactionAttribute::NotValidBefore { height: 200 }]).unwrap()
+			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()]);
+
+		let tx = tb.get_unsigned_tx().await.unwrap();
+		let attribute = tx.attributes().get(0).unwrap();
+		assert!(
+			matches!(attribute, TransactionAttribute::NotValidBefore { .. }),
+			"The attribute type is not NotValidBefore as expected"
+		);
+		assert_eq!(attribute.get_height().unwrap(), &200);
+	}
+
+	#[tokio::test]
+	async fn test_attributes_not_valid_before_error_when_multiple() {
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		
+		// Set the mock response before using the client
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard
+        		.mock_get_block_count(
+            		1000
+				)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+		let mut tb = TransactionBuilder::with_client(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
+			.add_attributes(vec![
+				TransactionAttribute::NotValidBefore { height: 200 },
+			]);
+
+		assert_eq!(
+			tb.add_attributes(vec![TransactionAttribute::NotValidBefore { height: 200 }]), 
+			Err(TransactionError::TransactionConfiguration("A transaction can only have one NotValidBefore attribute.".to_string(),))
+		);
+	}
+
+	#[tokio::test]
+	async fn test_attributes_conflicts() {
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		
+		// Set the mock response before using the client
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard
+        		.mock_get_block_count(
+            		1000
+				)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+		let mut tb = TransactionBuilder::with_client(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
+			.add_attributes(vec![TransactionAttribute::Conflicts { hash: H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e80321c").unwrap() }]).unwrap()
+			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()]);
+
+		let tx = tb.get_unsigned_tx().await.unwrap();
+		let attribute = tx.attributes().get(0).unwrap();
+		assert!(
+			matches!(attribute, TransactionAttribute::Conflicts { .. }),
+			"The attribute type is not Conflicts as expected"
+		);
+		assert_eq!(attribute.get_hash().unwrap(), &H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e80321c").unwrap());
+	}
+
+	#[tokio::test]
+	async fn test_attributes_conflicts_multiple() {
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		
+		// Set the mock response before using the client
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard
+        		.mock_get_block_count(
+            		1000
+				)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+		let mut tb = TransactionBuilder::with_client(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
+			.add_attributes(vec![TransactionAttribute::Conflicts { hash: H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e80321c").unwrap() }]).unwrap()
+			.add_attributes(vec![TransactionAttribute::Conflicts { hash: H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e80321d").unwrap() }]).unwrap()
+			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()]);
+
+		let tx = tb.get_unsigned_tx().await.unwrap();
+		assert_eq!(tx.attributes().len(), 2);
+		let attribute0 = tx.attributes().get(0).unwrap();
+
+		assert!(
+			matches!(attribute0, TransactionAttribute::Conflicts { .. }),
+			"The attribute type is not Conflicts as expected"
+		);
+		assert_eq!(attribute0.get_hash().unwrap(), &H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e80321c").unwrap());
+
+		let attribute1 = tx.attributes().get(1).unwrap();
+		assert!(
+			matches!(attribute1, TransactionAttribute::Conflicts { .. }),
+			"The attribute type is not Conflicts as expected"
+		);
+		assert_eq!(attribute1.get_hash().unwrap(), &H256::from_str("0x8529cf7301d13cc13d85913b8367700080a6e96db045687b8db720e91e80321d").unwrap());
+	}
+
+	#[tokio::test]
 	async fn test_fail_adding_more_than_max_attributes_to_tx_just_attributes() {
 		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let attrs: Vec<TransactionAttribute> = (0..=NeoConstants::MAX_TRANSACTION_ATTRIBUTES)

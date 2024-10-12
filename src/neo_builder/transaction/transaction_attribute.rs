@@ -1,5 +1,6 @@
 use std::hash::Hasher;
 
+use ethereum_types::H256;
 use rustc_serialize::base64::FromBase64;
 use serde::{Deserialize, Serialize};
 
@@ -23,7 +24,9 @@ pub enum TransactionAttribute {
 		height: u32,
 	},
 
-	Conflicts,
+	Conflicts{
+		hash: H256,
+	},
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Hash, Debug, Clone)]
@@ -83,6 +86,22 @@ impl TransactionAttribute {
 	pub fn to_json(&self) -> String {
 		serde_json::to_string(self).unwrap()
 	}
+
+	// Get the height for NotValidBefore attribute
+    pub fn get_height(&self) -> Option<&u32> {
+        match self {
+            TransactionAttribute::NotValidBefore { height } => Some(height),
+            _ => None,
+        }
+    }
+
+	// Get the height for NotValidBefore attribute
+    pub fn get_hash(&self) -> Option<&H256> {
+        match self {
+            TransactionAttribute::Conflicts { hash } => Some(hash),
+            _ => None,
+        }
+    }
 }
 
 impl NeoSerializable for TransactionAttribute {
@@ -96,9 +115,9 @@ impl NeoSerializable for TransactionAttribute {
 				response_code: _,
 				result,
 			}) => 1 + 9 + result.len(),
-			TransactionAttribute::NotValidBefore{height: _} => 1,
+			TransactionAttribute::NotValidBefore{height:_} => 1,
 			// TODO: check the size of the conflicts attribute
-			TransactionAttribute::Conflicts => 1,
+			TransactionAttribute::Conflicts{hash:_} => 1,
 		}
 	}
 
