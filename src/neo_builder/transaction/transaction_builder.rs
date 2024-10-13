@@ -279,6 +279,10 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		} else {
 			return Err(TransactionError::NoScript);
 		}
+
+		if self.valid_until_block.is_none() {
+			self.valid_until_block = Some(self.fetch_current_block_count().await.unwrap() + self.client.unwrap().max_valid_until_block_increment() - 1)
+		}
 		
 		// Check committe member
 		if self.is_high_priority() && !self.is_allowed_for_high_priority().await {
@@ -326,7 +330,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		Ok(tx)
 	}
 
-	pub(crate) async fn get_system_fee(&self) -> Result<i64, TransactionError> {
+	async fn get_system_fee(&self) -> Result<i64, TransactionError> {
 		let script = self.script.as_ref().unwrap();
 
 		let response = self
@@ -341,7 +345,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		Ok(i64::from_str(response.gas_consumed.as_str()).unwrap()) // example
 	}
 
-	pub(crate) async fn get_network_fee(&mut self) -> Result<i64, TransactionError> {
+	async fn get_network_fee(&mut self) -> Result<i64, TransactionError> {
 		let fee = self
 			.client
 			.unwrap()
@@ -349,6 +353,16 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 			.await
 			.map_err(|e| TransactionError::ProviderError(e))?;
 		Ok(fee)
+	}
+
+	async fn fetch_current_block_count(&mut self) -> Result<u32, TransactionError> {
+		let count = self
+			.client
+			.unwrap()
+			.get_block_count()
+			.await
+			.map_err(|e| TransactionError::ProviderError(e))?;
+		Ok(count)
 	}
 
 	async fn get_sender_balance(&self) -> Result<u64, TransactionError> {

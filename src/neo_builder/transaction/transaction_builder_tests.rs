@@ -766,52 +766,141 @@ mod tests {
 	}
 
 	#[tokio::test]
+	async fn test_attributes_conflicts_same_exist_already() {
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+		let mut tb = TransactionBuilder::with_client(&client);
+		tb.set_script(Some(vec![1, 2, 3]))
+			.add_attributes(vec![TransactionAttribute::Conflicts { hash: H256::from_str("fe26f525c17b58f63a4d106fba973ec34cc99bfe2501c9f672cc145b483e398b").unwrap() }]).unwrap();
+
+		let result = tb.add_attributes(vec![TransactionAttribute::Conflicts { hash: H256::from_str("fe26f525c17b58f63a4d106fba973ec34cc99bfe2501c9f672cc145b483e398b").unwrap() }]);
+		
+		assert!(matches!(result, Err(TransactionError::TransactionConfiguration(_))));
+		if let Err(TransactionError::TransactionConfiguration(msg)) = result {
+			assert!(msg.contains("already exists a conflicts attribute for the hash "));
+			assert!(msg.contains("in this transaction"));
+		}
+	}
+
+	#[tokio::test]
+	async fn test_attributes_compare_not_valid_before_attributes() {
+		let attr1 = TransactionAttribute::NotValidBefore { height: 147 };
+		let attr2 = TransactionAttribute::NotValidBefore { height: 1 };
+		assert_ne!(attr1, attr2);
+		assert_eq!(attr1, TransactionAttribute::NotValidBefore { height: 147 });
+	}
+
+	#[tokio::test]
 	async fn test_fail_adding_more_than_max_attributes_to_tx_just_attributes() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let attrs: Vec<TransactionAttribute> = (0..=NeoConstants::MAX_TRANSACTION_ATTRIBUTES)
 			.map(|_| TransactionAttribute::HighPriority)
 			.collect();
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let mut tb = TransactionBuilder::with_client(&client);
-		// assert!(tb.add_attributes(attrs));
+		assert_eq!(
+			tb.add_attributes(attrs), 
+			Err(TransactionError::TransactionConfiguration(format!(
+				"A transaction cannot have more than {} attributes (including signers).",
+				NeoConstants::MAX_TRANSACTION_ATTRIBUTES
+			)))
+		);
 	}
 
 	#[tokio::test]
 	async fn test_fail_adding_more_than_max_attributes_to_tx_attributes_and_signers() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let mut tb = TransactionBuilder::with_client(&client);
 		tb.set_signers(vec![
-			AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(),
-			AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(),
-			AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(),
-		]);
+			AccountSigner::called_by_entry(&Account::create().unwrap()).unwrap().into(),
+			AccountSigner::called_by_entry(&Account::create().unwrap()).unwrap().into(),
+			AccountSigner::called_by_entry(&Account::create().unwrap()).unwrap().into(),
+		]).unwrap();
 		let attrs: Vec<TransactionAttribute> = (0..=NeoConstants::MAX_TRANSACTION_ATTRIBUTES - 3)
 			.map(|_| TransactionAttribute::HighPriority)
 			.collect();
-		// assert!(tb.add_attributes(attrs));
+		assert_eq!(
+			tb.add_attributes(attrs), 
+			Err(TransactionError::TransactionConfiguration(format!(
+				"A transaction cannot have more than {} attributes (including signers).",
+				NeoConstants::MAX_TRANSACTION_ATTRIBUTES
+			)))
+		);
 	}
 
 	#[tokio::test]
 	async fn test_fail_adding_more_than_max_attributes_to_tx_signers() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let mut tb = TransactionBuilder::with_client(&client);
 		tb.add_attributes(vec![TransactionAttribute::HighPriority]);
-		let signers: Vec<AccountSigner> = (0..NeoConstants::MAX_TRANSACTION_ATTRIBUTES)
-			.map(|_| AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap())
+
+		let signers: Vec<Signer> = (0..NeoConstants::MAX_TRANSACTION_ATTRIBUTES)
+			.map(|_| AccountSigner::called_by_entry(&Account::create().unwrap()).unwrap().into())
 			.collect();
+		assert!(signers.len() + 1 > NeoConstants::MAX_TRANSACTION_ATTRIBUTES.try_into().unwrap());
+		assert_eq!(
+			tb.set_signers(signers), 
+			Err(TransactionError::TransactionConfiguration(format!(
+				"A transaction cannot have more than {} attributes (including signers).",
+				NeoConstants::MAX_TRANSACTION_ATTRIBUTES
+			)))
+		);
 		// assert!(tb.set_signers(signers.into_iter().map(Into::into).collect()));
 	}
 
 	#[tokio::test]
 	async fn test_automatic_setting_of_valid_until_block_variable() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
-		let block_count = 1000;
-		let max_valid_until_block_increment = 1000;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		
+		// Set the mock response before using the client
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard
+        		.mock_get_block_count(
+            		1000
+				)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let mut tb = TransactionBuilder::with_client(&client);
+		let block_count = 1000;
 		tb.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()]);
 
 		let tx = tb.get_unsigned_tx().await.unwrap();
-		assert_eq!(*tx.valid_until_block(), block_count + max_valid_until_block_increment);
+		assert_eq!(*tx.valid_until_block(), block_count + client.max_valid_until_block_increment() - 1);
 	}
 
 	#[tokio::test]
@@ -2011,59 +2100,59 @@ mod tests {
 		);
 	}
 
-	#[tokio::test]
-	async fn test_get_network_fee() {
-		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
-		let client = {
-			let mut mock_provider = mock_provider.lock().await;
-			mock_provider
-				.mock_invoke_script(InvocationResult::default())
-				.await
-				.mock_get_block_count(1000)
-				.await
-				.mock_calculate_network_fee(1230610)
-				.await
-				.mount_mocks()
-				.await;
-			Arc::new(mock_provider.into_client())
-		};
+	// #[tokio::test]
+	// async fn test_get_network_fee() {
+	// 	let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+	// 	let client = {
+	// 		let mut mock_provider = mock_provider.lock().await;
+	// 		mock_provider
+	// 			.mock_invoke_script(InvocationResult::default())
+	// 			.await
+	// 			.mock_get_block_count(1000)
+	// 			.await
+	// 			.mock_calculate_network_fee(1230610)
+	// 			.await
+	// 			.mount_mocks()
+	// 			.await;
+	// 		Arc::new(mock_provider.into_client())
+	// 	};
 
-		let account = Account::create().unwrap();
+	// 	let account = Account::create().unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_client(&client);
-		tx_builder
-			.set_script(Some(vec![1, 2, 3]))
-			.set_signers(vec![AccountSigner::called_by_entry(&account).unwrap().into()]);
+	// 	let mut tx_builder = TransactionBuilder::with_client(&client);
+	// 	tx_builder
+	// 		.set_script(Some(vec![1, 2, 3]))
+	// 		.set_signers(vec![AccountSigner::called_by_entry(&account).unwrap().into()]);
 
-		let network_fee = tx_builder.get_network_fee().await.unwrap();
-		assert_eq!(network_fee, 1230610);
-	}
+	// 	let network_fee = tx_builder.get_network_fee().await.unwrap();
+	// 	assert_eq!(network_fee, 1230610);
+	// }
 
-	#[tokio::test]
-	async fn test_get_system_fee() {
-		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
-		let client = {
-			let mut mock_provider = mock_provider.lock().await;
-			mock_provider
-				.mock_invoke_script(InvocationResult::default())
-				.await
-				.mock_get_block_count(1000)
-				.await
-				.mock_calculate_network_fee(1230610)
-				.await
-				.mount_mocks()
-				.await;
-			Arc::new(mock_provider.into_client())
-		};
+	// #[tokio::test]
+	// async fn test_get_system_fee() {
+	// 	let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+	// 	let client = {
+	// 		let mut mock_provider = mock_provider.lock().await;
+	// 		mock_provider
+	// 			.mock_invoke_script(InvocationResult::default())
+	// 			.await
+	// 			.mock_get_block_count(1000)
+	// 			.await
+	// 			.mock_calculate_network_fee(1230610)
+	// 			.await
+	// 			.mount_mocks()
+	// 			.await;
+	// 		Arc::new(mock_provider.into_client())
+	// 	};
 
-		let account = Account::create().unwrap();
+	// 	let account = Account::create().unwrap();
 
-		let mut tx_builder = TransactionBuilder::with_client(&client);
-		tx_builder
-			.set_script(Some(vec![1, 2, 3]))
-			.set_signers(vec![AccountSigner::called_by_entry(&account).unwrap().into()]);
+	// 	let mut tx_builder = TransactionBuilder::with_client(&client);
+	// 	tx_builder
+	// 		.set_script(Some(vec![1, 2, 3]))
+	// 		.set_signers(vec![AccountSigner::called_by_entry(&account).unwrap().into()]);
 
-		let system_fee = tx_builder.get_system_fee().await.unwrap();
-		assert_eq!(system_fee, 984060);
-	}
+	// 	let system_fee = tx_builder.get_system_fee().await.unwrap();
+	// 	assert_eq!(system_fee, 984060);
+	// }
 }

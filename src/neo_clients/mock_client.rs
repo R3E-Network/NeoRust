@@ -149,9 +149,39 @@ impl MockClient {
 		self
 	}
 
-	pub async fn mock_get_block_count(&mut self, result: i32) -> &mut Self {
-		self.mock_response_ignore_param("getblockcount", json!(Ok::<i32, ()>(result)))
-			.await;
+	// pub async fn mock_get_block_count(&mut self, result: i32) -> &mut Self {
+	// 	self.mock_response_ignore_param("getblockcount", json!(Ok::<i32, ()>(result)))
+	// 		.await;
+	// 	self
+	// }
+
+	pub async fn mock_get_block_count(
+		&mut self,
+		block_count: u32,
+	) -> &mut Self {
+		// Construct the path to the response file relative to the project root
+		let mut response_file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+		response_file_path.push("test_resources");
+		response_file_path.push("responses");
+		response_file_path.push(format!("getblockcount_{}.json", block_count));
+	
+		// Load the response body from the specified file
+		let response_body = tokio::fs::read_to_string(response_file_path)
+			.await
+			.expect("Failed to read response file");
+		// // Load the response body from the specified file
+		// let response_body = tokio::fs::read_to_string(format!("/responses/{}", response_file))
+		// .await
+        // .expect("Failed to read response file");
+	
+		let mock = Mock::given(method("POST"))
+			.and(path("/"))
+			.and(body_partial_json(json!({
+				"jsonrpc": "2.0",
+				"method": "getblockcount",
+			})))
+			.respond_with(ResponseTemplate::new(200).set_body_string(response_body));
+		self.mocks.push(mock);
 		self
 	}
 
