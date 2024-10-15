@@ -523,7 +523,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	/// Calculates the network fee for the specified transaction.
 	/// - Parameter txBase64: The transaction in hexadecimal
 	/// - Returns: The request object
-	async fn calculate_network_fee(&self, txBase64: String) -> Result<i64, ProviderError> {
+	async fn calculate_network_fee(&self, txBase64: String) -> Result<NeoNetworkFee, ProviderError> {
 		self.request("calculatenetworkfee", vec![Base64Encode::to_base64(&txBase64)])
 			.await
 	}
@@ -6272,9 +6272,15 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let url = Url::parse(&mock_server.uri()).expect("Invalid mock server URL");
-		let http_client = HttpProvider::new(url).unwrap();
-		let provider = RpcClient::new(http_client);
+		let provider = mock_rpc_response_without_request(
+			&mock_server, 
+			json!(
+				{
+					"networkfee": 1230610
+				}
+				
+			)
+		).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6285,9 +6291,12 @@ mod tests {
 			"id": 1
 		}}"#
 		);
-		let _ = provider.calculate_network_fee("6e656f77336a".to_string()).await;
+		let result = provider.calculate_network_fee("6e656f77336a".to_string()).await;
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
+
+		assert!(result.is_ok(), "Result is not okay: {:?}", result);
+		assert_eq!(result.unwrap().network_fee, 1230610);
 	}
 
 	#[tokio::test]

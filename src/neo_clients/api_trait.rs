@@ -155,7 +155,7 @@ pub trait APITrait: Sync + Send + Debug {
 
 	async fn import_priv_key(&self, priv_key: String) -> Result<NeoAddress, Self::Error>;
 
-	async fn calculate_network_fee(&self, hex: String) -> Result<i64, Self::Error>;
+	async fn calculate_network_fee(&self, hex: String) -> Result<NeoNetworkFee, Self::Error>;
 
 	async fn list_address(&self) -> Result<Vec<NeoAddress>, Self::Error>;
 

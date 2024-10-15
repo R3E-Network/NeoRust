@@ -300,6 +300,8 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 
 		let system_fee = self.get_system_fee().await.unwrap() + self.additional_system_fee as i64;
 
+		let network_fee = self.get_network_fee().await.unwrap() + self.additional_network_fee as i64;
+
 		// Check sender balance if needed
 		let mut tx = Transaction {
 			network: Some(self.client.unwrap()),
@@ -308,7 +310,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 			valid_until_block: self.valid_until_block.unwrap_or(100),
 			size: 0,
 			sys_fee: system_fee,
-			net_fee: 0,
+			net_fee: network_fee,
 			signers: self.signers.clone(),
 			attributes: self.attributes.clone(),
 			script: self.script.clone().unwrap(), // We've already checked for None case above
@@ -346,13 +348,63 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	}
 
 	async fn get_network_fee(&mut self) -> Result<i64, TransactionError> {
+		// Check sender balance if needed
+		let mut tx = Transaction {
+			network: Some(self.client.unwrap()),
+			version: self.version,
+			nonce: self.nonce,
+			valid_until_block: self.valid_until_block.unwrap_or(100),
+			size: 0,
+			sys_fee: 0,
+			net_fee: 0,
+			signers: self.signers.clone(),
+			attributes: self.attributes.clone(),
+			script: self.script.clone().unwrap_or(Default::default()), // We've already checked for None case above
+			witnesses: vec![],
+			// block_time: None,
+			block_count_when_sent: None,
+		};
+		let mut has_atleast_one_signing_account = false;
+
+		// for signer in self.signers.iter() {
+		// 	match signer {
+		// 		Signer::ContractSigner(contract_signer) => {
+		// 			// Create contract witness and add it to the transaction
+		// 			let witness = create_contract_witness(contract_signer.get_verify_parameters());
+		// 			tx.add_witness(witness);
+		// 		}
+		// 		Signer::AccountSigner(account_signer) => {
+		// 			// Get the account from AccountSigner
+		// 			let account = account_signer.account();
+		// 			let verification_script;
+		
+		// 			// Check if the account is multi-signature or single-signature
+		// 			if account.is_multi_sig() {
+		// 				// Create a fake multi-signature verification script
+		// 				verification_script = create_fake_multi_sig_verification_script(account);
+		// 			} else {
+		// 				// Create a fake single-signature verification script
+		// 				verification_script = create_fake_single_sig_verification_script();
+		// 			}
+		
+		// 			// Add a witness with an empty signature and the verification script
+		// 			tx.add_witness(Witness::new(vec![], verification_script.get_script()));
+		// 			has_at_least_one_signing_account = true;
+		// 		}
+		// 		// If there's a case for TransactionSigner, it can be handled here if necessary.
+		// 		_ => {
+		// 			// Handle any other cases, if necessary (like TransactionSigner)
+		// 		}
+		// 	}
+		// }
+
 		let fee = self
 			.client
 			.unwrap()
-			.calculate_network_fee(self.get_unsigned_tx().await.unwrap().to_array().to_hex())
+			.calculate_network_fee(tx.to_array().to_hex())
 			.await
 			.map_err(|e| TransactionError::ProviderError(e))?;
-		Ok(fee)
+		Ok(fee.network_fee)
 	}
 
 	async fn fetch_current_block_count(&mut self) -> Result<u32, TransactionError> {
@@ -387,6 +439,21 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		}
 		Err(TransactionError::InvalidSender)
 	}
+
+	// fn create_fake_multi_sig_verification_script(account: &Account) -> VerificationScript {
+	// 	// Vector to store dummy public keys
+	// 	let mut pub_keys: Vec<Secp256r1PublicKey> = Vec::new();
+	
+	// 	// Loop to add dummy public keys based on the number of participants
+	// 	for _ in 0..account.get_nr_of_participants() {
+	// 		// Create a dummy public key (assuming DUMMY_PUB_KEY exists or is generated)
+	// 		let dummy_public_key = Secp256r1PublicKey::from_encoded(DUMMY_PUB_KEY).unwrap();
+	// 		pub_keys.push(dummy_public_key);
+	// 	}
+	
+	// 	// Create and return the VerificationScript with the pub_keys and signing threshold
+	// 	VerificationScript::new(pub_keys, account.get_signing_threshold())
+	// }
 
 	fn is_account_signer(signer: &Signer) -> bool {
 		if signer.get_type() == SignerType::AccountSigner {
