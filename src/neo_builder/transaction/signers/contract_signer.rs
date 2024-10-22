@@ -1,5 +1,5 @@
 use std::hash::{Hash, Hasher};
-
+use getset::{Getters, Setters};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
@@ -14,7 +14,7 @@ use neo::prelude::{
 ///
 /// This struct contains information about the contract signer, including
 /// the signer hash, scopes, allowed contracts, allowed groups, and witness rules.
-#[derive(Debug, Clone, Serialize, PartialEq, Deserialize)]
+#[derive(Debug, Clone, Serialize, PartialEq, Deserialize, Getters, Setters)]
 pub struct ContractSigner {
 	#[serde(
 		serialize_with = "serialize_script_hash",
@@ -33,7 +33,8 @@ pub struct ContractSigner {
 	)]
 	allowed_groups: Vec<Secp256r1PublicKey>,
 	rules: Vec<WitnessRule>,
-	pub verify_params: Vec<ContractParameter>,
+	#[getset(get = "pub")]
+	verify_params: Vec<ContractParameter>,
 	#[serde(
 		serialize_with = "serialize_script_hash",
 		deserialize_with = "deserialize_script_hash"

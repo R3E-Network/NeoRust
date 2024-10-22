@@ -947,9 +947,30 @@ mod tests {
 		assert_eq!(*tx.sys_fee(), 984060);
 		assert_eq!(*tx.net_fee(), 1230610);
 	}
+
 	#[tokio::test]
 	async fn test_fail_trying_to_sign_transaction_with_account_missing_a_private_key() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let account_without_keypair =
 			Account::from_address(ACCOUNT1.get_address().as_str()).unwrap();
 		let mut tb = TransactionBuilder::with_client(&client);
