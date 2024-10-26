@@ -58,6 +58,7 @@ mod tests {
 		.expect("Failed to create ACCOUNT2");
 	}
 
+
 	static CLIENT: OnceCell<RpcClient<HttpProvider>> = OnceCell::const_new();
 
 	#[tokio::test]
@@ -948,6 +949,7 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_fail_trying_to_sign_transaction_with_account_missing_a_private_key() {
+		NEOCONFIG.lock().unwrap().network = Some(769);
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
 		{
     		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
@@ -987,7 +989,33 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_fail_automatically_signing_with_multi_sig_account_signer() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"getblockcount",
+            		"getblockcount_1000.json",
+        		)
+        		.await;
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let multi_sig_account = Account::multi_sig_from_public_keys(
 			vec![ACCOUNT1.get_public_key().unwrap()].as_mut(),
 			1,
@@ -1000,12 +1028,37 @@ mod tests {
 		.unwrap()
 		.into()]);
 
-		assert!(tb.sign().await.is_err());
+		let result = tb.sign().await;
+		assert!(result.is_err());
+		assert_eq!(result,Err(BuilderError::IllegalState(
+			"Transactions with multi-sig signers cannot be signed automatically."
+				.to_string(),
+		)));
 	}
 
 	#[tokio::test]
 	async fn test_fail_with_no_signing_account() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"getblockcount",
+            		"getblockcount_1000.json",
+        		)
+        		.await;
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let mut tb = TransactionBuilder::with_client(&client);
 		tb.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![ContractSigner::called_by_entry(
@@ -1014,12 +1067,40 @@ mod tests {
 			)
 			.into()]);
 
-		assert!(tb.sign().await.is_err());
+		let result = tb.sign().await;
+		assert!(result.is_err());
+		assert_eq!(result, Err(BuilderError::TransactionError(Box::new(TransactionError::TransactionConfiguration(format!("A transaction requires at least one signing account (i.e. an AccountSigner). None was provided."))))));
 	}
 
 	#[tokio::test]
 	async fn test_fail_signing_with_account_without_ec_keypair() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"getblockcount",
+            		"getblockcount_1000.json",
+        		)
+        		.await;
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let account_without_keypair = Account::from_verification_script(
 			&ACCOUNT1.clone().verification_script().clone().unwrap(),
 		)
@@ -1031,22 +1112,45 @@ mod tests {
 		.unwrap()
 		.into()]);
 
-		assert!(tb.sign().await.is_err());
+		let result = tb.sign().await;
+		assert!(result.is_err());
+		assert!(result.unwrap_err().to_string().contains(" does not hold a private key."));
 	}
 
 	#[tokio::test]
 	async fn test_fail_sending_transaction_because_it_doesnt_contain_the_right_number_of_witnesses()
 	{
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let mut tb = TransactionBuilder::with_client(&client);
 		tb.set_script(Some(vec![1, 2, 3]))
-			.set_signers(vec![AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into()])
+			.set_signers(vec![AccountSigner::called_by_entry(&Account::create().unwrap()).unwrap().into()])
 			.unwrap()
 			.valid_until_block(1000)
 			.unwrap();
-
 		let mut tx = tb.get_unsigned_tx().await.unwrap();
-		// assert!(tx.send_tx(&client).await.is_err());
+		let mut result = tx.send_tx().await;
+		assert!(result.is_err());
+		assert!(result.unwrap_err().to_string().contains("The transaction does not have the same number of signers and witnesses."));
 	}
 
 	#[tokio::test]
@@ -1728,7 +1832,7 @@ mod tests {
 			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
 
 		let mut tx = tx_builder.sign().await.unwrap();
-		let _ = tx.send_tx(&client.as_ref()).await.map_err(TransactionError::from).unwrap();
+		let _ = tx.send_tx().await.map_err(TransactionError::from).unwrap();
 
 		let mut block_num = 0;
 		// TODO: check this
@@ -1847,7 +1951,7 @@ mod tests {
 
 		let mut tx =
 			tx_builder.sign().await.map_err(|e| TransactionError::BuilderError(e)).unwrap();
-		let _ = tx.send_tx(client.as_ref()).await.map_err(TransactionError::from).unwrap();
+		let _ = tx.send_tx().await.map_err(TransactionError::from).unwrap();
 		let application_log = tx
 			.get_application_log(client.as_ref())
 			.await
@@ -1957,7 +2061,7 @@ mod tests {
 			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
 
 		let mut tx = tx_builder.sign().await.unwrap();
-		let _ = tx.send_tx(&client.as_ref()).await.map_err(TransactionError::from).unwrap();
+		let _ = tx.send_tx().await.map_err(TransactionError::from).unwrap();
 
 		assert!(tx
 			.get_application_log(&client.as_ref())

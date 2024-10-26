@@ -300,7 +300,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 
 		let system_fee = self.get_system_fee().await.unwrap() + self.additional_system_fee as i64;
 
-		let network_fee = self.get_network_fee().await.unwrap() + self.additional_network_fee as i64;
+		let network_fee = self.get_network_fee().await?+ self.additional_network_fee as i64;
 
 		// Check sender balance if needed
 		let mut tx = Transaction {
@@ -341,7 +341,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 			.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
 			.await
 			.map_err(|e| TransactionError::ProviderError(e))?;
-		if response.has_state_fault() && !self.client.unwrap().allow_transmission_on_fault() {
+		if response.has_state_fault() && !NEOCONFIG.lock().unwrap().allows_transmission_on_fault {
 			return Err(TransactionError::TransactionConfiguration(format!("The vm exited due to the following exception: {}", response.exception.unwrap())));
 		}
 		Ok(i64::from_str(response.gas_consumed.as_str()).unwrap()) // example

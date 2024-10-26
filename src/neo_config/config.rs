@@ -40,7 +40,7 @@ pub const MAX_VALID_UNTIL_BLOCK_INCREMENT_BASE: u64 = 86_400_000;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct NeoConfig {
-	pub network: u32,
+	pub network: Option<u32>,
 	pub address_version: u8,
 	pub milliseconds_per_block: u32,
 	pub max_transactions_per_block: u32,
@@ -82,7 +82,7 @@ impl Default for NeoConfig {
 		hardforks.insert("HF_Domovoi".to_string(), 5570000);
 
 		NeoConfig {
-			network: 860833102, // TestNet
+			network: Some(860833102), // TestNet
 			address_version: 53,
 			milliseconds_per_block: 15000,
 			max_transactions_per_block: 512,
@@ -141,7 +141,7 @@ impl NeoConfig {
 			return Err("Network magic must fit in 32 bits");
 		}
 
-		self.network = magic;
+		self.network = Some(magic);
 		Ok(())
 	}
 
@@ -157,7 +157,7 @@ impl NeoConfig {
 		hardforks.insert("HF_Domovoi".to_string(), 5570000);
 
 		NeoConfig {
-			network: 860833102,
+			network: Some(860833102),
 			address_version: 53,
 			milliseconds_per_block: 15000,
 			max_transactions_per_block: 512,

@@ -240,7 +240,7 @@ mod tests {
 		let mut signed_tx = tx_builder.sign().await?;
 
 		// Send the transaction
-		let raw_tx = signed_tx.send_tx(&rpc_client).await?;
+		let raw_tx = signed_tx.send_tx().await?;
 
 		println!("Transaction sent: {}", raw_tx.hash);
 

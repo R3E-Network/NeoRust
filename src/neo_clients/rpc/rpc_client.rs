@@ -77,8 +77,8 @@ pub struct RpcClient<P> {
 	interval: Option<Duration>,
 	from: Option<Address>,
 	_node_client: Arc<Mutex<Option<NeoVersion>>>,
-	#[getset(get = "pub")]
-	allow_transmission_on_fault: bool,
+	// #[getset(get = "pub")]
+	// allow_transmission_on_fault: bool,
 }
 
 impl<P> AsRef<P> for RpcClient<P> {
@@ -97,7 +97,7 @@ impl<P: JsonRpcProvider> RpcClient<P> {
 			interval: None,
 			from: None,
 			_node_client: Arc::new(Mutex::new(None)),
-			allow_transmission_on_fault: false,
+			// allow_transmission_on_fault: false,
 		}
 	}
 
@@ -155,8 +155,11 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	}
 
 	async fn network(&self) -> u32 {
-		trace!("network = {:?}", self.get_version().await.unwrap());
-		self.get_version().await.unwrap().protocol.unwrap().network
+		// trace!("network = {:?}", self.get_version().await.unwrap());
+		if (NEOCONFIG.lock().unwrap().network.is_none()) {
+			return self.get_version().await.unwrap().protocol.unwrap().network;
+		}
+		NEOCONFIG.lock().unwrap().network.unwrap()
 	}
 
 	//////////////////////// Neo methods////////////////////////////
