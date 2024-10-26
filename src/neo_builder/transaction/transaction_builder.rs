@@ -494,7 +494,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 
 				let key_pair = acc.key_pair().as_ref().ok_or_else(|| {
                     BuilderError::InvalidConfiguration(
-                        "Cannot create transaction signature because account does not hold a private key.".to_string(),
+                        format!("Cannot create transaction signature because account {} does not hold a private key.", acc.get_address()),
                     )
                 })?;
 

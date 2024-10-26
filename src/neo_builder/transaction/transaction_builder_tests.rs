@@ -6,9 +6,7 @@ mod tests {
 		neo_protocol::{NeoProtocol, NeoVersion},
 		neo_types::ScriptHashExtension,
 		prelude::{
-			init_logger, ApplicationLog, ContractParameter, ContractSigner, InvocationResult,
-			Signer, StackItem, TestConstants, TransactionAttribute, TransactionError, Witness,
-			WitnessScope,
+			init_logger, ApplicationLog, BuilderError, ContractParameter, ContractSigner, InvocationResult, Signer, StackItem, TestConstants, TransactionAttribute, TransactionError, Witness, WitnessScope
 		},
 	};
 	use lazy_static::lazy_static;
@@ -980,7 +978,11 @@ mod tests {
 			.valid_until_block(1000)
 			.unwrap();
 
-		assert!(tb.sign().await.is_err());
+		let result = tb.sign().await;
+		assert!(result.is_err());
+		assert_eq!(result, Err(BuilderError::InvalidConfiguration(
+			format!("Cannot create transaction signature because account {} does not hold a private key.", ACCOUNT1.get_address()),
+		)))
 	}
 
 	#[tokio::test]
