@@ -285,9 +285,24 @@ mod tests {
 	#[tokio::test]
 	async fn test_sign_transaction_with_additional_signers() {
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
 		let client = {
-			let mut mock_provider = mock_provider.lock().await;
-			mock_provider.mock_default_responses().await.mount_mocks().await;
+			let mock_provider = mock_provider.lock().await;
 			Arc::new(mock_provider.into_client())
 		};
 		let script = vec![0x01u8, 0x02u8, 0x03u8];
@@ -322,38 +337,64 @@ mod tests {
 	async fn test_send_invoke_function() {
 		init_logger();
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_transfer_with_fixed_sysfee.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"sendrawtransaction",
+            		"sendrawtransaction.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"getblockcount",
+            		"getblockcount_1000.json",
+        		)
+        		.await;
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
 		let client = {
-			let mut mock_provider = mock_provider.lock().await;
-			mock_provider
-				.mock_invoke_function(InvocationResult {
-					stack: vec![StackItem::ByteString { value: base64::encode("NEO") }],
-					..Default::default()
-				})
-				.await
-				.mock_invoke_script(InvocationResult {
-					stack: vec![StackItem::ByteString { value: base64::encode("NEO") }],
-					..Default::default()
-				})
-				.await
-				.mount_mocks()
-				.await;
+			let mock_provider = mock_provider.lock().await;
 			Arc::new(mock_provider.into_client())
 		};
-		let tb = TransactionBuilder::with_client(&client);
-		let response = tb
-			.client
+		let mut tb = TransactionBuilder::with_client(&client);
+		let script = ScriptBuilder::new()
+			.contract_call(
+			&H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap(), 
+			"transfer", 
+			&vec![
+				ContractParameter::from(ACCOUNT1.address_or_scripthash().script_hash()),
+				ContractParameter::from(
+					H160::from_str("969a77db482f74ce27105f760efa139223431394").unwrap(),
+				),
+				ContractParameter::from(5),
+				ContractParameter::any(),
+			],
+			None,)
 			.unwrap()
-			.invoke_function(
-				&H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(),
-				"symbol".to_string(),
-				vec![],
-				None,
-			)
-			.await;
+			.to_bytes();
+		tb.set_script(Some(script.clone()))
+			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()])
+			.unwrap();
+
+		let mut tx = tb.sign().await.unwrap();
+		let response = tx.send_tx().await;
 
 		match response {
 			Ok(response) => {
-				assert_eq!(response.stack[0].as_string().unwrap(), "NEO");
+				assert_eq!(response.hash, H256::from_str("0x830816f0c801bcabf919dfa1a90d7b9a4f867482cb4d18d0631a5aa6daefab6a").unwrap());
 			},
 			Err(e) => {
 				panic!("Failed to invoke function: {:?}", e);
@@ -1154,8 +1195,28 @@ mod tests {
 	}
 
 	#[tokio::test]
-	async fn test_contract_witness() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+	async fn test_contract_witness() {	
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let contract_hash = H160::from_str("e87819d005b730645050f89073a4cd7bf5f6bd3c").unwrap();
 		let params = vec![ContractParameter::from("iamgroot"), ContractParameter::from(2)];
 		let invocation_script = ScriptBuilder::new()
@@ -1166,7 +1227,7 @@ mod tests {
 		tb.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![
 				ContractSigner::global(contract_hash, &params).into(),
-				AccountSigner::called_by_entry(ACCOUNT1.deref()).unwrap().into(),
+				AccountSigner::called_by_entry(&Account::create().unwrap()).unwrap().into(),
 			])
 			.unwrap()
 			.valid_until_block(1000)
@@ -1178,10 +1239,30 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_transfer_neo_from_normal_account() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_transfer_with_fixed_sysfee.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 		let script = ScriptBuilder::new()
 			.contract_call(
-				&ScriptHashExtension::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")
+				&ScriptHashExtension::from_hex(TestConstants::NEO_TOKEN_HASH)
 					.unwrap(),
 				"transfer",
 				&vec![
@@ -1220,7 +1301,7 @@ mod tests {
 		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let script1 = ScriptBuilder::new()
 			.contract_call(
-				&ScriptHashExtension::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")
+				&ScriptHashExtension::from_hex(TestConstants::NEO_TOKEN_HASH)
 					.unwrap(),
 				"transfer",
 				&vec![
@@ -1238,7 +1319,7 @@ mod tests {
 
 		let script2 = ScriptBuilder::new()
 			.contract_call(
-				&ScriptHashExtension::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")
+				&ScriptHashExtension::from_hex(TestConstants::NEO_TOKEN_HASH)
 					.unwrap(),
 				"transfer",
 				&vec![
@@ -1254,10 +1335,10 @@ mod tests {
 
 		let mut tb = TransactionBuilder::with_client(&client);
 		tb.set_script(Some(script1.clone()));
-		assert_eq!(tb.script().clone().unwrap().len(), script1.len());
+		assert_eq!(tb.script().clone().unwrap(), script1);
 
 		tb.extend_script(script2.clone());
-		assert_eq!(tb.script().clone().unwrap().len(), [script1, script2].concat().len());
+		assert_eq!(tb.script().clone().unwrap(), [script1, script2].concat());
 	}
 
 	#[tokio::test]
