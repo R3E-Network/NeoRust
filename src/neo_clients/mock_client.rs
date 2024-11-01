@@ -80,20 +80,25 @@ impl MockClient {
 		response_file: &str,
 		params: serde_json::Value,
 	) -> &mut Self {
+		// Construct the path to the response file relative to the project root
+		let mut response_file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+		response_file_path.push("test_resources");
+		response_file_path.push("responses");
+		response_file_path.push(response_file);
+	
 		// Load the response body from the specified file
-		let response_body = tokio::fs::read_to_string(format!("/responses/{}", response_file))
-		.await
-        .expect("Failed to read response file");
+		let response_body = tokio::fs::read_to_string(response_file_path)
+			.await
+			.expect("Failed to read response file");
 	
 		let mock = Mock::given(method("POST"))
 			.and(path("/"))
-			.and(body_json(json!({
+			.and(body_partial_json(json!({
 				"jsonrpc": "2.0",
 				"method": method_name,
 				"params": params,
-				"id": 1
 			})))
-			.respond_with(ResponseTemplate::new(200).set_body_json(response_body));
+			.respond_with(ResponseTemplate::new(200).set_body_string(response_body));
 		self.mocks.push(mock);
 		self
 	}

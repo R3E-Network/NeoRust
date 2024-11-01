@@ -1343,31 +1343,38 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_invoking_with_params_should_produce_the_correct_request() {
-		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
-		let mut tb = TransactionBuilder::with_client(&client);
-		let script = ScriptBuilder::new()
-			.contract_call(
-				&ScriptHashExtension::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")
-					.unwrap(),
-				"transfer",
-				&vec![
-					ContractParameter::from(ACCOUNT1.address_or_scripthash().script_hash()),
-					ContractParameter::from(
-						H160::from_str("969a77db482f74ce27105f760efa139223431394").unwrap(),
-					),
-					ContractParameter::from(5),
-					ContractParameter::any(),
-				],
-				None,
-			)
-			.unwrap()
-			.to_bytes();
+		// init_logger();
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file(
+            		"invokefunction",
+            		"invokefunction_transfer_neo.json",
+					json!([
+						TestConstants::NEO_TOKEN_HASH,
+						"transfer",
+						vec![
+							ContractParameter::from(ACCOUNT1.address_or_scripthash().script_hash()),
+							ContractParameter::from(
+								H160::from_str("969a77db482f74ce27105f760efa139223431394").unwrap(),
+							),
+							ContractParameter::from(5),
+							ContractParameter::any(),
+						],
+					])
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
 
-		let response = tb
-			.client
-			.unwrap()
+		let response = client
 			.invoke_function(
-				&H160::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(),
+				&H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap(),
 				"transfer".to_string(),
 				vec![
 					ContractParameter::from(ACCOUNT1.address_or_scripthash().script_hash()),
@@ -1382,7 +1389,9 @@ mod tests {
 			.await
 			.unwrap();
 
-		assert_eq!(response.stack[0].as_string().unwrap(), "NEO");
+		let script_In_Response = "CxUMFJQTQyOSE/oOdl8QJ850L0jbd5qWDBQGSl3MDxYsg0c9Aok46V+3dhMechTAHwwIdHJhbnNmZXIMFIOrBnmtVcBQoTrUP1k26nP16x72QWJ9W1I=".to_string();
+
+		assert_eq!(response.script, script_In_Response);
 	}
 
 	#[tokio::test]
