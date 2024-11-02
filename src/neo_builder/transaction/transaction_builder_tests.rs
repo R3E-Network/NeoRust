@@ -1416,31 +1416,36 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_do_if_sender_cannot_cover_fees() {
+		// init_logger();
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_transfer_with_fixed_sysfee.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_for_balance_of(
+					&GAS_TOKEN_HASH.to_hex(),
+            		&ACCOUNT1.address_or_scripthash().script_hash().to_hex(),
+            		"invokefunction_balanceOf_1000000.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
 		let client = {
-			let mut mock_provider = mock_provider.lock().await;
-			mock_provider
-				.mock_invoke_script(InvocationResult {
-					gas_consumed: "9999510".to_string(),
-					..Default::default()
-				})
-				.await
-				.mock_get_block_count(1000)
-				.await
-				.mock_calculate_network_fee(1230610)
-				.await
-				.mock_invoke_function(InvocationResult {
-					stack: vec![StackItem::Integer { value: 1000000.into() }],
-					..Default::default()
-				})
-				.await
-				.mount_mocks()
-				.await;
+			let mock_provider = mock_provider.lock().await;
 			Arc::new(mock_provider.into_client())
 		};
 
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
 		let recipient = H160::from_str("969a77db482f74ce27105f760efa139223431394").unwrap();
 
 		let script = ScriptBuilder::new()
@@ -1448,7 +1453,7 @@ mod tests {
 				&GAS_TOKEN_HASH,
 				"transfer",
 				&[
-					ContractParameter::h160(&account1.address_or_scripthash().script_hash()),
+					ContractParameter::h160(&ACCOUNT1.address_or_scripthash().script_hash()),
 					ContractParameter::h160(&recipient),
 					ContractParameter::integer(2_000_000),
 					ContractParameter::any(),
@@ -1464,7 +1469,7 @@ mod tests {
 		let mut tx_builder = TransactionBuilder::with_client(client.as_ref());
 		let _ = tx_builder
 			.set_script(Some(script))
-			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()])
+			.set_signers(vec![AccountSigner::called_by_entry(&ACCOUNT1).unwrap().into()])
 			.unwrap()
 			.valid_until_block(2000000)
 			.unwrap()
@@ -1475,7 +1480,6 @@ mod tests {
 			}));
 
 		let _ = tx_builder.get_unsigned_tx().await.unwrap();
-
 		assert!(tested.load(std::sync::atomic::Ordering::SeqCst));
 	}
 

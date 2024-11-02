@@ -289,6 +289,10 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 			return Err(TransactionError::IllegalState("This transaction does not have a committee member as signer. Only committee members can send transactions with high priority.".to_string()));
 		}
 
+		// if self.fee_consumer.is_some() {
+
+		// }
+
 		// Get fees
 		// let script = self.script.as_ref().unwrap();
 		// let response = self
@@ -321,12 +325,12 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 
 		// It's impossible to calculate network fee when the tx is unsigned, because there is no witness
 		// let network_fee = Box::pin(self.client.unwrap().calculate_network_fee(base64::encode(tx.to_array()))).await?;
-		// if let Some(fee_consumer) = &self.fee_consumer {
-		// 	let sender_balance = 0; // self.get_sender_balance().await.unwrap();
-		// 	if network_fee + system_fee > sender_balance {
-		// 		fee_consumer(network_fee + system_fee, sender_balance);
-		// 	}
-		// }
+		if let Some(fee_consumer) = &self.fee_consumer {
+			let sender_balance = self.get_sender_balance().await.unwrap().try_into().unwrap(); // self.get_sender_balance().await.unwrap();
+			if network_fee + system_fee > sender_balance {
+				fee_consumer(network_fee + system_fee, sender_balance);
+			}
+		}
 		// tx.set_net_fee(network_fee);
 
 		Ok(tx)
