@@ -23,7 +23,7 @@ mod tests {
 	use primitive_types::{H160, H256};
 	use rustc_serialize::hex::ToHex;
 	use serde_json::json;
-	use std::{ops::Deref, str::FromStr, sync::Arc};
+	use std::{default, ops::Deref, str::FromStr, sync::Arc};
 	use tokio::sync::{Mutex, OnceCell};
 	use tracing::debug;
 
@@ -1492,43 +1492,55 @@ mod tests {
 			Arc::new(mock_provider.into_client())
 		};
 		let mut tx_builder = TransactionBuilder::with_client(&client);
+		tx_builder.throw_if_sender_cannot_cover_fees(TransactionError::IllegalState(Default::default()));
 
-		// TODO: check and add
-		// NeoConfig::throw_if_sender_cannot_cover_fees(TransactionError::InsufficientFunds);
+		let result = tx_builder.do_if_sender_cannot_cover_fees(Box::new(|_, _| {}));
 
-		assert!(tx_builder.do_if_sender_cannot_cover_fees(Box::new(|_, _| {})).is_err());
+		assert!(result.is_err());
+		assert!(result.unwrap_err().to_string().contains("Cannot handle a consumer for this case, since an exception "));
 	}
 
 	#[tokio::test]
 	async fn test_throw_if_sender_cannot_cover_fees() {
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_transfer_with_fixed_sysfee.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_for_balance_of(
+					&GAS_TOKEN_HASH.to_hex(),
+            		&ACCOUNT1.address_or_scripthash().script_hash().to_hex(),
+            		"invokefunction_balanceOf_1000000.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
 		let client = {
-			let mut mock_provider = mock_provider.lock().await;
-			mock_provider
-				.mock_invoke_script(InvocationResult::default())
-				.await
-				.mock_calculate_network_fee(1230610)
-				.await
-				.mock_invoke_function(InvocationResult {
-					stack: vec![StackItem::Integer { value: 1000000 }],
-					..Default::default()
-				})
-				.await
-				.mount_mocks()
-				.await;
+			let mock_provider = mock_provider.lock().await;
 			Arc::new(mock_provider.into_client())
 		};
 
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
+		
+		let recipient = H160::from_str("969a77db482f74ce27105f760efa139223431394").unwrap();
 
 		let script = ScriptBuilder::new()
 			.contract_call(
 				&H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap(),
 				"transfer",
 				&[
-					ContractParameter::h160(&account1.address_or_scripthash().script_hash()),
-					ContractParameter::h160(&H160::zero()),
+					ContractParameter::h160(&ACCOUNT1.address_or_scripthash().script_hash()),
+					ContractParameter::h160(&recipient),
 					ContractParameter::integer(5),
 					ContractParameter::any(),
 				],
@@ -1542,11 +1554,14 @@ mod tests {
 			.set_script(Some(script))
 			.valid_until_block(2000000)
 			.unwrap()
-			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()])
+			.set_signers(vec![AccountSigner::called_by_entry(&ACCOUNT1).unwrap().into()])
 			.unwrap()
-			.throw_if_sender_cannot_cover_fees(TransactionError::InsufficientFunds);
+			.throw_if_sender_cannot_cover_fees(TransactionError::IllegalState("test throwIfSenderCannotCoverFees".to_string()));
 
-		assert!(tx_builder.get_unsigned_tx().await.is_err());
+		let result = tx_builder.get_unsigned_tx().await;
+
+		assert!(result.is_err());
+		assert!(result.unwrap_err().to_string().contains("test throwIfSenderCannotCoverFees"));
 	}
 
 	#[tokio::test]

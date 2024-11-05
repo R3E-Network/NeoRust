@@ -1,4 +1,4 @@
-use std::{error::Error, fmt::Debug};
+use std::{error::Error, fmt::Debug, sync::Arc};
 
 use thiserror::Error;
 
@@ -23,7 +23,7 @@ pub enum ProviderError {
 	HexError(#[from] hex::FromHexError),
 	/// Error in underlying lib `reqwest`
 	#[error(transparent)]
-	HTTPError(#[from] reqwest::Error),
+	HTTPError(#[from] Arc<reqwest::Error>),
 	/// Reponse error
 	#[error(transparent)]
 	JsonRpcError(#[from] JsonRpcError),
@@ -70,4 +70,31 @@ impl PartialEq for ProviderError {
 			_ => false,
 		}
 	}
+}
+
+// Implementing Clone manually for `ProviderError`
+impl Clone for ProviderError {
+    fn clone(&self) -> Self {
+        match self {
+            ProviderError::NnsError(message) => ProviderError::NnsError(message.clone()),
+            ProviderError::NnsNotOwned(message) => ProviderError::NnsNotOwned(message.clone()),
+            ProviderError::SerdeJson(error) => ProviderError::SerdeJson(serde_json::Error::io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                error.to_string(),
+            ))),
+            ProviderError::HexError(error) => ProviderError::HexError(error.clone()),
+            ProviderError::HTTPError(error) => ProviderError::HTTPError(Arc::clone(error)),
+
+            ProviderError::JsonRpcError(error) => ProviderError::JsonRpcError(error.clone()),
+            ProviderError::CustomError(message) => ProviderError::CustomError(message.clone()),
+            ProviderError::UnsupportedRPC => ProviderError::UnsupportedRPC,
+            ProviderError::UnsupportedNodeClient => ProviderError::UnsupportedNodeClient,
+            ProviderError::SignerUnavailable => ProviderError::SignerUnavailable,
+            ProviderError::IllegalState(message) => ProviderError::IllegalState(message.clone()),
+            ProviderError::InvalidAddress => ProviderError::InvalidAddress,
+            ProviderError::CryptoError(error) => ProviderError::CryptoError(error.clone()),
+            ProviderError::TypeError(error) => ProviderError::TypeError(error.clone()),
+            ProviderError::InvalidPassword => ProviderError::InvalidPassword,
+        }
+    }
 }

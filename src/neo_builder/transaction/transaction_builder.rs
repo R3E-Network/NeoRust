@@ -302,7 +302,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		// 	.await
 		// 	.map_err(|e| TransactionError::ProviderError(e))?;
 
-		let system_fee = self.get_system_fee().await.unwrap() + self.additional_system_fee as i64;
+		let system_fee = self.get_system_fee().await? + self.additional_system_fee as i64;
 
 		let network_fee = self.get_network_fee().await?+ self.additional_network_fee as i64;
 
@@ -325,7 +325,12 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 
 		// It's impossible to calculate network fee when the tx is unsigned, because there is no witness
 		// let network_fee = Box::pin(self.client.unwrap().calculate_network_fee(base64::encode(tx.to_array()))).await?;
-		if let Some(fee_consumer) = &self.fee_consumer {
+		if self.fee_error.is_some() && !self.can_send_cover_fees(system_fee as u64 + network_fee as u64).await? {
+			if let Some(supplier) = &self.fee_error {
+				return Err(supplier.clone());
+			}
+		}
+		else if let Some(fee_consumer) = &self.fee_consumer {
 			let sender_balance = self.get_sender_balance().await.unwrap().try_into().unwrap(); // self.get_sender_balance().await.unwrap();
 			if network_fee + system_fee > sender_balance {
 				fee_consumer(network_fee + system_fee, sender_balance);
@@ -725,10 +730,10 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		Ok(self)
 	}
 
-	// async fn can_send_cover_fees(&self, fees: u64) -> Result<bool, BuilderError> {
-	// 	let balance = self.get_sender_gas_balance().await?;
-	// 	Ok(balance >= fees)
-	// }
+	async fn can_send_cover_fees(&self, fees: u64) -> Result<bool, BuilderError> {
+		let balance = self.get_sender_balance().await?;
+		Ok(balance >= fees)
+	}
 
 	// async fn get_sender_gas_balance(&self) -> Result<u64, BuilderError> {
 	// 	let sender_hash = self.signers[0].get_signer_hash();

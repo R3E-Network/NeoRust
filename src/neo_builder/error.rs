@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use neo::prelude::{CodecError, CryptoError, ProviderError, TransactionError};
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Clone)]
 pub enum BuilderError {
 	#[error("Invalid operation")]
 	InvalidScript(String),

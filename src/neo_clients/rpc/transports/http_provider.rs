@@ -69,7 +69,7 @@ pub enum ClientError {
 impl From<ClientError> for ProviderError {
 	fn from(src: ClientError) -> Self {
 		match src {
-			ClientError::ReqwestError(err) => ProviderError::HTTPError(err),
+			ClientError::ReqwestError(err) => ProviderError::HTTPError(err.into()),
 			ClientError::JsonRpcError(err) => ProviderError::JsonRpcError(err),
 			ClientError::SerdeJson { err, text } => {
 				debug!("SerdeJson Error: {:#?}, Response: {:#?}", err, text);

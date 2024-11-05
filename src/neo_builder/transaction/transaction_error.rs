@@ -3,7 +3,7 @@ use thiserror::Error;
 use crate::neo_builder::BuilderError;
 use neo::prelude::{CodecError, CryptoError, ProviderError};
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, PartialEq, Clone)]
 pub enum TransactionError {
 	#[error("Script format error: {0}")]
 	ScriptFormat(String),
