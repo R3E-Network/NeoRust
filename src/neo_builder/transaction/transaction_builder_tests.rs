@@ -221,28 +221,10 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_invoke_script() {
-		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
-		let client = {
-			let mut mock_provider = mock_provider.lock().await;
-
-			mock_provider
-				.mock_invoke_script(InvocationResult {
-					stack: vec![StackItem::ByteString { value: base64::encode("NEO") }],
-					..Default::default()
-				})
-				.await
-				.mock_get_block_count(1000)
-				.await
-				.mock_calculate_network_fee(1230610)
-				.await
-				.mount_mocks()
-				.await;
-			Arc::new(mock_provider.into_client())
-		};
-
+		// init_logger();
 		let script = ScriptBuilder::new()
 			.contract_call(
-				&ScriptHashExtension::from_hex("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")
+				&ScriptHashExtension::from_hex(TestConstants::NEO_TOKEN_HASH)
 					.unwrap(),
 				"symbol",
 				&[],
@@ -250,10 +232,27 @@ mod tests {
 			)
 			.unwrap()
 			.to_bytes();
-		let tb = TransactionBuilder::with_client(&client);
-		let response = tb.client.unwrap().invoke_script((&script).to_hex(), vec![]).await.unwrap();
 
-		println!("Response: {:?}", response); // Add this line for debugging
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+
+		let mut tb = TransactionBuilder::with_client(&client);
+		tb.set_script(Some(script));
+		let response = tb.call_invoke_script().await.unwrap();
+		// println!("Response: {:?}", response); // Add this line for debugging
 
 		assert!(!response.stack.is_empty(), "Response stack is empty");
 
@@ -269,6 +268,33 @@ mod tests {
 	}
 
 	#[tokio::test]
+	async fn test_invoke_script_without_setting_script() {
+		// init_logger();
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+
+		let mut tb = TransactionBuilder::with_client(&client);
+		let result = tb.call_invoke_script().await;
+
+		assert_eq!(result.unwrap_err(), TransactionError::NoScript);
+		// println!("Response: {:?}", response); // Add this line for debugging
+
+	}
+
+	#[tokio::test]
 	async fn test_build_without_setting_script() {
 		let client = CLIENT.get_or_init(|| async { MockClient::new().await.into_client() }).await;
 		let err = TransactionBuilder::with_client(&client)
@@ -278,6 +304,8 @@ mod tests {
 			.await
 			.err()
 			.unwrap();
+
+		let tryy = hex::decode("0c00120c1493ad1572").unwrap();
 
 		assert_eq!(err, TransactionError::NoScript);
 	}
@@ -335,7 +363,7 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_send_invoke_function() {
-		init_logger();
+		// init_logger();
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
 		{
     		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
@@ -2208,7 +2236,7 @@ mod tests {
 			.set_signers(vec![AccountSigner::none(&account).unwrap().into()]);
 		// .allow_transmission_on_fault();
 
-		let result = tx_builder.call_invoke_script().await;
+		let result = tx_builder.call_invoke_script().await.unwrap();
 		assert!(result.has_state_fault());
 
 		let tx = match tx_builder.get_unsigned_tx().await {
@@ -2251,7 +2279,7 @@ mod tests {
 
 		assert!(!NEOCONFIG.lock().unwrap().allows_transmission_on_fault);
 
-		let result = tx_builder.call_invoke_script().await;
+		let result = tx_builder.call_invoke_script().await.unwrap();
 		assert!(result.has_state_fault());
 
 		assert!(tx_builder.get_unsigned_tx().await.is_err());

@@ -236,16 +236,17 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		self
 	}
 
-	pub async fn call_invoke_script(&self) -> InvocationResult {
-		if self.script.is_none() || self.script.as_ref().unwrap().is_empty() {
-			panic!("Script is not set");
+	pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionError>  {
+		if self.script.is_none() || self.script.as_ref().unwrap().is_empty(){
+			return Err((TransactionError::NoScript));
 		}
-		self.client
+		let result = self.client
 			.unwrap()
 			.rpc_client()
 			.invoke_script(self.script.clone().unwrap().to_hex(), self.signers.clone())
 			.await
-			.unwrap_or(panic!("Failed to invoke script"))
+			.map_err(|e| TransactionError::ProviderError(e))?;
+		Ok((result))
 	}
 
 	// Get unsigned transaction
