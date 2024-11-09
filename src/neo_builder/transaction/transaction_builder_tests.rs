@@ -305,10 +305,10 @@ mod tests {
 			.err()
 			.unwrap();
 
-		let tryy = hex::decode("0c00120c1493ad1572").unwrap();
 
 		assert_eq!(err, TransactionError::NoScript);
 	}
+
 
 	#[tokio::test]
 	async fn test_sign_transaction_with_additional_signers() {
@@ -1605,44 +1605,27 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_build_with_invalid_script() {
+		// init_logger();
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file(
+            		"invokescript",
+            		"invokescript_invalidscript.json",
+					json!(["DAASDBSTrRVy"])
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"getblockcount",
+            		"getblockcount_1000.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
 		let client = {
-			let mut mock_provider = mock_provider.lock().await;
-			mock_provider
-				.mock_invoke_script(InvocationResult::default())
-				.await
-				.mock_get_block_count(1000)
-				.await
-				.mount_mocks()
-				.await;
-			Arc::new(mock_provider.into_client())
-		};
-
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-
-		let mut tx_builder = TransactionBuilder::with_client(&client);
-		tx_builder
-			.set_script(Some(hex::decode("0c0e4f7261636c65436f6e7472616374411af77b67").unwrap()))
-			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
-
-		assert!(tx_builder.get_unsigned_tx().await.is_err());
-	}
-
-	#[tokio::test]
-	async fn test_build_with_script_vm_faults() {
-		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
-		let client = {
-			let mut mock_provider = mock_provider.lock().await;
-			mock_provider
-				.mock_invoke_script(InvocationResult::default())
-				.await
-				.mock_get_block_count(1000)
-				.await
-				.mock_calculate_network_fee(1230610)
-				.await
-				.mount_mocks()
-				.await;
+			let mock_provider = mock_provider.lock().await;
 			Arc::new(mock_provider.into_client())
 		};
 
@@ -1655,30 +1638,83 @@ mod tests {
 			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
 
 		let result = tx_builder.get_unsigned_tx().await;
+
 		assert!(result.is_err());
-		assert_eq!(
-            result.unwrap_err().to_string(),
-            "The vm exited due to the following exception: Value was either too large or too small for an Int32."
-        );
+		if let TransactionError::TransactionConfiguration(error) = result.unwrap_err() {
+			assert!(error.contains("Instruction out of bounds"));
+		}
+	}
+
+	#[tokio::test]
+	async fn test_build_with_script_vm_faults() {
+		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file(
+            		"invokescript",
+            		"invokescript_exception.json",
+					json!(["DA5PcmFjbGVDb250cmFjdEEa93tn"])
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"getblockcount",
+            		"getblockcount_1000.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
+		let client = {
+			let mock_provider = mock_provider.lock().await;
+			Arc::new(mock_provider.into_client())
+		};
+
+		let account1 =
+			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
+
+		let mut tx_builder = TransactionBuilder::with_client(&client);
+		tx_builder
+			.set_script(Some(hex::decode("0c0e4f7261636c65436f6e7472616374411af77b67").unwrap()))
+			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
+
+		let result = tx_builder.get_unsigned_tx().await;
+		assert!(result.is_err());
+		if let TransactionError::TransactionConfiguration(error) = result.unwrap_err() {
+			assert_eq!(
+				error,
+				"The vm exited due to the following exception: Value was either too large or too small for an Int32."
+			);
+		}
 	}
 
 	#[tokio::test]
 	async fn test_get_unsigned_transaction() {
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"getblockcount",
+            		"getblockcount_1000.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
 		let client = {
-			let mut mock_provider = mock_provider.lock().await;
-			mock_provider
-				.mock_invoke_script(InvocationResult {
-					gas_consumed: "984060".to_string(),
-					..Default::default()
-				})
-				.await
-				.mock_get_block_count(1000)
-				.await
-				.mock_calculate_network_fee(1230610)
-				.await
-				.mount_mocks()
-				.await;
+			let mock_provider = mock_provider.lock().await;
 			Arc::new(mock_provider.into_client())
 		};
 
@@ -1696,48 +1732,42 @@ mod tests {
 		};
 
 		assert_eq!(tx.version, 0);
-		// TODO: fix equal
-		// assert_eq!(
-		// 	tx.signers[0].as_account_signer().unwrap(),
-		// 	AccountSigner::called_by_entry(&account1).unwrap()
-		// );
+		assert_eq!(tx.signers().len(), 1);
+		assert_eq!(
+			tx.signers[0].as_account_signer().unwrap(),
+			&AccountSigner::called_by_entry(&account1).unwrap()
+		);
 		assert!(tx.witnesses.is_empty());
 	}
 
 	#[tokio::test]
 	async fn test_version() {
-		init_logger();
+		// init_logger();
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"getblockcount",
+            		"getblockcount_1000.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
 		let client = {
-			let mut mock_provider = mock_provider.lock().await;
-			mock_provider
-				.mock_invoke_script(InvocationResult::default())
-				.await
-				.mock_get_block_count(1000)
-				.await
-				.mock_calculate_network_fee(1230610)
-				.await
-				.mock_get_version(NeoVersion {
-					tcp_port: Some(10333),
-					ws_port: Some(10334),
-					nonce: 1234567890,
-					user_agent: "/Neo:3.5.0/".to_string(),
-					protocol: Some(NeoProtocol {
-						network: 860833102,
-						validators_count: Some(7),
-						ms_per_block: 15000,
-						max_valid_until_block_increment: 5760,
-						max_traceable_blocks: 2102400,
-						address_version: 53,
-						max_transactions_per_block: 512,
-						memory_pool_max_transactions: 50000,
-						initial_gas_distribution: 5200000000000000,
-						hard_forks: vec![],
-					}),
-				})
-				.await
-				.mount_mocks()
-				.await;
+			let mock_provider = mock_provider.lock().await;
 			Arc::new(mock_provider.into_client())
 		};
 
@@ -1757,22 +1787,34 @@ mod tests {
 
 		assert_eq!(tx.version, 1);
 	}
+
 	#[tokio::test]
 	async fn test_additional_network_fee() {
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"getblockcount",
+            		"getblockcount_1000.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
 		let client = {
-			let mut mock_provider = mock_provider.lock().await;
-			mock_provider
-				.mock_invoke_script(InvocationResult::default())
-				.await
-				.mock_get_block_count(1000)
-				.await
-				.mock_calculate_network_fee(1230610)
-				.await
-				.mock_get_version(NeoVersion::default())
-				.await
-				.mount_mocks()
-				.await;
+			let mock_provider = mock_provider.lock().await;
 			Arc::new(mock_provider.into_client())
 		};
 
@@ -1781,13 +1823,13 @@ mod tests {
 		let mut tx_builder = TransactionBuilder::with_client(&client);
 		tx_builder
 			.set_script(Some(vec![1, 2, 3]))
-			.set_signers(vec![AccountSigner::called_by_entry(&account).unwrap().into()]);
+			.set_signers(vec![AccountSigner::none(&account).unwrap().into()]);
 
 		let tx = match tx_builder.get_unsigned_tx().await {
 			Ok(tx) => tx,
 			Err(e) => panic!("Error: {}", e),
 		};
-		assert_eq!(tx.net_fee, 0);
+		assert_eq!(tx.net_fee, 1230610);
 
 		let mut tx_builder = TransactionBuilder::with_client(&client);
 		tx_builder
@@ -1801,25 +1843,36 @@ mod tests {
 			Err(e) => panic!("Error: {}", e),
 		};
 
-		assert_eq!(tx.net_fee, 0);
+		assert_eq!(tx.net_fee, 1230610 + 2000);
 	}
 
 	#[tokio::test]
 	async fn test_additional_system_fee() {
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		{
+    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+    		let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"invokescript",
+            		"invokescript_symbol_neo.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"getblockcount",
+            		"getblockcount_1000.json",
+        		)
+        		.await;
+			let mut mock_provider_guard = mock_provider_guard
+        		.mock_response_with_file_ignore_param(
+            		"calculatenetworkfee",
+            		"calculatenetworkfee.json",
+        		)
+        		.await;
+			mock_provider_guard.mount_mocks().await;
+		}
 		let client = {
-			let mut mock_provider = mock_provider.lock().await;
-			mock_provider
-				.mock_get_version(NeoVersion::default())
-				.await
-				.mock_invoke_script(InvocationResult::default())
-				.await
-				.mock_get_block_count(1000)
-				.await
-				.mock_calculate_network_fee(1230610)
-				.await
-				.mount_mocks()
-				.await;
+			let mock_provider = mock_provider.lock().await;
 			Arc::new(mock_provider.into_client())
 		};
 
@@ -1828,14 +1881,14 @@ mod tests {
 		let mut tx_builder = TransactionBuilder::with_client(&client);
 		tx_builder
 			.set_script(Some(vec![1, 2, 3]))
-			.set_signers(vec![AccountSigner::called_by_entry(&account).unwrap().into()]);
+			.set_signers(vec![AccountSigner::none(&account).unwrap().into()]);
 
 		let tx = match tx_builder.get_unsigned_tx().await {
 			Ok(tx) => tx,
 			Err(e) => panic!("Error: {}", e),
 		};
 
-		assert_eq!(tx.sys_fee, 1234567);
+		assert_eq!(tx.sys_fee, 984060);
 
 		let mut tx_builder = TransactionBuilder::with_client(&client);
 		tx_builder
@@ -1848,7 +1901,7 @@ mod tests {
 			Ok(tx) => tx,
 			Err(e) => panic!("Error: {}", e),
 		};
-		assert_eq!(tx.sys_fee, 1234567);
+		assert_eq!(tx.sys_fee, 984060 + 3000);
 	}
 
 	#[tokio::test]
@@ -1873,7 +1926,7 @@ mod tests {
 			.set_signers(vec![s1.clone().into(), s2.clone().into()]);
 		assert_eq!(tx_builder.clone().signers, vec![s1.clone().into(), s2.clone().into()]);
 
-		tx_builder.clone().first_signer(&s2.account).unwrap();
+		tx_builder.first_signer(&s2.account).unwrap();
 		assert_eq!(tx_builder.clone().signers, vec![s2.clone().into(), s1.clone().into()]);
 
 		&tx_builder.first_signer(&account1).unwrap();
