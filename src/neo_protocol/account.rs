@@ -315,7 +315,7 @@ impl AccountTrait for Account {
 	}
 
 	fn from_wif(wif: &str) -> Result<Self, Self::Error> {
-		let key_pair = KeyPair::from_secret_key(&private_key_from_wif(wif).unwrap());
+		let key_pair = KeyPair::from_secret_key(&private_key_from_wif(wif)?);
 		Self::from_key_pair(key_pair, None, None)
 	}
 

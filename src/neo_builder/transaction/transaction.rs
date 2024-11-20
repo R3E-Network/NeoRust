@@ -194,7 +194,7 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 	}
 
 	pub async fn send_tx(&mut self) -> Result<RawTransaction, TransactionError>
-	// where
+// where
 	// 	P: APITrait,
 	{
 		if self.signers.len() != self.witnesses.len() {
@@ -210,8 +210,9 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 		}
 		let hex = hex::encode(self.to_array());
 		// self.throw()?;
-		self.block_count_when_sent = Some(self.network().unwrap().get_block_count().await.unwrap());
-		self.network().unwrap()
+		self.block_count_when_sent = Some(self.network().unwrap().get_block_count().await?);
+		self.network()
+			.unwrap()
 			.send_raw_transaction(hex)
 			.await
 			.map_err(|e| TransactionError::IllegalState(e.to_string()))

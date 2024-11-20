@@ -20,11 +20,11 @@ pub enum TransactionAttribute {
 	OracleResponse(OracleResponse),
 
 	#[serde(rename = "NotValidBefore")]
-	NotValidBefore{
+	NotValidBefore {
 		height: u32,
 	},
 
-	Conflicts{
+	Conflicts {
 		hash: H256,
 	},
 }
@@ -88,20 +88,20 @@ impl TransactionAttribute {
 	}
 
 	// Get the height for NotValidBefore attribute
-    pub fn get_height(&self) -> Option<&u32> {
-        match self {
-            TransactionAttribute::NotValidBefore { height } => Some(height),
-            _ => None,
-        }
-    }
+	pub fn get_height(&self) -> Option<&u32> {
+		match self {
+			TransactionAttribute::NotValidBefore { height } => Some(height),
+			_ => None,
+		}
+	}
 
 	// Get the height for NotValidBefore attribute
-    pub fn get_hash(&self) -> Option<&H256> {
-        match self {
-            TransactionAttribute::Conflicts { hash } => Some(hash),
-            _ => None,
-        }
-    }
+	pub fn get_hash(&self) -> Option<&H256> {
+		match self {
+			TransactionAttribute::Conflicts { hash } => Some(hash),
+			_ => None,
+		}
+	}
 }
 
 impl NeoSerializable for TransactionAttribute {
@@ -115,9 +115,9 @@ impl NeoSerializable for TransactionAttribute {
 				response_code: _,
 				result,
 			}) => 1 + 9 + result.len(),
-			TransactionAttribute::NotValidBefore{height:_} => 1,
+			TransactionAttribute::NotValidBefore { height: _ } => 1,
 			// TODO: check the size of the conflicts attribute
-			TransactionAttribute::Conflicts{hash:_} => 1,
+			TransactionAttribute::Conflicts { hash: _ } => 1,
 		}
 	}
 

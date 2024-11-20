@@ -203,12 +203,13 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_create_and_send_transaction() -> Result<(), Box<dyn std::error::Error>> {
+		init_logger();
 		// Initialize the JSON-RPC provider
 		let http_provider = HttpProvider::new("http://seed1.neo.org:10332")?;
 		let rpc_client = RpcClient::new(http_provider);
 
 		// Create accounts for the sender and recipient
-		let sender = Account::from_wif("YOUR_SENDER_WIF_HERE")?;
+		let sender = Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR")?;
 		let recipient = Account::from_address("NbTiM6h8r99kpRtb428XcsUk1TzKed2gTc")?;
 
 		// Create a new TransactionBuilder

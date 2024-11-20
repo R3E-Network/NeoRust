@@ -7,7 +7,10 @@ use yubihsm::ecdsa::Signature;
 
 use neo::prelude::{APITrait, Transaction, WalletError};
 
-use crate::{neo_types::Address, prelude::{HashableForVec, JsonRpcProvider}};
+use crate::{
+	neo_types::Address,
+	prelude::{HashableForVec, JsonRpcProvider},
+};
 
 /// A Neo private-public key pair which can be used for signing messages.
 ///

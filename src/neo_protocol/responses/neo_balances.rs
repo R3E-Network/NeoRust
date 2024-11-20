@@ -23,22 +23,16 @@ pub struct Nep11Balance {
 }
 
 impl Nep11Balance {
-    // Constructor function to create a new Nep11Balance instance
-    pub fn new(
+	// Constructor function to create a new Nep11Balance instance
+	pub fn new(
 		asset_hash: ScriptHash,
-        name: String,
-        symbol: String,
-        decimals: String,
-        tokens: Vec<Nep11Token>,  
-    ) -> Self {
-        Nep11Balance {
-            name,
-            symbol,
-            decimals,
-            tokens,
-            asset_hash,
-        }
-    }
+		name: String,
+		symbol: String,
+		decimals: String,
+		tokens: Vec<Nep11Token>,
+	) -> Self {
+		Nep11Balance { name, symbol, decimals, tokens, asset_hash }
+	}
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
@@ -51,14 +45,10 @@ pub struct Nep11Token {
 }
 
 impl Nep11Token {
-    // Constructor function to create a new Nep11Token instance
-    pub fn new(token_id: String, amount: String, last_updated_block: u32) -> Self {
-        Nep11Token {
-            token_id,
-            amount,
-            last_updated_block,
-        }
-    }
+	// Constructor function to create a new Nep11Token instance
+	pub fn new(token_id: String, amount: String, last_updated_block: u32) -> Self {
+		Nep11Token { token_id, amount, last_updated_block }
+	}
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
@@ -83,22 +73,15 @@ pub struct Nep17Balance {
 }
 
 impl Nep17Balance {
-    // Constructor equivalent to the Java constructor
-    pub fn new(
-        asset_hash: ScriptHash,
-        name: Option<String>,
-        symbol: Option<String>,
-        decimals: Option<String>,
-        amount: String,
-        last_updated_block: u32,
-    ) -> Self {
-        Self {
-            name,
-            symbol,
-            decimals,
-            amount,
-            last_updated_block,
-            asset_hash,
-        }
-    }
+	// Constructor equivalent to the Java constructor
+	pub fn new(
+		asset_hash: ScriptHash,
+		name: Option<String>,
+		symbol: Option<String>,
+		decimals: Option<String>,
+		amount: String,
+		last_updated_block: u32,
+	) -> Self {
+		Self { name, symbol, decimals, amount, last_updated_block, asset_hash }
+	}
 }

@@ -1,7 +1,7 @@
-use std::hash::{Hash, Hasher};
 use getset::{Getters, Setters};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
+use std::hash::{Hash, Hasher};
 
 use neo::prelude::{
 	deserialize_script_hash, deserialize_vec_public_key, deserialize_vec_script_hash,

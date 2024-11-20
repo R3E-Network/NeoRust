@@ -1,5 +1,5 @@
 use primitive_types::H256;
-use serde::{Deserialize, Serialize, Deserializer, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::str::FromStr;
 
 use neo::prelude::{
@@ -39,27 +39,27 @@ pub struct Nep11Transfer {
 }
 
 impl Nep11Transfer {
-    pub fn new(
-        timestamp: u64,
-        asset_hash: ScriptHash,
-        transfer_address: String,
-        amount: u64,
-        block_index: u32,
-        transfer_notify_index: u32,
-        tx_hash: H256,
+	pub fn new(
+		timestamp: u64,
+		asset_hash: ScriptHash,
+		transfer_address: String,
+		amount: u64,
+		block_index: u32,
+		transfer_notify_index: u32,
+		tx_hash: H256,
 		token_id: String,
-    ) -> Self {
-        Nep11Transfer {
-            token_id,
-            timestamp,
-            asset_hash,
-            transfer_address,
-            amount,
-            block_index,
-            transfer_notify_index,
-            tx_hash,
-        }
-    }
+	) -> Self {
+		Nep11Transfer {
+			token_id,
+			timestamp,
+			asset_hash,
+			transfer_address,
+			amount,
+			block_index,
+			transfer_notify_index,
+			tx_hash,
+		}
+	}
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
@@ -93,43 +93,41 @@ pub struct Nep17Transfer {
 }
 
 impl Nep17Transfer {
-    // Constructor function for Nep17Transfer
-    pub fn new(
-        timestamp: u64,
-        asset_hash: ScriptHash,
-        transfer_address: String,
-        amount: u64,
-        block_index: u32,
-        transfer_notify_index: u32,
-        tx_hash: H256,
-    ) -> Self {
-        Self {
-            timestamp,
-            asset_hash,
-            transfer_address,
-            amount,
-            block_index,
-            transfer_notify_index,
-            tx_hash,
-        }
-    }
+	// Constructor function for Nep17Transfer
+	pub fn new(
+		timestamp: u64,
+		asset_hash: ScriptHash,
+		transfer_address: String,
+		amount: u64,
+		block_index: u32,
+		transfer_notify_index: u32,
+		tx_hash: H256,
+	) -> Self {
+		Self {
+			timestamp,
+			asset_hash,
+			transfer_address,
+			amount,
+			block_index,
+			transfer_notify_index,
+			tx_hash,
+		}
+	}
 }
 
 // Custom deserialization function to convert a string into a u64
 fn deserialize_amount<'de, D>(deserializer: D) -> Result<u64, D::Error>
 where
-    D: Deserializer<'de>,
+	D: Deserializer<'de>,
 {
-    let s = String::deserialize(deserializer)?;
-    u64::from_str(&s).map_err(serde::de::Error::custom)
+	let s = String::deserialize(deserializer)?;
+	u64::from_str(&s).map_err(serde::de::Error::custom)
 }
 
 // Optional: custom serialization function if you want to serialize `u64` back into `String`
 fn serialize_amount<S>(amount: &u64, serializer: S) -> Result<S::Ok, S::Error>
 where
-    S: Serializer,
+	S: Serializer,
 {
-    serializer.serialize_str(&amount.to_string())
+	serializer.serialize_str(&amount.to_string())
 }
-
-

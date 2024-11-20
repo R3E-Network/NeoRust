@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use futures_util::lock::Mutex;
+use getset::{Getters, Setters};
 use primitive_types::{H160, H256};
 use rustc_serialize::{
 	base64,
@@ -22,7 +23,6 @@ use std::{
 use tracing::{debug, trace};
 use tracing_futures::Instrument;
 use url::{Host, ParseError, Url};
-use getset::{Getters, Setters};
 
 use neo::prelude::*;
 
@@ -526,7 +526,10 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	/// Calculates the network fee for the specified transaction.
 	/// - Parameter txBase64: The transaction in hexadecimal
 	/// - Returns: The request object
-	async fn calculate_network_fee(&self, txBase64: String) -> Result<NeoNetworkFee, ProviderError> {
+	async fn calculate_network_fee(
+		&self,
+		txBase64: String,
+	) -> Result<NeoNetworkFee, ProviderError> {
 		self.request("calculatenetworkfee", vec![Base64Encode::to_base64(&txBase64)])
 			.await
 	}
@@ -1288,7 +1291,14 @@ mod tests {
 		neo_clients::api_trait::APITrait,
 		neo_types::{Base64Encode, Diagnostics, InvokedContract, StorageChange, ToBase64},
 		prelude::{
-			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod, ContractNef, ContractParameter2, ContractParameterType, ContractPermission, ContractState, HighPriorityAttribute, InvocationResult, MockClient, NativeContractState, NeoVMStateType, Nep11Balance, Nep11Token, Nep11Transfer, Nep17Balance, Nep17Transfer, NodePluginType, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem, StateResult, States, SubmitBlock, TransactionAttributeEnum, TypeError, VMState, Validator
+			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod,
+			ContractNef, ContractParameter2, ContractParameterType, ContractPermission,
+			ContractState, HighPriorityAttribute, InvocationResult, MockClient,
+			NativeContractState, NeoVMStateType, Nep11Balance, Nep11Token, Nep11Transfer,
+			Nep17Balance, Nep17Transfer, NodePluginType, NotValidBeforeAttribute, OracleResponse,
+			OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem,
+			StateResult, States, SubmitBlock, TransactionAttributeEnum, TypeError, VMState,
+			Validator,
 		},
 		providers::RpcClient,
 	};
@@ -1391,14 +1401,14 @@ mod tests {
 
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
 		{
-    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
-    		mock_provider_guard
-			.mock_response_error(json!({
-				"code": -32602,
-				"message": "Invalid address length, expected 40 got 64 bytes",
-				"data": null
-			}))
-        		.await;
+			let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+			mock_provider_guard
+				.mock_response_error(json!({
+					"code": -32602,
+					"message": "Invalid address length, expected 40 got 64 bytes",
+					"data": null
+				}))
+				.await;
 			mock_provider_guard.mount_mocks().await;
 		}
 
@@ -1422,16 +1432,16 @@ mod tests {
 
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
 		{
-    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
-    		mock_provider_guard
-			.mock_response_error(json!({
-				"code": -32602,
-				"message": "Invalid address length, expected 40 got 64 bytes",
-				"data": {
-					"foo": "bar"
-				}
-			}))
-        		.await;
+			let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+			mock_provider_guard
+				.mock_response_error(json!({
+					"code": -32602,
+					"message": "Invalid address length, expected 40 got 64 bytes",
+					"data": {
+						"foo": "bar"
+					}
+				}))
+				.await;
 			mock_provider_guard.mount_mocks().await;
 		}
 
@@ -1457,17 +1467,17 @@ mod tests {
 		let _ = env_logger::builder().is_test(false).try_init();
 
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
-		
+
 		// Set the mock response before using the client
 		{
-    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
-    		mock_provider_guard
-        		.mock_response(
-            		"getbestblockhash",
-            		json!([]),
-            		json!("0x3d1e051247f246f60dd2ba4f90f799578b5d394157b1f2b012c016b29536b899"),
-        		)
-        		.await;
+			let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+			mock_provider_guard
+				.mock_response(
+					"getbestblockhash",
+					json!([]),
+					json!("0x3d1e051247f246f60dd2ba4f90f799578b5d394157b1f2b012c016b29536b899"),
+				)
+				.await;
 			mock_provider_guard.mount_mocks().await;
 		}
 
@@ -1475,9 +1485,8 @@ mod tests {
 			let mock_provider = mock_provider.lock().await;
 			Arc::new(mock_provider.into_client())
 		};
-		
+
 		let result = client.get_best_block_hash().await;
-		
 
 		// Expected request body
 		let expected_request_body = r#"{
@@ -5948,7 +5957,6 @@ mod tests {
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		assert_eq!(result.unwrap(), true);
-
 	}
 
 	#[tokio::test]
@@ -5981,7 +5989,11 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let provider = mock_rpc_response_without_request(&mock_server, json!("L1ZW4aRmy4MMG3x3wk9S6WEJJxcaZi72YxPx854Lspdo9jNFxEoJ")).await;
+		let provider = mock_rpc_response_without_request(
+			&mock_server,
+			json!("L1ZW4aRmy4MMG3x3wk9S6WEJJxcaZi72YxPx854Lspdo9jNFxEoJ"),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6000,7 +6012,10 @@ mod tests {
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
-		assert_eq!(result.unwrap(), "L1ZW4aRmy4MMG3x3wk9S6WEJJxcaZi72YxPx854Lspdo9jNFxEoJ".to_string());
+		assert_eq!(
+			result.unwrap(),
+			"L1ZW4aRmy4MMG3x3wk9S6WEJJxcaZi72YxPx854Lspdo9jNFxEoJ".to_string()
+		);
 	}
 
 	#[tokio::test]
@@ -6009,13 +6024,14 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!(
 				{
 					"balance": "200"
 				}
-			)
-		).await;
+			),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6042,13 +6058,14 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!(
 				{
 					"Balance": "199999990.0"
 				}
-			)
-		).await;
+			),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6075,11 +6092,10 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
-			json!(
-				"APuGosNQYQoRYYMxvay3yZsragzvfBMdNs"
-			)
-		).await;
+			&mock_server,
+			json!("APuGosNQYQoRYYMxvay3yZsragzvfBMdNs"),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6103,12 +6119,7 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let provider = mock_rpc_response_without_request(
-			&mock_server, 
-			json!(
-				"289799420400"
-			)
-		).await;
+		let provider = mock_rpc_response_without_request(&mock_server, json!("289799420400")).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6133,14 +6144,15 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!(
 				{
 					"unclaimed": "79199824176",
 					"address": "AGZLEiwUyCC4wiL5sRZA3LbxWPs9WrZeyN"
 				}
-			)
-		).await;
+			),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6169,7 +6181,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!(
 				{
 					"address": "AYhJaF5oqUscfNfH87KQHm1YwuKrwPgkMA",
@@ -6177,8 +6189,9 @@ mod tests {
 					"label": null,
 					"watchonly": false
 				}
-			)
-		).await;
+			),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6209,14 +6222,15 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!(
 				{
 					"networkfee": 1230610
 				}
-				
-			)
-		).await;
+
+			),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6241,7 +6255,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!(
 				[
 					{
@@ -6257,8 +6271,9 @@ mod tests {
 						"watchonly": true
 					}
 				]
-			)
-		).await;
+			),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6346,7 +6361,11 @@ mod tests {
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let tx = result.unwrap();
-		assert_eq!(tx.hash(), &H256::from_str("0x6818f446c2e503998ac766a8a175f86d9a89885423f6b055aa123c984625833e").unwrap());
+		assert_eq!(
+			tx.hash(),
+			&H256::from_str("0x6818f446c2e503998ac766a8a175f86d9a89885423f6b055aa123c984625833e")
+				.unwrap()
+		);
 		assert_eq!(tx.size(), &266);
 		assert_eq!(tx.nonce(), &1762654532);
 		assert_eq!(tx.sender(), &"AHE5cLhX5NjGB5R2PcdUvGudUoGUBDeHX4".to_string());
@@ -6356,7 +6375,10 @@ mod tests {
 
 		assert_eq!(tx.signers().len(), 1);
 		let signer = tx.signers().get(0).unwrap();
-		assert_eq!(signer.account, H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap());
+		assert_eq!(
+			signer.account,
+			H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap()
+		);
 		assert_eq!(signer.scopes.len(), 1);
 		assert_eq!(signer.scopes[0], WitnessScope::CalledByEntry);
 
@@ -6373,7 +6395,6 @@ mod tests {
 		assert_eq!(tx.witnesses(), &vec![
 			NeoWitness::new("DEAZaoPvbyaQyUYqIBc4MyDCGxGhxlPCuBbcHn5cYMpHPi2JD4PX2I1EsDPNtrEESPo//WBnsKyl5o5ViR5YDcJR".to_string(), "EQwhA/HsPB4oPogN5unEifDyfBkAfFM4WqpMDJF8MgB57a3yEQtBMHOzuw==".to_string())
 		]);
-
 	}
 
 	#[tokio::test]
@@ -6491,7 +6512,11 @@ mod tests {
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let tx = result.unwrap();
-		assert_eq!(tx.hash(), &H256::from_str("0xf60ec3b0810fb8c17a9a05eaeb3b361ead889a38d3fd1bf2d561a6e7001bb2f5").unwrap());
+		assert_eq!(
+			tx.hash(),
+			&H256::from_str("0xf60ec3b0810fb8c17a9a05eaeb3b361ead889a38d3fd1bf2d561a6e7001bb2f5")
+				.unwrap()
+		);
 		assert_eq!(tx.size(), &352);
 		assert_eq!(tx.version(), &0);
 		assert_eq!(tx.nonce(), &1256822346);
@@ -6502,19 +6527,25 @@ mod tests {
 
 		assert_eq!(tx.signers().len(), 2);
 		let signer = tx.signers().get(0).unwrap();
-		assert_eq!(signer.account, H160::from_str("0xbe175fb771d5782282b7598b56c26a2f5ebf2d24").unwrap());
+		assert_eq!(
+			signer.account,
+			H160::from_str("0xbe175fb771d5782282b7598b56c26a2f5ebf2d24").unwrap()
+		);
 		assert_eq!(signer.scopes.len(), 1);
 		assert_eq!(signer.scopes.get(0), Some(&WitnessScope::CalledByEntry));
-		assert_eq!(tx.signers(), &vec![
-			RTransactionSigner::new(
-				H160::from_str("0xbe175fb771d5782282b7598b56c26a2f5ebf2d24").unwrap(), 
-				vec![WitnessScope::CalledByEntry]
-			),
-			RTransactionSigner::new(
-				H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap(), 
-				vec![WitnessScope::CalledByEntry]
-			)
-		]);
+		assert_eq!(
+			tx.signers(),
+			&vec![
+				RTransactionSigner::new(
+					H160::from_str("0xbe175fb771d5782282b7598b56c26a2f5ebf2d24").unwrap(),
+					vec![WitnessScope::CalledByEntry]
+				),
+				RTransactionSigner::new(
+					H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap(),
+					vec![WitnessScope::CalledByEntry]
+				)
+			]
+		);
 
 		let mut result = tx.get_first_signer().clone().unwrap().get_first_allowed_contract();
 		assert!(matches!(result, Err(TypeError::IndexOutOfBounds(_))));
@@ -6565,18 +6596,17 @@ mod tests {
 
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 
-
 		let _ = env_logger::builder().is_test(true).try_init();
 
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
 		{
-    		let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
-    		mock_provider_guard
-			.mock_response_error(json!({
-				"code": -32602,
-				"message": "Invalid params"
-			}))
-        		.await;
+			let mut mock_provider_guard = mock_provider.lock().await; // Lock the mock_provider once
+			mock_provider_guard
+				.mock_response_error(json!({
+					"code": -32602,
+					"message": "Invalid params"
+				}))
+				.await;
 			mock_provider_guard.mount_mocks().await;
 		}
 
@@ -6703,7 +6733,11 @@ mod tests {
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let tx = result.unwrap();
-		assert_eq!(tx.hash(), &H256::from_str("0xabd78548399bbe684fac50b6a71d0ce3f689497d4e79cb26a2b4dfb211782c39").unwrap());
+		assert_eq!(
+			tx.hash(),
+			&H256::from_str("0xabd78548399bbe684fac50b6a71d0ce3f689497d4e79cb26a2b4dfb211782c39")
+				.unwrap()
+		);
 		assert_eq!(tx.size(), &375);
 		assert_eq!(tx.version(), &0);
 		assert_eq!(tx.nonce(), &1509730265);
@@ -6714,7 +6748,10 @@ mod tests {
 
 		assert_eq!(tx.signers().len(), 1);
 		let signer = tx.signers().get(0).unwrap();
-		assert_eq!(signer.account, H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap());
+		assert_eq!(
+			signer.account,
+			H160::from_str("0xf68f181731a47036a99f04dad90043a744edec0f").unwrap()
+		);
 		assert_eq!(signer.scopes.len(), 1);
 		assert_eq!(signer.scopes.get(0), Some(&WitnessScope::CalledByEntry));
 		assert_eq!(tx.attributes().len(), 0);
@@ -6827,7 +6864,11 @@ mod tests {
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 		let tx = result.unwrap();
-		assert_eq!(tx.hash(), &H256::from_str("0x8916c94bb7c4a63f117ca873c9224955bf9ad00b1149a0173e33614559713425").unwrap());
+		assert_eq!(
+			tx.hash(),
+			&H256::from_str("0x8916c94bb7c4a63f117ca873c9224955bf9ad00b1149a0173e33614559713425")
+				.unwrap()
+		);
 	}
 
 	// TokenTracker: Nep17
@@ -6838,7 +6879,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!({
 				"sent": [
 					{
@@ -6872,9 +6913,9 @@ mod tests {
 					}
 				],
 				"address": "AbHgdBaWEnHkCiLtDZXjhvhaAK2cwFh5pF"
-			})
-		).await;
-
+			}),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -6898,40 +6939,51 @@ mod tests {
 		let transfers = result.unwrap();
 		let sent = transfers.sent;
 		assert_eq!(sent.len(), 2);
-		assert_eq!(sent, vec![
-			Nep17Transfer::new(
-				1554283931,
-				H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(),
-				"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
-				100000000000,
-				368082,
-				0,
-				H256::from_str("240ab1369712ad2782b99a02a8f9fcaa41d1e96322017ae90d0449a3ba52a564").unwrap()
-			),
-			Nep17Transfer::new(
-				1554880287,
-				H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(),
-				"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
-				100000000000,
-				397769,
-				0,
-				H256::from_str("12fdf7ce8b2388d23ab223854cb29e5114d8288c878de23b7924880f82dfc834").unwrap()
-			)
-		]);
+		assert_eq!(
+			sent,
+			vec![
+				Nep17Transfer::new(
+					1554283931,
+					H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(),
+					"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
+					100000000000,
+					368082,
+					0,
+					H256::from_str(
+						"240ab1369712ad2782b99a02a8f9fcaa41d1e96322017ae90d0449a3ba52a564"
+					)
+					.unwrap()
+				),
+				Nep17Transfer::new(
+					1554880287,
+					H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(),
+					"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
+					100000000000,
+					397769,
+					0,
+					H256::from_str(
+						"12fdf7ce8b2388d23ab223854cb29e5114d8288c878de23b7924880f82dfc834"
+					)
+					.unwrap()
+				)
+			]
+		);
 
 		let received = transfers.received;
 		assert_eq!(received.len(), 1);
-		assert_eq!(received, vec![
-			Nep17Transfer::new(
+		assert_eq!(
+			received,
+			vec![Nep17Transfer::new(
 				1555651816,
 				H160::from_str("600c4f5200db36177e3e8a09e9f18e2fc7d12a0f").unwrap(),
 				"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
 				1000000,
 				436036,
 				0,
-				H256::from_str("df7683ece554ecfb85cf41492c5f143215dd43ef9ec61181a28f922da06aba58").unwrap()
-			)
-		]);
+				H256::from_str("df7683ece554ecfb85cf41492c5f143215dd43ef9ec61181a28f922da06aba58")
+					.unwrap()
+			)]
+		);
 	}
 
 	#[tokio::test]
@@ -6997,29 +7049,30 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!({
 				"address": "NXXazKH39yNFWWZF5MJ8tEN98VYHwzn7g3",
-        		"balance": [
-            		{
-                		"assethash": "a48b6e1291ba24211ad11bb90ae2a10bf1fcd5a8",
-                		"name": "SomeToken",
-                		"symbol": "SOTO",
-                		"decimals": "4", 
-                		"amount": "50000000000", 
-                		"lastupdatedblock": 251604
-            		},
-            		{
-                		"assethash": "1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3",
-                		"name": "RandomToken",
-                		"symbol": "RATO",
-                		"decimals": "2", 
-                		"amount": "100000000", 
-                		"lastupdatedblock": 251600
-            		}
-        		]
-			})
-		).await;
+				"balance": [
+					{
+						"assethash": "a48b6e1291ba24211ad11bb90ae2a10bf1fcd5a8",
+						"name": "SomeToken",
+						"symbol": "SOTO",
+						"decimals": "4",
+						"amount": "50000000000",
+						"lastupdatedblock": 251604
+					},
+					{
+						"assethash": "1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3",
+						"name": "RandomToken",
+						"symbol": "RATO",
+						"decimals": "2",
+						"amount": "100000000",
+						"lastupdatedblock": 251600
+					}
+				]
+			}),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7042,24 +7095,27 @@ mod tests {
 		assert_eq!(nep17_balances.address, "NXXazKH39yNFWWZF5MJ8tEN98VYHwzn7g3".to_string());
 		let balance_list = nep17_balances.balances;
 		assert_eq!(balance_list.len(), 2);
-		assert_eq!(balance_list, vec![
-			Nep17Balance::new(
-				H160::from_str("a48b6e1291ba24211ad11bb90ae2a10bf1fcd5a8").unwrap(), 
-				Some("SomeToken".to_string()), 
-				Some("SOTO".to_string()), 
-				Some("4".to_string()), 
-				"50000000000".to_string(), 
-				251604
-			),
-			Nep17Balance::new(
-				H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(), 
-				Some("RandomToken".to_string()), 
-				Some("RATO".to_string()), 
-				Some("2".to_string()), 
-				"100000000".to_string(), 
-				251600
-			),
-		]);
+		assert_eq!(
+			balance_list,
+			vec![
+				Nep17Balance::new(
+					H160::from_str("a48b6e1291ba24211ad11bb90ae2a10bf1fcd5a8").unwrap(),
+					Some("SomeToken".to_string()),
+					Some("SOTO".to_string()),
+					Some("4".to_string()),
+					"50000000000".to_string(),
+					251604
+				),
+				Nep17Balance::new(
+					H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(),
+					Some("RandomToken".to_string()),
+					Some("RATO".to_string()),
+					Some("2".to_string()),
+					"100000000".to_string(),
+					251600
+				),
+			]
+		);
 	}
 
 	// ApplicationLogs
@@ -7070,7 +7126,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!({
 				"txid": "0x01bcf2edbd27abb8d660b6a06113b84d02f635fed836ce46a38b4d67eae80109",
 				"executions": [
@@ -7130,8 +7186,9 @@ mod tests {
 						]
 					}
 				]
-			})
-		).await;
+			}),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7154,7 +7211,11 @@ mod tests {
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
 
 		let app_log = result.unwrap();
-		assert_eq!(app_log.transaction_id, H256::from_str("0x01bcf2edbd27abb8d660b6a06113b84d02f635fed836ce46a38b4d67eae80109").unwrap());
+		assert_eq!(
+			app_log.transaction_id,
+			H256::from_str("0x01bcf2edbd27abb8d660b6a06113b84d02f635fed836ce46a38b4d67eae80109")
+				.unwrap()
+		);
 		assert_eq!(app_log.executions.len(), 1);
 		assert_eq!(app_log.get_execution(0), app_log.get_first_execution());
 		let mut result = app_log.get_execution(1);
@@ -7189,7 +7250,10 @@ mod tests {
 		}
 
 		let notifcation0 = execution.get_notification(0).unwrap();
-		assert_eq!(notifcation0.contract, H160::from_str("0x70e2301955bf1e74cbb31d18c2f96972abadb328").unwrap());
+		assert_eq!(
+			notifcation0.contract,
+			H160::from_str("0x70e2301955bf1e74cbb31d18c2f96972abadb328").unwrap()
+		);
 		assert!(
 			matches!(notifcation0.state, StackItem::Array { .. }),
 			"The stack item type is not Array as expected"
@@ -7197,7 +7261,7 @@ mod tests {
 		assert_eq!(notifcation0.event_name, "Transfer".to_string());
 
 		let notifcation_0_array = notifcation0.state.as_array().unwrap();
-		
+
 		let from0 = notifcation_0_array.get(0);
 		let to0 = notifcation_0_array.get(1).unwrap().as_address().unwrap();
 		let amount0 = notifcation_0_array.get(2).unwrap().as_int().unwrap();
@@ -7207,7 +7271,10 @@ mod tests {
 		assert_eq!(amount0, 600000000);
 
 		let notifcation1 = execution.get_notification(1).unwrap();
-		assert_eq!(notifcation1.contract, H160::from_str("0xf61eebf573ea36593fd43aa150c055ad7906ab83").unwrap());
+		assert_eq!(
+			notifcation1.contract,
+			H160::from_str("0xf61eebf573ea36593fd43aa150c055ad7906ab83").unwrap()
+		);
 		assert!(
 			matches!(notifcation1.state, StackItem::Array { .. }),
 			"The stack item type is not Array as expected"
@@ -7215,7 +7282,7 @@ mod tests {
 		assert_eq!(notifcation1.event_name, "Transfer".to_string());
 
 		let notifcation_1_array = notifcation1.state.as_array().unwrap();
-		
+
 		let event_name1 = notifcation_1_array.get(0).unwrap().as_string().unwrap();
 		let from1 = notifcation_1_array.get(1).unwrap().as_address().unwrap();
 		let amount1 = notifcation_1_array.get(2).unwrap().as_int().unwrap();
@@ -7223,7 +7290,6 @@ mod tests {
 		assert_eq!(event_name1, "Transfer".to_string());
 		assert_eq!(from1, "NLnyLtep7jwyq1qhNPkwXbJpurC4jUT8ke".to_string());
 		assert_eq!(amount1, 100);
-
 	}
 
 	#[tokio::test]
@@ -7232,7 +7298,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!({
 				"txid": "0x01bcf2edbd27abb8d660b6a06113b84d02f635fed836ce46a38b4d67eae80109",
 				"executions": [
@@ -7245,8 +7311,9 @@ mod tests {
 						"notifications": []
 					}
 				]
-			})
-		).await;
+			}),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7321,7 +7388,11 @@ mod tests {
 		let state_root = result.unwrap();
 		assert_eq!(state_root.version, 0);
 		assert_eq!(state_root.index, 160);
-		assert_eq!(state_root.root_hash, H256::from_str("0x28870d1ed61ef167e99354249c622504b0d81d814eaa87dbf8612c91b9b303b7").unwrap());
+		assert_eq!(
+			state_root.root_hash,
+			H256::from_str("0x28870d1ed61ef167e99354249c622504b0d81d814eaa87dbf8612c91b9b303b7")
+				.unwrap()
+		);
 		assert_eq!(state_root.witnesses.len(), 1);
 		let witness = state_root.witnesses.get(0).unwrap();
 		assert_eq!(witness.invocation, "DEDN8o6cmOUt/pfRIexVzO2shhX2vTYFd+cU8vZDQ2Dvn3pe/vHcYOSlY3lPRKecb5zBuLCqaKSvZsC1FAbT00dWDEDoPojyFw66R+pKQsOy0MFmeBBgaC6Z1XGLAigVDHi2VuhAxfpwFpXSTUv3Uv5cIOY+V5g40+2zpU19YQIAWyOJDEDPfitQTjK90KnrloPXKvgTNFPn1520dxDCzQxhl/Wfp7S8dW91/3x3GrF1EaIi32aJtF8W8jUH1Spr/ma66ISs".to_string());
@@ -7374,9 +7445,10 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
-			json!("QAFBAighAhY5RqEz49Lg2Yf7kMsBsGDtF4DxcY4too7fE7ll/StgIQA=")
-		).await;
+			&mock_server,
+			json!("QAFBAighAhY5RqEz49Lg2Yf7kMsBsGDtF4DxcY4too7fE7ll/StgIQA="),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7398,7 +7470,10 @@ mod tests {
 		verify_request(&mock_server, &expected_request_body).await.unwrap();
 
 		assert!(result.is_ok(), "Result is not okay: {:?}", result);
-		assert_eq!(result.unwrap(), "QAFBAighAhY5RqEz49Lg2Yf7kMsBsGDtF4DxcY4too7fE7ll/StgIQA=".to_string());
+		assert_eq!(
+			result.unwrap(),
+			"QAFBAighAhY5RqEz49Lg2Yf7kMsBsGDtF4DxcY4too7fE7ll/StgIQA=".to_string()
+		);
 	}
 
 	#[tokio::test]
@@ -7407,12 +7482,13 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!({
 				"localrootindex": 212,
 				"validatedrootindex": 211
-			})
-		).await;
+			}),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7438,10 +7514,8 @@ mod tests {
 		// Access the global mock server
 		let mock_server = setup_mock_server().await;
 
-		let provider = mock_rpc_response_without_request(
-			&mock_server, 
-			json!("QQEhBwAA1VhfeRI=")
-		).await;
+		let provider =
+			mock_rpc_response_without_request(&mock_server, json!("QQEhBwAA1VhfeRI=")).await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7554,14 +7628,16 @@ mod tests {
 		assert_eq!(result0.key, key1);
 		assert_eq!(result0.value, value1);
 
-		let expected_result1 = StateResult{key: key1, value: value1};
-		let expected_result2 = StateResult{key: key2, value: value2};
+		let expected_result1 = StateResult { key: key1, value: value1 };
+		let expected_result2 = StateResult { key: key2, value: value2 };
 		let expected_results = vec![expected_result1, expected_result2];
-		let expected_states = States{first_proof: Some(first_proof.to_string()), last_proof: Some(last_proof.to_string()), truncated: false, results: expected_results};
+		let expected_states = States {
+			first_proof: Some(first_proof.to_string()),
+			last_proof: Some(last_proof.to_string()),
+			truncated: false,
+			results: expected_results,
+		};
 		assert_eq!(states, expected_states);
-
-
-
 	}
 
 	#[tokio::test]
@@ -7570,7 +7646,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!({
 				"firstProof": "Bfr///8LBiQBAQ8DqDawCFNqYkkQC+no3z6WbmuP8DJmy9e4MMK\
 				+QzHITdGyAAQEBAQEBAQDHvo5Rc9v+WSpfsnMXM75ku+ZjvbLJhWXn/lh6L+1yB0EA4k\
@@ -7587,8 +7663,9 @@ mod tests {
 						"value": "AJjS4mJ5Eg=="
 					}
 				]
-			})
-		).await;
+			}),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7641,12 +7718,13 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!({
 				"truncated": true,
 				"results": []
-			})
-		).await;
+			}),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7832,7 +7910,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!({
 				"address": "NXXazKH39yNFWWZF5MJ8tEN98VYHwzn7g3",
 				"balance": [
@@ -7873,8 +7951,9 @@ mod tests {
 						]
 					}
 				]
-			})
-		).await;
+			}),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -7898,45 +7977,31 @@ mod tests {
 		assert_eq!(nep11_balances.address, "NXXazKH39yNFWWZF5MJ8tEN98VYHwzn7g3".to_string());
 		let nep11_balances_list = nep11_balances.balances;
 		assert_eq!(nep11_balances_list.len(), 2);
-		assert_eq!(nep11_balances_list, vec![
-			Nep11Balance::new(
-				H160::from_str("a48b6e1291ba24211ad11bb90ae2a10bf1fcd5a8").unwrap(), 
-				"FunnyCats".to_string(), 
-				"FCS".to_string(), 
-				"0".to_string(), 
-				vec![
-					Nep11Token::new(
-						"1".to_string(),
-						"1".to_string(),
-						12345
-					),
-					Nep11Token::new(
-						"2".to_string(),
-						"1".to_string(),
-						123456
-					)
-				]
-			),
-			Nep11Balance::new(
-				H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(), 
-				"CuteNeoKittens".to_string(), 
-				"CNKS".to_string(), 
-				"4".to_string(), 
-				vec![
-					Nep11Token::new(
-						"4".to_string(),
-						"10000".to_string(),
-						12345
-					),
-					Nep11Token::new(
-						"10".to_string(),
-						"6500".to_string(),
-						654321
-					)
-				]
-			)
-		])
-
+		assert_eq!(
+			nep11_balances_list,
+			vec![
+				Nep11Balance::new(
+					H160::from_str("a48b6e1291ba24211ad11bb90ae2a10bf1fcd5a8").unwrap(),
+					"FunnyCats".to_string(),
+					"FCS".to_string(),
+					"0".to_string(),
+					vec![
+						Nep11Token::new("1".to_string(), "1".to_string(), 12345),
+						Nep11Token::new("2".to_string(), "1".to_string(), 123456)
+					]
+				),
+				Nep11Balance::new(
+					H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(),
+					"CuteNeoKittens".to_string(),
+					"CNKS".to_string(),
+					"4".to_string(),
+					vec![
+						Nep11Token::new("4".to_string(), "10000".to_string(), 12345),
+						Nep11Token::new("10".to_string(), "6500".to_string(), 654321)
+					]
+				)
+			]
+		)
 	}
 
 	#[tokio::test]
@@ -7945,7 +8010,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!({
 				"sent": [
 					{
@@ -7982,8 +8047,9 @@ mod tests {
 					}
 				],
 				"address": "AbHgdBaWEnHkCiLtDZXjhvhaAK2cwFh5pF"
-			})
-		).await;
+			}),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(
@@ -8008,43 +8074,54 @@ mod tests {
 		let transfers = result.unwrap();
 		let sent = transfers.sent;
 		assert_eq!(sent.len(), 2);
-		assert_eq!(sent, vec![
-			Nep11Transfer::new(
-				1554283931,
-				H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(),
-				"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
-				100000000000,
-				368082,
-				0,
-				H256::from_str("240ab1369712ad2782b99a02a8f9fcaa41d1e96322017ae90d0449a3ba52a564").unwrap(),
-				"1".to_string()
-			),
-			Nep11Transfer::new(
-				1554880287,
-				H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(),
-				"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
-				100000000000,
-				397769,
-				0,
-				H256::from_str("12fdf7ce8b2388d23ab223854cb29e5114d8288c878de23b7924880f82dfc834").unwrap(),
-				"2".to_string()
-			)
-		]);
+		assert_eq!(
+			sent,
+			vec![
+				Nep11Transfer::new(
+					1554283931,
+					H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(),
+					"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
+					100000000000,
+					368082,
+					0,
+					H256::from_str(
+						"240ab1369712ad2782b99a02a8f9fcaa41d1e96322017ae90d0449a3ba52a564"
+					)
+					.unwrap(),
+					"1".to_string()
+				),
+				Nep11Transfer::new(
+					1554880287,
+					H160::from_str("1aada0032aba1ef6d1f07bbd8bec1d85f5380fb3").unwrap(),
+					"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
+					100000000000,
+					397769,
+					0,
+					H256::from_str(
+						"12fdf7ce8b2388d23ab223854cb29e5114d8288c878de23b7924880f82dfc834"
+					)
+					.unwrap(),
+					"2".to_string()
+				)
+			]
+		);
 
 		let received = transfers.received;
 		assert_eq!(received.len(), 1);
-		assert_eq!(received, vec![
-			Nep11Transfer::new(
+		assert_eq!(
+			received,
+			vec![Nep11Transfer::new(
 				1555651816,
 				H160::from_str("600c4f5200db36177e3e8a09e9f18e2fc7d12a0f").unwrap(),
 				"AYwgBNMepiv5ocGcyNT4mA8zPLTQ8pDBis".to_string(),
 				1000000,
 				436036,
 				0,
-				H256::from_str("df7683ece554ecfb85cf41492c5f143215dd43ef9ec61181a28f922da06aba58").unwrap(),
+				H256::from_str("df7683ece554ecfb85cf41492c5f143215dd43ef9ec61181a28f922da06aba58")
+					.unwrap(),
 				"3".to_string()
-			)
-		]);
+			)]
+		);
 	}
 
 	#[tokio::test]
@@ -8117,12 +8194,13 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!({
 				"keyProp1": "valueProp1",
 				"keyProp2": "valueProp2"
-			})
-		).await;
+			}),
+		)
+		.await;
 
 		// Expected request body
 		let expected_request_body = format!(

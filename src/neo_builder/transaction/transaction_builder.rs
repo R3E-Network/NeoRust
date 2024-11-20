@@ -39,7 +39,13 @@ use ethereum_types::H256;
 /// It uses generics to allow for different types of JSON-RPC providers.
 use futures_util::TryFutureExt;
 use std::{
-	cell::RefCell, collections::HashSet, default, fmt::Debug, hash::{Hash, Hasher}, iter::Iterator, str::FromStr
+	cell::RefCell,
+	collections::HashSet,
+	default,
+	fmt::Debug,
+	hash::{Hash, Hasher},
+	iter::Iterator,
+	str::FromStr,
 };
 
 use getset::{CopyGetters, Getters, MutGetters, Setters};
@@ -236,11 +242,12 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		self
 	}
 
-	pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionError>  {
-		if self.script.is_none() || self.script.as_ref().unwrap().is_empty(){
+	pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionError> {
+		if self.script.is_none() || self.script.as_ref().unwrap().is_empty() {
 			return Err((TransactionError::NoScript));
 		}
-		let result = self.client
+		let result = self
+			.client
 			.unwrap()
 			.rpc_client()
 			.invoke_script(self.script.clone().unwrap().to_hex(), self.signers.clone())
@@ -282,9 +289,13 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		}
 
 		if self.valid_until_block.is_none() {
-			self.valid_until_block = Some(self.fetch_current_block_count().await.unwrap() + self.client.unwrap().max_valid_until_block_increment() - 1)
+			self.valid_until_block = Some(
+				self.fetch_current_block_count().await?
+					+ self.client.unwrap().max_valid_until_block_increment()
+					- 1,
+			)
 		}
-		
+
 		// Check committe member
 		if self.is_high_priority() && !self.is_allowed_for_high_priority().await {
 			return Err(TransactionError::IllegalState("This transaction does not have a committee member as signer. Only committee members can send transactions with high priority.".to_string()));
@@ -305,7 +316,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 
 		let system_fee = self.get_system_fee().await? + self.additional_system_fee as i64;
 
-		let network_fee = self.get_network_fee().await?+ self.additional_network_fee as i64;
+		let network_fee = self.get_network_fee().await? + self.additional_network_fee as i64;
 
 		// Check sender balance if needed
 		let mut tx = Transaction {
@@ -326,13 +337,14 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 
 		// It's impossible to calculate network fee when the tx is unsigned, because there is no witness
 		// let network_fee = Box::pin(self.client.unwrap().calculate_network_fee(base64::encode(tx.to_array()))).await?;
-		if self.fee_error.is_some() && !self.can_send_cover_fees(system_fee as u64 + network_fee as u64).await? {
+		if self.fee_error.is_some()
+			&& !self.can_send_cover_fees(system_fee as u64 + network_fee as u64).await?
+		{
 			if let Some(supplier) = &self.fee_error {
 				return Err(supplier.clone());
 			}
-		}
-		else if let Some(fee_consumer) = &self.fee_consumer {
-			let sender_balance = self.get_sender_balance().await.unwrap().try_into().unwrap(); // self.get_sender_balance().await.unwrap();
+		} else if let Some(fee_consumer) = &self.fee_consumer {
+			let sender_balance = self.get_sender_balance().await?.try_into().unwrap(); // self.get_sender_balance().await.unwrap();
 			if network_fee + system_fee > sender_balance {
 				fee_consumer(network_fee + system_fee, sender_balance);
 			}
@@ -352,7 +364,10 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 			.await
 			.map_err(|e| TransactionError::ProviderError(e))?;
 		if response.has_state_fault() && !NEOCONFIG.lock().unwrap().allows_transmission_on_fault {
-			return Err(TransactionError::TransactionConfiguration(format!("The vm exited due to the following exception: {}", response.exception.unwrap())));
+			return Err(TransactionError::TransactionConfiguration(format!(
+				"The vm exited due to the following exception: {}",
+				response.exception.unwrap()
+			)));
 		}
 		Ok(i64::from_str(response.gas_consumed.as_str()).unwrap()) // example
 	}
@@ -380,54 +395,49 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 			match signer {
 				Signer::ContractSigner(contract_signer) => {
 					// Create contract witness and add it to the transaction
-					let witness = Witness::create_contract_witness(contract_signer.verify_params().to_vec()).unwrap();
+					let witness =
+						Witness::create_contract_witness(contract_signer.verify_params().to_vec())
+							.unwrap();
 					tx.add_witness(witness);
-				}
+				},
 				Signer::AccountSigner(account_signer) => {
 					// Get the account from AccountSigner
 					let account = account_signer.account();
 					let verification_script;
-		
+
 					// Check if the account is multi-signature or single-signature
 					if account.is_multi_sig() {
 						// Create a fake multi-signature verification script
-						verification_script = self.create_fake_multi_sig_verification_script(account);
+						verification_script =
+							self.create_fake_multi_sig_verification_script(account);
 					} else {
 						// Create a fake single-signature verification script
 						verification_script = self.create_fake_single_sig_verification_script();
 					}
-		
+
 					// Add a witness with an empty signature and the verification script
-					tx.add_witness(Witness::from_scripts(vec![], verification_script.script().to_vec()));
+					tx.add_witness(Witness::from_scripts(
+						vec![],
+						verification_script.script().to_vec(),
+					));
 					has_atleast_one_signing_account = true;
-				}
+				},
 				// If there's a case for TransactionSigner, it can be handled here if necessary.
 				_ => {
 					// Handle any other cases, if necessary (like TransactionSigner)
-				}
+				},
 			}
 		}
 		if (!has_atleast_one_signing_account) {
-			return Err(TransactionError::TransactionConfiguration(format!("A transaction requires at least one signing account (i.e. an AccountSigner). None was provided.")))
-
+			return Err(TransactionError::TransactionConfiguration("A transaction requires at least one signing account (i.e. an AccountSigner). None was provided.".to_string()))
 		}
 
-		let fee = self
-			.client
-			.unwrap()
-			.calculate_network_fee(tx.to_array().to_hex())
-			.await
-			.map_err(|e| TransactionError::ProviderError(e))?;
+		let fee = self.client.unwrap().calculate_network_fee(tx.to_array().to_hex()).await?;
 		Ok(fee.network_fee)
 	}
 
 	async fn fetch_current_block_count(&mut self) -> Result<u32, TransactionError> {
-		let count = self
-			.client
-			.unwrap()
-			.get_block_count()
-			.await
-			.map_err(|e| TransactionError::ProviderError(e))?;
+		let count = self.client.unwrap().get_block_count().await?;
 		Ok(count)
 	}
 
@@ -464,16 +474,19 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	fn create_fake_multi_sig_verification_script(&self, account: &Account) -> VerificationScript {
 		// Vector to store dummy public keys
 		let mut pub_keys: Vec<Secp256r1PublicKey> = Vec::new();
-	
+
 		// Loop to add dummy public keys based on the number of participants
 		for _ in 0..account.get_nr_of_participants().unwrap() {
 			// Create a dummy public key (assuming DUMMY_PUB_KEY exists or is generated)
 			let dummy_public_key = Secp256r1PublicKey::from_encoded(Self::DUMMY_PUB_KEY).unwrap();
 			pub_keys.push(dummy_public_key);
 		}
-	
+
 		// Create and return the VerificationScript with the pub_keys and signing threshold
-		VerificationScript::from_multi_sig(&mut pub_keys[..], account.get_signing_threshold().unwrap() as u8)
+		VerificationScript::from_multi_sig(
+			&mut pub_keys[..],
+			account.get_signing_threshold().unwrap() as u8,
+		)
 	}
 
 	fn is_account_signer(signer: &Signer) -> bool {
@@ -485,12 +498,14 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 
 	// Sign transaction
 	pub async fn sign(&mut self) -> Result<Transaction<P>, BuilderError> {
+		init_logger();
 		let mut unsigned_tx = self.get_unsigned_tx().await?;
+		debug!("unsigned_tx: {:?}", unsigned_tx);
 		// let client = self.client.unwrap();
 		let tx_bytes = unsigned_tx.get_hash_data().await?;
 
 		let mut witnesses_to_add = Vec::new();
-
+		debug!("unsigned_tx.signers: {:?}", unsigned_tx.signers);
 		for signer in &mut unsigned_tx.signers {
 			if Self::is_account_signer(signer) {
 				let account_signer = signer.as_account_signer().unwrap();
@@ -501,21 +516,26 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 							.to_string(),
 					));
 				}
-
+				debug!("acc: {:?}", acc);
 				let key_pair = acc.key_pair().as_ref().ok_or_else(|| {
                     BuilderError::InvalidConfiguration(
                         format!("Cannot create transaction signature because account {} does not hold a private key.", acc.get_address()),
                     )
                 })?;
-
+				debug!("key_pair: {:?}", key_pair);
 				witnesses_to_add.push(Witness::create(tx_bytes.clone(), key_pair)?);
 			} else {
-				let contract_signer = signer.as_contract_signer().unwrap();
-				witnesses_to_add
-					.push(Witness::create_contract_witness(contract_signer.verify_params().clone())?);
+				debug!("signer: {:?}", signer);
+				let contract_signer = signer
+					.as_contract_signer()
+					.unwrap_or_else(|| panic!("Expected contract signer"));
+				debug!("contract_signer: {:?}", contract_signer);
+				witnesses_to_add.push(Witness::create_contract_witness(
+					contract_signer.verify_params().clone(),
+				)?);
 			}
 		}
-
+		debug!("witnesses_to_add: {:?}", witnesses_to_add);
 		for witness in witnesses_to_add {
 			unsigned_tx.add_witness(witness);
 		}
@@ -543,96 +563,112 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	}
 
 	pub fn set_signers(&mut self, signers: Vec<Signer>) -> Result<&mut Self, TransactionError> {
-        if self.contains_duplicate_signers(&signers) {
-            return Err(TransactionError::TransactionConfiguration("Cannot add multiple signers concerning the same account.".to_string()));
-        }
-        
-        self.check_and_throw_if_max_attributes_exceeded(signers.len(), self.attributes.len())?;
-        
-        self.signers = signers;
-        Ok(self)
-    }
+		if self.contains_duplicate_signers(&signers) {
+			return Err(TransactionError::TransactionConfiguration(
+				"Cannot add multiple signers concerning the same account.".to_string(),
+			));
+		}
 
-	pub fn add_attributes(&mut self, attributes: Vec<TransactionAttribute>) -> Result<&mut Self, TransactionError> {
-        self.check_and_throw_if_max_attributes_exceeded(self.signers.len(), self.attributes.len() + attributes.len())?;
-        for attr in attributes {
-            match attr {
-                TransactionAttribute::HighPriority => {
-                    self.add_high_priority_attribute(attr)?;
-                },
-				TransactionAttribute::NotValidBefore { height} => {
-                    self.add_not_valid_before_attribute(attr)?;
-                },
-                TransactionAttribute::Conflicts { hash} => {
-                    self.add_conflicts_attribute(attr)?;
-                },
-                // TransactionAttribute::OracleResponse(oracle_response) => {
-                //     self.add_oracle_response_attribute(oracle_response);
-                // },
-                _ => {
-                    // For other cases or any default, just add the attribute directly to the Vec
-                    self.attributes.push(attr);
-                }
-            }
-        }
-        Ok(self)
-    }
+		self.check_and_throw_if_max_attributes_exceeded(signers.len(), self.attributes.len())?;
 
-	fn add_high_priority_attribute(&mut self, attr: TransactionAttribute) -> Result<(), TransactionError> {
-        if self.is_high_priority() {
-            return Err(TransactionError::TransactionConfiguration(
-                "A transaction can only have one HighPriority attribute.".to_string(),
-            ));
-        }
-        // Add the attribute to the attributes vector
-        self.attributes.push(attr);
-        Ok(())
-    }
+		self.signers = signers;
+		Ok(self)
+	}
 
-	fn add_not_valid_before_attribute(&mut self, attr: TransactionAttribute) -> Result<(), TransactionError> {
-        if self.has_attribute_of_type(TransactionAttribute::NotValidBefore { height: 0 }) {
-            return Err(TransactionError::TransactionConfiguration(
-                "A transaction can only have one NotValidBefore attribute.".to_string(),
-            ));
-        }
-        // Add the attribute to the attributes vector
-        self.attributes.push(attr);
-        Ok(())
-    }
+	pub fn add_attributes(
+		&mut self,
+		attributes: Vec<TransactionAttribute>,
+	) -> Result<&mut Self, TransactionError> {
+		self.check_and_throw_if_max_attributes_exceeded(
+			self.signers.len(),
+			self.attributes.len() + attributes.len(),
+		)?;
+		for attr in attributes {
+			match attr {
+				TransactionAttribute::HighPriority => {
+					self.add_high_priority_attribute(attr)?;
+				},
+				TransactionAttribute::NotValidBefore { height } => {
+					self.add_not_valid_before_attribute(attr)?;
+				},
+				TransactionAttribute::Conflicts { hash } => {
+					self.add_conflicts_attribute(attr)?;
+				},
+				// TransactionAttribute::OracleResponse(oracle_response) => {
+				//     self.add_oracle_response_attribute(oracle_response);
+				// },
+				_ => {
+					// For other cases or any default, just add the attribute directly to the Vec
+					self.attributes.push(attr);
+				},
+			}
+		}
+		Ok(self)
+	}
 
-	fn add_conflicts_attribute(&mut self, attr: TransactionAttribute) -> Result<(), TransactionError> {
-        if self.has_attribute(&attr) {
-            return Err(TransactionError::TransactionConfiguration(
-				format!(
-					"There already exists a conflicts attribute for the hash {} in this transaction.",
-					attr.get_hash().unwrap()
-				)
-            ));
-        }
-        // Add the attribute to the attributes vector
-        self.attributes.push(attr);
-        Ok(())
-    }
+	fn add_high_priority_attribute(
+		&mut self,
+		attr: TransactionAttribute,
+	) -> Result<(), TransactionError> {
+		if self.is_high_priority() {
+			return Err(TransactionError::TransactionConfiguration(
+				"A transaction can only have one HighPriority attribute.".to_string(),
+			));
+		}
+		// Add the attribute to the attributes vector
+		self.attributes.push(attr);
+		Ok(())
+	}
 
-	 // Check if the attributes vector has an attribute of the specified type
+	fn add_not_valid_before_attribute(
+		&mut self,
+		attr: TransactionAttribute,
+	) -> Result<(), TransactionError> {
+		if self.has_attribute_of_type(TransactionAttribute::NotValidBefore { height: 0 }) {
+			return Err(TransactionError::TransactionConfiguration(
+				"A transaction can only have one NotValidBefore attribute.".to_string(),
+			));
+		}
+		// Add the attribute to the attributes vector
+		self.attributes.push(attr);
+		Ok(())
+	}
+
+	fn add_conflicts_attribute(
+		&mut self,
+		attr: TransactionAttribute,
+	) -> Result<(), TransactionError> {
+		if self.has_attribute(&attr) {
+			return Err(TransactionError::TransactionConfiguration(format!(
+				"There already exists a conflicts attribute for the hash {} in this transaction.",
+				attr.get_hash().unwrap()
+			)));
+		}
+		// Add the attribute to the attributes vector
+		self.attributes.push(attr);
+		Ok(())
+	}
+
+	// Check if the attributes vector has an attribute of the specified type
 	fn has_attribute_of_type(&self, attr_type: TransactionAttribute) -> bool {
-        self.attributes.iter().any(|attr| {
-            match (attr, &attr_type) {
-                (TransactionAttribute::NotValidBefore { .. }, TransactionAttribute::NotValidBefore { .. }) => true,
-                (TransactionAttribute::HighPriority, TransactionAttribute::HighPriority) => true,
-                _ => false,
-            }
-        })
-    }
+		self.attributes.iter().any(|attr| match (attr, &attr_type) {
+			(
+				TransactionAttribute::NotValidBefore { .. },
+				TransactionAttribute::NotValidBefore { .. },
+			) => true,
+			(TransactionAttribute::HighPriority, TransactionAttribute::HighPriority) => true,
+			_ => false,
+		})
+	}
 
 	fn has_attribute(&self, attr: &TransactionAttribute) -> bool {
-        self.attributes.iter().any(|a| a == attr)
-    }
+		self.attributes.iter().any(|a| a == attr)
+	}
 
-    // Check specifically for the HighPriority attribute
-    fn is_high_priority(&self) -> bool {
-        self.has_attribute_of_type(TransactionAttribute::HighPriority)
-    }
+	// Check specifically for the HighPriority attribute
+	fn is_high_priority(&self) -> bool {
+		self.has_attribute_of_type(TransactionAttribute::HighPriority)
+	}
 
 	fn contains_duplicate_signers(&self, signers: &Vec<Signer>) -> bool {
 		let signer_list: Vec<H160> = signers.iter().map(|s| s.get_signer_hash().clone()).collect();
@@ -640,8 +676,14 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		signer_list.len() != signer_set.len()
 	}
 
-	fn check_and_throw_if_max_attributes_exceeded(&self, total_signers: usize, total_attributes: usize) -> Result<(), TransactionError> {
-		if total_signers + total_attributes > NeoConstants::MAX_TRANSACTION_ATTRIBUTES.try_into().unwrap() {
+	fn check_and_throw_if_max_attributes_exceeded(
+		&self,
+		total_signers: usize,
+		total_attributes: usize,
+	) -> Result<(), TransactionError> {
+		if total_signers + total_attributes
+			> NeoConstants::MAX_TRANSACTION_ATTRIBUTES.try_into().unwrap()
+		{
 			return Err(TransactionError::TransactionConfiguration(format!(
 				"A transaction cannot have more than {} attributes (including signers).",
 				NeoConstants::MAX_TRANSACTION_ATTRIBUTES
@@ -656,32 +698,34 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	// 		.any(|attr| matches!(attr, TransactionAttribute::HighPriority))
 	// }
 
-	async fn  is_allowed_for_high_priority(&self) -> bool {
+	async fn is_allowed_for_high_priority(&self) -> bool {
 		let response = self
 			.client
 			.unwrap()
 			.get_committee()
 			.await
-			.map_err(|e| TransactionError::ProviderError(e)).unwrap();
+			.map_err(|e| TransactionError::ProviderError(e))
+			.unwrap();
 		// Map the Vec<String> response to Vec<Hash160>
-        let committee: HashSet<H160> = response
-            .iter()
-            .filter_map(|key_str| {
-                // Convert the String to Hash160 (assuming `Hash160::from_str` or similar exists)
+		let committee: HashSet<H160> = response
+			.iter()
+			.filter_map(|key_str| {
+				// Convert the String to Hash160 (assuming `Hash160::from_str` or similar exists)
 				let public_key = Secp256r1PublicKey::from_encoded(key_str)?;
 
-                Some(public_key_to_script_hash(&public_key))  // Handle potential parsing errors gracefully
-            })
-            .collect();
+				Some(public_key_to_script_hash(&public_key)) // Handle potential parsing errors gracefully
+			})
+			.collect();
 
-		let signers_contain_committee_member = self.signers
-            .iter()
-            .map(|signer| signer.get_signer_hash())
-            .any(|script_hash| committee.contains(&script_hash));
+		let signers_contain_committee_member = self
+			.signers
+			.iter()
+			.map(|signer| signer.get_signer_hash())
+			.any(|script_hash| committee.contains(&script_hash));
 
-        if signers_contain_committee_member {
-            return true;
-        }
+		if signers_contain_committee_member {
+			return true;
+		}
 
 		return self.signers_contain_multi_sig_with_committee_member(&committee);
 	}

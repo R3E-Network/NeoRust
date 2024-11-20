@@ -1,15 +1,14 @@
 use neo::prelude::*;
+use primitive_types::{H160, H256};
+use regex::Regex;
 use serde_json::{json, Value};
-use std::{str::FromStr, sync::Arc};
+use std::{fs, path::PathBuf, str::FromStr, sync::Arc};
 use tokio::sync::Mutex;
 use url::Url;
 use wiremock::{
-	matchers::{body_json, body_partial_json, method, path}, Match, Mock, MockServer, ResponseTemplate
+	matchers::{body_json, body_partial_json, method, path},
+	Match, Mock, MockServer, ResponseTemplate,
 };
-use regex::Regex;
-use std::fs;
-use std::path::PathBuf;
-use primitive_types::{H160, H256};
 
 pub struct MockClient {
 	server: MockServer,
@@ -86,12 +85,12 @@ impl MockClient {
 		response_file_path.push("test_resources");
 		response_file_path.push("responses");
 		response_file_path.push(response_file);
-	
+
 		// Load the response body from the specified file
 		let response_body = tokio::fs::read_to_string(response_file_path)
 			.await
 			.expect("Failed to read response file");
-	
+
 		let mock = Mock::given(method("POST"))
 			.and(path("/"))
 			.and(body_partial_json(json!({
@@ -114,7 +113,7 @@ impl MockClient {
 		response_file_path.push("test_resources");
 		response_file_path.push("responses");
 		response_file_path.push(response_file);
-	
+
 		// Load the response body from the specified file
 		let response_body = tokio::fs::read_to_string(response_file_path)
 			.await
@@ -122,8 +121,8 @@ impl MockClient {
 		// // Load the response body from the specified file
 		// let response_body = tokio::fs::read_to_string(format!("/responses/{}", response_file))
 		// .await
-        // .expect("Failed to read response file");
-	
+		// .expect("Failed to read response file");
+
 		let mock = Mock::given(method("POST"))
 			.and(path("/"))
 			.and(body_partial_json(json!({
@@ -146,7 +145,7 @@ impl MockClient {
 		response_file_path.push("test_resources");
 		response_file_path.push("responses");
 		response_file_path.push(response_file);
-	
+
 		// Load the response body from the specified file
 		let response_body = tokio::fs::read_to_string(response_file_path)
 			.await
@@ -161,11 +160,11 @@ impl MockClient {
 					contract_hash,
 					"balanceOf",
 					[
-                		{
-                    		"type": "Hash160",
-                    		"value": account_script_hash,
-                		}
-            		]
+						{
+							"type": "Hash160",
+							"value": account_script_hash,
+						}
+					]
 				],
 			})))
 			.respond_with(ResponseTemplate::new(200).set_body_string(response_body));
@@ -200,16 +199,13 @@ impl MockClient {
 	// 	self
 	// }
 
-	pub async fn mock_get_block_count(
-		&mut self,
-		block_count: u32,
-	) -> &mut Self {
+	pub async fn mock_get_block_count(&mut self, block_count: u32) -> &mut Self {
 		// Construct the path to the response file relative to the project root
 		let mut response_file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 		response_file_path.push("test_resources");
 		response_file_path.push("responses");
 		response_file_path.push(format!("getblockcount_{}.json", block_count));
-	
+
 		// Load the response body from the specified file
 		let response_body = tokio::fs::read_to_string(response_file_path)
 			.await
@@ -217,8 +213,8 @@ impl MockClient {
 		// // Load the response body from the specified file
 		// let response_body = tokio::fs::read_to_string(format!("/responses/{}", response_file))
 		// .await
-        // .expect("Failed to read response file");
-	
+		// .expect("Failed to read response file");
+
 		let mock = Mock::given(method("POST"))
 			.and(path("/"))
 			.and(body_partial_json(json!({
@@ -230,11 +226,11 @@ impl MockClient {
 		self
 	}
 
-	pub async fn mock_calculate_network_fee(&mut self, result: i32) -> &mut Self {
-		self.mock_response_ignore_param("calculatenetworkfee", json!(Ok::<i32, ()>(result)))
-			.await;
-		self
-	}
+	// pub async fn mock_calculate_network_fee(&mut self, result: i32) -> &mut Self {
+	// 	self.mock_response_ignore_param("calculatenetworkfee", json!(Ok::<i32, ()>(result)))
+	// 		.await;
+	// 	self
+	// }
 
 	pub async fn mock_send_raw_transaction(&mut self, result: RawTransaction) -> &mut Self {
 		self.mock_response_ignore_param(
