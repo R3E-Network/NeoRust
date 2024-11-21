@@ -171,6 +171,8 @@ block-padding = "0.3.3"
 env_logger = "0.11.3"
 async-stream = "0.3.5"
 
+bip39 = { version = "2.1.0", features = ["rand"] }
+
 [dev-dependencies]
 mockall = "0.13.0"
 tracing = "0.1"

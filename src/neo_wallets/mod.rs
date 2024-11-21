@@ -27,3 +27,4 @@ mod yubi;
 
 mod error;
 mod wallet_signer;
+mod bip39_account;
