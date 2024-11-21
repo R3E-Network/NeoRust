@@ -29,6 +29,8 @@ mod tests {
 	use std::{default, ops::Deref, str::FromStr, sync::Arc};
 	use tokio::sync::{Mutex, OnceCell};
 	use tracing::debug;
+	use neo::types::VMState;
+	use crate::types::NeoVMStateType;
 
 	lazy_static! {
 		pub static ref ACCOUNT1: Account = Account::from_key_pair(
@@ -2108,7 +2110,7 @@ mod tests {
 		let tx = tx_builder.sign().await.unwrap();
 
 		// TODO: Implement track_tx method for Transaction
-		// assert!(tx.track_tx(&client).await.is_err());
+		assert!(tx.track_tx(&client).await.is_err());
 	}
 
 	#[tokio::test]
@@ -2294,23 +2296,12 @@ mod tests {
 	async fn test_transmission_on_fault() {
 		init_logger();
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
-		info!("this is a test message");
 		let client = {
 			let mut mock_provider = mock_provider.lock().await;
 			mock_provider
-				.mock_invoke_script(InvocationResult {
-					gas_consumed: "984060".to_string(),
-					exception: Some("Test fault".to_string()),
-					..Default::default()
-				})
-				.await
-				.mock_response_with_file_ignore_param("getblockcount", "getblockcount_1000.json")
-				.await
-				.mock_response_with_file_ignore_param(
-					"calculatenetworkfee",
-					"calculatenetworkfee.json",
-				)
-				.await
+				.mock_response_with_file_ignore_param("invokescript", "invokescript_fault.json", ).await
+				.mock_response_with_file_ignore_param("getblockcount", "getblockcount_1000.json").await
+				.mock_response_with_file_ignore_param("calculatenetworkfee", "calculatenetworkfee.json", ).await
 				.mount_mocks()
 				.await;
 			Arc::new(mock_provider.into_client())
@@ -2345,21 +2336,10 @@ mod tests {
 		let client = {
 			let mut mock_provider = mock_provider.lock().await;
 			mock_provider
-				.mock_invoke_script(InvocationResult {
-					gas_consumed: "984060".to_string(),
-					exception: Some("Test fault".to_string()),
-					..Default::default()
-				})
-				.await
-				.mock_response_with_file_ignore_param("getblockcount", "getblockcount_1000.json")
-				.await
-				.mock_response_with_file_ignore_param(
-					"calculatenetworkfee",
-					"calculatenetworkfee.json",
-				)
-				.await
-				.mount_mocks()
-				.await;
+				.mock_response_with_file_ignore_param("invokescript", "invokescript_fault.json", ).await
+				.mock_response_with_file_ignore_param("getblockcount", "getblockcount_1000.json").await
+				.mock_response_with_file_ignore_param("calculatenetworkfee", "calculatenetworkfee.json", ).await
+				.mount_mocks().await;
 			Arc::new(mock_provider.into_client())
 		};
 
@@ -2423,17 +2403,10 @@ mod tests {
 		let client = {
 			let mut mock_provider = mock_provider.lock().await;
 			mock_provider
-				.mock_invoke_script(InvocationResult::default())
-				.await
-				.mock_response_with_file_ignore_param("getblockcount", "getblockcount_1000.json")
-				.await
-				.mock_response_with_file_ignore_param(
-					"calculatenetworkfee",
-					"calculatenetworkfee.json",
-				)
-				.await
-				.mount_mocks()
-				.await;
+				.mock_invoke_script(InvocationResult::default()).await
+				.mock_response_with_file_ignore_param("getblockcount", "getblockcount_1000.json").await
+				.mock_response_with_file_ignore_param("calculatenetworkfee", "calculatenetworkfee.json", ).await
+				.mount_mocks().await;
 			Arc::new(mock_provider.into_client())
 		};
 
