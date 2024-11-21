@@ -2,10 +2,38 @@ use bip39::{Mnemonic, Language};
 use sha2::{Sha256, Digest};
 use crate::prelude::{Account, AccountTrait, KeyPair};
 
-/// A BIP-39 compatible NEO account.
+/// A BIP-39 compatible neo account that uses mnemonic phrases for key generation and recovery.
+///
+/// This implementation follows the BIP-39 standard for generating and recovering neo accounts using
+/// mnemonic phrases. The account can be created with a new random mnemonic or recovered from an
+/// existing mnemonic phrase.
+///
+/// # Examples
+///
+/// ## Creating a new account
+/// ```
+/// use neo_rust::prelude::Bip39Account;
+///
+/// // Create a new account with a password
+/// let password = "my secure password";
+/// let account = Bip39Account::create(password).unwrap();
+///
+/// // The account will have a randomly generated 24-word mnemonic
+/// println!("Mnemonic: {}", account.mnemonic);
+/// ```
+///
+/// ## Recovering an existing account
+/// ```
+/// use neo_rust::prelude::Bip39Account;
+///
+/// // Recover an account using an existing mnemonic and password
+/// let mnemonic = "word1 word2 ... word24"; // Your 24 word mnemonic
+/// let password = "my secure password";
+/// let recovered = Bip39Account::from_bip39_mnemonic(password, mnemonic).unwrap();
+/// ```
 #[derive(Debug)]
 pub struct Bip39Account {
-    /// The underlying NEO account
+    /// The underlying neo account
     account: Account,
     
     /// Generated BIP-39 mnemonic for the account
@@ -13,18 +41,28 @@ pub struct Bip39Account {
 }
 
 impl Bip39Account {
-    /// Creates a new BIP-39 compatible NEO account.
+    /// Creates a new BIP-39 compatible neo account with a randomly generated mnemonic.
     /// 
     /// The private key for the wallet is calculated using:
     /// `Key = SHA-256(BIP_39_SEED(mnemonic, password))`
     /// 
-    /// The password is only used as passphrase for BIP-39 seed (i.e., used to recover the account).
+    /// The password is used as a BIP-39 passphrase and is required to recover the account later.
+    /// The same password must be provided during recovery to generate the same keys.
     ///
     /// # Arguments
-    /// * `password` - The passphrase to encrypt the private key
+    /// * `password` - The passphrase used in BIP-39 seed generation. This must be saved to recover the account.
     ///
     /// # Returns
-    /// A BIP-39 compatible Neo account
+    /// A Result containing the new Bip39Account or an error if creation fails.
+    ///
+    /// # Example
+    /// ```
+    /// use neo_rust::prelude::Bip39Account;
+    ///
+    /// let account = Bip39Account::create("my secure password").unwrap();
+    /// // Save the mnemonic securely
+    /// let mnemonic = account.mnemonic.clone();
+    /// ```
     pub fn create(password: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let mut rng = bip39::rand::thread_rng();
         let mnemonic = Mnemonic::generate_in_with(&mut rng, Language::English, 24).unwrap();
@@ -43,14 +81,26 @@ impl Bip39Account {
         })
     }
 
-    /// Recovers a key pair based on BIP-39 mnemonic and password.
+    /// Recovers a neo account from an existing BIP-39 mnemonic phrase and password.
+    ///
+    /// This method will reconstruct the exact same neo account if provided with the same
+    /// mnemonic and password combination that was used to create the original account.
     ///
     /// # Arguments
-    /// * `password` - The passphrase given when the BIP-39 account was generated
-    /// * `mnemonic` - The generated mnemonic with the given passphrase
+    /// * `password` - The same passphrase that was used when generating the original account
+    /// * `mnemonic` - The 24-word mnemonic phrase from the original account
     ///
     /// # Returns
-    /// A recovered Bip39Account
+    /// A Result containing the recovered Bip39Account or an error if recovery fails
+    ///
+    /// # Example
+    /// ```
+    /// use neo_rust::prelude::Bip39Account;
+    ///
+    /// let mnemonic = "word1 word2 ... word24"; // Your saved 24-word mnemonic
+    /// let password = "my secure password";      // Original password used
+    /// let account = Bip39Account::from_bip39_mnemonic(password, mnemonic).unwrap();
+    /// ```
     pub fn from_bip39_mnemonic(password: &str, mnemonic: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let mnemonic = Mnemonic::parse_in(Language::English, mnemonic)?;
         let seed = mnemonic.to_seed(password);
