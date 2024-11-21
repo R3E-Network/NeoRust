@@ -500,12 +500,12 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	pub async fn sign(&mut self) -> Result<Transaction<P>, BuilderError> {
 		init_logger();
 		let mut unsigned_tx = self.get_unsigned_tx().await?;
-		debug!("unsigned_tx: {:?}", unsigned_tx);
+		// debug!("unsigned_tx: {:?}", unsigned_tx);
 		// let client = self.client.unwrap();
 		let tx_bytes = unsigned_tx.get_hash_data().await?;
 
 		let mut witnesses_to_add = Vec::new();
-		debug!("unsigned_tx.signers: {:?}", unsigned_tx.signers);
+		// debug!("unsigned_tx.signers: {:?}", unsigned_tx.signers);
 		for signer in &mut unsigned_tx.signers {
 			if Self::is_account_signer(signer) {
 				let account_signer = signer.as_account_signer().unwrap();
@@ -516,26 +516,21 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 							.to_string(),
 					));
 				}
-				debug!("acc: {:?}", acc);
 				let key_pair = acc.key_pair().as_ref().ok_or_else(|| {
                     BuilderError::InvalidConfiguration(
                         format!("Cannot create transaction signature because account {} does not hold a private key.", acc.get_address()),
                     )
                 })?;
-				debug!("key_pair: {:?}", key_pair);
 				witnesses_to_add.push(Witness::create(tx_bytes.clone(), key_pair)?);
 			} else {
-				debug!("signer: {:?}", signer);
 				let contract_signer = signer
 					.as_contract_signer()
 					.unwrap_or_else(|| panic!("Expected contract signer"));
-				debug!("contract_signer: {:?}", contract_signer);
 				witnesses_to_add.push(Witness::create_contract_witness(
 					contract_signer.verify_params().clone(),
 				)?);
 			}
 		}
-		debug!("witnesses_to_add: {:?}", witnesses_to_add);
 		for witness in witnesses_to_add {
 			unsigned_tx.add_witness(witness);
 		}

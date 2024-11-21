@@ -6,10 +6,11 @@ use primitive_types::U256;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use serde_with::__private__::DeError;
+use tracing::info;
 
 use crate::{
 	neo_clients::JsonRpcProvider,
-	prelude::{HttpProvider, NeoConstants, RawTransaction},
+	prelude::{init_logger, HttpProvider, NeoConstants, RawTransaction},
 };
 use neo::{
 	prelude::{
@@ -182,6 +183,14 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 		Ok(data)
 	}
 
+	fn get_tx_id(&self) -> Result<primitive_types::H256, TransactionError> {
+		let mut encoder = Encoder::new();
+		self.serialize_without_witnesses(&mut encoder);
+		let data = encoder.to_bytes().hash256();
+		let reversed_data = data.iter().rev().cloned().collect::<Vec<u8>>();
+		Ok(primitive_types::H256::from_slice(&reversed_data))
+	}
+
 	fn serialize_without_witnesses(&self, writer: &mut Encoder) {
 		writer.write_u8(self.version);
 		writer.write_u32(self.nonce);
@@ -256,14 +265,19 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 	where
 		P: APITrait,
 	{
+		init_logger();
 		if self.block_count_when_sent.is_none() {
 			return Err(TransactionError::IllegalState(
 				"Cannot get the application log before transaction has been sent.".to_string(),
 			));
 		}
+
+		let hash = self.get_tx_id()?;
+		info!("hash: {:?}", hash);
+
 		// self.thro
 		provider
-			.get_application_log(primitive_types::H256::from_slice(&self.get_hash_data().await?))
+			.get_application_log(hash)
 			.await
 			.map_err(|e| TransactionError::IllegalState(e.to_string()))
 	}

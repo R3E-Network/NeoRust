@@ -21,7 +21,7 @@ use crate::{
 /// The wallet can be used to produce ECDSA [`p256::NistP256`] objects, which can be
 /// then verified.
 ///
-/// ```
+/// ```rust
 ///
 /// # use rand::thread_rng;
 /// use NeoRust::prelude::LocalSigner;

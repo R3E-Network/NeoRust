@@ -12,6 +12,7 @@ mod tests {
 		},
 	};
 	use lazy_static::lazy_static;
+	use log::info;
 	use neo::{
 		builder::VerificationScript,
 		config::{NeoConfig, NEOCONFIG},
@@ -134,7 +135,7 @@ mod tests {
 			.get_unsigned_tx()
 			.await
 			.unwrap();
-		debug!("{:?}", tx);
+		info!("{:?}", tx);
 		assert_eq!(*tx.nonce(), nonce);
 	}
 
@@ -1895,7 +1896,8 @@ mod tests {
 		let mut tx_builder = TransactionBuilder::with_client(&client);
 		tx_builder
 			.set_script(Some(vec![1, 2, 3]))
-			.set_signers(vec![AccountSigner::none(&account).unwrap().into()]);
+			.set_signers(vec![AccountSigner::none(&account).unwrap().into()])
+			.expect("TODO: panic message");
 
 		let tx = match tx_builder.get_unsigned_tx().await {
 			Ok(tx) => tx,
@@ -2236,6 +2238,7 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_get_application_log_not_existing() {
+		init_logger();
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
 		let client = {
 			let mut mock_provider = mock_provider.lock().await;
@@ -2263,7 +2266,6 @@ mod tests {
 
 		let account1 =
 			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-
 		let script = ScriptBuilder::new()
 			.contract_call(
 				&H160::from_str(TestConstants::NEO_TOKEN_HASH).unwrap(),
@@ -2278,25 +2280,21 @@ mod tests {
 			)
 			.unwrap()
 			.to_bytes();
-
 		let mut tx_builder = TransactionBuilder::with_client(&client);
 		tx_builder
 			.set_script(Some(script))
 			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()]);
-
 		let mut tx = tx_builder.sign().await.unwrap();
 		let _ = tx.send_tx().await.map_err(TransactionError::from).unwrap();
-
-		assert!(tx
-			.get_application_log(&client.as_ref())
-			.await
-			.map_err(TransactionError::from)
-			.is_err());
+		let log = tx.get_application_log(&client.as_ref()).await;
+		assert!(log.is_err());
 	}
 
 	#[tokio::test]
 	async fn test_transmission_on_fault() {
+		init_logger();
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
+		info!("this is a test message");
 		let client = {
 			let mut mock_provider = mock_provider.lock().await;
 			mock_provider
@@ -2323,7 +2321,8 @@ mod tests {
 		let mut tx_builder = TransactionBuilder::with_client(&client);
 		tx_builder
 			.set_script(Some(vec![1, 2, 3]))
-			.set_signers(vec![AccountSigner::none(&account).unwrap().into()]);
+			.set_signers(vec![AccountSigner::none(&account).unwrap().into()])
+			.expect("TODO: panic message");
 		// .allow_transmission_on_fault();
 
 		let result = tx_builder.call_invoke_script().await.unwrap();

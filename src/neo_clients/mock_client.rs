@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use neo::prelude::*;
 use primitive_types::{H160, H256};
 use regex::Regex;
@@ -9,6 +10,33 @@ use wiremock::{
 	matchers::{body_json, body_partial_json, method, path},
 	Match, Mock, MockServer, ResponseTemplate,
 };
+
+lazy_static! {
+	pub static ref ACCOUNT1: Account = Account::from_key_pair(
+		KeyPair::from_secret_key(
+			&Secp256r1PrivateKey::from_bytes(
+				&hex::decode("e6e919577dd7b8e97805151c05ae07ff4f752654d6d8797597aca989c02c4cb3")
+					.unwrap()
+			)
+			.unwrap()
+		),
+		None,
+		None
+	)
+	.expect("Failed to create ACCOUNT1");
+	pub static ref ACCOUNT2: Account = Account::from_key_pair(
+		KeyPair::from_secret_key(
+			&Secp256r1PrivateKey::from_bytes(
+				&hex::decode("b4b2b579cac270125259f08a5f414e9235817e7637b9a66cfeb3b77d90c8e7f9")
+					.unwrap()
+			)
+			.unwrap()
+		),
+		None,
+		None
+	)
+	.expect("Failed to create ACCOUNT2");
+}
 
 pub struct MockClient {
 	server: MockServer,
@@ -174,16 +202,35 @@ impl MockClient {
 	}
 
 	pub async fn mock_default_responses(&mut self) -> &mut Self {
-		self.mock_response_ignore_param(
+		self.mock_response_with_file_ignore_param(
 			"invokescript",
-			json!(Ok::<InvocationResult, ()>(InvocationResult::default())),
+			"invokescript_necessary_mock.json",
 		)
 		.await;
-		self.mock_invoke_function(InvocationResult::default()).await;
-		self.mock_response_ignore_param("getblockcount", json!(Ok::<i32, ()>(1000)))
+		self.mock_response_with_file(
+			"invokefunction",
+			"invokefunction_transfer_neo.json",
+			json!([
+				TestConstants::NEO_TOKEN_HASH,
+				"transfer",
+				vec![
+					ContractParameter::from(ACCOUNT1.address_or_scripthash().script_hash()),
+					ContractParameter::from(
+						H160::from_str("969a77db482f74ce27105f760efa139223431394").unwrap(),
+					),
+					ContractParameter::from(5),
+					ContractParameter::any(),
+				],
+			]),
+		)
+		.await;
+		self.mock_response_with_file_ignore_param("getblockcount", "getblockcount_1000.json")
 			.await;
-		self.mock_response_ignore_param("calculatenetworkfee", json!(Ok::<i32, ()>(1000000)))
-			.await;
+		self.mock_response_with_file_ignore_param(
+			"calculatenetworkfee",
+			"calculatenetworkfee.json",
+		)
+		.await;
 		self
 	}
 
@@ -233,11 +280,8 @@ impl MockClient {
 	// }
 
 	pub async fn mock_send_raw_transaction(&mut self, result: RawTransaction) -> &mut Self {
-		self.mock_response_ignore_param(
-			"sendrawtransaction",
-			json!(Ok::<RawTransaction, ()>(result)),
-		)
-		.await;
+		self.mock_response_with_file_ignore_param("sendrawtransaction", "sendrawtransaction.json")
+			.await;
 		self
 	}
 
