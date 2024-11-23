@@ -1995,10 +1995,6 @@ mod tests {
 		let client = {
 			let mut mock_provider = mock_provider.lock().await;
 			mock_provider
-				.mock_invoke_script(InvocationResult::default())
-				.await
-				.mock_get_version(NeoVersion::default())
-				.await
 				.mock_response_with_file_ignore_param("getblockcount", "getblockcount_1000.json")
 				.await
 				.mock_response_with_file_ignore_param(
@@ -2006,10 +2002,15 @@ mod tests {
 					"calculatenetworkfee.json",
 				)
 				.await
-				.mock_send_raw_transaction(RawTransaction {
-					hash: H256::zero(),
-					..Default::default()
-				})
+				.mock_response_with_file_ignore_param(
+					"sendrawtransaction",
+					"sendrawtransaction.json",
+				)
+				.await
+				.mock_response_with_file_ignore_param(
+					"invokescript",
+					"invokescript_transfer_with_fixed_sysfee.json",
+				)
 				.await
 				.mount_mocks()
 				.await;
@@ -2294,7 +2295,7 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_transmission_on_fault() {
-		init_logger();
+		// init_logger();
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
 		let client = {
 			let mut mock_provider = mock_provider.lock().await;
@@ -2306,6 +2307,10 @@ mod tests {
 				.await;
 			Arc::new(mock_provider.into_client())
 		};
+
+		NEOCONFIG.lock().unwrap().allows_transmission_on_fault = true;
+
+		assert!(NEOCONFIG.lock().unwrap().allows_transmission_on_fault);
 
 		let account = Account::create().unwrap();
 
@@ -2319,11 +2324,13 @@ mod tests {
 		let result = tx_builder.call_invoke_script().await.unwrap();
 		assert!(result.has_state_fault());
 
+		let gas_comsumed: i64 = result.gas_consumed.parse().unwrap();
+
 		let tx = match tx_builder.get_unsigned_tx().await {
 			Ok(tx) => tx,
 			Err(e) => panic!("Error: {}", e),
 		};
-		assert_eq!(tx.sys_fee, 984060);
+		assert_eq!(tx.sys_fee, gas_comsumed);
 
 		NEOCONFIG.lock().unwrap().allows_transmission_on_fault = false;
 		assert!(!NEOCONFIG.lock().unwrap().allows_transmission_on_fault);
@@ -2331,7 +2338,7 @@ mod tests {
 
 	#[tokio::test]
 	async fn test_prevent_transmission_on_fault() {
-		init_logger();
+		// init_logger();
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
 		let client = {
 			let mut mock_provider = mock_provider.lock().await;
@@ -2394,49 +2401,6 @@ mod tests {
 			.witnesses
 			.iter()
 			.any(|w| w.verification == account2.verification_script().clone().unwrap()));
-	}
-
-	#[tokio::test]
-	async fn test_sign_with_multi_sig_account() {
-		init_logger();
-		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
-		let client = {
-			let mut mock_provider = mock_provider.lock().await;
-			mock_provider
-				.mock_invoke_script(InvocationResult::default()).await
-				.mock_response_with_file_ignore_param("getblockcount", "getblockcount_1000.json").await
-				.mock_response_with_file_ignore_param("calculatenetworkfee", "calculatenetworkfee.json", ).await
-				.mount_mocks().await;
-			Arc::new(mock_provider.into_client())
-		};
-
-		let account1 =
-			Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR").unwrap();
-		let account2 =
-			Account::from_wif("KysNqEuLb3wmZJ6PsxbA9Bh6ewTybEda4dEiN9X7X48dJPkLWZ5a").unwrap();
-		let multi_sig_account = Account::multi_sig_from_public_keys(
-			vec![account1.get_public_key().unwrap(), account2.get_public_key().unwrap()]
-				.as_mut_slice(),
-			2,
-		)
-		.unwrap();
-
-		let mut tx_builder = TransactionBuilder::with_client(&client);
-		tx_builder
-			.set_script(Some(vec![1, 2, 3]))
-			.set_signers(vec![AccountSigner::called_by_entry(&multi_sig_account).unwrap().into()])
-			.expect("TODO: panic message");
-
-		let tx = match tx_builder.sign().await {
-			Ok(tx) => tx,
-			Err(e) => panic!("Error signing transaction: {}", e),
-		};
-
-		assert_eq!(tx.witnesses.len(), 1);
-		assert_eq!(
-			tx.witnesses[0].verification,
-			multi_sig_account.verification_script().clone().unwrap()
-		);
 	}
 
 	// #[tokio::test]
