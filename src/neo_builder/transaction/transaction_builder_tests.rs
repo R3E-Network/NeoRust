@@ -497,7 +497,7 @@ mod tests {
 	}
 
 	#[tokio::test]
-	async fn test_attributes_high_priority_committee() {
+	async fn test_attributes_high_priority_multisig_containing_committee_Member() {
 		init_logger();
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
 
@@ -774,6 +774,7 @@ mod tests {
 			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()]);
 
 		let tx = tb.get_unsigned_tx().await.unwrap();
+		assert_eq!(tx.attributes().len(), 1);
 		let attribute = tx.attributes().get(0).unwrap();
 		assert!(
 			matches!(attribute, TransactionAttribute::Conflicts { .. }),
@@ -1032,11 +1033,6 @@ mod tests {
 			let mock_provider = mock_provider.lock().await;
 			Arc::new(mock_provider.into_client())
 		};
-		// // Test getversion
-		// let version = client.get_version().await.unwrap();
-		// assert_eq!(version.nonce, 1234567890);
-		// assert_eq!(version.user_agent, "/Neo:3.5.0/");
-		// assert!(version.protocol.is_some());
 
 		let script = vec![1, 2, 3];
 		let mut tb = TransactionBuilder::with_client(&client);
@@ -1633,9 +1629,9 @@ mod tests {
 		let mut tx_builder = TransactionBuilder::with_client(&client);
 		let _ = tx_builder.do_if_sender_cannot_cover_fees(Box::new(|_, _| {}));
 
-		assert!(tx_builder
-			.throw_if_sender_cannot_cover_fees(TransactionError::InsufficientFunds)
-			.is_err());
+		let result = tx_builder.throw_if_sender_cannot_cover_fees(TransactionError::InsufficientFunds);
+		assert!(result.is_err());
+		assert!(result.unwrap_err().to_string().contains("Cannot handle a supplier for this case, since a consumer "));
 	}
 
 	#[tokio::test]
@@ -1968,7 +1964,9 @@ mod tests {
 			.set_signers(vec![s1.clone().into(), s2.clone().into()]);
 		assert_eq!(tx_builder.signers, vec![s1.clone().into(), s2.clone().into()]);
 
-		assert!(tx_builder.first_signer(s2.account()).is_err());
+		let result = tx_builder.first_signer(&account2);
+		assert!(result.is_err());
+		assert!(result.unwrap_err().to_string().contains("contains a signer with fee-only witness scope"));
 	}
 
 	#[tokio::test]
@@ -1985,7 +1983,9 @@ mod tests {
 		tx_builder.set_script(Some(vec![1, 2, 3])).set_signers(vec![s1.clone().into()]);
 		assert_eq!(tx_builder.signers[0], s1.clone().into());
 
-		assert!(tx_builder.first_signer(&account2).is_err());
+		let result = tx_builder.first_signer(&account2);
+		assert!(result.is_err());
+		assert!(result.unwrap_err().to_string().contains("Could not find a signer with script hash "));
 	}
 
 	#[tokio::test]
@@ -2363,7 +2363,11 @@ mod tests {
 		let result = tx_builder.call_invoke_script().await.unwrap();
 		assert!(result.has_state_fault());
 
-		assert!(tx_builder.get_unsigned_tx().await.is_err());
+		let tx = tx_builder.get_unsigned_tx().await;
+		assert!(matches!(tx, Err(TransactionError::TransactionConfiguration(_))));
+		if let Err(TransactionError::TransactionConfiguration(msg)) = tx {
+			assert!(msg.contains("The vm exited due to the following exception: "));
+		}
 	}
 
 	#[tokio::test]
