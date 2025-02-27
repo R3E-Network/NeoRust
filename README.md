@@ -1,5 +1,13 @@
 # NeoRust
 
+<div align="center">
+  <p>
+    <img src="assets/images/neo-logo.png" alt="Neo Logo" width="200"/>
+    <img src="assets/images/neo-x-logo.svg" alt="Neo X Logo" width="200"/>
+    <img src="assets/images/r3e-logo.png" alt="R3E Logo" width="100" style="border-radius: 50%;"/>
+  </p>
+</div>
+
 [![Rust](https://github.com/R3E-Network/NeoRust/actions/workflows/rust.yml/badge.svg)](https://github.com/R3E-Network/NeoRust/actions/workflows/rust.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
