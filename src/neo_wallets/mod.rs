@@ -2,6 +2,8 @@
 #![deny(unsafe_code, rustdoc::broken_intra_doc_links)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+#[cfg(feature = "ledger")]
+pub use ledger::{HDPath, LedgerWallet};
 use p256::NistP256;
 #[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
 pub use yubihsm;
@@ -12,6 +14,8 @@ pub use wallet::*;
 pub use wallet_signer::WalletSigner;
 pub use wallet_trait::WalletTrait;
 
+#[cfg(feature = "ledger")]
+mod ledger;
 mod wallet;
 mod wallet_trait;
 
@@ -25,6 +29,6 @@ pub type YubiWallet = WalletSigner<yubihsm::ecdsa::Signer<NistP256>>;
 // #[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
 mod yubi;
 
+mod bip39_account;
 mod error;
 mod wallet_signer;
-mod bip39_account;
