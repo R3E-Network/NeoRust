@@ -25,3 +25,6 @@ mod nft_contract;
 mod policy_contract;
 mod role_management;
 mod traits;
+
+#[cfg(test)]
+mod tests;
