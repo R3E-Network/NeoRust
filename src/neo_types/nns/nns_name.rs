@@ -46,7 +46,7 @@ impl NNSName {
 		let first = fragment.chars().next().unwrap();
 		if is_root && !first.is_ascii_alphabetic() {
 			return Err(TypeError::InvalidNeoName("Root must start with letter".to_string()));
-		} else if !is_root && !(first.is_ascii_alphanumeric() || first == '-'.into()) {
+		} else if !is_root && !(first.is_ascii_alphanumeric() || first == '-') {
 			return Err(TypeError::InvalidNeoName("Invalid start character".to_string()));
 		}
 
@@ -54,7 +54,7 @@ impl NNSName {
 			return Ok(());
 		}
 
-		if fragment[1..].chars().any(|c| !(c.is_ascii_alphanumeric() || c == '-'.into())) {
+		if fragment[1..].chars().any(|c| !(c.is_ascii_alphanumeric() || c == '-')) {
 			return Err(TypeError::InvalidNeoName("Invalid character in fragment".to_string()));
 		}
 
