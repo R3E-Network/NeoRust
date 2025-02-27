@@ -2,6 +2,7 @@
 
 pub use contract_error::*;
 pub use contract_management::*;
+pub use famous::*;
 pub use fungible_token_contract::*;
 pub use gas_token::*;
 pub use iterator::*;
@@ -15,6 +16,7 @@ pub use traits::*;
 
 mod contract_error;
 mod contract_management;
+mod famous;
 mod fungible_token_contract;
 mod gas_token;
 mod iterator;
