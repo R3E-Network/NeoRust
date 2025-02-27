@@ -363,12 +363,12 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 			.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
 			.await
 			.map_err(|e| TransactionError::ProviderError(e))?;
-		
+
 		// Check if the VM execution resulted in a fault
 		if response.has_state_fault() {
 			// Get the current configuration for allowing transmission on fault
 			let allows_fault = NEOCONFIG.lock().unwrap().allows_transmission_on_fault;
-			
+
 			// If transmission on fault is not allowed, return an error
 			if !allows_fault {
 				return Err(TransactionError::TransactionConfiguration(format!(
@@ -378,7 +378,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 			}
 			// Otherwise, we continue with the transaction despite the fault
 		}
-		
+
 		Ok(i64::from_str(&response.gas_consumed).unwrap_or(0))
 	}
 

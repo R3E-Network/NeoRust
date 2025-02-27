@@ -6311,7 +6311,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!(
 				{
 					"hash": "0x6818f446c2e503998ac766a8a175f86d9a89885423f6b055aa123c984625833e",
@@ -6435,7 +6435,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!(
 				{
 					"hash": "0xf60ec3b0810fb8c17a9a05eaeb3b361ead889a38d3fd1bf2d561a6e7001bb2f5",
@@ -6679,7 +6679,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!(
 				{
 					"hash": "0xabd78548399bbe684fac50b6a71d0ce3f689497d4e79cb26a2b4dfb211782c39",
@@ -6806,7 +6806,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!(
 				{
 					"hash": "0x8916c94bb7c4a63f117ca873c9224955bf9ad00b1149a0173e33614559713425",
@@ -7357,7 +7357,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!({
 				"version": 0,
 				"index": 160,
@@ -7405,7 +7405,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!("Bfv///8XBiQBAQ8DRzb6Vkdw0r5nxMBp6Z5nvbyXiupMvffwm0v5GdB6jHvyAAQEBAQEBAQEA7l84HFtRI5V11s58vA+8CZ5GArFLkGUYLO98RLaMaYmA5MEnx0upnVI45XTpoUDRvwrlPD59uWy9aIrdS4T0D2cA6Rwv/l3GmrctRzL1me+iTUFdDgooaz+esFHFXJdDANfA2bdshZMp5ox2goVAOMjvoxNIWWOqjJoRPu6ZOw2kdj6A8xovEK1Mp6cAG9z/jfFDrSEM60kuo97MNaVOP/cDZ1wA1nf4WdI+jksYz0EJgzBukK8rEzz8jE2cb2Zx2fytVyQBANC7v2RaLMCRF1XgLpSri12L2IwL9Zcjz5LZiaB5nHKNgQpAQYPDw8PDw8DggFffnsVMyqAfZjg+4gu97N/gKpOsAK8Q27s56tijRlSAAMm26DYxOdf/IjEgkE/u/CoRL6dDnzvs1dxCg/00esMvgPGioeOqQCkDOTfliOnCxYjbY/0XvVUOXkceuDm1W0FzQQEBAQEBAQEBAQEBAQEBJIABAPH1PnX/P8NOgV4KHnogwD7xIsD8KvNhkTcDxgCo7Ec6gPQs1zD4igSJB4M9jTREq+7lQ5PbTH/6d138yUVvtM8bQP9Df1kh7asXrYjZolKhLcQ1NoClQgEzbcJfYkCHXv6DQQEBAOUw9zNl/7FJrWD7rCv0mbOoy6nLlHWiWuyGsA12ohRuAQEBAQEBAQEBAYCBAIAAgA=")
 		).await;
 
@@ -7553,7 +7553,7 @@ mod tests {
 		let mock_server = setup_mock_server().await;
 
 		let provider = mock_rpc_response_without_request(
-			&mock_server, 
+			&mock_server,
 			json!({
 				"firstProof": "Gfr///8UDRZcmJnDi79ZkcXkewSTcljK7GkIJAEBDwOakA9CYtxDPpx00gKk0RCLmrtNtpTsY2rXB/RqfGHIPLIABAQEBAQEBAMe+jlFz2/5ZKl+ycxczvmS75mO9ssmFZef+WHov7XIHQQDiT6zHh/siCZ0c2bfBEymPmRNTiXSAKFIammjmnnBnJYDh0IX5YfZdqNZkfFN/6VaLZ6kX+N+bBGdlNVUyP7pwJ4DrpFUvhWA+kXVxDLE8qKtLcQimKQY1RcWw14bsjURuRYEBAQDsyA6/WuQyV98xH99kDVz3bhQHmUNBIQqJd0x0R/+TGwEKQEGDw8PDw8PAzKhCJmqIIilFwEfMQJDUEMXInq+AbRk8Jfnoi1weu8aUgADo6udX84sFVzKZLdtwtJ6TIMgQOrYZQ+7yKG+5TlliscDzboXdiwLKASBJeAVtNTl7NHqclD6UBe4XrwJQQYJIDQEBAQEBAQEBAQEBAQEBAQkAQEEA6pd1tKBerO8Qub4cvuKEpXDlGCJsktZ4Vk0xT+D6Av5UgADBr2ExYHjKsB15w2Ra40oWm7iPwdhWEVf6nHV6St/W8gEBAQEBAQDufefqjG8jPxPHOFpyF8LE16aXEzlFeuts4vaQ+wGCL4EBAQEBAQEBARKAScNAQYFDAkICQkMAwgLCw8FCQkBDAUOBAcLAAQJAwcCBQgMCg4MBgkDzXuGD6B7eZe7+IxNOv1j48vZn5A9qz4nzzvdSqSQRr8LAglBASEFACrPdwI=",
 				"lastProof": "Gfr///8Uf2XUNDYnCLJV8OBoVr3LXOmdhQUIJAEBDwOakA9CYtxDPpx00gKk0RCLmrtNtpTsY2rXB/RqfGHIPLIABAQEBAQEBAMe+jlFz2/5ZKl+ycxczvmS75mO9ssmFZef+WHov7XIHQQDiT6zHh/siCZ0c2bfBEymPmRNTiXSAKFIammjmnnBnJYDh0IX5YfZdqNZkfFN/6VaLZ6kX+N+bBGdlNVUyP7pwJ4DrpFUvhWA+kXVxDLE8qKtLcQimKQY1RcWw14bsjURuRYEBAQDsyA6/WuQyV98xH99kDVz3bhQHmUNBIQqJd0x0R/+TGwEKQEGDw8PDw8PAzKhCJmqIIilFwEfMQJDUEMXInq+AbRk8Jfnoi1weu8aUgADo6udX84sFVzKZLdtwtJ6TIMgQOrYZQ+7yKG+5TlliscDzboXdiwLKASBJeAVtNTl7NHqclD6UBe4XrwJQQYJIDQEBAQEBAQEBAQEBAQEBAQkAQEEA6pd1tKBerO8Qub4cvuKEpXDlGCJsktZ4Vk0xT+D6Av5UgADBr2ExYHjKsB15w2Ra40oWm7iPwdhWEVf6nHV6St/W8gEBAQEBAQDufefqjG8jPxPHOFpyF8LE16aXEzlFeuts4vaQ+wGCL4EBAQEBAQEBARKAScPBgUNBAMEAwYCBwAICwIFBQ8ADgAGCAUGCw0MCwUMDgkJDQgFAAUDkvma2Sek54h+A0fdKAxoUjETufDdw3bX/Crnad92qPUNAgtBASEHAADVWF95Eg==",
