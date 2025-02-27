@@ -85,7 +85,8 @@ impl From<YubiSigner<NistP256>> for WalletSigner<YubiSigner<NistP256>> {
 		let public_key = PublicKey::from_encoded_point(signer.public_key()).unwrap();
 		let public_key = public_key.to_encoded_point(true);
 		let public_key = public_key.as_bytes();
-		debug_assert_eq!(public_key[0], 0x02);
+		// The first byte can be either 0x02 or 0x03 for compressed public keys
+		debug_assert!(public_key[0] == 0x02 || public_key[0] == 0x03);
 		let address = public_key_to_address(&Secp256r1PublicKey::from_bytes(&public_key).unwrap());
 
 		Self { signer, address, network: None }
