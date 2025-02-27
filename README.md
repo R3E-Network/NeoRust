@@ -1,10 +1,10 @@
 # NeoRust
 
 <div align="center">
-  <p style="display: flex; justify-content: center; align-items: center; gap: 30px;">
-    <img src="assets/images/neo-logo.png" alt="Neo Logo" width="180" style="margin: 10px;"/>
-    <img src="assets/images/neo-x-logo.png" alt="Neo X Logo" width="180" style="margin: 10px;"/>
-    <img src="assets/images/r3e-logo.png" alt="R3E Logo" width="120" style="border-radius: 50%; margin: 10px;"/>
+  <p style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+    <img src="assets/images/neo-logo.png" alt="Neo Logo" width="100"/>
+    <img src="assets/images/neo-x-logo.png" alt="Neo X Logo" width="65"/>
+    <img src="assets/images/r3e-logo.png" alt="R3E Logo" width="250"/>
   </p>
 </div>
 
