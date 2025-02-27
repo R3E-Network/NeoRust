@@ -16,6 +16,9 @@ pub struct Wallet {
 	#[serde(deserialize_with = "deserialize_script_hash")]
 	#[serde(serialize_with = "serialize_script_hash")]
 	pub(crate) default_account: H160,
+	/// Additional wallet metadata stored as key-value pairs
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub extra: Option<HashMap<String, String>>,
 }
 
 impl WalletTrait for Wallet {
@@ -93,6 +96,7 @@ impl Wallet {
 			scrypt_params: ScryptParamsDef::default(),
 			accounts,
 			default_account: account.clone().address_or_scripthash.script_hash(),
+			extra: None,
 		}
 	}
 
@@ -104,6 +108,7 @@ impl Wallet {
 			scrypt_params: ScryptParamsDef::default(),
 			accounts: HashMap::new(),
 			default_account: H160::default(),
+			extra: None,
 		}
 	}
 
@@ -145,6 +150,7 @@ impl Wallet {
 			scrypt_params: nep6.scrypt().clone(),
 			accounts: accounts.into_iter().map(|a| (a.get_script_hash().clone(), a)).collect(),
 			default_account: default_account.address_to_script_hash().unwrap(),
+			extra: nep6.extra.clone(),
 		})
 	}
 
@@ -352,7 +358,8 @@ impl Wallet {
 	///
 	/// The network ID as a `u32`.
 	fn network(&self) -> u32 {
-		todo!()
+		// Default to MainNet if not specified
+		self.extra.as_ref().and_then(|extra| extra.get("network").map(|n| n.parse::<u32>().unwrap_or(NeoConstants::MAGIC_NUMBER_MAINNET))).unwrap_or(NeoConstants::MAGIC_NUMBER_MAINNET)
 	}
 
 	//// Sets the network magic (ID) for the wallet.
@@ -376,8 +383,11 @@ impl Wallet {
 	/// let mut wallet = Wallet::new();
 	/// wallet = wallet.with_network(NeoNetwork::MainNet.to_magic());
 	/// ```
-	pub fn with_network(self, _network: u32) -> Self {
-		todo!()
+	pub fn with_network(mut self, network: u32) -> Self {
+		let mut extra = self.extra.unwrap_or_default();
+		extra.insert("network".to_string(), network.to_string());
+		self.extra = Some(extra);
+		self
 	}
 }
 

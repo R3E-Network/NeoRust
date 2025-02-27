@@ -363,13 +363,23 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 			.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
 			.await
 			.map_err(|e| TransactionError::ProviderError(e))?;
-		if response.has_state_fault() && !NEOCONFIG.lock().unwrap().allows_transmission_on_fault {
-			return Err(TransactionError::TransactionConfiguration(format!(
-				"The vm exited due to the following exception: {}",
-				response.exception.unwrap()
-			)));
+		
+		// Check if the VM execution resulted in a fault
+		if response.has_state_fault() {
+			// Get the current configuration for allowing transmission on fault
+			let allows_fault = NEOCONFIG.lock().unwrap().allows_transmission_on_fault;
+			
+			// If transmission on fault is not allowed, return an error
+			if !allows_fault {
+				return Err(TransactionError::TransactionConfiguration(format!(
+					"The vm exited due to the following exception: {}",
+					response.exception.unwrap_or_else(|| "Unknown exception".to_string())
+				)));
+			}
+			// Otherwise, we continue with the transaction despite the fault
 		}
-		Ok(i64::from_str(response.gas_consumed.as_str()).unwrap()) // example
+		
+		Ok(i64::from_str(&response.gas_consumed).unwrap_or(0))
 	}
 
 	async fn get_network_fee(&mut self) -> Result<i64, TransactionError> {
