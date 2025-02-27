@@ -3,7 +3,7 @@
 <div align="center">
   <p>
     <img src="assets/images/neo-logo.png" alt="Neo Logo" width="200"/>
-    <img src="assets/images/neo-x-logo.svg" alt="Neo X Logo" width="200"/>
+    <img src="assets/images/neo-x-logo.png" alt="Neo X Logo" width="200"/>
     <img src="assets/images/r3e-logo.png" alt="R3E Logo" width="100" style="border-radius: 50%;"/>
   </p>
 </div>
