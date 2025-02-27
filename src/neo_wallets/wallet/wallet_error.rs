@@ -99,4 +99,8 @@ pub enum WalletError {
 	BuilderError(#[from] BuilderError),
 	#[error("Invalid signature")]
 	VerifyError,
+
+	/// Errors related to Ledger hardware wallet operations
+	#[error("Ledger error: {0}")]
+	LedgerError(String),
 }
