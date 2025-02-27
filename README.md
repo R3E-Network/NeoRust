@@ -17,6 +17,8 @@ NeoRust is a comprehensive Rust SDK for interacting with the Neo N3 blockchain. 
 - **Neo Name Service (NNS)**: Resolve and manage domain names on the Neo blockchain
 - **Cryptographic Operations**: Secure key management and cryptographic functions
 - **Modular Architecture**: Well-organized codebase with clear separation of concerns
+- **Famous Neo N3 Contracts**: Direct support for popular Neo N3 contracts like Flamingo Finance, NeoburgerNeo, GrandShare, and NeoCompound
+- **Neo X Support**: EVM compatibility layer and bridge functionality for Neo X, an EVM-compatible chain maintained by Neo
 
 ## Installation
 
@@ -270,6 +272,140 @@ async fn use_neo_name_service() -> Result<(), Box<dyn std::error::Error>> {
     // Check if a domain is available
     let is_available = nns.is_available("newdomain.neo").await?;
     println!("Domain is available: {}", is_available);
+    
+    Ok(())
+}
+```
+
+### Working with Famous Neo N3 Contracts
+
+```rust
+use neo::{
+    neo_clients::{HttpProvider, JsonRpcProvider},
+    neo_contract::famous::{FlamingoContract, NeoburgerContract, GrandShareContract, NeoCompoundContract},
+    neo_protocol::account::Account,
+    prelude::{RpcClient, Signer},
+};
+use std::str::FromStr;
+
+async fn interact_with_famous_contracts() -> Result<(), Box<dyn std::error::Error>> {
+    // Connect to MainNet
+    let provider = HttpProvider::new("https://mainnet1.neo.org:443");
+    let client = RpcClient::new(provider);
+    
+    // Create an account
+    let account = Account::create()?;
+    
+    // Interact with Flamingo Finance
+    let flamingo = FlamingoContract::new(Some(&client));
+    
+    // Get Flamingo swap rate
+    let token_a = ScriptHash::from_str("d2a4cff31913016155e38e474a2c06d08be276cf")?; // GAS
+    let token_b = ScriptHash::from_str("ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5")?; // NEO
+    let swap_rate = flamingo.get_swap_rate(&token_a, &token_b, 1_0000_0000).await?;
+    println!("Swap rate: {} NEO per GAS", swap_rate as f64 / 100_000_000.0);
+    
+    // Interact with NeoburgerNeo (bNEO)
+    let neoburger = NeoburgerContract::new(Some(&client));
+    
+    // Get bNEO exchange rate
+    let rate = neoburger.get_rate().await?;
+    println!("bNEO exchange rate: {} bNEO per NEO", rate);
+    
+    // Wrap NEO to bNEO
+    let wrap_tx = neoburger.wrap(1, &account).await?;
+    
+    // Interact with GrandShare
+    let grandshare = GrandShareContract::new(Some(&client));
+    
+    // Submit a proposal
+    let proposal_tx = grandshare.submit_proposal(
+        "My Proposal",
+        "This is a proposal description",
+        1000_0000_0000, // 1000 GAS
+        &account,
+    ).await?;
+    
+    // Interact with NeoCompound
+    let neocompound = NeoCompoundContract::new(Some(&client));
+    
+    // Get APY for a token
+    let gas_token = ScriptHash::from_str("d2a4cff31913016155e38e474a2c06d08be276cf")?;
+    let apy = neocompound.get_apy(&gas_token).await?;
+    println!("Current APY for GAS: {}%", apy);
+    
+    Ok(())
+}
+```
+
+### Using Neo X EVM Compatibility and Bridge
+
+```rust
+use neo::{
+    neo_clients::{HttpProvider, JsonRpcProvider},
+    neo_x::{NeoXProvider, NeoXTransaction, NeoXBridgeContract},
+    neo_protocol::account::Account,
+    prelude::{RpcClient, Signer, ScriptHash},
+};
+use primitive_types::H160;
+use std::str::FromStr;
+
+async fn use_neo_x() -> Result<(), Box<dyn std::error::Error>> {
+    // Connect to Neo N3
+    let neo_provider = HttpProvider::new("https://mainnet1.neo.org:443");
+    let neo_client = RpcClient::new(neo_provider);
+    
+    // Initialize the Neo X EVM provider
+    let neo_x_provider = NeoXProvider::new("https://rpc.neo-x.org", Some(&neo_client));
+    
+    // Get the chain ID for Neo X
+    let chain_id = neo_x_provider.chain_id().await?;
+    println!("Neo X Chain ID: {}", chain_id);
+    
+    // Create an EVM transaction
+    let destination = H160::from_str("0x1234567890123456789012345678901234567890")?;
+    let data = vec![/* transaction data */];
+    let transaction = NeoXTransaction::new(
+        Some(destination),
+        data,
+        0, // Value
+        21000, // Gas limit
+        20_000_000_000, // Gas price
+    );
+    
+    // Use the Neo X Bridge to transfer tokens between Neo N3 and Neo X
+    let bridge = NeoXBridgeContract::new(Some(&neo_client));
+    
+    // Get the GAS token script hash
+    let gas_token = ScriptHash::from_str("d2a4cff31913016155e38e474a2c06d08be276cf")?;
+    
+    // Get bridge information
+    let fee = bridge.get_fee(&gas_token).await?;
+    let cap = bridge.get_cap(&gas_token).await?;
+    println!("Bridge fee: {} GAS", fee as f64 / 100_000_000.0);
+    println!("Bridge cap: {} GAS", cap as f64 / 100_000_000.0);
+    
+    // Deposit GAS from Neo N3 to Neo X
+    let account = Account::create()?;
+    let neo_x_address = "0x1234567890123456789012345678901234567890";
+    let amount = 1_0000_0000; // 1 GAS
+    
+    let deposit_tx = bridge.deposit(
+        &gas_token,
+        amount,
+        neo_x_address,
+        &account,
+    ).await?;
+    
+    // Withdraw GAS from Neo X to Neo N3
+    let neo_n3_address = "NbTiM6h8r99kpRtb428XcsUk1TzKed2gTc";
+    
+    let withdraw_tx = bridge.withdraw(
+        &gas_token,
+        amount,
+        neo_n3_address,
+        &account,
+    ).await?;
     
     Ok(())
 }
