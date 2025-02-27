@@ -1,11 +1,13 @@
 # NeoRust
 
 <div align="center">
-  <p style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-    <img src="assets/images/neo-logo.png" alt="Neo Logo" width="100"/>
-    <img src="assets/images/neo-x-logo.png" alt="Neo X Logo" width="65"/>
-    <img src="assets/images/r3e-logo.png" alt="R3E Logo" width="250"/>
-  </p>
+  <table border="0">
+    <tr>
+      <td align="center"><img src="assets/images/neo-logo.png" alt="Neo Logo" width="100"/></td>
+      <td align="center"><img src="assets/images/neo-x-logo.png" alt="Neo X Logo" width="65"/></td>
+      <td align="center"><img src="assets/images/r3e-logo.png" alt="R3E Logo" width="250"/></td>
+    </tr>
+  </table>
 </div>
 
 [![Rust](https://github.com/R3E-Network/NeoRust/actions/workflows/rust.yml/badge.svg)](https://github.com/R3E-Network/NeoRust/actions/workflows/rust.yml)
