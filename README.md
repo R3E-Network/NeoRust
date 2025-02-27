@@ -2,9 +2,9 @@
 
 <div align="center">
   <p>
-    <img src="assets/images/neo-logo.png" alt="Neo Logo" width="100" align="middle"/>&nbsp;&nbsp;&nbsp;&nbsp;
-    <img src="assets/images/neo-x-logo.png" alt="Neo X Logo" width="65" align="middle"/>&nbsp;&nbsp;&nbsp;&nbsp;
-    <img src="assets/images/r3e-logo.png" alt="R3E Logo" width="250" align="middle"/>
+    <img src="assets/images/neo-logo.png" alt="Neo Logo" width="125" align="middle"/>&nbsp;&nbsp;&nbsp;&nbsp;
+    <img src="assets/images/neo-x-logo.png" alt="Neo X Logo" width="80" align="middle"/>&nbsp;&nbsp;&nbsp;&nbsp;
+    <img src="assets/images/r3e-logo.png" alt="R3E Logo" width="300" align="middle"/>
   </p>
 </div>
 
