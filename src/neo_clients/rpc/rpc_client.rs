@@ -976,7 +976,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		'life0: 'async_trait,
 		Self: 'async_trait,
 	{
-		todo!()
+		Box::pin(async move { self.get_mem_pool().await })
 	}
 
 	fn import_private_key<'life0, 'async_trait>(
@@ -987,7 +987,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		'life0: 'async_trait,
 		Self: 'async_trait,
 	{
-		todo!()
+		Box::pin(async move { self.import_priv_key(wif).await })
 	}
 
 	fn get_block_header_hash<'life0, 'async_trait>(
@@ -998,7 +998,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		'life0: 'async_trait,
 		Self: 'async_trait,
 	{
-		todo!()
+		Box::pin(async move { self.get_block_header(hash).await })
 	}
 
 	async fn send_to_address_send_token(
