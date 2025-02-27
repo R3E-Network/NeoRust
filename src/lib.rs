@@ -173,8 +173,8 @@
 //!     let account = Account::from_wif("YOUR_PRIVATE_KEY_WIF_HERE")?;
 //!     let balance = gas_token.balance_of(&account.get_script_hash()).await?;
 //!     
-//!     println!("Account balance: {} {}", 
-//!              balance as f64 / 10f64.powi(decimals as i32), 
+//!     println!("Account balance: {} {}",
+//!              balance as f64 / 10f64.powi(decimals as i32),
 //!              symbol);
 //!     
 //!     Ok(())
@@ -311,6 +311,8 @@ pub use neo_protocol as protocol;
 pub use neo_types as types;
 #[doc(inline)]
 pub use neo_wallets as wallets;
+#[doc(inline)]
+pub use neo_x as x;
 
 pub mod neo_builder;
 pub mod neo_clients;
@@ -322,12 +324,13 @@ pub mod neo_error;
 pub mod neo_protocol;
 pub mod neo_types;
 pub mod neo_wallets;
+pub mod neo_x;
 
 /// Convenient imports for commonly used types and traits.
 pub mod prelude {
 	pub use super::{
 		builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
-		providers::*, types::*, wallets::*,
+		providers::*, types::*, wallets::*, x::*,
 	};
 }
 
@@ -399,7 +402,7 @@ mod tests {
 		println!("Waiting for confirmation...");
 		signed_tx.track_tx(10).await?;
 		println!("Transaction confirmed!");
-		
+
 		// Get the application log
 		let app_log = signed_tx.get_application_log(&rpc_client).await?;
 		println!("Application log: {:?}", app_log);
