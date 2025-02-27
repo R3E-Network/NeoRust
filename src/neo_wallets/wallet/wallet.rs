@@ -16,6 +16,9 @@ pub struct Wallet {
 	#[serde(deserialize_with = "deserialize_script_hash")]
 	#[serde(serialize_with = "serialize_script_hash")]
 	pub(crate) default_account: H160,
+	/// Additional wallet metadata stored as key-value pairs
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub extra: Option<HashMap<String, String>>,
 }
 
 impl WalletTrait for Wallet {
@@ -93,6 +96,7 @@ impl Wallet {
 			scrypt_params: ScryptParamsDef::default(),
 			accounts,
 			default_account: account.clone().address_or_scripthash.script_hash(),
+			extra: None,
 		}
 	}
 
@@ -104,6 +108,7 @@ impl Wallet {
 			scrypt_params: ScryptParamsDef::default(),
 			accounts: HashMap::new(),
 			default_account: H160::default(),
+			extra: None,
 		}
 	}
 
@@ -145,6 +150,7 @@ impl Wallet {
 			scrypt_params: nep6.scrypt().clone(),
 			accounts: accounts.into_iter().map(|a| (a.get_script_hash().clone(), a)).collect(),
 			default_account: default_account.address_to_script_hash().unwrap(),
+			extra: nep6.extra.clone(),
 		})
 	}
 

@@ -36,14 +36,14 @@ impl WalletBackup {
 
         // Encode as JSON
         let json = serde_json::to_string_pretty(&nep6)
-            .map_err(|e| WalletError::SerializationError(e.to_string()))?;
+            .map_err(|e| WalletError::AccountState(format!("Serialization error: {}", e)))?;
 
         // Write to file at path
         let mut file = File::create(path)
-            .map_err(|e| WalletError::IOError(e.to_string()))?;
+            .map_err(|e| WalletError::IoError(e))?;
         
         file.write_all(json.as_bytes())
-            .map_err(|e| WalletError::IOError(e.to_string()))?;
+            .map_err(|e| WalletError::IoError(e))?;
 
         Ok(())
     }
@@ -72,11 +72,11 @@ impl WalletBackup {
     pub fn recover(path: PathBuf) -> Result<Wallet, WalletError> {
         // Read file content
         let file_content = std::fs::read_to_string(path)
-            .map_err(|e| WalletError::IOError(e.to_string()))?;
+            .map_err(|e| WalletError::IoError(e))?;
         
         // Parse JSON to NEP6Wallet
         let nep6_wallet = serde_json::from_str(&file_content)
-            .map_err(|e| WalletError::DeserializationError(e.to_string()))?;
+            .map_err(|e| WalletError::AccountState(format!("Deserialization error: {}", e)))?;
         
         // Convert NEP6Wallet to Wallet
         Wallet::from_nep6(nep6_wallet)
@@ -87,7 +87,7 @@ impl WalletBackup {
 mod tests {
     use std::{fs, path::PathBuf};
     
-    use neo::prelude::{Account, Wallet, WalletBackup};
+    use neo::prelude::{Account, Wallet, WalletBackup, WalletTrait, AccountTrait};
     
     #[test]
     fn test_backup_and_recover() {
@@ -95,6 +95,9 @@ mod tests {
         let mut wallet = Wallet::new();
         let account = Account::create().unwrap();
         wallet.add_account(account);
+        
+        // Encrypt the accounts to avoid the "Account private key is available but not encrypted" error
+        wallet.encrypt_accounts("test_password");
         
         // Create a temporary backup file
         let temp_dir = std::env::temp_dir();

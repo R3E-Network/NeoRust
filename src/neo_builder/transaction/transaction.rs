@@ -271,9 +271,11 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 					let block = self.network().unwrap().get_block(block_hash, true).await?;
 					
 					// Check if our transaction is in this block
-					for tx in block.tx.iter() {
-						if tx.hash == tx_id {
-							return Ok(());
+					if let Some(transactions) = &block.transactions {
+						for tx in transactions.iter() {
+							if tx.hash == tx_id {
+								return Ok(());
+							}
 						}
 					}
 					
