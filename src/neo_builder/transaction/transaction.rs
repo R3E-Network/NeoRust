@@ -227,36 +227,69 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 			.map_err(|e| TransactionError::IllegalState(e.to_string()))
 	}
 
-	// TODO: implement this
-	// pub async fn track_tx(
-	// 	&self,
-	// 	provider: Box<
-	// 		dyn APITrait<
-	// 			Error = TransactionError,
-	// 			Provider = dyn JsonRpcProvider<Error = TransactionError>,
-	// 		>,
-	// 	>,
-	// ) -> Result<(), TransactionError> {
-	// 	let block_count_when_sent =
-	// 		self.block_count_when_sent.ok_or(TransactionError::IllegalState(
-	// 			"Cannot subscribe before transaction has been sent.".to_string(),
-	// 		))?;
-	// 	// self.throw_i
-	// 	let predicate = |get_block: GetBlock| {
-	// 		get_block.block.as_ref().map_or(true, |block| {
-	// 			!block.transactions.iter().any(|tx| tx.hash == self.tx_id().unwrap())
-	// 		})
-	// 	};
-	// 	provider
-	// 		.as_ref()
-	// 		.catch_up_to_latest_and_subscribe_to_new_blocks_publisher(block_count_when_sent, true)
-	// 		.await?
-	// 		.take_while(predicate)
-	// 		.map(|block| block.index)
-	// 		.collect::<Vec<_>>()
-	// 		.await;
-	// 	Ok(())
-	// }
+	/// Tracks a transaction until it appears in a block.
+	///
+	/// This method waits for the transaction to be included in a block by monitoring new blocks
+	/// as they are added to the blockchain. It returns when the transaction is found in a block.
+	///
+	/// # Arguments
+	///
+	/// * `max_blocks` - The maximum number of blocks to wait for the transaction to appear
+	///
+	/// # Returns
+	///
+	/// * `Ok(())` - If the transaction is found in a block
+	/// * `Err(TransactionError)` - If the transaction is not found after waiting for `max_blocks` blocks
+	///
+	/// # Errors
+	///
+	/// Returns an error if:
+	/// * The transaction has not been sent yet
+	/// * The maximum number of blocks is reached without finding the transaction
+	/// * There is an error communicating with the blockchain
+	pub async fn track_tx(&self, max_blocks: u32) -> Result<(), TransactionError> {
+		let block_count_when_sent =
+			self.block_count_when_sent.ok_or(TransactionError::IllegalState(
+				"Cannot track transaction before it has been sent.".to_string(),
+			))?;
+		
+		let tx_id = self.get_tx_id()?;
+		let mut current_block = block_count_when_sent;
+		let max_block = block_count_when_sent + max_blocks;
+		
+		while current_block <= max_block {
+			// Get the current block count
+			let latest_block = self.network().unwrap().get_block_count().await?;
+			
+			// If there are new blocks, check them for our transaction
+			if latest_block > current_block {
+				for block_index in current_block..latest_block {
+					// Get the block hash for this index
+					let block_hash = self.network().unwrap().get_block_hash(block_index).await?;
+					
+					// Get the block with full transaction details
+					let block = self.network().unwrap().get_block(block_hash, true).await?;
+					
+					// Check if our transaction is in this block
+					for tx in block.tx.iter() {
+						if tx.hash == tx_id {
+							return Ok(());
+						}
+					}
+					
+					current_block = block_index + 1;
+				}
+			}
+			
+			// Wait a bit before checking again
+			tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+		}
+		
+		Err(TransactionError::IllegalState(format!(
+			"Transaction {} not found after waiting for {} blocks",
+			tx_id, max_blocks
+		)))
+	}
 
 	pub async fn get_application_log<P>(
 		&self,
@@ -283,22 +316,8 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 	}
 }
 
-// impl<P: JsonRpcClient + 'static> Transaction<P> {
-//
-// pub(crate) async fn send(&self) -> Result<RawTransaction, TransactionError> {
-// 	if self.signers.len() != self.witnesses.len() {
-// 		return Err(TransactionError::TransactionConfiguration("The transaction does not have the same number of signers and witnesses. For every signer there has to be one witness, even if that witness is empty.".to_string()));
-// 	}
-// 	if self.size > NeoConstants::MAX_TRANSACTION_SIZE as i32 {
-// 		return Err(TransactionError::TransactionConfiguration(format!("The transaction exceeds the maximum transaction size. The maximum size is {} bytes while the transaction has size {}.", NeoConstants::MAX_TRANSACTION_SIZE, self.size)));
-// 	}
-//
-// 	let hex = self.to_array().to_hex();
-// 	let block_count_when_sent = self.provider.unwrap().get_block_count().await?;
-// 	let result = self.provider.unwrap().send_raw_transaction(hex).await?;
-// 	Ok(result)
-// }
-// }
+// This commented-out code has been replaced by the send_tx method above
+
 
 impl<'a, P: JsonRpcProvider + 'static> Eq for Transaction<'a, P> {}
 
