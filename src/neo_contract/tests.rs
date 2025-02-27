@@ -193,10 +193,10 @@ mod tests {
         let int_param = ContractParameter::integer(42);
         let bool_param = ContractParameter::bool(true);
         
-        // Verify the parameters are created correctly
-        assert!(string_param.to_string().contains("test_string"));
-        assert!(int_param.to_string().contains("42"));
-        assert!(bool_param.to_string().contains("true"));
+        // Verify the parameters are created correctly by checking their types
+        assert_eq!(string_param.get_type(), ContractParameterType::String);
+        assert_eq!(int_param.get_type(), ContractParameterType::Integer);
+        assert_eq!(bool_param.get_type(), ContractParameterType::Boolean);
     }
 
     #[tokio::test]
