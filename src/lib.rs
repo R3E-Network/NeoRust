@@ -326,12 +326,18 @@ pub mod neo_types;
 pub mod neo_wallets;
 pub mod neo_x;
 
+#[cfg(feature = "sgx")]
+pub mod neo_sgx;
+
 /// Convenient imports for commonly used types and traits.
 pub mod prelude {
 	pub use super::{
 		builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
 		providers::*, types::*, wallets::*, x::*,
 	};
+	
+	#[cfg(feature = "sgx")]
+	pub use super::neo_sgx::*;
 }
 
 #[cfg(test)]

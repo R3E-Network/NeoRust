@@ -1,0 +1,32 @@
+enclave {
+    from "sgx_tstd.edl" import *;
+    from "sgx_stdio.edl" import *;
+    from "sgx_backtrace.edl" import *;
+    from "sgx_tstdc.edl" import *;
+
+    trusted {
+        /* Cryptographic Operations */
+        public sgx_status_t ecall_generate_keypair([out, size=32] uint8_t* private_key, [out, size=64] uint8_t* public_key);
+        public sgx_status_t ecall_sign_message([in, size=32] const uint8_t* private_key, [in, size=len] const uint8_t* message, size_t len, [out, size=65] uint8_t* signature);
+        public sgx_status_t ecall_verify_signature([in, size=64] const uint8_t* public_key, [in, size=len] const uint8_t* message, size_t len, [in, size=65] const uint8_t* signature, [out] int* result);
+        
+        /* Transaction Operations */
+        public sgx_status_t ecall_sign_transaction([in, size=32] const uint8_t* private_key, [in, size=len] const uint8_t* transaction_data, size_t len, [out, size=65] uint8_t* signature);
+        
+        /* Wallet Operations */
+        public sgx_status_t ecall_create_wallet([in, string] const char* password, [out, size=len] uint8_t* wallet_data, size_t len);
+        public sgx_status_t ecall_open_wallet([in, size=len] const uint8_t* wallet_data, size_t len, [in, string] const char* password, [out] int* result);
+    };
+
+    untrusted {
+        /* Network Operations */
+        void ocall_send_request([in, string] const char* url, [in, string] const char* method, [in, string] const char* body, [out, size=len] char* response, size_t len);
+        
+        /* File I/O Operations */
+        int ocall_read_file([in, string] const char* filename, [out, size=len] uint8_t* data, size_t len);
+        int ocall_write_file([in, string] const char* filename, [in, size=len] const uint8_t* data, size_t len);
+        
+        /* Logging */
+        void ocall_log([in, string] const char* message);
+    };
+};
