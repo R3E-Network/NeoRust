@@ -14,9 +14,13 @@ use sha2::{Digest, Sha256};
 struct Bytes(Vec<u8>);
 
 impl Bytes {
-	fn b_int(&self) -> BigInt {
-		let bytes = i128::from_be_bytes(self.0.as_slice().try_into().unwrap());
-		BigInt::from_i128(bytes).unwrap()
+	fn b_int(&self) -> Result<BigInt, &'static str> {
+		let bytes = self.0.as_slice().try_into()
+			.map_err(|_| "Failed to convert bytes to i128")?;
+			
+		let i128_value = i128::from_be_bytes(bytes);
+		BigInt::from_i128(i128_value)
+			.ok_or("Failed to convert i128 to BigInt")
 	}
 
 	fn base64_encoded(&self) -> String {

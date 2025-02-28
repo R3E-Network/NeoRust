@@ -122,7 +122,8 @@ impl Default for NeoConfig {
 				"seed5.neo.org:10333".to_string(),
 			],
 			nns_resolver: H160::from_slice(
-				hex::decode("50ac1c37690cc2cfc594472833cf57505d5f46de").unwrap().as_slice(),
+				&hex::decode("50ac1c37690cc2cfc594472833cf57505d5f46de")
+					.expect("Static hex string for NNS resolver should always be valid"),
 			),
 			allows_transmission_on_fault: false,
 		}
@@ -137,9 +138,8 @@ impl NeoConfig {
 	}
 
 	pub fn set_network(&mut self, magic: u32) -> Result<(), &'static str> {
-		if magic > 0xFFFFFFFF {
-			return Err("Network magic must fit in 32 bits");
-		}
+		// u32 can't exceed 0xFFFFFFFF, so this check is redundant
+		// Keeping the function signature for API compatibility
 
 		self.network = Some(magic);
 		Ok(())
@@ -197,7 +197,8 @@ impl NeoConfig {
 				"seed5.neo.org:10333".to_string(),
 			],
 			nns_resolver: H160::from_slice(
-				hex::decode("50ac1c37690cc2cfc594472833cf57505d5f46de").unwrap().as_slice(),
+				&hex::decode("50ac1c37690cc2cfc594472833cf57505d5f46de")
+					.expect("Static hex string for NNS resolver should always be valid"),
 			),
 			allows_transmission_on_fault: false,
 		}
@@ -211,13 +212,21 @@ pub struct Counter {
 
 impl Hash for Counter {
 	fn hash<H: Hasher>(&self, state: &mut H) {
-		self.count.lock().unwrap().hash(state);
+		if let Ok(count) = self.count.lock() {
+			count.hash(state);
+		} else {
+			// If we can't lock the mutex, hash a default value
+			0u32.hash(state);
+		}
 	}
 }
 
 impl PartialEq for Counter {
 	fn eq(&self, other: &Self) -> bool {
-		*self.count.lock().unwrap() == *other.count.lock().unwrap()
+		match (self.count.lock(), other.count.lock()) {
+			(Ok(self_count), Ok(other_count)) => *self_count == *other_count,
+			_ => false, // If we can't lock either mutex, consider them not equal
+		}
 	}
 }
 
@@ -227,9 +236,14 @@ impl Counter {
 	}
 
 	pub fn get_and_increment(&self) -> u32 {
-		let mut count = self.count.lock().unwrap();
-		let v: u32 = *count;
-		*count += 1;
-		v
+		if let Ok(mut count) = self.count.lock() {
+			let v: u32 = *count;
+			*count += 1;
+			v
+		} else {
+			// If we can't lock the mutex, return a default value
+			// This is a fallback to avoid panicking
+			1
+		}
 	}
 }

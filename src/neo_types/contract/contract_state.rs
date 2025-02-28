@@ -34,8 +34,12 @@ impl ContractState {
 	) -> Result<ContractIdentifiers, &'static str> {
 		match stack_item {
 			StackItem::Struct { value } if value.len() >= 2 => {
-				let id = value[0].as_int().unwrap();
-				let mut v = value[1].as_bytes().unwrap();
+				let id = value[0].as_int()
+					.ok_or("Failed to get contract ID as integer from stack item")?;
+					
+				let mut v = value[1].as_bytes()
+					.ok_or("Failed to get contract hash as bytes from stack item")?;
+					
 				v.reverse();
 				let hash = H160::from_slice(&v);
 				Ok(ContractIdentifiers { id: id as i32, hash })
@@ -56,6 +60,7 @@ pub struct ContractIdentifiers {
 impl From<InvocationResult> for ContractIdentifiers {
 	fn from(result: InvocationResult) -> Self {
 		let stack_item = &result.stack[0];
-		ContractState::contract_identifiers(stack_item).unwrap()
+		ContractState::contract_identifiers(stack_item)
+			.unwrap_or_else(|e| panic!("Failed to convert InvocationResult to ContractIdentifiers: {}", e))
 	}
 }

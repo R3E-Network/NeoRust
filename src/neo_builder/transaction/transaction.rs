@@ -212,7 +212,8 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 		let mut encoder = Encoder::new();
 		self.serialize_without_witnesses(&mut encoder);
 		let mut data = encoder.to_bytes().hash256();
-		data.splice(0..0, self.network.as_ref().unwrap().network().await.to_be_bytes());
+		let network_value = self.network.as_ref().unwrap().network().await?;
+		data.splice(0..0, network_value.to_be_bytes());
 
 		Ok(data)
 	}
@@ -508,23 +509,27 @@ impl<'a, P: JsonRpcProvider + 'static> NeoSerializable for Transaction<'a, P> {
 		Self: Sized,
 	{
 		let version = reader.read_u8();
-		let nonce = reader.read_u32();
-		let system_fee = reader.read_i64();
-		let network_fee = reader.read_i64();
-		let valid_until_block = reader.read_u32();
+		let nonce = reader.read_u32()
+			.map_err(|e| TransactionError::TransactionConfiguration(format!("Failed to read nonce: {}", e)))?;
+		let system_fee = reader.read_i64()
+			.map_err(|e| TransactionError::TransactionConfiguration(format!("Failed to read system fee: {}", e)))?;
+		let network_fee = reader.read_i64()
+			.map_err(|e| TransactionError::TransactionConfiguration(format!("Failed to read network fee: {}", e)))?;
+		let valid_until_block = reader.read_u32()
+			.map_err(|e| TransactionError::TransactionConfiguration(format!("Failed to read valid until block: {}", e)))?;
 
 		// Read signers
-		let signers: Vec<Signer> = reader.read_serializable_list::<Signer>().unwrap();
+		let signers: Vec<Signer> = reader.read_serializable_list::<Signer>()?;
 
 		// Read attributes
 		let attributes: Vec<TransactionAttribute> =
-			reader.read_serializable_list::<TransactionAttribute>().unwrap();
+			reader.read_serializable_list::<TransactionAttribute>()?;
 
-		let script = reader.read_var_bytes().unwrap().to_vec();
+		let script = reader.read_var_bytes()?.to_vec();
 
 		let mut witnesses = vec![];
 		if reader.available() > 0 {
-			witnesses.append(&mut reader.read_serializable_list::<Witness>().unwrap());
+			witnesses.append(&mut reader.read_serializable_list::<Witness>()?);
 		}
 
 		Ok(Self {

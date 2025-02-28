@@ -25,7 +25,7 @@ use neo::{
 
 use super::{RTransactionSigner, TransactionAttributeEnum};
 
-#[derive(Serialize, Deserialize, Getters, Setters, MutGetters, CopyGetters, Debug, Clone, Hash)]
+#[derive(Serialize, Deserialize, Getters, Setters, MutGetters, CopyGetters, Debug, Clone)]
 pub struct RTransaction {
 	#[serde(rename = "hash")]
 	#[getset(get = "pub", set = "pub")]

@@ -24,17 +24,39 @@ jobs:
       
       - name: Install mdBook plugins
         run: |
+          # Temporarily move rust-toolchain.toml to avoid nightly override
+          if [ -f "rust-toolchain.toml" ]; then
+            mv rust-toolchain.toml rust-toolchain.toml.bak
+          fi
+          
+          rustup default stable
           cargo install mdbook-mermaid
           cargo install mdbook-toc
           cargo install mdbook-admonish
           cargo install mdbook-linkcheck
+          
+          # Restore rust-toolchain.toml
+          if [ -f "rust-toolchain.toml.bak" ]; then
+            mv rust-toolchain.toml.bak rust-toolchain.toml
+          fi
       
       - name: Setup Chrome
         uses: browser-actions/setup-chrome@v1
       
       - name: Install mdbook-pdf
         run: |
+          # Temporarily move rust-toolchain.toml to avoid nightly override
+          if [ -f "rust-toolchain.toml" ]; then
+            mv rust-toolchain.toml rust-toolchain.toml.bak
+          fi
+          
+          rustup default stable
           cargo install mdbook-pdf
+          
+          # Restore rust-toolchain.toml
+          if [ -f "rust-toolchain.toml.bak" ]; then
+            mv rust-toolchain.toml.bak rust-toolchain.toml
+          fi
       
       - name: Build documentation
         run: |
@@ -47,7 +69,7 @@ jobs:
           mdbook-pdf
       
       - name: Upload PDF as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: neorust-documentation
           path: docs/book/pdf/output.pdf

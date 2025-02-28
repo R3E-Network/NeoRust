@@ -122,9 +122,15 @@ impl Secp256r1PublicKey {
 		uncompressed_point.extend_from_slice(&gy);
 
 		let encoded_point = EncodedPoint::from_bytes(&uncompressed_point).ok()?;
-		let public_key = PublicKey::from_encoded_point(&encoded_point).unwrap();
-
-		Some(Secp256r1PublicKey { inner: public_key })
+		let public_key_option = PublicKey::from_encoded_point(&encoded_point);
+		
+		if public_key_option.is_some().into() {
+			// Safe to unwrap since we checked is_some()
+			let public_key = public_key_option.unwrap();
+			Some(Secp256r1PublicKey { inner: public_key })
+		} else {
+			None
+		}
 	}
 
 	/// Constructs a `Secp256r1PublicKey` from an existing `PublicKey`.
@@ -151,12 +157,16 @@ impl Secp256r1PublicKey {
 			Ok(v) => v,
 			Err(_) => return Err(CryptoError::InvalidPublicKey),
 		};
-		let public_key = if PublicKey::from_encoded_point(&encoded_point).is_some().into() {
-			PublicKey::from_encoded_point(&encoded_point).unwrap()
+		
+		let public_key_option = PublicKey::from_encoded_point(&encoded_point);
+		
+		if public_key_option.is_some().into() {
+			// Safe to unwrap since we checked is_some()
+			let public_key = public_key_option.unwrap();
+			Ok(Secp256r1PublicKey { inner: public_key })
 		} else {
-			return Err(CryptoError::InvalidPublicKey);
-		};
-		Ok(Secp256r1PublicKey { inner: public_key })
+			Err(CryptoError::InvalidPublicKey)
+		}
 	}
 
 	/// Verifies a digital signature against a message using this public key.
@@ -213,15 +223,9 @@ impl Secp256r1PublicKey {
 	/// - Returns: An `Option<Secp256r1PublicKey>`.
 	pub fn from_encoded(encoded: &str) -> Option<Self> {
 		let encoded = &encoded.replace("0x", "");
-		let encoded = match encoded.from_hex() {
-			Ok(v) => v,
-			Err(_) => return None,
-		};
+		let encoded = encoded.from_hex().ok()?;
 
-		match Secp256r1PublicKey::from_bytes(encoded.as_slice()) {
-			Ok(v) => Some(v),
-			Err(_) => None,
-		}
+		Secp256r1PublicKey::from_bytes(encoded.as_slice()).ok()
 	}
 
 	fn get_size(&self) -> usize {
@@ -264,7 +268,8 @@ impl Secp256r1PrivateKey {
 	///
 	/// - Returns: A 32-byte array representing the private key.
 	pub fn to_raw_bytes(&self) -> [u8; 32] {
-		self.inner.clone().to_bytes().as_slice().try_into().unwrap()
+		self.inner.clone().to_bytes().as_slice().try_into()
+			.expect("Private key should always be 32 bytes")
 	}
 
 	/// Converts the private key to its corresponding public key.
@@ -279,7 +284,8 @@ impl Secp256r1PrivateKey {
 		// bytes.zeroize();
 		let bytes = [1u8; 32];
 		// Recreate the SecretKey from zeroized bytes
-		self.inner = SecretKey::from_bytes(&bytes.into()).unwrap();
+		self.inner = SecretKey::from_bytes(&bytes.into())
+			.expect("Creating SecretKey from fixed bytes should never fail");
 	}
 
 	/// Signs a transaction with the private key.
@@ -347,10 +353,11 @@ impl Secp256r1Signature {
 	///     - s: The s value as a `U256`.
 	///
 	/// - Returns: A `Secp256r1Signature`.
-	pub fn from_u256(r: U256, s: U256) -> Self {
+	pub fn from_u256(r: U256, s: U256) -> Result<Self, CryptoError> {
 		let x = r.to_big_endian();
 		let y = s.to_big_endian();
-		Secp256r1Signature::from_scalars(x, y).unwrap()
+		Secp256r1Signature::from_scalars(x, y)
+			.ok_or(CryptoError::InvalidFormat("Invalid signature scalars".to_string()))
 	}
 
 	/// Constructs a `Secp256r1Signature` from a byte slice.
@@ -367,7 +374,10 @@ impl Secp256r1Signature {
 		if bytes.len() != 64 {
 			return Err(CryptoError::InvalidFormat("Invalid signature length".to_string()));
 		}
-		Ok(Secp256r1Signature { inner: Signature::from_slice(bytes).unwrap() })
+		
+		Signature::from_slice(bytes)
+			.map(|inner| Secp256r1Signature { inner })
+			.map_err(|_| CryptoError::InvalidFormat("Invalid signature format".to_string()))
 	}
 
 	/// Converts the signature into a 64-byte array.
@@ -406,7 +416,7 @@ impl fmt::Display for Secp256r1PublicKey {
 
 impl fmt::Display for Secp256r1Signature {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "Secp256r1Signature\n").unwrap();
+		write!(f, "Secp256r1Signature\n")?;
 		write!(f, "x: {}\n", hex::encode(&self.to_bytes()))
 	}
 }
@@ -527,10 +537,8 @@ impl PartialEq for Secp256r1Signature {
 
 impl From<Vec<u8>> for Secp256r1PublicKey {
 	fn from(bytes: Vec<u8>) -> Self {
-		match Secp256r1PublicKey::from_bytes(&bytes) {
-			Ok(v) => v,
-			Err(_) => panic!("Invalid public key"),
-		}
+		Secp256r1PublicKey::from_bytes(&bytes)
+			.unwrap_or_else(|_| panic!("Invalid public key"))
 	}
 }
 
@@ -555,7 +563,7 @@ impl PrivateKeyExtension for Secp256r1PrivateKey {
 
 		let mut arr = [0u8; 32];
 		arr.copy_from_slice(slice);
-		Ok(Self::from_bytes(&arr).map_err(|_| CryptoError::InvalidPublicKey).unwrap())
+		Self::from_bytes(&arr).map_err(|_| CryptoError::InvalidPublicKey)
 	}
 }
 
@@ -592,7 +600,8 @@ impl NeoSerializable for Secp256r1PublicKey {
 	}
 
 	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
-		let bytes = reader.read_bytes(NeoConstants::PUBLIC_KEY_SIZE_COMPRESSED as usize).unwrap();
+		let bytes = reader.read_bytes(NeoConstants::PUBLIC_KEY_SIZE_COMPRESSED as usize)
+			.map_err(|_| CryptoError::InvalidPublicKey)?;
 		Secp256r1PublicKey::from_bytes(&bytes).map_err(|_| CryptoError::InvalidPublicKey)
 	}
 

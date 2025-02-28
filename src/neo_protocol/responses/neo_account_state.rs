@@ -20,7 +20,11 @@ impl Hash for AccountState {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.balance.hash(state);
 		self.balance_height.hash(state);
-		self.public_key.clone().unwrap().to_vec().hash(state);
+		
+		// Only hash the public key if it exists
+		if let Some(public_key) = &self.public_key {
+			public_key.to_vec().hash(state);
+		}
 	}
 }
 

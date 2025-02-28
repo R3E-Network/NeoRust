@@ -50,7 +50,8 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	Ok(parse_string_h160(&s))
+	parse_string_h160(&s)
+		.map_err(|e| serde::de::Error::custom(format!("Failed to parse H160 from string '{}': {}", s, e)))
 }
 
 pub fn serialize_scopes<S>(scopes: &Vec<WitnessScope>, serializer: S) -> Result<S::Ok, S::Error>
@@ -112,7 +113,8 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	let bytes = hex::decode(s.trim_start_matches("0x")).unwrap();
+	let bytes = hex::decode(s.trim_start_matches("0x"))
+		.map_err(|e| serde::de::Error::custom(format!("Failed to decode hex string: {}", e)))?;
 	Ok(bytes)
 }
 
@@ -146,7 +148,8 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	let url = Url::parse(&s).unwrap();
+	let url = Url::parse(&s)
+		.map_err(|e| serde::de::Error::custom(format!("Failed to parse URL '{}': {}", s, e)))?;
 	Ok(url)
 }
 
@@ -170,7 +173,8 @@ where
 	let s: Option<String> = Deserialize::deserialize(deserializer)?;
 	match s {
 		Some(s) => {
-			let url = Url::parse(&s).unwrap();
+			let url = Url::parse(&s)
+				.map_err(|e| serde::de::Error::custom(format!("Failed to parse URL '{}': {}", s, e)))?;
 			Ok(Some(url))
 		},
 		None => Ok(None),
@@ -213,7 +217,8 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	Ok(parse_string_u256(&s))
+	parse_string_u256(&s)
+		.map_err(|e| serde::de::Error::custom(format!("Failed to parse U256 from string '{}': {}", s, e)))
 }
 
 pub fn serialize_u256_option<S>(item: &Option<U256>, serializer: S) -> Result<S::Ok, S::Error>
@@ -236,7 +241,8 @@ where
 	let s: Option<String> = Deserialize::deserialize(deserializer)?;
 	match s {
 		Some(s) => {
-			let u256 = parse_string_u256(&s);
+			let u256 = parse_string_u256(&s)
+				.map_err(|e| serde::de::Error::custom(format!("Failed to parse U256 from string '{}': {}", s, e)))?;
 			Ok(Some(u256))
 		},
 		None => Ok(None),
@@ -258,9 +264,11 @@ where
 	let s: String = Deserialize::deserialize(deserializer)?;
 	let v = if s.starts_with("0x") {
 		let s = s.trim_start_matches("0x");
-		u32::from_str_radix(&s, 16).unwrap()
+		u32::from_str_radix(&s, 16)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse hex u32 '{}': {}", s, e)))?
 	} else {
-		u32::from_str_radix(&s, 10).unwrap()
+		u32::from_str_radix(&s, 10)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse decimal u32 '{}': {}", s, e)))?
 	};
 	Ok(v)
 }
@@ -278,7 +286,8 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	Ok(parse_string_u64(&s))
+	parse_string_u64(&s)
+		.map_err(|e| serde::de::Error::custom(format!("Failed to parse u64 from string '{}': {}", s, e)))
 }
 
 pub fn deserialize_script_hash<'de, D>(deserializer: D) -> Result<ScriptHash, D::Error>
@@ -286,8 +295,8 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	let addr = parse_address(&s);
-	Ok(addr)
+	parse_address(&s)
+		.map_err(|e| serde::de::Error::custom(format!("Failed to parse address from string '{}': {}", s, e)))
 }
 
 pub fn serialize_script_hash<S>(item: &ScriptHash, serializer: S) -> Result<S::Ok, S::Error>
@@ -307,7 +316,8 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	let addr = parse_address(&s);
+	let addr = parse_address(&s)
+		.map_err(|e| serde::de::Error::custom(format!("Failed to parse address from string '{}': {}", s, e)))?;
 	Ok(AddressOrScriptHash::ScriptHash(addr))
 }
 
@@ -411,7 +421,8 @@ where
 	let s: Option<String> = Deserialize::deserialize(deserializer)?;
 	match s {
 		Some(s) => {
-			let addr = parse_address(&s);
+			let addr = parse_address(&s)
+				.map_err(|e| serde::de::Error::custom(format!("Failed to parse address from string '{}': {}", s, e)))?;
 			Ok(Some(addr))
 		},
 		None => Ok(None),
@@ -444,7 +455,8 @@ where
 	let mut hashmap: HashMap<H160, Account> = HashMap::new();
 
 	for (k, v) in map {
-		let k_h160 = parse_address(&k);
+		let k_h160 = parse_address(&k)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse address from string '{}': {}", k, e)))?;
 		hashmap.insert(k_h160, v);
 	}
 	Ok(hashmap)
@@ -457,7 +469,12 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	let key = Secp256r1PrivateKey::from_bytes(parse_string_h256(&s).as_bytes()).unwrap();
+	let h256 = parse_string_h256(&s)
+		.map_err(|e| serde::de::Error::custom(format!("Failed to parse H256 from string '{}': {}", s, e)))?;
+		
+	let key = Secp256r1PrivateKey::from_bytes(h256.as_bytes())
+		.map_err(|e| serde::de::Error::custom(format!("Failed to create private key from bytes: {}", e)))?;
+		
 	Ok(key)
 }
 
@@ -478,7 +495,12 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	let key = Secp256r1PublicKey::from_bytes(parse_string_h256(&s).as_bytes()).unwrap();
+	let h256 = parse_string_h256(&s)
+		.map_err(|e| serde::de::Error::custom(format!("Failed to parse H256 from string '{}': {}", s, e)))?;
+		
+	let key = Secp256r1PublicKey::from_bytes(h256.as_bytes())
+		.map_err(|e| serde::de::Error::custom(format!("Failed to create public key from bytes: {}", e)))?;
+		
 	Ok(key)
 }
 
@@ -498,11 +520,17 @@ where
 {
 	let string_seq = <Vec<String>>::deserialize(deserializer)?;
 	let mut vec: Vec<Secp256r1PublicKey> = Vec::new();
+	
 	for v_str in string_seq {
-		let v = parse_string_h256(&v_str);
-		let key = Secp256r1PublicKey::from_bytes(v.as_bytes()).unwrap();
+		let v = parse_string_h256(&v_str)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse H256 from string '{}': {}", v_str, e)))?;
+			
+		let key = Secp256r1PublicKey::from_bytes(v.as_bytes())
+			.map_err(|e| serde::de::Error::custom(format!("Failed to create public key from bytes: {}", e)))?;
+			
 		vec.push(key);
 	}
+	
 	Ok(vec)
 }
 
@@ -513,16 +541,18 @@ where
 	D: Deserializer<'de>,
 {
 	let string_seq = <Vec<String>>::deserialize(deserializer)?;
-	// match string_seq {
-	// 	Some(s) => Ok(Some(s)),
-	// 	None => Ok(None),
-	// }
+	
 	let mut vec: Vec<Secp256r1PublicKey> = Vec::new();
 	for v_str in string_seq {
-		let v = parse_string_h256(&v_str);
-		let key = Secp256r1PublicKey::from_bytes(v.as_bytes()).unwrap();
+		let v = parse_string_h256(&v_str)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse H256 from string '{}': {}", v_str, e)))?;
+			
+		let key = Secp256r1PublicKey::from_bytes(v.as_bytes())
+			.map_err(|e| serde::de::Error::custom(format!("Failed to create public key from bytes: {}", e)))?;
+			
 		vec.push(key);
 	}
+	
 	Ok(Some(vec))
 }
 
@@ -586,8 +616,12 @@ where
 	let s: Option<String> = Deserialize::deserialize(deserializer)?;
 	match s {
 		Some(s) => {
-			let pubkey_bytes = parse_string_h256(&s);
-			let key = Secp256r1PublicKey::from_bytes(pubkey_bytes.as_bytes()).unwrap();
+			let pubkey_bytes = parse_string_h256(&s)
+				.map_err(|e| serde::de::Error::custom(format!("Failed to parse H256 from string '{}': {}", s, e)))?;
+				
+			let key = Secp256r1PublicKey::from_bytes(pubkey_bytes.as_bytes())
+				.map_err(|e| serde::de::Error::custom(format!("Failed to create public key from bytes: {}", e)))?;
+				
 			Ok(Some(key))
 		},
 		None => Ok(None),
@@ -633,7 +667,8 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	Ok(parse_string_h256(&s))
+	parse_string_h256(&s)
+		.map_err(|e| serde::de::Error::custom(format!("Failed to parse H256 from string '{}': {}", s, e)))
 }
 
 pub fn serialize_hashset_u256<S>(item: &HashSet<U256>, serializer: S) -> Result<S::Ok, S::Error>
@@ -654,7 +689,8 @@ where
 	let string_seq = <HashSet<String>>::deserialize(deserializer)?;
 	let mut hashset: HashSet<U256> = HashSet::new();
 	for v_str in string_seq {
-		let v = parse_string_u256(&v_str);
+		let v = parse_string_u256(&v_str)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse U256 from string '{}': {}", v_str, e)))?;
 		hashset.insert(v);
 	}
 	Ok(hashset)
@@ -678,7 +714,8 @@ where
 	let string_seq = <Vec<String>>::deserialize(deserializer)?;
 	let mut vec: Vec<H256> = Vec::new();
 	for v_str in string_seq {
-		let v = parse_string_h256(&v_str);
+		let v = parse_string_h256(&v_str)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse H256 from string '{}': {}", v_str, e)))?;
 		vec.push(v);
 	}
 	Ok(vec)
@@ -702,7 +739,8 @@ where
 	let string_seq = <Vec<String>>::deserialize(deserializer)?;
 	let mut vec: Vec<U256> = Vec::new();
 	for v_str in string_seq {
-		let v = parse_string_u256(&v_str);
+		let v = parse_string_u256(&v_str)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse U256 from string '{}': {}", v_str, e)))?;
 		vec.push(v);
 	}
 	Ok(vec)
@@ -728,7 +766,8 @@ where
 	let s: Option<String> = Deserialize::deserialize(deserializer)?;
 	match s {
 		Some(s) => {
-			let h256 = parse_string_h256(&s);
+			let h256 = parse_string_h256(&s)
+				.map_err(|e| serde::de::Error::custom(format!("Failed to parse H256 from string '{}': {}", s, e)))?;
 			Ok(Some(h256))
 		},
 		None => Ok(None),
@@ -760,8 +799,16 @@ where
 	let mut hashmap: HashMap<U256, HashSet<U256>> = HashMap::new();
 
 	for (k, v) in map {
-		let k_u256 = parse_string_u256(&k);
-		let v_hashset_u256: HashSet<U256> = v.iter().map(|x| parse_string_u256(&x)).collect();
+		let k_u256 = parse_string_u256(&k)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse U256 from string '{}': {}", k, e)))?;
+		
+		let mut v_hashset_u256: HashSet<U256> = HashSet::new();
+		for x in v.iter() {
+			let parsed = parse_string_u256(x)
+				.map_err(|e| serde::de::Error::custom(format!("Failed to parse U256 from string '{}': {}", x, e)))?;
+			v_hashset_u256.insert(parsed);
+		}
+		
 		hashmap.insert(k_u256, v_hashset_u256);
 	}
 	Ok(hashmap)
@@ -792,7 +839,8 @@ where
 
 	for (k, v) in map {
 		// let k_h160 = parse_address(&k);
-		let v_u256 = parse_string_u256(&v);
+		let v_u256 = parse_string_u256(&v)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse U256 from string '{}': {}", v, e)))?;
 		hashmap.insert(k, v_u256);
 	}
 	Ok(hashmap)
@@ -823,8 +871,16 @@ where
 	let mut hashmap: HashMap<U256, HashSet<H256>> = HashMap::new();
 
 	for (k, v) in map {
-		let k_u256 = parse_string_u256(&k);
-		let v_hashset_h256: HashSet<H256> = v.iter().map(|x| parse_string_h256(&x)).collect();
+		let k_u256 = parse_string_u256(&k)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse U256 from string '{}': {}", k, e)))?;
+		
+		let mut v_hashset_h256: HashSet<H256> = HashSet::new();
+		for x in v.iter() {
+			let parsed = parse_string_h256(x)
+				.map_err(|e| serde::de::Error::custom(format!("Failed to parse H256 from string '{}': {}", x, e)))?;
+			v_hashset_h256.insert(parsed);
+		}
+		
 		hashmap.insert(k_u256, v_hashset_h256);
 	}
 	Ok(hashmap)
@@ -855,8 +911,16 @@ where
 	let mut hashmap: HashMap<U256, Vec<U256>> = HashMap::new();
 
 	for (k, v) in map {
-		let k_u256 = parse_string_u256(&k);
-		let v_vec_u256: Vec<U256> = v.iter().map(|x| parse_string_u256(&x)).collect();
+		let k_u256 = parse_string_u256(&k)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse U256 from string '{}': {}", k, e)))?;
+		
+		let mut v_vec_u256: Vec<U256> = Vec::new();
+		for x in v.iter() {
+			let parsed = parse_string_u256(x)
+				.map_err(|e| serde::de::Error::custom(format!("Failed to parse U256 from string '{}': {}", x, e)))?;
+			v_vec_u256.push(parsed);
+		}
+		
 		hashmap.insert(k_u256, v_vec_u256);
 	}
 	Ok(hashmap)
@@ -869,8 +933,14 @@ pub fn serialize_map<S>(
 where
 	S: Serializer,
 {
-	let serializable_map: Vec<(_, _)> =
-		map.iter().map(|(k, v)| (serde_json::to_string(k).unwrap(), v)).collect();
+	let mut serializable_map: Vec<(String, &ContractParameter)> = Vec::new();
+	
+	for (k, v) in map.iter() {
+		let key_str = serde_json::to_string(k)
+			.map_err(|e| serde::ser::Error::custom(format!("Failed to serialize contract parameter: {}", e)))?;
+		serializable_map.push((key_str, v));
+	}
+	
 	serializable_map.serialize(serializer)
 }
 
@@ -881,10 +951,14 @@ where
 	D: Deserializer<'de>,
 {
 	let deserialized_vector: Vec<(String, ContractParameter)> = Vec::deserialize(deserializer)?;
-	let map: HashMap<ContractParameter, ContractParameter> = deserialized_vector
-		.into_iter()
-		.map(|(k, v)| (serde_json::from_str(&k).unwrap(), v))
-		.collect();
+	let mut map: HashMap<ContractParameter, ContractParameter> = HashMap::new();
+	
+	for (k, v) in deserialized_vector {
+		let key = serde_json::from_str::<ContractParameter>(&k)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to deserialize contract parameter from '{}': {}", k, e)))?;
+		map.insert(key, v);
+	}
+	
 	Ok(map)
 }
 
@@ -1064,7 +1138,7 @@ mod test {
 		let v = TestStruct {
 			value: vec![parse_string_h256(
 				"0x95ff99bcdac06fad4a141f06c5f9f1c65e71b188ff5978116a110c4170fd7355",
-			)],
+			).expect("Failed to parse H256 string")],
 		};
 		let json_string = serde_json::to_string_pretty(&v).unwrap();
 		println!("{}", json_string);

@@ -67,39 +67,68 @@ impl NEP2 {
 
 fn encrypt_aes256_ecb(data: &[u8], key: &[u8]) -> Result<Vec<u8>, ProviderError> {
 	// Ensure key is the correct length for AES-256
-	assert_eq!(key.len(), 32);
-	let key: [u8; 32] = key.try_into().unwrap();
+	if key.len() != 32 {
+		return Err(ProviderError::CustomError("AES-256 key must be 32 bytes".to_string()));
+	}
+	
+	let key: [u8; 32] = key.try_into()
+		.map_err(|_| ProviderError::CustomError("Failed to convert key to 32-byte array".to_string()))?;
+		
 	let mut buf = [0u8; 64];
 	let pt_len = data.len();
 	buf[..pt_len].copy_from_slice(&data);
+	
 	let ct = Aes256EcbEnc::new(&key.into())
 		.encrypt_padded_mut::<NoPadding>(&mut buf, pt_len)
-		.unwrap();
+		.map_err(|_| ProviderError::CustomError("AES encryption failed".to_string()))?;
 
 	Ok(ct.to_vec())
 }
 
 fn decrypt_aes256_ecb(encrypted_data: &[u8], key: &[u8]) -> Result<Vec<u8>, ProviderError> {
 	// Ensure key is the correct length for AES-256
-	assert_eq!(key.len(), 32);
-	let key: [u8; 32] = key.try_into().unwrap();
+	if key.len() != 32 {
+		return Err(ProviderError::CustomError("AES-256 key must be 32 bytes".to_string()));
+	}
+	
+	let key: [u8; 32] = key.try_into()
+		.map_err(|_| ProviderError::CustomError("Failed to convert key to 32-byte array".to_string()))?;
+		
 	let mut buf = [0u8; 64];
+	
 	let pt = Aes256EcbDec::new(&key.into())
 		.decrypt_padded_b2b_mut::<NoPadding>(&encrypted_data, &mut buf)
-		.unwrap();
+		.map_err(|_| ProviderError::CustomError("AES decryption failed".to_string()))?;
 
 	Ok(pt.to_vec())
 }
 
 pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<String, ProviderError> {
-	let private_key = pri_key.from_hex().unwrap();
-	let key_pair = KeyPair::from_private_key(&vec_to_array32(private_key.to_vec()).unwrap())?;
+	let private_key = pri_key.from_hex()
+		.map_err(|_| ProviderError::CustomError("Invalid hex in private key".to_string()))?;
+		
+	let key_pair = KeyPair::from_private_key(
+		&vec_to_array32(private_key.to_vec())
+			.map_err(|_| ProviderError::CustomError("Failed to convert private key to 32-byte array".to_string()))?
+	)?;
+	
 	let addresshash: [u8; 4] = address_hash_from_pubkey(&key_pair.public_key.get_encoded(true));
 	let mut result = vec![0u8; NeoConstants::SCRYPT_DK_LEN];
-	let params =
-		Params::new(NeoConstants::SCRYPT_LOG_N, NeoConstants::SCRYPT_R, NeoConstants::SCRYPT_P, 32)
-			.unwrap();
-	scrypt(passphrase.as_bytes(), addresshash.to_vec().as_slice(), &params, &mut result).unwrap();
+	
+	let params = Params::new(
+		NeoConstants::SCRYPT_LOG_N, 
+		NeoConstants::SCRYPT_R, 
+		NeoConstants::SCRYPT_P, 
+		32
+	).map_err(|e| ProviderError::CustomError(format!("Failed to create scrypt parameters: {}", e)))?;
+	
+	scrypt(
+		passphrase.as_bytes(), 
+		addresshash.to_vec().as_slice(), 
+		&params, 
+		&mut result
+	).map_err(|e| ProviderError::CustomError(format!("Scrypt operation failed: {}", e)))?;
+	
 	let half_1 = &result[0..32];
 	let _half_2 = &result[32..64];
 	let mut u8xor = [0u8; 32];
@@ -109,8 +138,6 @@ pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<Stri
 	}
 
 	let encrypted = encrypt_aes256_ecb(&u8xor.to_vec(), &_half_2)?;
-
-	//assert_eq!(encrypted.len(), 32);
 
 	// # Assemble the final result
 	let mut assembled = Vec::new();
@@ -122,42 +149,44 @@ pub fn get_nep2_from_private_key(pri_key: &str, passphrase: &str) -> Result<Stri
 	assembled.extend(&encrypted[0..32]);
 
 	// # Finally, encode with Base58Check
-	//Ok(assembled.to_base58())
 	Ok(base58check_encode(&assembled))
 }
 
 pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>, ProviderError> {
 	if nep2.len() != 58 {
-		println!("Wrong Nep2");
-		()
+		return Err(ProviderError::CustomError("Invalid NEP2 format: incorrect length".to_string()));
 	}
-	let decoded_key: [u8; 39] = base58check_decode(nep2).unwrap().try_into().unwrap();
-	if (decoded_key[0] != 0x01 || decoded_key[1] != 0x42 || decoded_key[2] != 0xe0) {
+	
+	let decoded_bytes = base58check_decode(nep2)
+		.ok_or(ProviderError::CustomError("Invalid NEP2 format: base58check decoding failed".to_string()))?;
+		
+	let decoded_key: [u8; 39] = decoded_bytes.try_into()
+		.map_err(|_| ProviderError::CustomError("Invalid NEP2 format: incorrect decoded length".to_string()))?;
+		
+	if decoded_key[0] != 0x01 || decoded_key[1] != 0x42 || decoded_key[2] != 0xe0 {
 		return Err(ProviderError::InvalidAddress);
 	}
 
 	let address_hash: &[u8] = &decoded_key[3..7];
 	let encrypted: &[u8] = &decoded_key[7..39];
 
-	// pwd_normalized = bytes(unicodedata.normalize('NFC', passphrase), 'utf-8')
 	let mut result = vec![0u8; NeoConstants::SCRYPT_DK_LEN];
-	let params =
-		Params::new(NeoConstants::SCRYPT_LOG_N, NeoConstants::SCRYPT_R, NeoConstants::SCRYPT_P, 32)
-			.unwrap();
+	let params = Params::new(
+		NeoConstants::SCRYPT_LOG_N, 
+		NeoConstants::SCRYPT_R, 
+		NeoConstants::SCRYPT_P, 
+		32
+	).map_err(|e| ProviderError::CustomError(format!("Failed to create scrypt parameters: {}", e)))?;
 
-	scrypt(passphrase.as_bytes(), &address_hash, &params, &mut result).unwrap();
-
-	// derived = scrypt.hash(pwd_normalized, address_hash,
-	//                       N=SCRYPT_ITERATIONS,
-	//                       r=SCRYPT_BLOCKSIZE,
-	//                       p=SCRYPT_PARALLEL_FACTOR,
-	//                       buflen=SCRYPT_KEY_LEN_BYTES)
+	scrypt(
+		passphrase.as_bytes(), 
+		&address_hash, 
+		&params, 
+		&mut result
+	).map_err(|e| ProviderError::CustomError(format!("Scrypt operation failed: {}", e)))?;
 
 	let half_1 = &result[0..32];
 	let half_2 = &result[32..64];
-
-	// derived1 = derived[:32]
-	// derived2 = derived[32:]
 
 	let decrypted = decrypt_aes256_ecb(encrypted, half_2)?;
 
@@ -166,25 +195,14 @@ pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>
 	for i in 0..32 {
 		pri_key[i] = decrypted[i] ^ half_1[i];
 	}
-	// cipher = Aes.new(derived2, Aes.MODE_ECB)
-	// decrypted = cipher.decrypt(encrypted)
-	// private_key = xor_bytes(decrypted, derived1)
 
 	let key_pair = KeyPair::from_private_key(&pri_key)?;
 	let kp_addresshash: [u8; 4] = address_hash_from_pubkey(&key_pair.public_key.get_encoded(true));
 
-	// # Now check that the address hashes match. If they don't, the password was wrong.
-	// kp_new = KeyPair(priv_key=private_key)
-	// kp_new_address = kp_new.get_address()
-	// kp_new_address_hash_tmp = hashlib.sha256(kp_new_address.encode("utf-8")).digest()
-	// kp_new_address_hash_tmp2 = hashlib.sha256(kp_new_address_hash_tmp).digest()
-	// kp_new_address_hash = kp_new_address_hash_tmp2[:4]
-	assert_eq!(kp_addresshash, address_hash);
 	if kp_addresshash != address_hash {
-		println!(
-			"Calculated address hash does not match the one in the provided encrypted address."
-		);
-		//return Err(ProviderError::CustomError("Calculated address hash does not match the one in the provided encrypted address.".to_string()));
+		return Err(ProviderError::CustomError(
+			"Calculated address hash does not match the one in the provided encrypted address. Incorrect password?".to_string()
+		));
 	}
 
 	Ok(pri_key.to_vec())
@@ -198,7 +216,12 @@ pub fn get_private_key_from_nep2(nep2: &str, passphrase: &str) -> Result<Vec<u8>
 ///
 /// Returns the first 4 bytes of the hash.
 fn address_hash_from_pubkey(pubkey: &[u8]) -> [u8; 4] {
-	let addr = public_key_to_address(&Secp256r1PublicKey::from_bytes(pubkey).unwrap());
+	// This function is used internally and assumes valid public key input
+	// In a production environment, we would handle the potential error case
+	let public_key = Secp256r1PublicKey::from_bytes(pubkey)
+		.expect("Invalid public key format in address_hash_from_pubkey");
+		
+	let addr = public_key_to_address(&public_key);
 	let hash = addr.as_bytes();
 	let hash = hash.hash256().hash256();
 	let mut result = [0u8; 4];

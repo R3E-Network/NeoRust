@@ -94,9 +94,9 @@ impl AddressExtension for String {
 
 	fn hex_to_script_hash(&self) -> Result<ScriptHash, TypeError> {
 		if self.is_valid_hex() {
-			ScriptHash::from_hex(self.as_str()).map_err(|_| TypeError::InvalidFormat)
+			ScriptHash::from_hex(self.as_str()).map_err(|_| TypeError::InvalidFormat("Invalid hex format".to_string()))
 		} else {
-			Err(TypeError::InvalidFormat)
+			Err(TypeError::InvalidFormat("Invalid hex format".to_string()))
 		}
 	}
 
@@ -140,7 +140,8 @@ mod tests {
 		// Test case 1: Valid N3 address
 		let n3_address = "NTGYC16CN5QheM4ZwfhUp9JKq8bMjWtcAp";
 		let expected_script_hash_hex = "50acc01271492d7b0e264ace0d60d572e66bc087";
-		let result = n3_address.address_to_script_hash().unwrap();
+		let result = n3_address.address_to_script_hash()
+			.expect("Should be able to convert valid N3 address to script hash");
 		assert_eq!(hex::encode(result), expected_script_hash_hex);
 
 		// Test case 3: Invalid N3 address

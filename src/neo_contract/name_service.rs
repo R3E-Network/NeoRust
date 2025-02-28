@@ -84,8 +84,9 @@ impl<'a, P: JsonRpcProvider + 'static> NeoNameService<'a, P> {
 	const EXPIRATION_PROPERTY: &'static str = "expiration";
 	const ADMIN_PROPERTY: &'static str = "admin";
 
-	pub fn new(provider: Option<&'a RpcClient<P>>) -> Self {
-		Self { script_hash: provider.unwrap().nns_resolver().clone(), provider }
+	pub fn new(provider: Option<&'a RpcClient<P>>) -> Result<Self, ContractError> {
+		let provider = provider.ok_or(ContractError::ProviderNotSet("Provider is required for NeoNameService".to_string()))?;
+		Ok(Self { script_hash: provider.nns_resolver().clone(), provider: Some(provider) })
 	}
 
 	// Implementation
@@ -123,7 +124,7 @@ impl<'a, P: JsonRpcProvider + 'static> NeoNameService<'a, P> {
 		name: &str,
 		owner: H160,
 	) -> Result<TransactionBuilder<P>, ContractError> {
-		self.check_domain_name_availability(name, true).await.unwrap();
+		self.check_domain_name_availability(name, true).await?;
 
 		let args = vec![name.into(), owner.into()];
 		self.invoke_function(Self::REGISTER, args).await
@@ -136,7 +137,7 @@ impl<'a, P: JsonRpcProvider + 'static> NeoNameService<'a, P> {
 		name: &str,
 		admin: H160,
 	) -> Result<TransactionBuilder<P>, ContractError> {
-		self.check_domain_name_availability(name, true).await.unwrap();
+		self.check_domain_name_availability(name, true).await?;
 
 		let args = vec![name.into(), admin.into()];
 		self.invoke_function(Self::SET_ADMIN, args).await
@@ -175,7 +176,7 @@ impl<'a, P: JsonRpcProvider + 'static> NeoNameService<'a, P> {
 		name: &str,
 		years: u32,
 	) -> Result<TransactionBuilder<P>, ContractError> {
-		self.check_domain_name_availability(name, true).await.unwrap();
+		self.check_domain_name_availability(name, true).await?;
 
 		let args = vec![name.into(), years.into()];
 		self.invoke_function(Self::RENEW, args).await
@@ -183,31 +184,41 @@ impl<'a, P: JsonRpcProvider + 'static> NeoNameService<'a, P> {
 
 	async fn get_name_state(&self, name: &[u8]) -> Result<NameState, ContractError> {
 		let args = vec![name.into()];
-		let result = self
-			.provider
-			.unwrap()
+		let provider = self.provider.ok_or(ContractError::ProviderNotSet("Provider is required for NeoNameService".to_string()))?;
+		
+		let invoke_result = provider
 			.invoke_function(&self.script_hash, Self::PROPERTIES.to_string(), args, None)
 			.await
-			.unwrap()
-			.stack[0]
+			.map_err(|e| ContractError::InvocationFailed(format!("Failed to invoke PROPERTIES function: {}", e)))?;
+			
+		let result = invoke_result.stack.get(0)
+			.ok_or(ContractError::InvalidResponse("Empty stack in response".to_string()))?
 			.clone();
 
-		let map = result.as_map().unwrap();
-		let name = map
-			.get(&StackItem::ByteString { value: Self::NAME_PROPERTY.to_string() })
-			.unwrap()
-			.as_string()
-			.unwrap();
-		let expiration = map
-			.get(&StackItem::ByteString { value: Self::EXPIRATION_PROPERTY.to_string() })
-			.unwrap()
-			.as_int()
-			.unwrap() as u32;
-		let admin = map
-			.get(&StackItem::ByteString { value: Self::ADMIN_PROPERTY.to_string() })
-			.unwrap()
-			.as_address()
-			.unwrap();
+		// Convert result to HashMap for easier access
+		let map_hash = result.as_map()
+			.ok_or(ContractError::InvalidResponse("Expected map result".to_string()))?;
+			
+		// Find the name property in the map
+		let name_key = StackItem::ByteString { value: Self::NAME_PROPERTY.to_string() };
+		let name_item = map_hash.get(&name_key)
+			.ok_or(ContractError::InvalidResponse(format!("Missing {} property", Self::NAME_PROPERTY)))?;
+		let name = name_item.as_string()
+			.ok_or_else(|| ContractError::InvalidResponse(format!("Invalid {} property type", Self::NAME_PROPERTY)))?;
+			
+		// Find the expiration property in the map
+		let expiration_key = StackItem::ByteString { value: Self::EXPIRATION_PROPERTY.to_string() };
+		let expiration_item = map_hash.get(&expiration_key)
+			.ok_or(ContractError::InvalidResponse(format!("Missing {} property", Self::EXPIRATION_PROPERTY)))?;
+		let expiration = expiration_item.as_int()
+			.ok_or_else(|| ContractError::InvalidResponse(format!("Invalid {} property type", Self::EXPIRATION_PROPERTY)))? as u32;
+			
+		// Find the admin property in the map
+		let admin_key = StackItem::ByteString { value: Self::ADMIN_PROPERTY.to_string() };
+		let admin_item = map_hash.get(&admin_key)
+			.ok_or(ContractError::InvalidResponse(format!("Missing {} property", Self::ADMIN_PROPERTY)))?;
+		let admin = admin_item.as_address()
+			.ok_or_else(|| ContractError::InvalidResponse(format!("Invalid {} property type", Self::ADMIN_PROPERTY)))?;
 
 		Ok(NameState {
 			name,
@@ -220,7 +231,7 @@ impl<'a, P: JsonRpcProvider + 'static> NeoNameService<'a, P> {
 		name: &str,
 		should_be_available: bool,
 	) -> Result<(), ContractError> {
-		let is_available = self.is_available(name).await.unwrap();
+		let is_available = self.is_available(name).await?;
 
 		if should_be_available && !is_available {
 			return Err(ContractError::DomainNameNotAvailable(
@@ -263,24 +274,34 @@ impl<'a, P: JsonRpcProvider> TokenTrait<'a, P> for NeoNameService<'a, P> {
 	}
 
 	async fn resolve_nns_text_record(&self, name: &NNSName) -> Result<H160, ContractError> {
-		let req = {
-			self.provider()
-				.unwrap()
-				.invoke_function(
-					&self.script_hash(),
-					"resolve".to_string(),
-					vec![
-						ContractParameter::from(name.name()),
-						ContractParameter::from(RecordType::Txt as u8),
-					],
-					None,
-				)
-				.await
-		};
+		let provider = self.provider()
+			.ok_or(ContractError::ProviderNotSet("Provider is required for NeoNameService".to_string()))?;
+			
+		let req = provider
+			.invoke_function(
+				&self.script_hash(),
+				"resolve".to_string(),
+				vec![
+					ContractParameter::from(name.name()),
+					ContractParameter::from(RecordType::Txt as u8),
+				],
+				None,
+			)
+			.await
+			.map_err(|e| ContractError::InvocationFailed(format!("Failed to invoke resolve function: {}", e)))?;
 
-		let address = req.unwrap().stack.first().unwrap().clone();
+		let address = req.stack.first()
+			.ok_or(ContractError::InvalidResponse("Empty stack in response".to_string()))?
+			.clone();
 
-		Ok(H160::from_slice(&address.as_bytes().unwrap()))
+		let bytes = match address {
+			StackItem::ByteString { value } => Ok(value.clone()),
+			_ => Err(ContractError::InvalidResponse("Invalid address format in response".to_string())),
+		}?;
+			
+		// Convert String to bytes
+		let bytes_vec = bytes.as_bytes().to_vec();
+		Ok(H160::from_slice(&bytes_vec))
 	}
 }
 

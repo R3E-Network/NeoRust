@@ -42,8 +42,9 @@ impl FromStr for NeoClient {
 	type Err = ProviderError;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
-		match s.split('/').next().unwrap().to_lowercase().as_str() {
-			"NEO" => Ok(NeoClient::NEO),
+		let first_segment = s.split('/').next().ok_or(ProviderError::ParseError("Invalid client string format".to_string()))?;
+		match first_segment.to_lowercase().as_str() {
+			"neo" => Ok(NeoClient::NEO),
 			_ => Err(ProviderError::UnsupportedNodeClient),
 		}
 	}
@@ -154,12 +155,14 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		self
 	}
 
-	async fn network(&self) -> u32 {
+	async fn network(&self) -> Result<u32, ProviderError> {
 		// trace!("network = {:?}", self.get_version().await.unwrap());
-		if (NEOCONFIG.lock().unwrap().network.is_none()) {
-			return self.get_version().await.unwrap().protocol.unwrap().network;
+		if NEOCONFIG.lock().map_err(|_| ProviderError::LockError)?.network.is_none() {
+			let version = self.get_version().await?;
+			let protocol = version.protocol.ok_or(ProviderError::ProtocolNotFound)?;
+			return Ok(protocol.network);
 		}
-		NEOCONFIG.lock().unwrap().network.unwrap()
+		NEOCONFIG.lock().map_err(|_| ProviderError::LockError)?.network.ok_or(ProviderError::NetworkNotFound)
 	}
 
 	//////////////////////// Neo methods////////////////////////////
@@ -457,7 +460,8 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	) -> Result<InvocationResult, ProviderError> {
 		let signers: Vec<TransactionSigner> =
 			signers.into_iter().map(|signer| signer.into()).collect::<Vec<_>>();
-		let script_base64 = serde_json::to_value(hex.from_hex().unwrap().to_base64())?;
+		let hex_bytes = hex.from_hex().map_err(|e| ProviderError::ParseError(format!("Failed to parse hex: {}", e)))?;
+		let script_base64 = serde_json::to_value(hex_bytes.to_base64())?;
 		let signers_json = serde_json::to_value(&signers)?;
 		self.request("invokescript", [script_base64, signers_json]).await
 	}
@@ -929,7 +933,8 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	) -> Result<InvocationResult, ProviderError> {
 		let signers: Vec<TransactionSigner> =
 			signers.into_iter().map(|signer| signer.into()).collect::<Vec<_>>();
-		let script_base64 = serde_json::to_value(hex.from_hex().unwrap().to_base64())?;
+		let hex_bytes = hex.from_hex().map_err(|e| ProviderError::ParseError(format!("Failed to parse hex: {}", e)))?;
+		let script_base64 = serde_json::to_value(hex_bytes.to_base64())?;
 		let signers_json = serde_json::to_value(&signers)?;
 		let params = vec![script_base64, signers_json, true.to_value()];
 		self.request("invokescript", params).await
@@ -1174,7 +1179,7 @@ pub trait ProviderExt: Sealed {
 	where
 		Self: Sized,
 	{
-		Self::try_connect(url).await.unwrap()
+		Self::try_connect(url).await.expect("Failed to connect to provider. This is a fatal error as connect() is designed to exit on error.")
 	}
 
 	/// Try to create a new `Provider`
@@ -1209,8 +1214,9 @@ impl ProviderExt for RpcClient<Http> {
 		Self: Sized,
 	{
 		let mut provider = RpcClient::try_from(url)?;
-		let Some(network) = provider.get_version().await.ok() else { panic!("") };
-		provider.set_network(network.protocol.unwrap().network);
+		let network = provider.get_version().await.map_err(|e| ParseError::InvalidPort)?;
+		let protocol = network.protocol.ok_or(ParseError::InvalidPort)?;
+		provider.set_network(protocol.network);
 
 		Ok(provider)
 	}

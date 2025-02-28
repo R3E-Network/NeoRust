@@ -323,6 +323,7 @@ pub mod neo_crypto;
 pub mod neo_error;
 pub mod neo_protocol;
 pub mod neo_types;
+pub mod neo_utils;
 pub mod neo_wallets;
 pub mod neo_x;
 
@@ -338,6 +339,8 @@ pub mod prelude {
 	
 	#[cfg(feature = "sgx")]
 	pub use super::neo_sgx::*;
+	
+	pub use super::neo_utils::error::*;
 }
 
 #[cfg(test)]
@@ -381,11 +384,11 @@ mod tests {
 						],
 						None,
 					)
-					.unwrap()
+					.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?
 					.to_bytes(),
 			))
 			.set_signers(vec![AccountSigner::called_by_entry(&sender)?.into()])
-			.unwrap()
+			.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?
 			.valid_until_block(rpc_client.get_block_count().await? + 5760)?; // Valid for ~1 day
 
 		// Sign the transaction

@@ -12,7 +12,7 @@ pub struct NNSName {
 
 impl NNSName {
 	pub fn new(name: &str) -> Result<Self, TypeError> {
-		Self::validate(name, true).unwrap();
+		Self::validate(name, true)?;
 		Ok(Self { name: name.to_owned() })
 	}
 
@@ -30,8 +30,10 @@ impl NNSName {
 			return Err(TypeError::InvalidNeoName("Multiple fragments not allowed".to_string()));
 		}
 
-		for fragment in &fragments {
-			Self::validate_fragment(fragment, fragment == fragments.last().unwrap()).unwrap();
+		let fragments_len = fragments.len();
+		for (i, fragment) in fragments.iter().enumerate() {
+			let is_last = i == fragments_len - 1;
+			Self::validate_fragment(fragment, is_last)?;
 		}
 
 		Ok(())
@@ -43,7 +45,8 @@ impl NNSName {
 			return Err(TypeError::InvalidNeoName("Invalid fragment length".to_string()));
 		}
 
-		let first = fragment.chars().next().unwrap();
+		let first = fragment.chars().next()
+			.ok_or_else(|| TypeError::InvalidNeoName("Fragment cannot be empty".to_string()))?;
 		if is_root && !first.is_ascii_alphabetic() {
 			return Err(TypeError::InvalidNeoName("Root must start with letter".to_string()));
 		} else if !is_root && !(first.is_ascii_alphanumeric() || first == '-') {
@@ -58,7 +61,8 @@ impl NNSName {
 			return Err(TypeError::InvalidNeoName("Invalid character in fragment".to_string()));
 		}
 
-		let last = fragment.chars().last().unwrap();
+		let last = fragment.chars().last()
+			.ok_or_else(|| TypeError::InvalidNeoName("Fragment cannot be empty".to_string()))?;
 		if !(last.is_ascii_alphanumeric()) {
 			return Err(TypeError::InvalidNeoName("Must end with alphanumeric".to_string()));
 		}
@@ -67,8 +71,7 @@ impl NNSName {
 	}
 
 	pub fn validate(name: &str, allow_multi_fragments: bool) -> Result<(), TypeError> {
-		Self::is_valid(name, allow_multi_fragments).unwrap();
-		Ok(())
+		Self::is_valid(name, allow_multi_fragments)
 	}
 
 	pub fn bytes(&self) -> Vec<u8> {
@@ -87,7 +90,7 @@ pub struct NNSRoot {
 
 impl NNSRoot {
 	pub fn new(root: &str) -> Result<Self, TypeError> {
-		Self::validate(root).unwrap();
+		Self::validate(root)?;
 		Ok(Self { root: root.to_owned() })
 	}
 

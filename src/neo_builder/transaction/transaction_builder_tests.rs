@@ -39,28 +39,28 @@ mod tests {
 					&hex::decode(
 						"e6e919577dd7b8e97805151c05ae07ff4f752654d6d8797597aca989c02c4cb3"
 					)
-					.unwrap()
+					.expect("Test private key 1 should be valid hex")
 				)
-				.unwrap()
+				.expect("Test private key 1 should be valid bytes for Secp256r1PrivateKey")
 			),
 			None,
 			None
 		)
-		.expect("Failed to create ACCOUNT1");
+		.expect("Failed to create ACCOUNT1 from valid key pair");
 		pub static ref ACCOUNT2: Account = Account::from_key_pair(
 			KeyPair::from_secret_key(
 				&Secp256r1PrivateKey::from_bytes(
 					&hex::decode(
 						"b4b2b579cac270125259f08a5f414e9235817e7637b9a66cfeb3b77d90c8e7f9"
 					)
-					.unwrap()
+					.expect("Test private key 2 should be valid hex")
 				)
-				.unwrap()
+				.expect("Test private key 2 should be valid bytes for Secp256r1PrivateKey")
 			),
 			None,
 			None
 		)
-		.expect("Failed to create ACCOUNT2");
+		.expect("Failed to create ACCOUNT2 from valid key pair");
 	}
 
 	static CLIENT: OnceCell<RpcClient<HttpProvider>> = OnceCell::const_new();
@@ -539,7 +539,7 @@ mod tests {
 			.add_attributes(vec![TransactionAttribute::HighPriority])
 			.unwrap()
 			.set_signers(vec![AccountSigner::none(&multi_sig_account).unwrap().into()])
-			.expect("TODO: panic message");
+			.expect("Failed to set signers in test - this should never fail with valid test data");
 
 		let tx = tb.get_unsigned_tx().await;
 		match tx {
@@ -585,7 +585,7 @@ mod tests {
 			.add_attributes(vec![TransactionAttribute::HighPriority])
 			.unwrap()
 			.set_signers(vec![AccountSigner::none(ACCOUNT1.deref()).unwrap().into()])
-			.expect("TODO: panic message");
+			.expect("Failed to set signers for high priority transaction test");
 
 		let tx = tb.get_unsigned_tx().await.unwrap();
 		assert_eq!(tx.attributes()[0], TransactionAttribute::HighPriority);
@@ -1899,7 +1899,7 @@ mod tests {
 		tx_builder
 			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::none(&account).unwrap().into()])
-			.expect("TODO: panic message");
+			.expect("Failed to set signers in test - this should never fail with valid test data");
 
 		let tx = match tx_builder.get_unsigned_tx().await {
 			Ok(tx) => tx,
@@ -2053,7 +2053,7 @@ mod tests {
 			.nonce(0)
 			.unwrap()
 			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()])
-			.expect("TODO: panic message");
+			.expect("Failed to set signers in test - this should never fail with valid test data");
 
 		let mut tx = tx_builder.sign().await.unwrap();
 		let _ = tx.send_tx().await.map_err(TransactionError::from).unwrap();
@@ -2117,7 +2117,7 @@ mod tests {
 			.nonce(0)
 			.unwrap()
 			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()])
-			.expect("TODO: panic message");
+			.expect("Failed to set signers in test - this should never fail with valid test data");
 
 		let tx = tx_builder.sign().await.unwrap();
 
@@ -2181,7 +2181,7 @@ mod tests {
 		tx_builder
 			.set_script(Some(script))
 			.set_signers(vec![AccountSigner::called_by_entry(&account1).unwrap().into()])
-			.expect("TODO: panic message");
+			.expect("Failed to set signers in test - this should never fail with valid test data");
 
 		let mut tx =
 			tx_builder.sign().await.map_err(|e| TransactionError::BuilderError(e)).unwrap();
@@ -2335,7 +2335,7 @@ mod tests {
 		tx_builder
 			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::none(&account).unwrap().into()])
-			.expect("TODO: panic message");
+			.expect("Failed to set signers in test - this should never fail with valid test data");
 		// .allow_transmission_on_fault();
 
 		let result = tx_builder.call_invoke_script().await.unwrap();
@@ -2380,7 +2380,7 @@ mod tests {
 		tx_builder
 			.set_script(Some(vec![1, 2, 3]))
 			.set_signers(vec![AccountSigner::none(&account).unwrap().into()])
-			.expect("TODO: panic message");
+			.expect("Failed to set signers in test - this should never fail with valid test data");
 
 		assert!(!NEOCONFIG.lock().unwrap().allows_transmission_on_fault);
 
@@ -2416,7 +2416,7 @@ mod tests {
 				AccountSigner::called_by_entry(&account1).unwrap().into(),
 				AccountSigner::called_by_entry(&account2).unwrap().into(),
 			])
-			.expect("TODO: panic message");
+			.expect("Failed to set signers in test - this should never fail with valid test data");
 
 		let tx = tx_builder.sign().await.unwrap();
 

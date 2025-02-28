@@ -86,8 +86,17 @@ impl Wallet {
 
 	/// Creates a new wallet instance with a default account.
 	pub fn new() -> Self {
-		let mut account = Account::create().unwrap();
-		account.is_default = true;
+		let account = match Account::create() {
+			Ok(mut acc) => {
+				acc.is_default = true;
+				acc
+			},
+			Err(e) => {
+				eprintln!("Failed to create account: {}", e);
+				return Self::default();
+			}
+		};
+		
 		let mut accounts = HashMap::new();
 		accounts.insert(account.address_or_scripthash.script_hash(), account.clone());
 		Self {
@@ -114,16 +123,26 @@ impl Wallet {
 
 	/// Converts the wallet to a NEP6Wallet format.
 	pub fn to_nep6(&self) -> Result<NEP6Wallet, WalletError> {
+		let accounts = self
+			.accounts
+			.clone()
+			.into_iter()
+			.filter_map(|(_, account)| {
+				match NEP6Account::from_account(&account) {
+					Ok(nep6_account) => Some(nep6_account),
+					Err(e) => {
+						eprintln!("Failed to convert account to NEP6Account: {}", e);
+						None
+					}
+				}
+			})
+			.collect::<Vec<NEP6Account>>();
+			
 		Ok(NEP6Wallet {
 			name: self.name.clone(),
 			version: self.version.clone(),
 			scrypt: self.scrypt_params.clone(),
-			accounts: self
-				.accounts
-				.clone()
-				.into_iter()
-				.map(|(_, account)| NEP6Account::from_account(&account).unwrap())
-				.collect::<Vec<NEP6Account>>(),
+			accounts,
 			extra: None,
 		})
 	}
@@ -136,20 +155,24 @@ impl Wallet {
 			.filter_map(|v| v.to_account().ok())
 			.collect::<Vec<_>>();
 
-		let default_account = nep6
-			.accounts()
-			.iter()
-			.find(|a| a.is_default)
-			.map(|a| a.address())
-			.ok_or(WalletError::NoDefaultAccount)
-			.unwrap();
+		// Find default account or use first account
+		let default_account_address = if let Some(account) = nep6.accounts().iter().find(|a| a.is_default) {
+			account.address().clone()
+		} else if let Some(account) = nep6.accounts().first() {
+			eprintln!("No default account found, using first account");
+			account.address().clone()
+		} else {
+			eprintln!("No accounts found, using empty address");
+			String::new()
+		};
 
 		Ok(Self {
 			name: nep6.name().clone(),
 			version: nep6.version().clone(),
 			scrypt_params: nep6.scrypt().clone(),
 			accounts: accounts.into_iter().map(|a| (a.get_script_hash().clone(), a)).collect(),
-			default_account: default_account.address_to_script_hash().unwrap(),
+			default_account: default_account_address.address_to_script_hash()
+				.map_err(|e| WalletError::AccountState(format!("Failed to convert address to script hash: {}", e)))?,
 			extra: nep6.extra.clone(),
 		})
 	}
@@ -158,7 +181,7 @@ impl Wallet {
 	// 	let balances = HTTP_PROVIDER
 	// 		.get_nep17_balances(self.get_script_hash().clone())
 	// 		.await
-	// 		.unwrap();
+	// 		.map_err(|e| WalletError::RpcError(format!("Failed to get NEP17 balances: {}", e)))?;
 	// 	let mut nep17_balances = HashMap::new();
 	// 	for balance in balances.balances {
 	// 		nep17_balances.insert(balance.asset_hash, u32::from_str(&balance.amount).unwrap());
@@ -212,20 +235,27 @@ impl Wallet {
 			wallet.add_account(account.clone());
 			// account.wallet = Some(self);
 		}
-		wallet.set_default_account(accounts.first().unwrap().get_script_hash());
+		if let Some(first_account) = accounts.first() {
+			wallet.set_default_account(first_account.get_script_hash());
+		} else {
+			return Err(WalletError::NoAccounts);
+		}
 		Ok(wallet)
 	}
 
 	pub fn save_to_file(&self, path: PathBuf) -> Result<(), WalletError> {
 		// Convert wallet to NEP6
-		let nep6 = self.to_nep6().unwrap();
+		let nep6 = self.to_nep6()?;
 
 		// Encode as JSON
-		let json = serde_json::to_string(&nep6).unwrap();
+		let json = serde_json::to_string(&nep6)
+			.map_err(|e| WalletError::AccountState(format!("Failed to serialize wallet to JSON: {}", e)))?;
 
 		// Write to file at path
-		let mut file = File::create(path).unwrap();
-		file.write_all(json.as_bytes()).unwrap();
+		let mut file = File::create(path)
+			.map_err(|e| WalletError::IoError(e))?;
+		file.write_all(json.as_bytes())
+			.map_err(|e| WalletError::IoError(e))?;
 
 		Ok(())
 	}
@@ -285,7 +315,7 @@ impl Wallet {
 			.clone()
 			.key_pair()
 			.clone()
-			.unwrap()
+			.ok_or_else(|| WalletError::NoKeyPair)?
 			.private_key()
 			.sign_tx(message_hash)
 			.map_err(|_e| WalletError::NoKeyPair)
@@ -331,7 +361,8 @@ impl Wallet {
 
 		Witness::create(
 			tx.get_hash_data().await?,
-			&self.default_account().key_pair.clone().unwrap(),
+			&self.default_account().key_pair.clone()
+				.ok_or_else(|| WalletError::NoKeyPair)?,
 		)
 		.map_err(|_e| WalletError::NoKeyPair)
 	}
@@ -404,7 +435,8 @@ mod tests {
 
 	#[test]
 	fn test_is_default() {
-		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS)
+			.expect("Should be able to create account from valid address in test");
 		let mut wallet: Wallet = Wallet::new();
 		wallet.add_account(account.clone());
 
@@ -412,12 +444,14 @@ mod tests {
 
 		let hash = account.address_or_scripthash.script_hash();
 		wallet.set_default_account(hash.clone());
-		assert!(wallet.get_account(&hash).unwrap().is_default);
+		assert!(wallet.get_account(&hash)
+			.expect("Account should exist in wallet").is_default);
 	}
 
 	// #[test]
 	// fn test_wallet_link() {
-	// 	let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS).unwrap();
+	// 	let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS)
+	// 		.expect("Should be able to create account from valid address in test");
 	// 	let wallet = Wallet::create().unwrap();
 	//
 	// 	assert!(account.wallet.is_none());
@@ -437,10 +471,13 @@ mod tests {
 
 	#[test]
 	fn test_create_wallet_with_accounts() {
-		let account1 = Account::create().unwrap();
-		let account2 = Account::create().unwrap();
+		let account1 = Account::create()
+			.expect("Should be able to create account in test");
+		let account2 = Account::create()
+			.expect("Should be able to create account in test");
 
-		let wallet = Wallet::from_accounts(vec![account1.clone(), account2.clone()]).unwrap();
+		let wallet = Wallet::from_accounts(vec![account1.clone(), account2.clone()])
+			.expect("Should be able to create wallet from accounts in test");
 
 		assert_eq!(wallet.default_account(), &account1);
 		assert_eq!(wallet.accounts.len(), 2);
@@ -458,15 +495,18 @@ mod tests {
 
 	#[test]
 	fn test_is_default_account() {
-		let account = Account::create().unwrap();
-		let mut wallet = Wallet::from_accounts(vec![account.clone()]).unwrap();
+		let account = Account::create()
+			.expect("Should be able to create account in test");
+		let mut wallet = Wallet::from_accounts(vec![account.clone()])
+			.expect("Should be able to create wallet from accounts in test");
 
 		assert_eq!(wallet.default_account, account.get_script_hash());
 	}
 
 	#[test]
 	fn test_add_account() {
-		let account = Account::create().unwrap();
+		let account = Account::create()
+			.expect("Should be able to create account in test");
 		let mut wallet: Wallet = Wallet::new();
 
 		wallet.add_account(account.clone());
@@ -481,7 +521,8 @@ mod tests {
 	#[test]
 	fn test_encrypt_wallet() {
 		let mut wallet: Wallet = Wallet::new();
-		wallet.add_account(Account::create().unwrap());
+		wallet.add_account(Account::create()
+			.expect("Should be able to create account in test"));
 
 		assert!(wallet.accounts()[0].key_pair().is_some());
 		assert!(wallet.accounts()[1].key_pair().is_some());

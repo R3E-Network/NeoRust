@@ -51,41 +51,49 @@ impl NefFile {
 	const CHECKSUM_SIZE: usize = 4;
 	pub const HEADER_SIZE: usize = Self::MAGIC_SIZE + Self::COMPILER_SIZE;
 
-	fn get_checksum_as_integer(bytes: &Bytes) -> i32 {
+	fn get_checksum_as_integer(bytes: &Bytes) -> Result<i32, TypeError> {
 		let mut bytes = bytes.clone();
 		bytes.reverse();
-		i32::from_be_bytes(bytes.try_into().unwrap())
+		bytes.try_into()
+			.map(i32::from_be_bytes)
+			.map_err(|_| TypeError::InvalidEncoding("Failed to convert checksum bytes to i32".to_string()))
 	}
 
-	fn compute_checksum(file: &NefFile) -> Bytes {
+	fn compute_checksum(file: &NefFile) -> Result<Bytes, TypeError> {
 		Self::compute_checksum_from_bytes(file.to_array())
 	}
 
-	fn compute_checksum_from_bytes(bytes: Bytes) -> Bytes {
+	fn compute_checksum_from_bytes(bytes: Bytes) -> Result<Bytes, TypeError> {
 		let mut file_bytes = bytes.clone();
 		file_bytes.truncate(bytes.len() - Self::CHECKSUM_SIZE);
-		file_bytes.hash256()[..Self::CHECKSUM_SIZE].try_into().unwrap()
+		file_bytes.hash256()[..Self::CHECKSUM_SIZE].try_into()
+			.map_err(|_| TypeError::InvalidEncoding("Failed to extract checksum from hash".to_string()))
 	}
 
 	fn read_from_file(file: &str) -> Result<Self, TypeError> {
-		let file_bytes = std::fs::read(file).unwrap();
+		let file_bytes = std::fs::read(file)
+			.map_err(|e| TypeError::InvalidArgError(format!("Failed to read NEF file: {}", e)))?;
+			
 		if file_bytes.len() > 0x100000 {
 			return Err(TypeError::InvalidArgError("NEF file is too large".to_string()));
 		}
 
 		let mut reader = Decoder::new(&file_bytes);
-		let nef = reader.read_serializable().unwrap();
-		Ok(nef)
+		reader.read_serializable()
+			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to deserialize NEF file: {}", e)))
 	}
 
 	fn read_from_stack_item(item: StackItem) -> Result<Self, TypeError> {
 		if let StackItem::ByteString { value: bytes } = item {
 			let mut reader = Decoder::new(&bytes.as_bytes());
-			let nef = reader.read_serializable().unwrap();
-			Ok(nef)
+			reader.read_serializable()
+				.map_err(|e| TypeError::InvalidEncoding(format!("Failed to deserialize NEF from stack item: {}", e)))
 		} else {
+			let item_str = serde_json::to_string(&item)
+				.map_err(|e| TypeError::InvalidFormat(format!("Failed to serialize stack item: {}", e)))?;
+				
 			Err(TypeError::UnexpectedReturnType(
-				serde_json::to_string(&item).unwrap() + StackItem::BYTE_STRING_VALUE,
+				item_str + StackItem::BYTE_STRING_VALUE,
 			))
 		}
 	}
@@ -118,7 +126,9 @@ impl NeoSerializable for NefFile {
 	}
 
 	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
-		let magic = reader.read_u32();
+		let magic = reader.read_u32()
+			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to read magic: {}", e)))?;
+			
 		if magic != Self::MAGIC {
 			return Err(TypeError::InvalidEncoding("Invalid magic".to_string()));
 		}
@@ -138,7 +148,8 @@ impl NeoSerializable for NefFile {
 
 		let method_tokens = reader.read_serializable_list()?;
 
-		if reader.read_u16() != 0 {
+		if reader.read_u16()
+			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to read reserve bytes: {}", e)))? != 0 {
 			return Err(TypeError::InvalidEncoding("Invalid reserve bytes".to_string()));
 		}
 
@@ -151,7 +162,8 @@ impl NeoSerializable for NefFile {
 			Self { compiler: Some(compiler), source_url, method_tokens, script, checksum: vec![] };
 
 		let checksum = reader.read_bytes(Self::CHECKSUM_SIZE)?;
-		if checksum != Self::compute_checksum(&file) {
+		let computed_checksum = Self::compute_checksum(&file)?;
+		if checksum != computed_checksum {
 			return Err(TypeError::InvalidEncoding("Invalid checksum".to_string()));
 		}
 
@@ -207,7 +219,8 @@ impl NeoSerializable for MethodToken {
 	{
 		let hash = reader.read_serializable()?;
 		let method = reader.read_var_string()?;
-		let params_count = reader.read_u16();
+		let params_count = reader.read_u16()
+			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to read params_count: {}", e)))?;
 		let has_return_value = reader.read_bool();
 		let call_flags = reader.read_u8();
 

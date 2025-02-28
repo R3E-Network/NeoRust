@@ -50,6 +50,18 @@ pub enum ProviderError {
 	TypeError(#[from] TypeError),
 	#[error("Invalid password")]
 	InvalidPassword,
+	/// Error parsing data
+	#[error("Parse error: {0}")]
+	ParseError(String),
+	/// Error locking a mutex
+	#[error("Lock error")]
+	LockError,
+	/// Protocol not found
+	#[error("Protocol not found")]
+	ProtocolNotFound,
+	/// Network not found
+	#[error("Network not found")]
+	NetworkNotFound,
 }
 
 impl PartialEq for ProviderError {
@@ -83,7 +95,6 @@ impl Clone for ProviderError {
 			)),
 			ProviderError::HexError(error) => ProviderError::HexError(error.clone()),
 			ProviderError::HTTPError(error) => ProviderError::HTTPError(Arc::clone(error)),
-
 			ProviderError::JsonRpcError(error) => ProviderError::JsonRpcError(error.clone()),
 			ProviderError::CustomError(message) => ProviderError::CustomError(message.clone()),
 			ProviderError::UnsupportedRPC => ProviderError::UnsupportedRPC,
@@ -94,6 +105,10 @@ impl Clone for ProviderError {
 			ProviderError::CryptoError(error) => ProviderError::CryptoError(error.clone()),
 			ProviderError::TypeError(error) => ProviderError::TypeError(error.clone()),
 			ProviderError::InvalidPassword => ProviderError::InvalidPassword,
+			ProviderError::ParseError(message) => ProviderError::ParseError(message.clone()),
+			ProviderError::LockError => ProviderError::LockError,
+			ProviderError::ProtocolNotFound => ProviderError::ProtocolNotFound,
+			ProviderError::NetworkNotFound => ProviderError::NetworkNotFound,
 		}
 	}
 }

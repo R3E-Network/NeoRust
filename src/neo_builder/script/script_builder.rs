@@ -171,7 +171,12 @@ impl ScriptBuilder {
 	/// builder.sys_call(InteropService::SystemRuntimeCheckWitness);
 	/// ```
 	pub fn sys_call(&mut self, operation: InteropService) -> &mut Self {
-		self.push_opcode_bytes(OpCode::Syscall, operation.hash().from_hex().unwrap())
+		self.push_opcode_bytes(
+			OpCode::Syscall, 
+			operation.hash().from_hex()
+				.map_err(|e| BuilderError::IllegalArgument(format!("Invalid operation hash: {}", e)))
+				.expect("InteropService hash should always be valid hex")
+		)
 	}
 
 	/// Pushes an array of contract parameters to the script.
@@ -196,12 +201,13 @@ impl ScriptBuilder {
 	///     ContractParameter::from(true)
 	/// ]);
 	/// ```
-	pub fn push_params(&mut self, params: &[ContractParameter]) -> &mut Self {
+	pub fn push_params(&mut self, params: &[ContractParameter]) -> Result<&mut Self, BuilderError> {
 		for param in params {
-			self.push_param(param).expect("Its expected to be a successful push.");
+			self.push_param(param)
+				.map_err(|e| BuilderError::IllegalArgument(format!("Failed to push parameter: {}", e)))?;
 		}
 
-		self.push_integer(BigInt::from(params.len())).op_code(&[OpCode::Pack])
+		Ok(self.push_integer(BigInt::from(params.len())).op_code(&[OpCode::Pack]))
 	}
 
 	/// Pushes a single contract parameter to the script.
@@ -228,7 +234,8 @@ impl ScriptBuilder {
 			self.op_code(&[OpCode::PushNull]);
 			return Ok(self);
 		}
-		match &param.value.clone().unwrap() {
+		match &param.value.clone()
+			.ok_or_else(|| BuilderError::IllegalArgument("Parameter value is None".to_string()))? {
 			ParameterValue::Boolean(b) => self.push_bool(*b),
 			ParameterValue::Integer(i) => self.push_integer(BigInt::from(i.clone())),
 			ParameterValue::ByteArray(b)
@@ -237,8 +244,10 @@ impl ScriptBuilder {
 			ParameterValue::H160(h) => self.push_data(h.as_bytes().to_vec()),
 			ParameterValue::H256(h) => self.push_data(h.as_bytes().to_vec()),
 			ParameterValue::String(s) => self.push_data(s.as_bytes().to_vec()),
-			ParameterValue::Array(arr) => self.push_array(arr).unwrap(),
-			ParameterValue::Map(map) => self.push_map(&map.0).unwrap(),
+			ParameterValue::Array(arr) => self.push_array(arr)
+				.map_err(|e| BuilderError::IllegalArgument(format!("Failed to push array: {}", e)))?,
+			ParameterValue::Map(map) => self.push_map(&map.0)
+				.map_err(|e| BuilderError::IllegalArgument(format!("Failed to push map: {}", e)))?,
 			_ =>
 				return Err(BuilderError::IllegalArgument("Unsupported parameter type".to_string())),
 		};

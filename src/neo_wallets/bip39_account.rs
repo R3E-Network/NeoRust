@@ -65,15 +65,18 @@ impl Bip39Account {
 	/// ```
 	pub fn create(password: &str) -> Result<Self, Box<dyn std::error::Error>> {
 		let mut rng = bip39::rand::thread_rng();
-		let mnemonic = Mnemonic::generate_in_with(&mut rng, Language::English, 24).unwrap();
+		let mnemonic = Mnemonic::generate_in_with(&mut rng, Language::English, 24)
+			.map_err(|e| Box::<dyn std::error::Error>::from(format!("Failed to generate mnemonic: {}", e)))?;
 		let seed = mnemonic.to_seed(password);
 
 		let mut hasher = Sha256::new();
 		hasher.update(&seed);
 		let private_key = hasher.finalize();
 
-		let key_pair = KeyPair::from_private_key(private_key.as_ref()).unwrap();
-		let account = Account::from_key_pair(key_pair.clone(), None, None).unwrap();
+		let key_pair = KeyPair::from_private_key(private_key.as_ref())
+			.map_err(|e| Box::<dyn std::error::Error>::from(format!("Failed to create key pair: {}", e)))?;
+		let account = Account::from_key_pair(key_pair.clone(), None, None)
+			.map_err(|e| Box::<dyn std::error::Error>::from(format!("Failed to create account from key pair: {}", e)))?;
 
 		Ok(Self { account, mnemonic: mnemonic.to_string() })
 	}
@@ -109,8 +112,10 @@ impl Bip39Account {
 		hasher.update(&seed);
 		let private_key = hasher.finalize();
 
-		let key_pair = KeyPair::from_private_key(private_key.as_ref()).unwrap();
-		let account = Account::from_key_pair(key_pair.clone(), None, None).unwrap();
+		let key_pair = KeyPair::from_private_key(private_key.as_ref())
+			.map_err(|e| Box::<dyn std::error::Error>::from(format!("Failed to create key pair: {}", e)))?;
+		let account = Account::from_key_pair(key_pair.clone(), None, None)
+			.map_err(|e| Box::<dyn std::error::Error>::from(format!("Failed to create account from key pair: {}", e)))?;
 
 		Ok(Self { account, mnemonic: mnemonic.to_string() })
 	}
@@ -123,7 +128,8 @@ mod tests {
 	#[test]
 	fn test_create_bip39_account() {
 		let password = "test_password";
-		let account = Bip39Account::create(password).unwrap();
+		let account = Bip39Account::create(password)
+			.expect("Should be able to create Bip39Account in test");
 
 		// Check that mnemonic is 24 words
 		assert_eq!(account.mnemonic.split_whitespace().count(), 24);
@@ -135,11 +141,13 @@ mod tests {
 	#[test]
 	fn test_recover_from_mnemonic() {
 		let password = "test_password";
-		let original = Bip39Account::create(password).unwrap();
+		let original = Bip39Account::create(password)
+			.expect("Should be able to create Bip39Account in test");
 		let mnemonic = original.mnemonic.clone();
 
 		// Recover account using mnemonic
-		let recovered = Bip39Account::from_bip39_mnemonic(password, &mnemonic).unwrap();
+		let recovered = Bip39Account::from_bip39_mnemonic(password, &mnemonic)
+			.expect("Should be able to recover Bip39Account from mnemonic in test");
 
 		// Verify recovered account matches original
 		assert_eq!(original.account.get_script_hash(), recovered.account.get_script_hash());
@@ -154,8 +162,10 @@ mod tests {
 
 	#[test]
 	fn test_different_passwords_different_accounts() {
-		let account1 = Bip39Account::create("password1").unwrap();
-		let account2 = Bip39Account::create("password2").unwrap();
+		let account1 = Bip39Account::create("password1")
+			.expect("Should be able to create Bip39Account in test");
+		let account2 = Bip39Account::create("password2")
+			.expect("Should be able to create Bip39Account in test");
 
 		assert_ne!(account1.account.get_script_hash(), account2.account.get_script_hash());
 	}
@@ -163,8 +173,10 @@ mod tests {
 	#[test]
 	fn test_generate_and_recover_bip39_account() {
 		let password = "Insecure Pa55w0rd";
-		let account1 = Bip39Account::create(password).unwrap();
-		let account2 = Bip39Account::from_bip39_mnemonic(password, &account1.mnemonic).unwrap();
+		let account1 = Bip39Account::create(password)
+			.expect("Should be able to create Bip39Account in test");
+		let account2 = Bip39Account::from_bip39_mnemonic(password, &account1.mnemonic)
+			.expect("Should be able to recover Bip39Account from mnemonic in test");
 
 		assert_eq!(account1.account.get_address(), account2.account.get_address());
 		assert!(account1.account.key_pair().is_some());

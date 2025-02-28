@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use neo::prelude::{deserialize_script_hash, serialize_script_hash, ContractManifest, ScriptHash};
 
-#[derive(Serialize, Deserialize, Hash, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Hash)]
 pub struct ExpressContractState {
 	#[serde(serialize_with = "serialize_script_hash")]
 	#[serde(deserialize_with = "deserialize_script_hash")]
@@ -17,8 +17,4 @@ impl ExpressContractState {
 	}
 }
 
-impl PartialEq for ExpressContractState {
-	fn eq(&self, other: &Self) -> bool {
-		self.hash == other.hash && self.manifest == other.manifest
-	}
-}
+// PartialEq is now derived
