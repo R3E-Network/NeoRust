@@ -45,7 +45,9 @@ impl NNSName {
 			return Err(TypeError::InvalidNeoName("Invalid fragment length".to_string()));
 		}
 
-		let first = fragment.chars().next()
+		let first = fragment
+			.chars()
+			.next()
 			.ok_or_else(|| TypeError::InvalidNeoName("Fragment cannot be empty".to_string()))?;
 		if is_root && !first.is_ascii_alphabetic() {
 			return Err(TypeError::InvalidNeoName("Root must start with letter".to_string()));
@@ -61,7 +63,9 @@ impl NNSName {
 			return Err(TypeError::InvalidNeoName("Invalid character in fragment".to_string()));
 		}
 
-		let last = fragment.chars().last()
+		let last = fragment
+			.chars()
+			.last()
 			.ok_or_else(|| TypeError::InvalidNeoName("Fragment cannot be empty".to_string()))?;
 		if !(last.is_ascii_alphanumeric()) {
 			return Err(TypeError::InvalidNeoName("Must end with alphanumeric".to_string()));

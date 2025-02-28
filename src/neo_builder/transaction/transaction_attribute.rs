@@ -142,12 +142,26 @@ impl NeoSerializable for TransactionAttribute {
 		match reader.read_u8() {
 			0x01 => Ok(TransactionAttribute::HighPriority),
 			0x11 => {
-				let id = reader.read_u32()
-					.map_err(|e| TransactionError::TransactionConfiguration(format!("Failed to read oracle response ID: {}", e)))?;
-				let response_code = OracleResponseCode::try_from(reader.read_u8())
-					.map_err(|_| TransactionError::TransactionConfiguration("Invalid oracle response code".to_string()))?;
-				let result = reader.read_var_bytes()
-					.map_err(|e| TransactionError::TransactionConfiguration(format!("Failed to read oracle response result: {}", e)))?
+				let id = reader.read_u32().map_err(|e| {
+					TransactionError::TransactionConfiguration(format!(
+						"Failed to read oracle response ID: {}",
+						e
+					))
+				})?;
+				let response_code =
+					OracleResponseCode::try_from(reader.read_u8()).map_err(|_| {
+						TransactionError::TransactionConfiguration(
+							"Invalid oracle response code".to_string(),
+						)
+					})?;
+				let result = reader
+					.read_var_bytes()
+					.map_err(|e| {
+						TransactionError::TransactionConfiguration(format!(
+							"Failed to read oracle response result: {}",
+							e
+						))
+					})?
 					.to_base64();
 
 				Ok(TransactionAttribute::OracleResponse(OracleResponse {

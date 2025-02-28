@@ -25,11 +25,13 @@ use crate::prelude::ScriptHash;
 /// ```
 pub fn parse_string_u64(u64_str: &str) -> Result<u64, TypeError> {
 	if u64_str.starts_with("0x") {
-		u64::from_str_radix(&u64_str[2..], 16)
-			.map_err(|e| TypeError::InvalidFormat(format!("Failed to parse hex u64 '{}': {}", u64_str, e)))
+		u64::from_str_radix(&u64_str[2..], 16).map_err(|e| {
+			TypeError::InvalidFormat(format!("Failed to parse hex u64 '{}': {}", u64_str, e))
+		})
 	} else {
-		u64::from_str_radix(u64_str, 10)
-			.map_err(|e| TypeError::InvalidFormat(format!("Failed to parse decimal u64 '{}': {}", u64_str, e)))
+		u64::from_str_radix(u64_str, 10).map_err(|e| {
+			TypeError::InvalidFormat(format!("Failed to parse decimal u64 '{}': {}", u64_str, e))
+		})
 	}
 }
 
@@ -48,11 +50,13 @@ pub fn parse_string_u64(u64_str: &str) -> Result<u64, TypeError> {
 /// ```
 pub fn parse_string_u256(u256_str: &str) -> Result<U256, TypeError> {
 	if u256_str.starts_with("0x") {
-		U256::from_str_radix(&u256_str[2..], 16)
-			.map_err(|e| TypeError::InvalidFormat(format!("Failed to parse hex U256 '{}': {}", u256_str, e)))
+		U256::from_str_radix(&u256_str[2..], 16).map_err(|e| {
+			TypeError::InvalidFormat(format!("Failed to parse hex U256 '{}': {}", u256_str, e))
+		})
 	} else {
-		U256::from_str_radix(u256_str, 10)
-			.map_err(|e| TypeError::InvalidFormat(format!("Failed to parse decimal U256 '{}': {}", u256_str, e)))
+		U256::from_str_radix(u256_str, 10).map_err(|e| {
+			TypeError::InvalidFormat(format!("Failed to parse decimal U256 '{}': {}", u256_str, e))
+		})
 	}
 }
 
@@ -67,15 +71,17 @@ pub fn parse_string_u256(u256_str: &str) -> Result<U256, TypeError> {
 /// assert_eq!(script_hash, ScriptHash::from_slice(&[0xab, 0xcd, 0xef, 0x12, 0x34, 0x56, 0x78, 0x90]));
 /// ```
 pub fn parse_address(address: &str) -> Result<ScriptHash, TypeError> {
-	let bytes = hex::decode(address.trim_start_matches("0x"))
-		.map_err(|e| TypeError::InvalidFormat(format!("Failed to decode address hex '{}': {}", address, e)))?;
-		
+	let bytes = hex::decode(address.trim_start_matches("0x")).map_err(|e| {
+		TypeError::InvalidFormat(format!("Failed to decode address hex '{}': {}", address, e))
+	})?;
+
 	if bytes.len() > 20 {
 		return Err(TypeError::InvalidFormat(format!(
-			"Address hex is too long: {} bytes (max 20 bytes)", bytes.len()
+			"Address hex is too long: {} bytes (max 20 bytes)",
+			bytes.len()
 		)));
 	}
-	
+
 	let mut padded_bytes = [0_u8; 20];
 	padded_bytes[20 - bytes.len()..].copy_from_slice(&bytes);
 	Ok(ScriptHash::from_slice(&padded_bytes))
@@ -109,15 +115,17 @@ pub fn encode_string_h160(h160: &H160) -> String {
 /// assert_eq!(h160, H160::from_low_u64_be(0x123456));
 /// ```
 pub fn parse_string_h160(h160_str: &str) -> Result<H160, TypeError> {
-	let bytes = hex::decode(h160_str.trim_start_matches("0x"))
-		.map_err(|e| TypeError::InvalidFormat(format!("Failed to decode H160 hex '{}': {}", h160_str, e)))?;
-		
+	let bytes = hex::decode(h160_str.trim_start_matches("0x")).map_err(|e| {
+		TypeError::InvalidFormat(format!("Failed to decode H160 hex '{}': {}", h160_str, e))
+	})?;
+
 	if bytes.len() > 20 {
 		return Err(TypeError::InvalidFormat(format!(
-			"H160 hex is too long: {} bytes (max 20 bytes)", bytes.len()
+			"H160 hex is too long: {} bytes (max 20 bytes)",
+			bytes.len()
 		)));
 	}
-	
+
 	let mut padded_bytes = [0_u8; 20];
 	padded_bytes[20 - bytes.len()..].copy_from_slice(&bytes);
 	Ok(H160::from_slice(&padded_bytes))
@@ -135,16 +143,18 @@ pub fn parse_string_h160(h160_str: &str) -> Result<H160, TypeError> {
 /// assert_eq!(h256, H256::from_low_u64_be(0x123456));
 /// ```
 pub fn parse_string_h256(h256_str: &str) -> Result<H256, TypeError> {
-	let bytes = hex::decode(h256_str.trim_start_matches("0x"))
-		.map_err(|e| TypeError::InvalidFormat(format!("Failed to decode H256 hex '{}': {}", h256_str, e)))?;
-		
+	let bytes = hex::decode(h256_str.trim_start_matches("0x")).map_err(|e| {
+		TypeError::InvalidFormat(format!("Failed to decode H256 hex '{}': {}", h256_str, e))
+	})?;
+
 	if bytes.len() > 32 {
 		return Err(TypeError::InvalidFormat(format!(
 			"The provided string is too long to be a valid H256: {} (length: {})",
-			h256_str, bytes.len()
+			h256_str,
+			bytes.len()
 		)));
 	}
-	
+
 	// pad the bytes to 32bytes
 	let mut padded_bytes = [0_u8; 32];
 	padded_bytes[32 - bytes.len()..].copy_from_slice(&bytes);
@@ -210,11 +220,11 @@ pub fn encode_vec_string_vec_u256(item: Vec<U256>) -> Vec<String> {
 /// ```
 pub fn parse_vec_string_vec_u256(item: Vec<String>) -> Result<Vec<U256>, TypeError> {
 	let mut result = Vec::with_capacity(item.len());
-	
+
 	for x in item {
 		result.push(parse_string_u256(&x)?);
 	}
-	
+
 	Ok(result)
 }
 
@@ -263,10 +273,14 @@ pub fn bytes_to_string(mybytes: &[u8]) -> String {
 pub fn string_to_bytes(mystring: &str) -> Result<Vec<u8>, TypeError> {
 	if mystring.starts_with("0x") {
 		let mystring = mystring.trim_start_matches("0x");
-		hex::decode(mystring)
-			.map_err(|e| TypeError::InvalidFormat(format!("Failed to decode hex string '{}': {}", mystring, e)))
+		hex::decode(mystring).map_err(|e| {
+			TypeError::InvalidFormat(format!("Failed to decode hex string '{}': {}", mystring, e))
+		})
 	} else {
-		Err(TypeError::InvalidFormat(format!("String '{}' does not start with '0x' prefix", mystring)))
+		Err(TypeError::InvalidFormat(format!(
+			"String '{}' does not start with '0x' prefix",
+			mystring
+		)))
 	}
 }
 
@@ -416,12 +430,12 @@ mod test {
 		let bytestring = bytes_to_string(&mybytes);
 		let orig_bytestring = "0x0102030405060708090a";
 		assert_eq!(&bytestring, orig_bytestring);
-		
+
 		// Test error case - string without 0x prefix
 		let error_bytestring = "0102030405060708090a";
 		let error_result = string_to_bytes(error_bytestring);
 		assert!(error_result.is_err());
-		
+
 		// Test success case
 		let ok_mybytes = string_to_bytes(orig_bytestring).expect("Should decode valid hex string");
 		assert_eq!(&mybytes[..], &ok_mybytes[..]);

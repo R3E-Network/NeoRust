@@ -42,7 +42,10 @@ impl FromStr for NeoClient {
 	type Err = ProviderError;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
-		let first_segment = s.split('/').next().ok_or(ProviderError::ParseError("Invalid client string format".to_string()))?;
+		let first_segment = s
+			.split('/')
+			.next()
+			.ok_or(ProviderError::ParseError("Invalid client string format".to_string()))?;
 		match first_segment.to_lowercase().as_str() {
 			"neo" => Ok(NeoClient::NEO),
 			_ => Err(ProviderError::UnsupportedNodeClient),
@@ -162,7 +165,11 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 			let protocol = version.protocol.ok_or(ProviderError::ProtocolNotFound)?;
 			return Ok(protocol.network);
 		}
-		NEOCONFIG.lock().map_err(|_| ProviderError::LockError)?.network.ok_or(ProviderError::NetworkNotFound)
+		NEOCONFIG
+			.lock()
+			.map_err(|_| ProviderError::LockError)?
+			.network
+			.ok_or(ProviderError::NetworkNotFound)
 	}
 
 	//////////////////////// Neo methods////////////////////////////
@@ -193,13 +200,17 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 			self.get_block_header(block_hash).await?
 		})
 	}
-	
+
 	/// Gets the block by hash string.
 	/// - Parameters:
 	///   - hash: The block hash as a string
 	///   - full_tx: Whether to get block information with all transaction objects or just the block header
 	/// - Returns: The request object
-	async fn get_block_by_hash(&self, hash: &str, full_tx: bool) -> Result<NeoBlock, ProviderError> {
+	async fn get_block_by_hash(
+		&self,
+		hash: &str,
+		full_tx: bool,
+	) -> Result<NeoBlock, ProviderError> {
 		let block_hash = H256::from_str(hash)
 			.map_err(|e| ProviderError::ParseError(format!("Invalid block hash: {}", e)))?;
 		self.get_block(block_hash, full_tx).await
@@ -405,7 +416,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	async fn send_raw_transaction(&self, hex: String) -> Result<RawTransaction, ProviderError> {
 		self.request("sendrawtransaction", vec![Base64Encode::to_base64(&hex)]).await
 	}
-	
+
 	/// Sends a transaction to the network
 	///
 	/// # Arguments
@@ -415,15 +426,15 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	/// # Returns
 	///
 	/// A `Result` containing the transaction hash or a `ProviderError`
-	async fn send_transaction<'a>(&self, tx: Transaction<'a, P>) -> Result<H256, ProviderError> 
-	{
+	async fn send_transaction<'a>(&self, tx: Transaction<'a, P>) -> Result<H256, ProviderError> {
 		let tx_hex = hex::encode(tx.to_array());
 		let result = self.send_raw_transaction(tx_hex).await?;
-		
+
 		// Convert the transaction hash to H256
-		let tx_hash = H256::from_str(&result.hash.to_string())
-			.map_err(|e| ProviderError::ParseError(format!("Failed to parse transaction hash: {}", e)))?;
-		
+		let tx_hash = H256::from_str(&result.hash.to_string()).map_err(|e| {
+			ProviderError::ParseError(format!("Failed to parse transaction hash: {}", e))
+		})?;
+
 		Ok(tx_hash)
 	}
 
@@ -433,7 +444,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	async fn submit_block(&self, hex: String) -> Result<SubmitBlock, ProviderError> {
 		self.request("submitblock", vec![hex.to_value()]).await
 	}
-	
+
 	/// Broadcasts the node's address to the network
 	async fn broadcast_address(&self) -> Result<bool, ProviderError> {
 		self.request("broadcastaddr", Vec::<String>::new()).await
@@ -443,7 +454,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	async fn broadcast_block(&self, block: NeoBlock) -> Result<bool, ProviderError> {
 		let block_json = serde_json::to_string(&block)
 			.map_err(|e| ProviderError::ParseError(format!("Failed to serialize block: {}", e)))?;
-		
+
 		self.request("broadcastblock", vec![block_json.to_value()]).await
 	}
 
@@ -460,8 +471,9 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	async fn broadcast_get_blocks(&self, hash: &str, count: u32) -> Result<bool, ProviderError> {
 		let hash_obj = H256::from_str(hash)
 			.map_err(|e| ProviderError::ParseError(format!("Invalid block hash: {}", e)))?;
-		
-		self.request("broadcastgetblocks", vec![hash_obj.to_value(), count.to_value()]).await
+
+		self.request("broadcastgetblocks", vec![hash_obj.to_value(), count.to_value()])
+			.await
 	}
 
 	/// Broadcasts a transaction to the network
@@ -474,12 +486,13 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	///
 	/// A `Result` containing a boolean indicating success or a `ProviderError`
 	async fn broadcast_transaction(&self, tx: RTransaction) -> Result<bool, ProviderError> {
-		let tx_json = serde_json::to_string(&tx)
-			.map_err(|e| ProviderError::ParseError(format!("Failed to serialize transaction: {}", e)))?;
-		
+		let tx_json = serde_json::to_string(&tx).map_err(|e| {
+			ProviderError::ParseError(format!("Failed to serialize transaction: {}", e))
+		})?;
+
 		self.request("broadcasttransaction", vec![tx_json.to_value()]).await
 	}
-	
+
 	/// Creates a contract deployment transaction
 	async fn create_contract_deployment_transaction(
 		&self,
@@ -488,24 +501,25 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		signers: Vec<Signer>,
 	) -> Result<TransactionBuilder<P>, ProviderError> {
 		let nef_bytes = nef.to_array();
-		let manifest_json = serde_json::to_string(&manifest)
-			.map_err(|e| ProviderError::ParseError(format!("Failed to serialize manifest: {}", e)))?;
-		
+		let manifest_json = serde_json::to_string(&manifest).map_err(|e| {
+			ProviderError::ParseError(format!("Failed to serialize manifest: {}", e))
+		})?;
+
 		let mut script_builder = ScriptBuilder::new();
 		script_builder
 			.push_data(manifest_json.as_bytes().to_vec())
 			.push_data(nef_bytes)
 			.sys_call(InteropService::SystemContractCall);
-		
+
 		let mut builder = TransactionBuilder::new();
 		builder.extend_script(script_builder.to_bytes());
-		
+
 		// Add signers to the transaction
 		// Note: Signers will be added when the transaction is built
-		
+
 		Ok(builder)
 	}
-	
+
 	/// Creates a contract update transaction
 	async fn create_contract_update_transaction(
 		&self,
@@ -515,25 +529,26 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		signers: Vec<Signer>,
 	) -> Result<TransactionBuilder<P>, ProviderError> {
 		let nef_bytes = nef.to_array();
-		let manifest_json = serde_json::to_string(&manifest)
-			.map_err(|e| ProviderError::ParseError(format!("Failed to serialize manifest: {}", e)))?;
-		
+		let manifest_json = serde_json::to_string(&manifest).map_err(|e| {
+			ProviderError::ParseError(format!("Failed to serialize manifest: {}", e))
+		})?;
+
 		let mut script_builder = ScriptBuilder::new();
 		script_builder
 			.push_data(manifest_json.as_bytes().to_vec())
 			.push_data(nef_bytes)
 			.push_data(contract_hash.to_vec())
 			.sys_call(InteropService::SystemContractCall);
-		
+
 		let mut builder = TransactionBuilder::new();
 		builder.extend_script(script_builder.to_bytes());
-		
+
 		// Add signers to the transaction
 		// Note: Signers will be added when the transaction is built
-		
+
 		Ok(builder)
 	}
-	
+
 	/// Creates an invocation transaction
 	async fn create_invocation_transaction(
 		&self,
@@ -543,15 +558,18 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		signers: Vec<Signer>,
 	) -> Result<TransactionBuilder<P>, ProviderError> {
 		let mut script_builder = ScriptBuilder::new();
-		script_builder.contract_call(&contract_hash, method, &parameters, None)
-			.map_err(|e| ProviderError::ParseError(format!("Failed to create contract call: {}", e)))?;
-		
+		script_builder
+			.contract_call(&contract_hash, method, &parameters, None)
+			.map_err(|e| {
+				ProviderError::ParseError(format!("Failed to create contract call: {}", e))
+			})?;
+
 		let mut builder = TransactionBuilder::new();
 		builder.extend_script(script_builder.to_bytes());
-		
+
 		// Add signers to the transaction
 		// Note: Signers will be added when the transaction is built
-		
+
 		Ok(builder)
 	}
 
@@ -613,7 +631,9 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	) -> Result<InvocationResult, ProviderError> {
 		let signers: Vec<TransactionSigner> =
 			signers.into_iter().map(|signer| signer.into()).collect::<Vec<_>>();
-		let hex_bytes = hex.from_hex().map_err(|e| ProviderError::ParseError(format!("Failed to parse hex: {}", e)))?;
+		let hex_bytes = hex
+			.from_hex()
+			.map_err(|e| ProviderError::ParseError(format!("Failed to parse hex: {}", e)))?;
 		let script_base64 = serde_json::to_value(hex_bytes.to_base64())?;
 		let signers_json = serde_json::to_value(&signers)?;
 		self.request("invokescript", [script_base64, signers_json]).await
@@ -1086,7 +1106,9 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	) -> Result<InvocationResult, ProviderError> {
 		let signers: Vec<TransactionSigner> =
 			signers.into_iter().map(|signer| signer.into()).collect::<Vec<_>>();
-		let hex_bytes = hex.from_hex().map_err(|e| ProviderError::ParseError(format!("Failed to parse hex: {}", e)))?;
+		let hex_bytes = hex
+			.from_hex()
+			.map_err(|e| ProviderError::ParseError(format!("Failed to parse hex: {}", e)))?;
 		let script_base64 = serde_json::to_value(hex_bytes.to_base64())?;
 		let signers_json = serde_json::to_value(&signers)?;
 		let params = vec![script_base64, signers_json, true.to_value()];

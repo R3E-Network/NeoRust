@@ -509,14 +509,21 @@ impl<'a, P: JsonRpcProvider + 'static> NeoSerializable for Transaction<'a, P> {
 		Self: Sized,
 	{
 		let version = reader.read_u8();
-		let nonce = reader.read_u32()
-			.map_err(|e| TransactionError::TransactionConfiguration(format!("Failed to read nonce: {}", e)))?;
-		let system_fee = reader.read_i64()
-			.map_err(|e| TransactionError::TransactionConfiguration(format!("Failed to read system fee: {}", e)))?;
-		let network_fee = reader.read_i64()
-			.map_err(|e| TransactionError::TransactionConfiguration(format!("Failed to read network fee: {}", e)))?;
-		let valid_until_block = reader.read_u32()
-			.map_err(|e| TransactionError::TransactionConfiguration(format!("Failed to read valid until block: {}", e)))?;
+		let nonce = reader.read_u32().map_err(|e| {
+			TransactionError::TransactionConfiguration(format!("Failed to read nonce: {}", e))
+		})?;
+		let system_fee = reader.read_i64().map_err(|e| {
+			TransactionError::TransactionConfiguration(format!("Failed to read system fee: {}", e))
+		})?;
+		let network_fee = reader.read_i64().map_err(|e| {
+			TransactionError::TransactionConfiguration(format!("Failed to read network fee: {}", e))
+		})?;
+		let valid_until_block = reader.read_u32().map_err(|e| {
+			TransactionError::TransactionConfiguration(format!(
+				"Failed to read valid until block: {}",
+				e
+			))
+		})?;
 
 		// Read signers
 		let signers: Vec<Signer> = reader.read_serializable_list::<Signer>()?;

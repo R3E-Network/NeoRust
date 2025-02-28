@@ -88,12 +88,13 @@ impl<D: Sync + Send + PrehashSigner<Signature<NistP256>>> WalletSigner<D> {
 			// in the case we don't have a network, let's use the signer chain id instead
 			// tx_with_network.set_network(self.network.map(|n| n as u32));
 		}
-		let hash_data = tx_with_network.get_hash_data().await
-			.map_err(|e| WalletError::TransactionError(neo::prelude::TransactionError::TransactionConfiguration(format!("Failed to get transaction hash data: {}", e))))?;
-			
-		self.signer
-			.sign_prehash(&hash_data)
-			.map_err(|_| WalletError::SignHashError)
+		let hash_data = tx_with_network.get_hash_data().await.map_err(|e| {
+			WalletError::TransactionError(neo::prelude::TransactionError::TransactionConfiguration(
+				format!("Failed to get transaction hash data: {}", e),
+			))
+		})?;
+
+		self.signer.sign_prehash(&hash_data).map_err(|_| WalletError::SignHashError)
 	}
 
 	/// Signs a given hash directly, without performing any additional hashing.

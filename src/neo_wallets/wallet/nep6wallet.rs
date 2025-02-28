@@ -90,8 +90,8 @@ mod tests {
 		);
 		assert!(account1.extra.is_none());
 
-		let contract1 = account1.contract.as_ref()
-			.expect("Contract should be present in test account1");
+		let contract1 =
+			account1.contract.as_ref().expect("Contract should be present in test account1");
 
 		assert_eq!(
 			contract1.script,
@@ -115,8 +115,8 @@ mod tests {
 		);
 		assert!(account2.extra.is_none());
 
-		let contract2 = account2.contract.as_ref()
-			.expect("Contract should be present in test account2");
+		let contract2 =
+			account2.contract.as_ref().expect("Contract should be present in test account2");
 
 		assert_eq!(
 			contract2.script,

@@ -54,9 +54,9 @@ impl NefFile {
 	fn get_checksum_as_integer(bytes: &Bytes) -> Result<i32, TypeError> {
 		let mut bytes = bytes.clone();
 		bytes.reverse();
-		bytes.try_into()
-			.map(i32::from_be_bytes)
-			.map_err(|_| TypeError::InvalidEncoding("Failed to convert checksum bytes to i32".to_string()))
+		bytes.try_into().map(i32::from_be_bytes).map_err(|_| {
+			TypeError::InvalidEncoding("Failed to convert checksum bytes to i32".to_string())
+		})
 	}
 
 	fn compute_checksum(file: &NefFile) -> Result<Bytes, TypeError> {
@@ -66,23 +66,25 @@ impl NefFile {
 	fn compute_checksum_from_bytes(bytes: Bytes) -> Result<Bytes, TypeError> {
 		let mut file_bytes = bytes.clone();
 		file_bytes.truncate(bytes.len() - Self::CHECKSUM_SIZE);
-		file_bytes.hash256()[..Self::CHECKSUM_SIZE].try_into()
-			.map_err(|_| TypeError::InvalidEncoding("Failed to extract checksum from hash".to_string()))
+		file_bytes.hash256()[..Self::CHECKSUM_SIZE].try_into().map_err(|_| {
+			TypeError::InvalidEncoding("Failed to extract checksum from hash".to_string())
+		})
 	}
 
 	fn read_from_file(file: &str) -> Result<Self, TypeError> {
 		let file_bytes = std::fs::read(file)
 			.map_err(|e| TypeError::InvalidArgError(format!("Failed to read NEF file: {}", e)))?;
-			
+
 		if file_bytes.len() > 0x100000 {
 			return Err(TypeError::InvalidArgError("NEF file is too large".to_string()));
 		}
 
 		let mut reader = Decoder::new(&file_bytes);
-		reader.read_serializable()
-			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to deserialize NEF file: {}", e)))
+		reader.read_serializable().map_err(|e| {
+			TypeError::InvalidEncoding(format!("Failed to deserialize NEF file: {}", e))
+		})
 	}
-	
+
 	/// Deserializes a NEF file from a byte array
 	///
 	/// # Arguments
@@ -98,22 +100,26 @@ impl NefFile {
 		}
 
 		let mut reader = Decoder::new(bytes);
-		reader.read_serializable()
-			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to deserialize NEF file: {}", e)))
+		reader.read_serializable().map_err(|e| {
+			TypeError::InvalidEncoding(format!("Failed to deserialize NEF file: {}", e))
+		})
 	}
 
 	fn read_from_stack_item(item: StackItem) -> Result<Self, TypeError> {
 		if let StackItem::ByteString { value: bytes } = item {
 			let mut reader = Decoder::new(&bytes.as_bytes());
-			reader.read_serializable()
-				.map_err(|e| TypeError::InvalidEncoding(format!("Failed to deserialize NEF from stack item: {}", e)))
+			reader.read_serializable().map_err(|e| {
+				TypeError::InvalidEncoding(format!(
+					"Failed to deserialize NEF from stack item: {}",
+					e
+				))
+			})
 		} else {
-			let item_str = serde_json::to_string(&item)
-				.map_err(|e| TypeError::InvalidFormat(format!("Failed to serialize stack item: {}", e)))?;
-				
-			Err(TypeError::UnexpectedReturnType(
-				item_str + StackItem::BYTE_STRING_VALUE,
-			))
+			let item_str = serde_json::to_string(&item).map_err(|e| {
+				TypeError::InvalidFormat(format!("Failed to serialize stack item: {}", e))
+			})?;
+
+			Err(TypeError::UnexpectedReturnType(item_str + StackItem::BYTE_STRING_VALUE))
 		}
 	}
 }
@@ -145,9 +151,10 @@ impl NeoSerializable for NefFile {
 	}
 
 	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
-		let magic = reader.read_u32()
+		let magic = reader
+			.read_u32()
 			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to read magic: {}", e)))?;
-			
+
 		if magic != Self::MAGIC {
 			return Err(TypeError::InvalidEncoding("Invalid magic".to_string()));
 		}
@@ -167,8 +174,10 @@ impl NeoSerializable for NefFile {
 
 		let method_tokens = reader.read_serializable_list()?;
 
-		if reader.read_u16()
-			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to read reserve bytes: {}", e)))? != 0 {
+		if reader.read_u16().map_err(|e| {
+			TypeError::InvalidEncoding(format!("Failed to read reserve bytes: {}", e))
+		})? != 0
+		{
 			return Err(TypeError::InvalidEncoding("Invalid reserve bytes".to_string()));
 		}
 
@@ -238,8 +247,9 @@ impl NeoSerializable for MethodToken {
 	{
 		let hash = reader.read_serializable()?;
 		let method = reader.read_var_string()?;
-		let params_count = reader.read_u16()
-			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to read params_count: {}", e)))?;
+		let params_count = reader.read_u16().map_err(|e| {
+			TypeError::InvalidEncoding(format!("Failed to read params_count: {}", e))
+		})?;
 		let has_return_value = reader.read_bool();
 		let call_flags = reader.read_u8();
 

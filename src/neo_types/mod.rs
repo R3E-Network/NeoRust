@@ -168,7 +168,7 @@ impl Base64Encode for String {
 				// In a real error handling scenario, we would return a Result
 				eprintln!("Failed to decode hex string: {}", self);
 				String::new()
-			}
+			},
 		}
 	}
 }

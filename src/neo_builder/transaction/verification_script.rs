@@ -350,10 +350,12 @@ mod tests {
 			InteropService::SystemCryptoCheckSig.hash()
 		);
 
-		let verification = VerificationScript::from(script.from_hex()
-			.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?);
+		let verification =
+			VerificationScript::from(script.from_hex().map_err(|e| {
+				BuilderError::InvalidScript(format!("Failed to decode hex: {}", e))
+			})?);
 		assert!(verification.is_single_sig());
-		
+
 		Ok(())
 	}
 
@@ -456,8 +458,10 @@ mod tests {
 
 	#[test]
 	fn test_throw_on_invalid_script() -> Result<(), BuilderError> {
-		let script = VerificationScript::from("0123456789abcdef".from_hex()
-			.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?);
+		let script =
+			VerificationScript::from("0123456789abcdef".from_hex().map_err(|e| {
+				BuilderError::InvalidScript(format!("Failed to decode hex: {}", e))
+			})?);
 
 		let err = script.get_signing_threshold().unwrap_err();
 		assert_eq!(err.to_string(), "Invalid operation");
@@ -466,7 +470,7 @@ mod tests {
 		assert_eq!(err.to_string(), "Invalid operation");
 		let err = script.get_nr_of_accounts().unwrap_err();
 		assert_eq!(err.to_string(), "Invalid operation");
-		
+
 		Ok(())
 	}
 
@@ -477,7 +481,7 @@ mod tests {
 
 		let verification = VerificationScript::from(script);
 		assert_eq!(verification.size(), 65);
-		
+
 		Ok(())
 	}
 
@@ -515,19 +519,21 @@ mod tests {
 
 		let verification = VerificationScript::from(script);
 		assert!(verification.is_multi_sig());
-		
+
 		Ok(())
 	}
 
 	#[test]
 	fn test_fail_is_multi_sig_too_short() -> Result<(), BuilderError> {
-		let script = "a89429c3be9f".from_hex()
+		let script = "a89429c3be9f"
+			.from_hex()
 			.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 		let verification = VerificationScript::from(script);
-		let script = "a89429c3be9f".from_hex()
+		let script = "a89429c3be9f"
+			.from_hex()
 			.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 		assert!(!verification.is_multi_sig());
-		
+
 		Ok(())
 	}
 
@@ -547,7 +553,7 @@ mod tests {
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
-		
+
 		Ok(())
 	}
 
@@ -563,7 +569,7 @@ mod tests {
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
-		
+
 		Ok(())
 	}
 
@@ -585,11 +591,11 @@ mod tests {
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
-		
+
 		Ok(())
 	}
 
-#[test]
+	#[test]
 	fn test_fail_is_multi_sig_n_greater_than_m() -> Result<(), BuilderError> {
 		let script = format!(
 			"{}{}{}{}{}{}{}{}3073b3bb",
@@ -607,11 +613,11 @@ mod tests {
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
-		
+
 		Ok(())
 	}
 
-#[test]
+	#[test]
 	fn test_fail_is_multi_sig_m_incorrect() -> Result<(), BuilderError> {
 		let script = format!(
 			"{}{}{}{}{}{}{}{}3073b3bb",
@@ -629,11 +635,11 @@ mod tests {
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
-		
+
 		Ok(())
 	}
 
-#[test]
+	#[test]
 	fn test_fail_is_multi_sig_missing_push_null() -> Result<(), BuilderError> {
 		let script = format!(
 			"{}{}{}{}{}{}{}3073b3bb",
@@ -650,11 +656,11 @@ mod tests {
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
-		
+
 		Ok(())
 	}
 
-#[test]
+	#[test]
 	fn test_fail_is_multi_sig_missing_syscall() -> Result<(), BuilderError> {
 		let script = format!(
 			"{}{}{}{}{}{}{}3073b3bb",
@@ -671,11 +677,11 @@ mod tests {
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
-		
+
 		Ok(())
 	}
 
-#[test]
+	#[test]
 	fn test_fail_is_multi_sig_wrong_interop_service() -> Result<(), BuilderError> {
 		let script = format!(
 			"{}{}{}{}{}{}{}{}103ab300",
@@ -693,11 +699,11 @@ mod tests {
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
-		
+
 		Ok(())
 	}
 
-#[test]
+	#[test]
 	fn test_public_keys_from_single_sig() -> Result<(), BuilderError> {
 		let script = format!(
 			"{}{}{}{}",
@@ -721,11 +727,11 @@ mod tests {
 			encoded.to_hex(),
 			"02028a99826edc0c97d18e22b6932373d908d323aa7f92656a77ec26e8861699ef"
 		);
-		
+
 		Ok(())
 	}
 
-#[test]
+	#[test]
 	fn test_public_keys_from_multi_sig() -> Result<(), BuilderError> {
 		let script = format!(
 			"{}{}{}{}{}{}{}{}{}{}",
@@ -765,7 +771,7 @@ mod tests {
 			key3.to_hex(),
 			"03f0f9b358dfed564e74ffe242713f8bc866414226649f59859b140a130818898b"
 		);
-		
+
 		Ok(())
 	}
 }

@@ -1,7 +1,7 @@
 use p256::ecdsa;
 use thiserror::Error;
 
-use neo::prelude::{BuilderError, CryptoError, TransactionError, ProviderError};
+use neo::prelude::{BuilderError, CryptoError, ProviderError, TransactionError};
 
 /// Errors that may occur within wallet operations.
 ///
@@ -106,7 +106,7 @@ pub enum WalletError {
 	/// components, such as invalid parameters or configurations that cannot be applied.
 	#[error(transparent)]
 	BuilderError(#[from] BuilderError),
-	
+
 	/// Indicates an invalid signature
 	#[error("Invalid signature")]
 	VerifyError,
@@ -114,11 +114,11 @@ pub enum WalletError {
 	/// Errors related to Ledger hardware wallet operations
 	#[error("Ledger error: {0}")]
 	LedgerError(String),
-	
+
 	/// Error indicating no accounts in wallet
 	#[error("No accounts in wallet")]
 	NoAccounts,
-	
+
 	/// Errors related to YubiHSM operations
 	#[error("YubiHSM error: {0}")]
 	YubiHsmError(String),
@@ -126,31 +126,31 @@ pub enum WalletError {
 	/// Errors from the RPC provider
 	#[error(transparent)]
 	ProviderError(#[from] ProviderError),
-	
+
 	/// Errors during account decryption
 	#[error("Decryption error: {0}")]
 	DecryptionError(String),
-	
+
 	/// Errors during transaction signing
 	#[error("Signing error: {0}")]
 	SigningError(String),
-	
+
 	/// Errors during file operations
 	#[error("File error: {0}")]
 	FileError(String),
-	
+
 	/// Errors during parsing operations
 	#[error("Parse error: {0}")]
 	ParseError(String),
-	
+
 	/// Errors during key import operations
 	#[error("Import error: {0}")]
 	ImportError(String),
-	
+
 	/// Invalid password provided
 	#[error("Invalid password")]
 	InvalidPassword,
-	
+
 	/// Errors during deserialization
 	#[error("Deserialization error: {0}")]
 	DeserializationError(String),

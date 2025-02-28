@@ -9,23 +9,26 @@ use yubihsm::{
 
 use neo::{
 	neo_clients::public_key_to_address,
-	prelude::{Secp256r1PublicKey, WalletSigner, WalletError},
+	prelude::{Secp256r1PublicKey, WalletError, WalletSigner},
 };
 
-use crate::{
-	crypto::HashableForVec, 
-	neo_types::Address,
-};
+use crate::{crypto::HashableForVec, neo_types::Address};
 
 impl WalletSigner<YubiSigner<NistP256>> {
 	/// Connects to a yubi key's ECDSA account at the provided id
-	pub fn connect(connector: Connector, credentials: Credentials, id: object::Id) -> Result<Self, WalletError> {
-		let client = Client::open(connector, credentials, true)
-			.map_err(|e| WalletError::YubiHsmError(format!("Failed to open YubiHSM client: {}", e)))?;
-			
-		let signer = YubiSigner::create(client, id)
-			.map_err(|e| WalletError::YubiHsmError(format!("Failed to create YubiHSM signer: {}", e)))?;
-			
+	pub fn connect(
+		connector: Connector,
+		credentials: Credentials,
+		id: object::Id,
+	) -> Result<Self, WalletError> {
+		let client = Client::open(connector, credentials, true).map_err(|e| {
+			WalletError::YubiHsmError(format!("Failed to open YubiHSM client: {}", e))
+		})?;
+
+		let signer = YubiSigner::create(client, id).map_err(|e| {
+			WalletError::YubiHsmError(format!("Failed to create YubiHSM signer: {}", e))
+		})?;
+
 		Ok(signer.into())
 	}
 
@@ -37,16 +40,20 @@ impl WalletSigner<YubiSigner<NistP256>> {
 		label: Label,
 		domain: Domain,
 	) -> Result<Self, WalletError> {
-		let client = Client::open(connector, credentials, true)
-			.map_err(|e| WalletError::YubiHsmError(format!("Failed to open YubiHSM client: {}", e)))?;
-			
+		let client = Client::open(connector, credentials, true).map_err(|e| {
+			WalletError::YubiHsmError(format!("Failed to open YubiHSM client: {}", e))
+		})?;
+
 		let id = client
 			.generate_asymmetric_key(id, label, domain, Capability::SIGN_ECDSA, EcP256)
-			.map_err(|e| WalletError::YubiHsmError(format!("Failed to generate asymmetric key: {}", e)))?;
-			
-		let signer = YubiSigner::create(client, id)
-			.map_err(|e| WalletError::YubiHsmError(format!("Failed to create YubiHSM signer: {}", e)))?;
-			
+			.map_err(|e| {
+				WalletError::YubiHsmError(format!("Failed to generate asymmetric key: {}", e))
+			})?;
+
+		let signer = YubiSigner::create(client, id).map_err(|e| {
+			WalletError::YubiHsmError(format!("Failed to create YubiHSM signer: {}", e))
+		})?;
+
 		Ok(signer.into())
 	}
 
@@ -59,16 +66,20 @@ impl WalletSigner<YubiSigner<NistP256>> {
 		domain: Domain,
 		key: impl Into<Vec<u8>>,
 	) -> Result<Self, WalletError> {
-		let client = Client::open(connector, credentials, true)
-			.map_err(|e| WalletError::YubiHsmError(format!("Failed to open YubiHSM client: {}", e)))?;
-			
+		let client = Client::open(connector, credentials, true).map_err(|e| {
+			WalletError::YubiHsmError(format!("Failed to open YubiHSM client: {}", e))
+		})?;
+
 		let id = client
 			.put_asymmetric_key(id, label, domain, Capability::SIGN_ECDSA, EcP256, key)
-			.map_err(|e| WalletError::YubiHsmError(format!("Failed to put asymmetric key: {}", e)))?;
-			
-		let signer = YubiSigner::create(client, id)
-			.map_err(|e| WalletError::YubiHsmError(format!("Failed to create YubiHSM signer: {}", e)))?;
-			
+			.map_err(|e| {
+				WalletError::YubiHsmError(format!("Failed to put asymmetric key: {}", e))
+			})?;
+
+		let signer = YubiSigner::create(client, id).map_err(|e| {
+			WalletError::YubiHsmError(format!("Failed to create YubiHSM signer: {}", e))
+		})?;
+
 		Ok(signer.into())
 	}
 
@@ -103,17 +114,17 @@ impl From<YubiSigner<NistP256>> for WalletSigner<YubiSigner<NistP256>> {
 		if !bool::from(public_key.is_some()) {
 			panic!("YubiSigner should always provide a valid public key");
 		}
-		
+
 		let public_key = public_key.unwrap();
 		let public_key = public_key.to_encoded_point(true);
 		let public_key = public_key.as_bytes();
-		
+
 		// The first byte can be either 0x02 or 0x03 for compressed public keys
 		debug_assert!(public_key[0] == 0x02 || public_key[0] == 0x03);
-		
+
 		let secp_public_key = Secp256r1PublicKey::from_bytes(&public_key)
 			.expect("YubiSigner public key should be convertible to Secp256r1PublicKey");
-			
+
 		let address = public_key_to_address(&secp_public_key);
 
 		Self { signer, address, network: None }
@@ -139,19 +150,24 @@ pub mod tests {
 			Label::from_bytes(&[]).expect("Empty label should be valid"),
 			Domain::at(1).expect("Domain 1 should be valid"),
 			key,
-		).expect("Should be able to create wallet from key");
+		)
+		.expect("Should be able to create wallet from key");
 
 		let msg = "Some data";
-		let sig = wallet.sign_message(msg.as_bytes()).await.expect("Should be able to sign message");
+		let sig = wallet
+			.sign_message(msg.as_bytes())
+			.await
+			.expect("Should be able to sign message");
 
 		let verify_key = p256::ecdsa::VerifyingKey::from_encoded_point(wallet.signer.public_key())
 			.expect("Should be able to create verifying key from public key");
-			
+
 		assert!(verify_key.verify(msg.as_bytes(), &sig).is_ok());
 
 		assert_eq!(
 			wallet.address(),
-			Address::from_str("NPZyWCdSCWghLM7hcxT5kgc7cC2V2RGeHZ").expect("Should be able to parse valid address")
+			Address::from_str("NPZyWCdSCWghLM7hcxT5kgc7cC2V2RGeHZ")
+				.expect("Should be able to parse valid address")
 		);
 	}
 
@@ -164,14 +180,18 @@ pub mod tests {
 			0,
 			Label::from_bytes(&[]).expect("Empty label should be valid"),
 			Domain::at(1).expect("Domain 1 should be valid"),
-		).expect("Should be able to create new wallet");
+		)
+		.expect("Should be able to create new wallet");
 
 		let msg = "Some data";
-		let sig = wallet.sign_message(msg.as_bytes()).await.expect("Should be able to sign message");
-		
+		let sig = wallet
+			.sign_message(msg.as_bytes())
+			.await
+			.expect("Should be able to sign message");
+
 		let verify_key = p256::ecdsa::VerifyingKey::from_encoded_point(wallet.signer.public_key())
 			.expect("Should be able to create verifying key from public key");
-			
+
 		assert!(verify_key.verify(msg.as_bytes(), &sig).is_ok());
 	}
 }

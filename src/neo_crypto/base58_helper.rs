@@ -77,7 +77,8 @@ pub fn calculate_checksum(input: &[u8]) -> [u8; 4] {
 	hasher.update(input);
 	let hash = hasher.finalize();
 	let hash256 = Sha256::digest(&hash);
-	hash256[..4].try_into()
+	hash256[..4]
+		.try_into()
 		.expect("Taking first 4 bytes of a SHA256 hash should never fail")
 }
 

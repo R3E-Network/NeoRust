@@ -123,7 +123,7 @@ impl Secp256r1PublicKey {
 
 		let encoded_point = EncodedPoint::from_bytes(&uncompressed_point).ok()?;
 		let public_key_option = PublicKey::from_encoded_point(&encoded_point);
-		
+
 		if public_key_option.is_some().into() {
 			// Safe to unwrap since we checked is_some()
 			let public_key = public_key_option.unwrap();
@@ -157,9 +157,9 @@ impl Secp256r1PublicKey {
 			Ok(v) => v,
 			Err(_) => return Err(CryptoError::InvalidPublicKey),
 		};
-		
+
 		let public_key_option = PublicKey::from_encoded_point(&encoded_point);
-		
+
 		if public_key_option.is_some().into() {
 			// Safe to unwrap since we checked is_some()
 			let public_key = public_key_option.unwrap();
@@ -268,7 +268,11 @@ impl Secp256r1PrivateKey {
 	///
 	/// - Returns: A 32-byte array representing the private key.
 	pub fn to_raw_bytes(&self) -> [u8; 32] {
-		self.inner.clone().to_bytes().as_slice().try_into()
+		self.inner
+			.clone()
+			.to_bytes()
+			.as_slice()
+			.try_into()
 			.expect("Private key should always be 32 bytes")
 	}
 
@@ -374,7 +378,7 @@ impl Secp256r1Signature {
 		if bytes.len() != 64 {
 			return Err(CryptoError::InvalidFormat("Invalid signature length".to_string()));
 		}
-		
+
 		Signature::from_slice(bytes)
 			.map(|inner| Secp256r1Signature { inner })
 			.map_err(|_| CryptoError::InvalidFormat("Invalid signature format".to_string()))
@@ -537,8 +541,7 @@ impl PartialEq for Secp256r1Signature {
 
 impl From<Vec<u8>> for Secp256r1PublicKey {
 	fn from(bytes: Vec<u8>) -> Self {
-		Secp256r1PublicKey::from_bytes(&bytes)
-			.unwrap_or_else(|_| panic!("Invalid public key"))
+		Secp256r1PublicKey::from_bytes(&bytes).unwrap_or_else(|_| panic!("Invalid public key"))
 	}
 }
 
@@ -600,7 +603,8 @@ impl NeoSerializable for Secp256r1PublicKey {
 	}
 
 	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
-		let bytes = reader.read_bytes(NeoConstants::PUBLIC_KEY_SIZE_COMPRESSED as usize)
+		let bytes = reader
+			.read_bytes(NeoConstants::PUBLIC_KEY_SIZE_COMPRESSED as usize)
 			.map_err(|_| CryptoError::InvalidPublicKey)?;
 		Secp256r1PublicKey::from_bytes(&bytes).map_err(|_| CryptoError::InvalidPublicKey)
 	}

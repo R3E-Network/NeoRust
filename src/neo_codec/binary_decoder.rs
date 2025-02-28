@@ -71,7 +71,8 @@ impl<'a> Decoder<'a> {
 	/// Reads an unsigned 16-bit integer from the byte slice.
 	pub fn read_u16(&mut self) -> Result<u16, CodecError> {
 		let bytes = self.read_bytes(2)?;
-		bytes.try_into()
+		bytes
+			.try_into()
 			.map(u16::from_ne_bytes)
 			.map_err(|_| CodecError::InvalidEncoding("Failed to convert bytes to u16".to_string()))
 	}
@@ -79,7 +80,8 @@ impl<'a> Decoder<'a> {
 	/// Reads a signed 16-bit integer from the byte slice.
 	pub fn read_i16(&mut self) -> Result<i16, CodecError> {
 		let bytes = self.read_bytes(2)?;
-		bytes.try_into()
+		bytes
+			.try_into()
 			.map(i16::from_ne_bytes)
 			.map_err(|_| CodecError::InvalidEncoding("Failed to convert bytes to i16".to_string()))
 	}
@@ -87,7 +89,8 @@ impl<'a> Decoder<'a> {
 	/// Reads an unsigned 32-bit integer from the byte slice.
 	pub fn read_u32(&mut self) -> Result<u32, CodecError> {
 		let bytes = self.read_bytes(4)?;
-		bytes.try_into()
+		bytes
+			.try_into()
 			.map(u32::from_ne_bytes)
 			.map_err(|_| CodecError::InvalidEncoding("Failed to convert bytes to u32".to_string()))
 	}
@@ -95,7 +98,8 @@ impl<'a> Decoder<'a> {
 	/// Reads a signed 32-bit integer from the byte slice.
 	pub fn read_i32(&mut self) -> Result<i32, CodecError> {
 		let bytes = self.read_bytes(4)?;
-		bytes.try_into()
+		bytes
+			.try_into()
 			.map(i32::from_ne_bytes)
 			.map_err(|_| CodecError::InvalidEncoding("Failed to convert bytes to i32".to_string()))
 	}
@@ -103,15 +107,17 @@ impl<'a> Decoder<'a> {
 	/// Reads an unsigned 64-bit integer from the byte slice.
 	pub fn read_u64(&mut self) -> Result<u64, CodecError> {
 		let bytes = self.read_bytes(8)?;
-		bytes.try_into()
+		bytes
+			.try_into()
 			.map(u64::from_ne_bytes)
 			.map_err(|_| CodecError::InvalidEncoding("Failed to convert bytes to u64".to_string()))
 	}
-	
+
 	/// Reads a signed 64-bit integer from the byte slice.
 	pub fn read_i64(&mut self) -> Result<i64, CodecError> {
 		let bytes = self.read_bytes(8)?;
-		bytes.try_into()
+		bytes
+			.try_into()
 			.map(i64::from_ne_bytes)
 			.map_err(|_| CodecError::InvalidEncoding("Failed to convert bytes to i64".to_string()))
 	}
@@ -198,14 +204,17 @@ impl<'a> Decoder<'a> {
 	/// Reads a push byte slice from the byte slice.
 	pub fn read_push_bytes(&mut self) -> Result<Vec<u8>, CodecError> {
 		let opcode = self.read_u8();
-		let len = match OpCode::try_from(opcode)? {
-			OpCode::PushData1 => self.read_u8() as usize,
-			OpCode::PushData2 => self.read_i16()
-				.map_err(|e| CodecError::InvalidEncoding(format!("Failed to read i16: {}", e)))? as usize,
-			OpCode::PushData4 => self.read_i32()
-				.map_err(|e| CodecError::InvalidEncoding(format!("Failed to read i32: {}", e)))? as usize,
-			_ => return Err(CodecError::InvalidOpCode),
-		};
+		let len =
+			match OpCode::try_from(opcode)? {
+				OpCode::PushData1 => self.read_u8() as usize,
+				OpCode::PushData2 => self.read_i16().map_err(|e| {
+					CodecError::InvalidEncoding(format!("Failed to read i16: {}", e))
+				})? as usize,
+				OpCode::PushData4 => self.read_i32().map_err(|e| {
+					CodecError::InvalidEncoding(format!("Failed to read i32: {}", e))
+				})? as usize,
+				_ => return Err(CodecError::InvalidOpCode),
+			};
 
 		self.read_bytes(len)
 	}

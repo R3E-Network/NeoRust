@@ -147,9 +147,11 @@ impl InvocationResult {
 	}
 
 	pub fn get_first_notification(&self) -> Result<&Notification, TypeError> {
-		let notifications = self.notifications.as_ref()
+		let notifications = self
+			.notifications
+			.as_ref()
 			.ok_or_else(|| TypeError::InvalidFormat("Notifications field is None".to_string()))?;
-			
+
 		if notifications.is_empty() {
 			return Err(TypeError::IndexOutOfBounds(
 				"No notifications have been sent in this invocation.".to_string(),
@@ -159,9 +161,11 @@ impl InvocationResult {
 	}
 
 	pub fn get_notification(&self, index: usize) -> Result<&Notification, TypeError> {
-		let notifications = self.notifications.as_ref()
+		let notifications = self
+			.notifications
+			.as_ref()
 			.ok_or_else(|| TypeError::InvalidFormat("Notifications field is None".to_string()))?;
-			
+
 		if index >= notifications.len() {
 			return Err(TypeError::IndexOutOfBounds(format!(
                 "Only {} notifications have been sent in this invocation. Tried to access index {} in the invocation result.",

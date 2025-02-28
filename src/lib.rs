@@ -336,10 +336,10 @@ pub mod prelude {
 		builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
 		providers::*, types::*, wallets::*, x::*,
 	};
-	
+
 	#[cfg(feature = "sgx")]
 	pub use super::neo_sgx::*;
-	
+
 	pub use super::neo_utils::error::*;
 }
 

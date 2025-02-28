@@ -116,7 +116,7 @@ pub trait APITrait: Sync + Send + Debug {
 	async fn get_version(&self) -> Result<NeoVersion, Self::Error>;
 
 	async fn send_raw_transaction(&self, hex: String) -> Result<RawTransaction, Self::Error>;
-	
+
 	/// Sends a transaction to the network
 	///
 	/// # Arguments
@@ -126,7 +126,10 @@ pub trait APITrait: Sync + Send + Debug {
 	/// # Returns
 	///
 	/// A `Result` containing the transaction hash or a `ProviderError`
-	async fn send_transaction<'a>(&self, tx: Transaction<'a, Self::Provider>) -> Result<H256, Self::Error>;
+	async fn send_transaction<'a>(
+		&self,
+		tx: Transaction<'a, Self::Provider>,
+	) -> Result<H256, Self::Error>;
 
 	async fn submit_block(&self, hex: String) -> Result<SubmitBlock, Self::Error>;
 

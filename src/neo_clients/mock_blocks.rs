@@ -1,7 +1,7 @@
 use crate::{
 	neo_builder::Transaction,
 	prelude::{
-		Account, ContractParametersContext, ContractState, Nep6Wallet, NeoBlock, OpCode,
+		Account, ContractParametersContext, ContractState, NeoBlock, Nep6Wallet, OpCode,
 		Signer::ContractSigner, WitnessScope,
 	},
 };

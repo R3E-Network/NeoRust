@@ -101,13 +101,15 @@ mod tests {
 		let backup_path = temp_dir.join("wallet_backup_test.json");
 
 		// Backup the wallet
-		WalletBackup::backup(&wallet, backup_path.clone()).expect("Should be able to backup wallet in test");
+		WalletBackup::backup(&wallet, backup_path.clone())
+			.expect("Should be able to backup wallet in test");
 
 		// Verify the backup file exists
 		assert!(backup_path.exists());
 
 		// Recover the wallet
-		let recovered_wallet = WalletBackup::recover(backup_path.clone()).expect("Should be able to recover wallet in test");
+		let recovered_wallet = WalletBackup::recover(backup_path.clone())
+			.expect("Should be able to recover wallet in test");
 
 		// Verify the recovered wallet has the same properties
 		assert_eq!(wallet.name(), recovered_wallet.name());

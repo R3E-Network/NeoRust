@@ -8,22 +8,22 @@ pub struct UnclaimedGas {
 }
 
 impl Add for UnclaimedGas {
-    type Output = Self;
+	type Output = Self;
 
-    fn add(self, other: Self) -> Self {
-        // Parse the unclaimed values as f64 for addition
-        let self_unclaimed = self.unclaimed.parse::<f64>().unwrap_or(0.0);
-        let other_unclaimed = other.unclaimed.parse::<f64>().unwrap_or(0.0);
-        
-        UnclaimedGas {
-            unclaimed: (self_unclaimed + other_unclaimed).to_string(),
-            address: self.address, // Keep the original address
-        }
-    }
+	fn add(self, other: Self) -> Self {
+		// Parse the unclaimed values as f64 for addition
+		let self_unclaimed = self.unclaimed.parse::<f64>().unwrap_or(0.0);
+		let other_unclaimed = other.unclaimed.parse::<f64>().unwrap_or(0.0);
+
+		UnclaimedGas {
+			unclaimed: (self_unclaimed + other_unclaimed).to_string(),
+			address: self.address, // Keep the original address
+		}
+	}
 }
 
 impl AddAssign for UnclaimedGas {
-    fn add_assign(&mut self, other: Self) {
-        *self = self.clone() + other;
-    }
+	fn add_assign(&mut self, other: Self) {
+		*self = self.clone() + other;
+	}
 }

@@ -601,7 +601,8 @@ mod tests {
 	fn test_build_valid_signer1() {
 		let mut signer = AccountSigner::called_by_entry(&SCRIPT_HASH.deref().into())
 			.expect("Should be able to create AccountSigner with called_by_entry scope in test");
-		signer.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2])
+		signer
+			.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2])
 			.expect("Should be able to set allowed contracts in test");
 
 		assert_eq!(signer.signer_hash, *SCRIPT_HASH);
@@ -622,7 +623,8 @@ mod tests {
 	fn test_build_valid_signer2() {
 		let mut signer = AccountSigner::none(&SCRIPT_HASH.deref().into())
 			.expect("Should be able to create AccountSigner with none scope in test");
-		signer.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2])
+		signer
+			.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2])
 			.expect("Should be able to set allowed contracts in test");
 
 		assert_eq!(signer.signer_hash, *SCRIPT_HASH);

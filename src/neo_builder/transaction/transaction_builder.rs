@@ -140,9 +140,10 @@ impl<'a, P: JsonRpcProvider + 'static> Hash for TransactionBuilder<'a, P> {
 	}
 }
 
-pub static GAS_TOKEN_HASH: Lazy<ScriptHash> =
-	Lazy::new(|| ScriptHash::from_str("d2a4cff31913016155e38e474a2c06d08be276cf")
-		.expect("GAS token hash is a valid script hash"));
+pub static GAS_TOKEN_HASH: Lazy<ScriptHash> = Lazy::new(|| {
+	ScriptHash::from_str("d2a4cff31913016155e38e474a2c06d08be276cf")
+		.expect("GAS token hash is a valid script hash")
+});
 
 impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	// const GAS_TOKEN_HASH: ScriptHash = ScriptHash::from_str("d2a4cff31913016155e38e474a2c06d08be276cf").unwrap();
@@ -381,7 +382,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	pub async fn build(&mut self) -> Result<Transaction<P>, TransactionError> {
 		self.get_unsigned_tx().await
 	}
-	
+
 	// Get unsigned transaction
 	pub async fn get_unsigned_tx(&mut self) -> Result<Transaction<P>, TransactionError> {
 		// Validate configuration
@@ -481,10 +482,10 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	}
 
 	async fn get_system_fee(&self) -> Result<i64, TransactionError> {
-		let script = self.script.as_ref()
-			.ok_or_else(|| TransactionError::NoScript)?;
+		let script = self.script.as_ref().ok_or_else(|| TransactionError::NoScript)?;
 
-		let client = self.client
+		let client = self
+			.client
 			.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
 
 		let response = client
@@ -495,8 +496,11 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		// Check if the VM execution resulted in a fault
 		if response.has_state_fault() {
 			// Get the current configuration for allowing transmission on fault
-			let allows_fault = NEOCONFIG.lock()
-				.map_err(|_| TransactionError::IllegalState("Failed to lock NEOCONFIG".to_string()))?
+			let allows_fault = NEOCONFIG
+				.lock()
+				.map_err(|_| {
+					TransactionError::IllegalState("Failed to lock NEOCONFIG".to_string())
+				})?
 				.allows_transmission_on_fault;
 
 			// If transmission on fault is not allowed, return an error
@@ -509,21 +513,21 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 			// Otherwise, we continue with the transaction despite the fault
 		}
 
-		Ok(i64::from_str(&response.gas_consumed)
-			.map_err(|_| TransactionError::IllegalState("Failed to parse gas consumed".to_string()))?)
+		Ok(i64::from_str(&response.gas_consumed).map_err(|_| {
+			TransactionError::IllegalState("Failed to parse gas consumed".to_string())
+		})?)
 	}
 
 	async fn get_network_fee(&mut self) -> Result<i64, TransactionError> {
 		// Check sender balance if needed
-		let client = self.client
+		let client = self
+			.client
 			.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
-			
-		let script = self.script.clone()
-			.unwrap_or_default(); // Use default if None
-			
-		let valid_until_block = self.valid_until_block
-			.unwrap_or(100);
-			
+
+		let script = self.script.clone().unwrap_or_default(); // Use default if None
+
+		let valid_until_block = self.valid_until_block.unwrap_or(100);
+
 		let mut tx = Transaction {
 			network: Some(client),
 			version: self.version,
@@ -546,7 +550,12 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 					// Create contract witness and add it to the transaction
 					let witness =
 						Witness::create_contract_witness(contract_signer.verify_params().to_vec())
-							.map_err(|e| TransactionError::IllegalState(format!("Failed to create contract witness: {}", e)))?;
+							.map_err(|e| {
+								TransactionError::IllegalState(format!(
+									"Failed to create contract witness: {}",
+									e
+								))
+							})?;
 					tx.add_witness(witness);
 				},
 				Signer::AccountSigner(account_signer) => {
@@ -557,13 +566,23 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 					// Check if the account is multi-signature or single-signature
 					if account.is_multi_sig() {
 						// Create a fake multi-signature verification script
-						verification_script =
-							self.create_fake_multi_sig_verification_script(account)
-								.map_err(|e| TransactionError::IllegalState(format!("Failed to create multi-sig verification script: {}", e)))?;
+						verification_script = self
+							.create_fake_multi_sig_verification_script(account)
+							.map_err(|e| {
+								TransactionError::IllegalState(format!(
+									"Failed to create multi-sig verification script: {}",
+									e
+								))
+							})?;
 					} else {
 						// Create a fake single-signature verification script
-						verification_script = self.create_fake_single_sig_verification_script()
-							.map_err(|e| TransactionError::IllegalState(format!("Failed to create single-sig verification script: {}", e)))?;
+						verification_script =
+							self.create_fake_single_sig_verification_script().map_err(|e| {
+								TransactionError::IllegalState(format!(
+									"Failed to create single-sig verification script: {}",
+									e
+								))
+							})?;
 					}
 
 					// Add a witness with an empty signature and the verification script
@@ -588,7 +607,8 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	}
 
 	async fn fetch_current_block_count(&mut self) -> Result<u32, TransactionError> {
-		let client = self.client
+		let client = self
+			.client
 			.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
 		let count = client.get_block_count().await?;
 		Ok(count)
@@ -599,9 +619,10 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		let sender = &self.signers[0];
 
 		if Self::is_account_signer(sender) {
-			let client = self.client
+			let client = self
+				.client
 				.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
-				
+
 			let balance = client
 				.invoke_function(
 					&GAS_TOKEN_HASH,
@@ -613,48 +634,57 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 				.map_err(|e| TransactionError::ProviderError(e))?
 				.stack[0]
 				.clone();
-				
-			return Ok(balance.as_int()
-				.ok_or_else(|| TransactionError::IllegalState("Failed to parse balance as integer".to_string()))? as u64);
+
+			return Ok(balance.as_int().ok_or_else(|| {
+				TransactionError::IllegalState("Failed to parse balance as integer".to_string())
+			})? as u64);
 		}
 		Err(TransactionError::InvalidSender)
 	}
 
-	fn create_fake_single_sig_verification_script(&self) -> Result<VerificationScript, TransactionError> {
+	fn create_fake_single_sig_verification_script(
+		&self,
+	) -> Result<VerificationScript, TransactionError> {
 		// Vector to store dummy public keys
-			let dummy_public_key = Secp256r1PublicKey::from_encoded(Self::DUMMY_PUB_KEY)
-				.ok_or_else(|| TransactionError::IllegalState("Failed to create dummy public key".to_string()))?;
+		let dummy_public_key =
+			Secp256r1PublicKey::from_encoded(Self::DUMMY_PUB_KEY).ok_or_else(|| {
+				TransactionError::IllegalState("Failed to create dummy public key".to_string())
+			})?;
 		// Create and return the VerificationScript with the pub_keys and signing threshold
 		Ok(VerificationScript::from_public_key(&dummy_public_key))
 	}
 
-	fn create_fake_multi_sig_verification_script(&self, account: &Account) -> Result<VerificationScript, TransactionError> {
+	fn create_fake_multi_sig_verification_script(
+		&self,
+		account: &Account,
+	) -> Result<VerificationScript, TransactionError> {
 		// Vector to store dummy public keys
 		let mut pub_keys: Vec<Secp256r1PublicKey> = Vec::new();
 
 		// Get the number of participants
-		let nr_of_participants = account.get_nr_of_participants()
-			.map_err(|e| TransactionError::IllegalState(format!("Failed to get number of participants: {}", e)))?;
-			
+		let nr_of_participants = account.get_nr_of_participants().map_err(|e| {
+			TransactionError::IllegalState(format!("Failed to get number of participants: {}", e))
+		})?;
+
 		// Loop to add dummy public keys based on the number of participants
 		for _ in 0..nr_of_participants {
 			// Create a dummy public key
 			let dummy_public_key = Secp256r1PublicKey::from_encoded(Self::DUMMY_PUB_KEY)
-				.ok_or_else(|| TransactionError::IllegalState("Failed to create dummy public key".to_string()))?;
+				.ok_or_else(|| {
+					TransactionError::IllegalState("Failed to create dummy public key".to_string())
+				})?;
 			pub_keys.push(dummy_public_key);
 		}
 
 		// Get the signing threshold
-		let signing_threshold = account.get_signing_threshold()
-			.map_err(|e| TransactionError::IllegalState(format!("Failed to get signing threshold: {}", e)))? as u8;
+		let signing_threshold = account.get_signing_threshold().map_err(|e| {
+			TransactionError::IllegalState(format!("Failed to get signing threshold: {}", e))
+		})? as u8;
 
 		// Create and return the VerificationScript with the pub_keys and signing threshold
 		// This method returns a VerificationScript directly, not a Result
-		let script = VerificationScript::from_multi_sig(
-			&mut pub_keys[..],
-			signing_threshold,
-		);
-		
+		let script = VerificationScript::from_multi_sig(&mut pub_keys[..], signing_threshold);
+
 		Ok(script)
 	}
 
@@ -726,8 +756,9 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		let mut witnesses_to_add = Vec::new();
 		for signer in &mut unsigned_tx.signers {
 			if Self::is_account_signer(signer) {
-				let account_signer = signer.as_account_signer()
-					.ok_or_else(|| BuilderError::IllegalState("Failed to get account signer".to_string()))?;
+				let account_signer = signer.as_account_signer().ok_or_else(|| {
+					BuilderError::IllegalState("Failed to get account signer".to_string())
+				})?;
 				let acc = &account_signer.account;
 				if acc.is_multi_sig() {
 					return Err(BuilderError::IllegalState(
@@ -742,9 +773,11 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
                 })?;
 				witnesses_to_add.push(Witness::create(tx_bytes.clone(), key_pair)?);
 			} else {
-				let contract_signer = signer
-					.as_contract_signer()
-					.ok_or_else(|| BuilderError::IllegalState("Expected contract signer but found another type".to_string()))?;
+				let contract_signer = signer.as_contract_signer().ok_or_else(|| {
+					BuilderError::IllegalState(
+						"Expected contract signer but found another type".to_string(),
+					)
+				})?;
 				witnesses_to_add.push(Witness::create_contract_witness(
 					contract_signer.verify_params().clone(),
 				)?);
@@ -840,13 +873,13 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	/// use neo::prelude::*;
 	///
 	/// let mut tx_builder = TransactionBuilder::new();
-	/// 
+	///
 	/// // Add a high-priority attribute
 	/// let high_priority_attr = TransactionAttribute::HighPriority;
-	/// 
+	///
 	/// // Add a not-valid-before attribute
 	/// let not_valid_before_attr = TransactionAttribute::NotValidBefore { height: 1000 };
-	/// 
+	///
 	/// tx_builder.add_attributes(vec![high_priority_attr, not_valid_before_attr]).unwrap();
 	/// ```
 	pub fn add_attributes(
@@ -913,11 +946,12 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		attr: TransactionAttribute,
 	) -> Result<(), TransactionError> {
 		if self.has_attribute(&attr) {
-			let hash = attr.get_hash()
-				.ok_or_else(|| TransactionError::IllegalState(
-					"Expected Conflicts attribute to have a hash".to_string()
-				))?;
-				
+			let hash = attr.get_hash().ok_or_else(|| {
+				TransactionError::IllegalState(
+					"Expected Conflicts attribute to have a hash".to_string(),
+				)
+			})?;
+
 			return Err(TransactionError::TransactionConfiguration(format!(
 				"There already exists a conflicts attribute for the hash {} in this transaction.",
 				hash
@@ -960,11 +994,13 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		total_signers: usize,
 		total_attributes: usize,
 	) -> Result<(), TransactionError> {
-		let max_attributes = NeoConstants::MAX_TRANSACTION_ATTRIBUTES.try_into()
-			.map_err(|e| TransactionError::IllegalState(
-				format!("Failed to convert MAX_TRANSACTION_ATTRIBUTES to usize: {}", e)
-			))?;
-			
+		let max_attributes = NeoConstants::MAX_TRANSACTION_ATTRIBUTES.try_into().map_err(|e| {
+			TransactionError::IllegalState(format!(
+				"Failed to convert MAX_TRANSACTION_ATTRIBUTES to usize: {}",
+				e
+			))
+		})?;
+
 		if total_signers + total_attributes > max_attributes {
 			return Err(TransactionError::TransactionConfiguration(format!(
 				"A transaction cannot have more than {} attributes (including signers).",
@@ -985,15 +1021,13 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 			Some(client) => client,
 			None => return false, // If no client is available, we can't verify committee membership
 		};
-		
-		let response = match client
-			.get_committee()
-			.await
-			.map_err(|e| TransactionError::ProviderError(e)) {
+
+		let response =
+			match client.get_committee().await.map_err(|e| TransactionError::ProviderError(e)) {
 				Ok(response) => response,
 				Err(_) => return false, // If we can't get committee info, assume not allowed
 			};
-			
+
 		// Map the Vec<String> response to Vec<Hash160>
 		let committee: HashSet<H160> = response
 			.iter()
@@ -1053,8 +1087,8 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	///     
 	///     // Add a callback for insufficient funds
 	///     tx_builder.do_if_sender_cannot_cover_fees(|required_fee, balance| {
-	///         println!("Insufficient funds: Required {} GAS, but only have {} GAS", 
-	///             required_fee as f64 / 100_000_000.0, 
+	///         println!("Insufficient funds: Required {} GAS, but only have {} GAS",
+	///             required_fee as f64 / 100_000_000.0,
 	///             balance as f64 / 100_000_000.0);
 	///     })?;
 	///     
