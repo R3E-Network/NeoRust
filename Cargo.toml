@@ -180,10 +180,10 @@ bip39 = { version = "2.1.0", features = ["rand"] }
 # These dependencies are only used when the 'sgx_deps' feature is enabled
 # They require the Intel SGX SDK to be installed
 # For development without SGX hardware, use the simulation mode
-sgx_types = { version = "=1.1.1", optional = true, default-features = false, package = "sgx_types_nostd" }
-sgx_urts = { version = "=1.1.1", optional = true, default-features = false, package = "sgx_urts_nostd" }
-sgx_tstd = { version = "=1.1.1", optional = true, default-features = false, package = "sgx_tstd_nostd" }
-sgx_tcrypto = { version = "=1.1.1", optional = true, default-features = false, package = "sgx_tcrypto_nostd" }
+sgx_types = { version = "=1.1.1", optional = true, default-features = false }
+sgx_urts = { version = "=1.1.1", optional = true, default-features = false }
+sgx_tstd = { version = "=1.1.1", optional = true, default-features = false }
+sgx_tcrypto = { version = "=1.1.1", optional = true, default-features = false }
 
 [dev-dependencies]
 mockall = "0.13.0"
