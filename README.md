@@ -9,6 +9,8 @@
 </div>
 
 [![Rust](https://github.com/R3E-Network/NeoRust/actions/workflows/rust.yml/badge.svg)](https://github.com/R3E-Network/NeoRust/actions/workflows/rust.yml)
+[![Crates.io](https://img.shields.io/crates/v/neo3.svg)](https://crates.io/crates/neo3)
+[![Documentation](https://docs.rs/neo3/badge.svg)](https://docs.rs/neo3)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
@@ -37,6 +39,13 @@ Add neo3 to your `Cargo.toml`:
 neo3 = "0.1.0"
 ```
 
+You can also specify features if needed:
+
+```toml
+[dependencies]
+neo3 = { version = "0.1.0", features = ["ledger", "aws", "futures"] }
+```
+
 For the latest development version, you can use the Git repository:
 
 ```toml
@@ -48,9 +57,10 @@ neo3 = { git = "https://github.com/R3E-Network/NeoRust.git" }
 
 Comprehensive documentation is available at:
 
+- **API Reference**: [https://docs.rs/neo3](https://docs.rs/neo3)
 - **Online Documentation**: [https://r3e-network.github.io/NeoRust/docs/](https://r3e-network.github.io/NeoRust/docs/)
 - **PDF Documentation**: [https://r3e-network.github.io/NeoRust/docs/pdf/neorust-sdk-documentation.pdf](https://r3e-network.github.io/NeoRust/docs/pdf/neorust-sdk-documentation.pdf)
-- **API Reference**: [https://docs.rs/neo3](https://docs.rs/neo3)
+- **Crate Page**: [https://crates.io/crates/neo3](https://crates.io/crates/neo3)
 
 ## Quick Start
 
@@ -457,6 +467,57 @@ fn configure_neo() {
 }
 ```
 
+## Available Features
+
+NeoRust provides several optional features that can be enabled in your `Cargo.toml`:
+
+- **ledger**: Support for hardware wallets via Ledger devices
+- **aws**: AWS KMS integration for key management 
+- **futures**: Support for asynchronous Futures
+- **sgx**: Intel SGX support for secure enclaves (requires additional setup)
+
+Example of enabling multiple features:
+
+```toml
+[dependencies]
+neo3 = { version = "0.1.0", features = ["ledger", "aws", "futures"] }
+```
+
+## Build and Test Scripts
+
+NeoRust includes convenient scripts for building and testing with different feature configurations:
+
+### Unix/Linux/MacOS:
+
+```bash
+# Build with default configuration
+./scripts/build.sh
+
+# Build with specific features
+./scripts/build.sh --features ledger,aws,futures
+
+# Run tests with default features (ledger,aws,futures)
+./scripts/test.sh
+
+# Run tests and show output
+./scripts/test.sh --nocapture
+```
+
+### Windows:
+
+```batch
+# Build with default configuration
+.\scripts\build.bat
+
+# Build with specific features
+.\scripts\build.bat --features ledger,aws,futures
+
+# Run tests with default features (ledger,aws,futures)
+.\scripts\test.bat
+```
+
+For more details on available script options, see the [scripts README](scripts/README.md).
+
 ## Project Structure
 
 NeoRust is organized into several modules:
@@ -473,7 +534,28 @@ NeoRust is organized into several modules:
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Here's how you can contribute to the NeoRust SDK:
+
+1. **Report Issues**: If you find a bug or have a feature request, please create an issue on the [GitHub repository](https://github.com/R3E-Network/NeoRust/issues).
+
+2. **Submit Pull Requests**: If you'd like to contribute code:
+   - Fork the repository
+   - Create a new branch (`git checkout -b feature/your-feature-name`)
+   - Make your changes
+   - Run the tests (`./scripts/test.sh`)
+   - Commit your changes (`git commit -m 'Add some feature'`)
+   - Push to the branch (`git push origin feature/your-feature-name`)
+   - Open a Pull Request
+
+3. **Coding Standards**: Please follow the Rust coding standards and include appropriate tests for your changes.
+
+4. **Documentation**: Update the documentation to reflect your changes if necessary.
+
+## Package Status
+
+NeoRust is now available on [crates.io](https://crates.io/crates/neo3) as the `neo3` crate. The latest version is `0.1.0`.
+
+This means you can now easily add it to your Rust projects without having to reference the GitHub repository directly.
 
 ## License
 
@@ -486,3 +568,5 @@ at your option.
 ## Acknowledgments
 
 Supported by [R3E Network](https://github.com/R3E-Network) and [GrantShares](https://grantshares.io/app/details/155b825697b61f9f95292c8e466f6891). Additional support is welcome.
+
+The NeoRust team would like to thank everyone who contributed to reaching the milestone of publishing the neo3 crate to crates.io.
