@@ -243,9 +243,9 @@ mod tests {
 		let script = VerificationScript::from_public_key(&pubkey);
 		let expected = format!(
 			"{}21{}{}{}",
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			key,
-			OpCode::Syscall.to_string(),
+			OpCode::Syscall.to_hex_string(),
 			InteropService::SystemCryptoCheckSig.hash()
 		)
 		.from_hex()
@@ -273,15 +273,15 @@ mod tests {
 
 		let expected = format!(
 			"{}{}21{}{}21{}{}21{}{}{}{}",
-			OpCode::Push2.to_string(),
-			OpCode::PushData1.to_string(),
+			OpCode::Push2.to_hex_string(),
+			OpCode::PushData1.to_hex_string(),
 			key1.to_hex(),
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			key3.to_hex(),
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			key2.to_hex(),
-			OpCode::Push3.to_string(),
-			OpCode::Syscall.to_string(),
+			OpCode::Push3.to_hex_string(),
+			OpCode::Syscall.to_hex_string(),
 			InteropService::SystemCryptoCheckMultiSig.hash()
 		)
 		.from_hex()
@@ -299,9 +299,9 @@ mod tests {
 
 		let expected = format!(
 			"{}21{}{}{}",
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			key,
-			OpCode::Syscall.to_string(),
+			OpCode::Syscall.to_hex_string(),
 			InteropService::SystemCryptoCheckSig.hash()
 		);
 
@@ -460,12 +460,12 @@ mod tests {
 			.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?);
 
 		let err = script.get_signing_threshold().unwrap_err();
-		assert_eq!(err.to_string(), "Invalid script: Invalid verification script");
+		assert_eq!(err.to_string(), "Invalid operation");
 
 		let err = script.get_public_keys().unwrap_err();
-		assert_eq!(err.to_string(), "Invalid script: Invalid verification script");
+		assert_eq!(err.to_string(), "Invalid operation");
 		let err = script.get_nr_of_accounts().unwrap_err();
-		assert_eq!(err.to_string(), "Invalid script: Invalid verification script");
+		assert_eq!(err.to_string(), "Invalid operation");
 		
 		Ok(())
 	}

@@ -255,9 +255,9 @@ mod tests {
 		let public_key = "035fdb1d1f06759547020891ae97c729327853aeb1256b6fe0473bc2e9fa42ff50";
 		let script = format!(
 			"{}21{}{}{}",
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			public_key,
-			OpCode::Syscall.to_string(),
+			OpCode::Syscall.to_hex_string(),
 			InteropService::SystemCryptoCheckSig.hash()
 		);
 

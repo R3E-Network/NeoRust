@@ -207,7 +207,7 @@ mod tests {
 		let expected_signature = key_pair.private_key().sign_tx(&message).unwrap();
 		let expected = format!(
 			"{}40{}",
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			expected_signature.to_bytes().to_hex()
 		);
 		assert_eq!(expected.from_hex().unwrap(), script.script);
@@ -224,7 +224,7 @@ mod tests {
 	#[test]
 	fn test_deserialize_custom_invocation_script() {
 		let message = vec![1; 256];
-		let script = format!("{}0001{}", OpCode::PushData2.to_string(), message.to_hex());
+		let script = format!("{}0001{}", OpCode::PushData2.to_hex_string(), message.to_hex());
 		let serialized_script = format!("FD0301{}", script);
 		let deserialized =
 			InvocationScript::from_serialized_script(serialized_script.from_hex().unwrap());
@@ -237,7 +237,7 @@ mod tests {
 		let key_pair = KeyPair::new_random();
 		let signature = key_pair.private_key().sign_tx(&message).unwrap();
 		let script =
-			format!("{}40{}", OpCode::PushData1.to_string(), signature.to_bytes().to_hex());
+			format!("{}40{}", OpCode::PushData1.to_hex_string(), signature.to_bytes().to_hex());
 		let deserialized =
 			InvocationScript::from_serialized_script(format!("42{}", script).from_hex().unwrap());
 		assert_eq!(deserialized.script, script.from_hex().unwrap());
