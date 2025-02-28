@@ -24,6 +24,7 @@ jobs:
       
       - name: Install mdBook plugins
         run: |
+          rustup default stable
           cargo install mdbook-mermaid
           cargo install mdbook-toc
           cargo install mdbook-admonish
@@ -34,6 +35,7 @@ jobs:
       
       - name: Install mdbook-pdf
         run: |
+          rustup default stable
           cargo install mdbook-pdf
       
       - name: Build documentation
