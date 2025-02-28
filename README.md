@@ -39,6 +39,12 @@ Add neo3 to your `Cargo.toml`:
 neo3 = "0.1.0"
 ```
 
+Note: The crate is published as `neo3` but is imported as `neo` in code:
+
+```rust
+use neo::prelude::*;
+```
+
 You can also specify features if needed:
 
 ```toml
@@ -65,12 +71,12 @@ Comprehensive documentation is available at:
 ## Quick Start
 
 ```rust
-use NeoRust::prelude::*;
+use neo::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Neo N3 TestNet
-    let provider = HttpProvider::new("https://testnet1.neo.org:443");
+    let provider = HttpProvider::new("https://testnet1.neo.org:443")?;
     let client = RpcClient::new(provider);
     
     // Get blockchain information
@@ -98,11 +104,11 @@ use neo::{
 
 async fn connect_to_nodes() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to MainNet
-    let mainnet_provider = HttpProvider::new("https://mainnet1.neo.org:443");
+    let mainnet_provider = HttpProvider::new("https://mainnet1.neo.org:443")?;
     let mainnet_client = RpcClient::new(mainnet_provider);
     
     // Connect to TestNet
-    let testnet_provider = HttpProvider::new("https://testnet1.neo.org:443");
+    let testnet_provider = HttpProvider::new("https://testnet1.neo.org:443")?;
     let testnet_client = RpcClient::new(testnet_provider);
     
     // Get blockchain information
@@ -159,7 +165,7 @@ use neo::{
 
 async fn create_transaction() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to TestNet
-    let provider = HttpProvider::new("https://testnet1.neo.org:443");
+    let provider = HttpProvider::new("https://testnet1.neo.org:443")?;
     let client = RpcClient::new(provider);
     
     // Create accounts
@@ -197,7 +203,7 @@ use neo::{
 
 async fn interact_with_contract() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to TestNet
-    let provider = HttpProvider::new("https://testnet1.neo.org:443");
+    let provider = HttpProvider::new("https://testnet1.neo.org:443")?;
     let client = RpcClient::new(provider);
     
     // Load a contract by its script hash
@@ -238,7 +244,7 @@ use neo::{
 
 async fn work_with_nep17_tokens() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to TestNet
-    let provider = HttpProvider::new("https://testnet1.neo.org:443");
+    let provider = HttpProvider::new("https://testnet1.neo.org:443")?;
     let client = RpcClient::new(provider);
     
     // Create an account
@@ -280,7 +286,7 @@ use neo::{
 
 async fn use_neo_name_service() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to TestNet
-    let provider = HttpProvider::new("https://testnet1.neo.org:443");
+    let provider = HttpProvider::new("https://testnet1.neo.org:443")?;
     let client = RpcClient::new(provider);
     
     // Create a NameService instance
@@ -316,7 +322,7 @@ use std::str::FromStr;
 
 async fn interact_with_famous_contracts() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to MainNet
-    let provider = HttpProvider::new("https://mainnet1.neo.org:443");
+    let provider = HttpProvider::new("https://mainnet1.neo.org:443")?;
     let client = RpcClient::new(provider);
     
     // Create an account
@@ -378,7 +384,7 @@ use std::str::FromStr;
 
 async fn use_neo_x() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Neo N3
-    let neo_provider = HttpProvider::new("https://mainnet1.neo.org:443");
+    let neo_provider = HttpProvider::new("https://mainnet1.neo.org:443")?;
     let neo_client = RpcClient::new(neo_provider);
     
     // Initialize the Neo X EVM provider

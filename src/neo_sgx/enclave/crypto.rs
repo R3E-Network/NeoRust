@@ -1,4 +1,6 @@
+#[cfg(feature = "sgx_deps")]
 use sgx_tcrypto::*;
+#[cfg(feature = "sgx_deps")]
 use sgx_types::*;
 
 /// Generates a new keypair for use with Neo blockchain
