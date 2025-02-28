@@ -1,0 +1,537 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Neo Name Service - NeoRust SDK Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Documentation for the NeoRust SDK, a comprehensive Rust SDK for interacting with the Neo N3 blockchain">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/custom.css">
+        <link rel="stylesheet" href=".././mdbook-admonish.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">NeoRust SDK Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/R3E-Network/NeoRust" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/R3E-Network/NeoRust/edit/master/docs/src/tutorials/nns.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="neo-name-service-nns"><a class="header" href="#neo-name-service-nns">Neo Name Service (NNS)</a></h1>
+<p>This tutorial covers working with the Neo Name Service (NNS) on the Neo N3 blockchain using the NeoRust SDK.</p>
+<h2 id="understanding-nns"><a class="header" href="#understanding-nns">Understanding NNS</a></h2>
+<p>The Neo Name Service (NNS) is a distributed, open-source naming system based on the Neo blockchain. It maps human-readable names to machine-readable identifiers such as Neo addresses, contract script hashes, and more. This makes it easier to work with blockchain addresses and resources.</p>
+<h2 id="key-concepts"><a class="header" href="#key-concepts">Key Concepts</a></h2>
+<ul>
+<li><strong>Domain</strong>: A human-readable name registered in the NNS (e.g., <code>example.neo</code>)</li>
+<li><strong>Record</strong>: Data associated with a domain (e.g., address, text record, etc.)</li>
+<li><strong>TTL</strong>: Time-to-live for a domain record</li>
+<li><strong>Owner</strong>: The account that owns a domain and can manage its records</li>
+<li><strong>Resolver</strong>: Contract that translates between domain names and addresses/resources</li>
+</ul>
+<h2 id="creating-an-nns-instance"><a class="header" href="#creating-an-nns-instance">Creating an NNS Instance</a></h2>
+<p>To interact with the NNS, you first need to create an NNS instance:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="checking-domain-availability"><a class="header" href="#checking-domain-availability">Checking Domain Availability</a></h2>
+<p>Before registering a domain, you should check if it's available:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    // Check if a domain is available
+    let domain = "example.neo";
+    let is_available = nns.is_available(domain).await?;
+    
+    if is_available {
+        println!("Domain {} is available for registration", domain);
+    } else {
+        println!("Domain {} is already registered", domain);
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="registering-a-domain"><a class="header" href="#registering-a-domain">Registering a Domain</a></h2>
+<p>If a domain is available, you can register it:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will register the domain
+    let account = wallet.default_account()?;
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    // Check if a domain is available
+    let domain = "example.neo";
+    let is_available = nns.is_available(domain).await?;
+    
+    if is_available {
+        // Register the domain
+        let registration_period = 1; // in years
+        let txid = nns.register(account, domain, registration_period).await?;
+        
+        println!("Domain registration initiated with transaction ID: {}", txid);
+        
+        // Wait for the transaction to be confirmed
+        let receipt = provider.wait_for_transaction(&amp;txid, 60, 2).await?;
+        println!("Domain registration confirmed: {:?}", receipt);
+    } else {
+        println!("Domain {} is already registered", domain);
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="setting-domain-records"><a class="header" href="#setting-domain-records">Setting Domain Records</a></h2>
+<p>Once you own a domain, you can set various records for it:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that owns the domain
+    let account = wallet.default_account()?;
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    // Domain name
+    let domain = "example.neo";
+    
+    // Set an address record
+    let address = account.address();
+    let txid = nns.set_address(account, domain, address).await?;
+    
+    println!("Address record set with transaction ID: {}", txid);
+    
+    // Wait for the transaction to be confirmed
+    let receipt = provider.wait_for_transaction(&amp;txid, 60, 2).await?;
+    println!("Address record confirmed: {:?}", receipt);
+    
+    // Set a text record
+    let key = "email";
+    let value = "contact@example.neo";
+    let text_txid = nns.set_text(account, domain, key, value).await?;
+    
+    println!("Text record set with transaction ID: {}", text_txid);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="resolving-domain-records"><a class="header" href="#resolving-domain-records">Resolving Domain Records</a></h2>
+<p>You can resolve domain records to get the associated data:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    // Domain name
+    let domain = "example.neo";
+    
+    // Resolve address
+    let address = nns.resolve_address(domain).await?;
+    
+    if let Some(addr) = address {
+        println!("Domain {} resolves to address: {}", domain, addr);
+    } else {
+        println!("No address record found for domain {}", domain);
+    }
+    
+    // Resolve text record
+    let key = "email";
+    let text = nns.resolve_text(domain, key).await?;
+    
+    if let Some(value) = text {
+        println!("Text record '{}' for domain {}: {}", key, domain, value);
+    } else {
+        println!("No text record '{}' found for domain {}", key, domain);
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="renewing-a-domain"><a class="header" href="#renewing-a-domain">Renewing a Domain</a></h2>
+<p>Domains need to be renewed periodically to maintain ownership:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that owns the domain
+    let account = wallet.default_account()?;
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    // Domain name
+    let domain = "example.neo";
+    
+    // Check domain expiration
+    let expiration = nns.get_expiration(domain).await?;
+    
+    if let Some(exp) = expiration {
+        println!("Domain {} expires at: {}", domain, exp);
+        
+        // Renew the domain
+        let renewal_period = 1; // in years
+        let txid = nns.renew(account, domain, renewal_period).await?;
+        
+        println!("Domain renewal initiated with transaction ID: {}", txid);
+        
+        // Wait for the transaction to be confirmed
+        let receipt = provider.wait_for_transaction(&amp;txid, 60, 2).await?;
+        println!("Domain renewal confirmed: {:?}", receipt);
+    } else {
+        println!("Domain {} is not registered", domain);
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="transferring-domain-ownership"><a class="header" href="#transferring-domain-ownership">Transferring Domain Ownership</a></h2>
+<p>You can transfer ownership of a domain to another address:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that owns the domain
+    let account = wallet.default_account()?;
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    // Domain name
+    let domain = "example.neo";
+    
+    // New owner address
+    let new_owner = "NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?;
+    
+    // Transfer ownership
+    let txid = nns.transfer(account, domain, new_owner).await?;
+    
+    println!("Domain transfer initiated with transaction ID: {}", txid);
+    
+    // Wait for the transaction to be confirmed
+    let receipt = provider.wait_for_transaction(&amp;txid, 60, 2).await?;
+    println!("Domain transfer confirmed: {:?}", receipt);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="using-nns-in-applications"><a class="header" href="#using-nns-in-applications">Using NNS in Applications</a></h2>
+<p>You can integrate NNS resolution into your applications to allow users to use domain names instead of addresses:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will send tokens
+    let account = wallet.default_account()?;
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    // Create a GAS token instance
+    let gas_token = GasToken::new(provider.clone());
+    
+    // Domain or address input from user
+    let recipient_input = "example.neo";
+    
+    // Determine if input is a domain or address
+    let recipient_address = if recipient_input.ends_with(".neo") {
+        // Resolve domain to address
+        match nns.resolve_address(recipient_input).await? {
+            Some(addr) =&gt; addr,
+            None =&gt; {
+                println!("Could not resolve domain {}", recipient_input);
+                return Ok(());
+            }
+        }
+    } else {
+        // Parse as address directly
+        recipient_input.parse::&lt;Address&gt;()?
+    };
+    
+    // Amount to transfer
+    let amount = 1_00000000; // 1 GAS (with 8 decimals)
+    
+    // Transfer GAS
+    let txid = gas_token.transfer(account, recipient_address, amount, None).await?;
+    println!("Transfer sent to {} with transaction ID: {}", recipient_input, txid);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<ol>
+<li><strong>Check Domain Availability</strong>: Always check if a domain is available before attempting to register it.</li>
+<li><strong>Monitor Expiration</strong>: Keep track of domain expiration dates and renew domains before they expire.</li>
+<li><strong>Secure Ownership</strong>: Ensure that the account owning valuable domains is properly secured.</li>
+<li><strong>Validate Input</strong>: When accepting domain names as input, validate them before attempting to resolve.</li>
+<li><strong>Handle Resolution Failures</strong>: Always handle cases where domain resolution fails gracefully.</li>
+<li><strong>Test on TestNet</strong>: Always test your NNS operations on TestNet before moving to MainNet.</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../tutorials/nep17-tokens.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../tutorials/neo-x.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../tutorials/nep17-tokens.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../tutorials/neo-x.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+        <script>
+            window.playground_line_numbers = true;
+        </script>
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

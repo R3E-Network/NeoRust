@@ -1,0 +1,3074 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>NeoRust SDK Documentation</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Documentation for the NeoRust SDK, a comprehensive Rust SDK for interacting with the Neo N3 blockchain">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom.css">
+        <link rel="stylesheet" href="./mdbook-admonish.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">NeoRust SDK Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/R3E-Network/NeoRust" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="neorust-sdk-documentation"><a class="header" href="#neorust-sdk-documentation">NeoRust SDK Documentation</a></h1>
+<div class="logo-container">
+  <img src="../assets/images/neo-logo.png" alt="Neo Logo">
+  <img src="../assets/images/neo-x-logo.svg" alt="Neo X Logo">
+  <img src="../assets/images/r3e-logo.png" alt="R3E Logo">
+</div>
+<p>Welcome to the NeoRust SDK documentation. This SDK provides a comprehensive set of tools for interacting with the Neo N3 blockchain using Rust.</p>
+<h2 id="features"><a class="header" href="#features">Features</a></h2>
+<ul>
+<li><strong>Wallet Management</strong>: Create, load, and manage Neo wallets</li>
+<li><strong>Transaction Building</strong>: Build and sign transactions</li>
+<li><strong>Smart Contract Interaction</strong>: Deploy and invoke smart contracts</li>
+<li><strong>NEP-17 Token Support</strong>: Interact with NEP-17 tokens</li>
+<li><strong>NNS Integration</strong>: Work with the Neo Name Service</li>
+<li><strong>Famous Contract Support</strong>: Direct interfaces for Flamingo, NeoburgerNeo, GrandShare, and NeoCompound</li>
+<li><strong>Neo X Support</strong>: EVM compatibility and bridge functionality</li>
+<li><strong>SGX Support</strong>: Secure operations within Intel SGX enclaves</li>
+</ul>
+<h2 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h2>
+<p>To get started with the NeoRust SDK, see the <a href="guides/getting-started.html">Getting Started Guide</a>.</p>
+<h2 id="api-reference"><a class="header" href="#api-reference">API Reference</a></h2>
+<p>For detailed API documentation, see the <a href="reference/api-overview.html">API Reference</a>.</p>
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<p>Check out the <a href="examples/README.html">Examples</a> section for code examples demonstrating various features of the SDK.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="getting-started-with-neorust-sdk"><a class="header" href="#getting-started-with-neorust-sdk">Getting Started with NeoRust SDK</a></h1>
+<p>This guide will help you get started with the NeoRust SDK for interacting with the Neo N3 blockchain.</p>
+<h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
+<ul>
+<li>Rust 1.70.0 or later</li>
+<li>Cargo package manager</li>
+<li>Basic knowledge of the Neo blockchain</li>
+</ul>
+<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
+<p>Add the NeoRust SDK to your Cargo.toml:</p>
+<pre><code class="language-toml">[dependencies]
+neo = { git = "https://github.com/R3E-Network/NeoRust" }
+</code></pre>
+<p>Or if you prefer to use a specific version:</p>
+<pre><code class="language-toml">[dependencies]
+neo = "0.1.0"
+</code></pre>
+<h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
+<p>Here's a simple example of connecting to a Neo N3 node and getting the current block height:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Get the current block height
+    let block_count = provider.get_block_count().await?;
+    println!("Current block height: {}", block_count);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li>Learn about <a href="guides/../tutorials/wallet-management.html">Wallet Management</a></li>
+<li>Explore <a href="guides/../tutorials/smart-contracts.html">Smart Contract Interaction</a></li>
+<li>See <a href="guides/../examples/README.html">Examples</a> for more code samples</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="installation-guide"><a class="header" href="#installation-guide">Installation Guide</a></h1>
+<p>This guide provides detailed instructions for installing and configuring the NeoRust SDK.</p>
+<h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
+<ul>
+<li>Rust 1.70.0 or later</li>
+<li>Cargo package manager</li>
+<li>Optional: Intel SGX SDK (for SGX features)</li>
+</ul>
+<h2 id="standard-installation"><a class="header" href="#standard-installation">Standard Installation</a></h2>
+<p>Add the NeoRust SDK to your Cargo.toml:</p>
+<pre><code class="language-toml">[dependencies]
+neo = { git = "https://github.com/R3E-Network/NeoRust" }
+</code></pre>
+<h2 id="feature-flags"><a class="header" href="#feature-flags">Feature Flags</a></h2>
+<p>NeoRust supports various feature flags to enable specific functionality:</p>
+<pre><code class="language-toml">[dependencies]
+neo = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "aws"] }
+</code></pre>
+<p>Available features:</p>
+<ul>
+<li><code>ledger</code>: Support for Ledger hardware wallets</li>
+<li><code>aws</code>: AWS integration</li>
+<li><code>sgx</code>: Intel SGX support (requires additional setup)</li>
+</ul>
+<h2 id="sgx-support"><a class="header" href="#sgx-support">SGX Support</a></h2>
+<p>To use the SGX features, you need to install the Intel SGX SDK. See the <a href="guides/../tutorials/sgx.html">SGX Setup Guide</a> for detailed instructions.</p>
+<h2 id="verifying-installation"><a class="header" href="#verifying-installation">Verifying Installation</a></h2>
+<p>To verify that the SDK is installed correctly, create a simple test program:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+fn main() {
+    println!("NeoRust SDK installed successfully!");
+}</code></pre></pre>
+<p>Compile and run the program:</p>
+<pre><code class="language-bash">cargo run
+</code></pre>
+<p>If the program compiles and runs without errors, the SDK is installed correctly.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="wallet-management"><a class="header" href="#wallet-management">Wallet Management</a></h1>
+<p>This tutorial covers wallet management with the NeoRust SDK, including creating, loading, and using wallets.</p>
+<h2 id="creating-a-new-wallet"><a class="header" href="#creating-a-new-wallet">Creating a New Wallet</a></h2>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Create a new wallet with a password
+    let password = "my-secure-password";
+    let wallet = Wallet::new(password)?;
+    
+    // Generate a new account
+    let account = wallet.create_account()?;
+    println!("New account address: {}", account.address());
+    
+    // Save the wallet to a file
+    wallet.save("my-wallet.json")?;
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="loading-an-existing-wallet"><a class="header" href="#loading-an-existing-wallet">Loading an Existing Wallet</a></h2>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load a wallet from a file
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the default account
+    let account = wallet.default_account()?;
+    println!("Default account address: {}", account.address());
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="importing-a-private-key"><a class="header" href="#importing-a-private-key">Importing a Private Key</a></h2>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Create a new wallet
+    let password = "my-secure-password";
+    let mut wallet = Wallet::new(password)?;
+    
+    // Import a private key
+    let private_key = "your-private-key-here";
+    let account = wallet.import_private_key(private_key, password)?;
+    println!("Imported account address: {}", account.address());
+    
+    // Save the wallet
+    wallet.save("my-wallet.json")?;
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="signing-a-message"><a class="header" href="#signing-a-message">Signing a Message</a></h2>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load a wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the default account
+    let account = wallet.default_account()?;
+    
+    // Sign a message
+    let message = b"Hello, Neo!";
+    let signature = account.sign_message(message)?;
+    println!("Signature: {:?}", signature);
+    
+    // Verify the signature
+    let is_valid = account.verify_signature(message, &amp;signature)?;
+    println!("Signature valid: {}", is_valid);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="wallet-backup-and-recovery"><a class="header" href="#wallet-backup-and-recovery">Wallet Backup and Recovery</a></h2>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Create a new wallet
+    let password = "my-secure-password";
+    let wallet = Wallet::new(password)?;
+    
+    // Generate a new account
+    let account = wallet.create_account()?;
+    
+    // Get the mnemonic phrase for backup
+    let mnemonic = wallet.export_mnemonic(password)?;
+    println!("Backup phrase: {}", mnemonic);
+    
+    // Later, recover the wallet from the mnemonic
+    let recovered_wallet = Wallet::from_mnemonic(&amp;mnemonic, password)?;
+    
+    // Verify the recovered wallet has the same account
+    let recovered_account = recovered_wallet.default_account()?;
+    println!("Recovered account address: {}", recovered_account.address());
+    
+    assert_eq!(account.address(), recovered_account.address());
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="using-sgx-protected-wallets"><a class="header" href="#using-sgx-protected-wallets">Using SGX-Protected Wallets</a></h2>
+<p>If you have enabled the SGX feature, you can use SGX-protected wallets for enhanced security:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Initialize the SGX enclave
+    let enclave_path = "path/to/enclave.so";
+    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
+    
+    // Create a wallet with a password
+    let password = "my-secure-password";
+    let wallet = enclave_manager.create_wallet(password)?;
+    
+    // Get the wallet's public key
+    let public_key = wallet.get_public_key();
+    println!("Wallet public key: {:?}", public_key);
+    
+    // Sign a transaction using the SGX-protected private key
+    let transaction_data = b"Sample transaction data";
+    let signature = wallet.sign_transaction(transaction_data)?;
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<ol>
+<li><strong>Secure Password Storage</strong>: Never hardcode passwords in your application.</li>
+<li><strong>Regular Backups</strong>: Always backup your wallet's mnemonic phrase or private keys.</li>
+<li><strong>Verify Addresses</strong>: Always verify addresses before sending transactions.</li>
+<li><strong>Use Hardware Wallets</strong>: For production applications, consider using hardware wallets via the Ledger feature.</li>
+<li><strong>SGX Protection</strong>: For high-security applications, use SGX-protected wallets.</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="smart-contracts"><a class="header" href="#smart-contracts">Smart Contracts</a></h1>
+<p>This tutorial covers working with smart contracts on the Neo N3 blockchain using the NeoRust SDK.</p>
+<h2 id="understanding-neo-smart-contracts"><a class="header" href="#understanding-neo-smart-contracts">Understanding Neo Smart Contracts</a></h2>
+<p>Neo N3 smart contracts are written in a variety of languages including C#, Python, Go, and TypeScript, and are compiled to NeoVM bytecode. The NeoRust SDK provides tools for deploying and interacting with these contracts.</p>
+<h2 id="deploying-a-smart-contract"><a class="header" href="#deploying-a-smart-contract">Deploying a Smart Contract</a></h2>
+<p>To deploy a smart contract, you need the contract's NEF (Neo Executable Format) file and its manifest:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+use std::fs;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will deploy the contract
+    let account = wallet.default_account()?;
+    
+    // Read the NEF file and manifest
+    let nef_bytes = fs::read("path/to/contract.nef")?;
+    let manifest_bytes = fs::read("path/to/contract.manifest.json")?;
+    
+    // Create a transaction to deploy the contract
+    let transaction = TransactionBuilder::new()
+        .version(0)
+        .nonce(rand::random::&lt;u32&gt;())
+        .valid_until_block(provider.get_block_count().await? + 100)
+        .deploy_contract(&amp;nef_bytes, &amp;manifest_bytes)
+        .sign(account)?
+        .build();
+    
+    // Send the transaction
+    let txid = provider.send_raw_transaction(&amp;transaction).await?;
+    println!("Contract deployed with transaction ID: {}", txid);
+    
+    // Wait for the transaction to be confirmed
+    let receipt = provider.wait_for_transaction(&amp;txid, 60, 2).await?;
+    println!("Transaction confirmed: {:?}", receipt);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="invoking-a-smart-contract"><a class="header" href="#invoking-a-smart-contract">Invoking a Smart Contract</a></h2>
+<p>Once a contract is deployed, you can invoke its methods:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will invoke the contract
+    let account = wallet.default_account()?;
+    
+    // Contract script hash (address)
+    let contract_hash = "0x1234567890abcdef1234567890abcdef12345678".parse::&lt;ScriptHash&gt;()?;
+    
+    // Create a transaction to invoke the contract
+    let transaction = TransactionBuilder::new()
+        .version(0)
+        .nonce(rand::random::&lt;u32&gt;())
+        .valid_until_block(provider.get_block_count().await? + 100)
+        .script(
+            ScriptBuilder::new()
+                .contract_call(
+                    contract_hash,
+                    "transfer",
+                    &amp;[
+                        ContractParameter::hash160(account.address().script_hash()),
+                        ContractParameter::hash160("NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?),
+                        ContractParameter::integer(1000),
+                        ContractParameter::any(None),
+                    ],
+                )
+                .to_array()
+        )
+        .sign(account)?
+        .build();
+    
+    // Send the transaction
+    let txid = provider.send_raw_transaction(&amp;transaction).await?;
+    println!("Contract invoked with transaction ID: {}", txid);
+    
+    // Wait for the transaction to be confirmed
+    let receipt = provider.wait_for_transaction(&amp;txid, 60, 2).await?;
+    println!("Transaction confirmed: {:?}", receipt);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="reading-contract-state"><a class="header" href="#reading-contract-state">Reading Contract State</a></h2>
+<p>You can read the state of a contract without sending a transaction:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Contract script hash (address)
+    let contract_hash = "0x1234567890abcdef1234567890abcdef12345678".parse::&lt;ScriptHash&gt;()?;
+    
+    // Address to check balance for
+    let address = "NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?;
+    
+    // Invoke the contract's balanceOf method
+    let result = provider.invoke_function(
+        contract_hash,
+        "balanceOf",
+        &amp;[ContractParameter::hash160(address.script_hash())],
+        None,
+    ).await?;
+    
+    // Parse the result
+    if let Some(stack) = result.stack.first() {
+        if let Some(value) = stack.as_integer() {
+            println!("Balance: {}", value);
+        }
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="working-with-nep-17-tokens"><a class="header" href="#working-with-nep-17-tokens">Working with NEP-17 Tokens</a></h2>
+<p>NEP-17 is Neo's token standard, similar to Ethereum's ERC-20. The NeoRust SDK provides a convenient way to work with NEP-17 tokens:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account
+    let account = wallet.default_account()?;
+    
+    // NEP-17 token contract hash
+    let token_hash = "0x1234567890abcdef1234567890abcdef12345678".parse::&lt;ScriptHash&gt;()?;
+    
+    // Create a NEP-17 token instance
+    let token = Nep17Contract::new(token_hash, provider.clone());
+    
+    // Get token information
+    let symbol = token.symbol().await?;
+    let decimals = token.decimals().await?;
+    let total_supply = token.total_supply().await?;
+    
+    println!("Token: {} (Decimals: {})", symbol, decimals);
+    println!("Total Supply: {}", total_supply);
+    
+    // Get account balance
+    let balance = token.balance_of(account.address()).await?;
+    println!("Your Balance: {}", balance);
+    
+    // Transfer tokens
+    let recipient = "NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?;
+    let amount = 100;
+    let txid = token.transfer(account, recipient, amount, None).await?;
+    
+    println!("Transfer sent with transaction ID: {}", txid);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="contract-events"><a class="header" href="#contract-events">Contract Events</a></h2>
+<p>Neo smart contracts can emit events that you can listen for:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::time::Duration;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node with WebSocket support
+    let provider = Provider::new_ws("wss://testnet1.neo.coz.io:4443/ws").await?;
+    
+    // Contract script hash (address)
+    let contract_hash = "0x1234567890abcdef1234567890abcdef12345678".parse::&lt;ScriptHash&gt;()?;
+    
+    // Subscribe to contract events
+    let mut events = provider.subscribe_contract_event(contract_hash).await?;
+    
+    println!("Listening for events from contract {}...", contract_hash);
+    
+    // Process events as they arrive
+    while let Some(event) = events.next().await {
+        println!("Event received: {:?}", event);
+        
+        // Process specific event types
+        if event.event_name == "Transfer" {
+            if let Some(from) = event.state.get(0) {
+                if let Some(to) = event.state.get(1) {
+                    if let Some(amount) = event.state.get(2) {
+                        println!("Transfer: {} from {} to {}", 
+                            amount.as_integer().unwrap_or_default(),
+                            from.as_address().map(|a| a.to_string()).unwrap_or_default(),
+                            to.as_address().map(|a| a.to_string()).unwrap_or_default()
+                        );
+                    }
+                }
+            }
+        }
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="best-practices-1"><a class="header" href="#best-practices-1">Best Practices</a></h2>
+<ol>
+<li><strong>Test on TestNet First</strong>: Always test your contract interactions on TestNet before moving to MainNet.</li>
+<li><strong>Gas Estimation</strong>: Use the <code>estimate_gas</code> method to estimate the gas cost of your transactions.</li>
+<li><strong>Error Handling</strong>: Implement proper error handling for contract interactions.</li>
+<li><strong>Event Monitoring</strong>: Set up event monitoring for important contract events.</li>
+<li><strong>Security</strong>: Carefully review contract code and parameters before deployment or interaction.</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="transactions"><a class="header" href="#transactions">Transactions</a></h1>
+<p>This tutorial covers creating and sending transactions on the Neo N3 blockchain using the NeoRust SDK.</p>
+<h2 id="understanding-neo-transactions"><a class="header" href="#understanding-neo-transactions">Understanding Neo Transactions</a></h2>
+<p>Neo N3 transactions are the fundamental units of work in the Neo blockchain. They represent operations such as token transfers, smart contract invocations, and more. Each transaction has the following key components:</p>
+<ul>
+<li><strong>Version</strong>: The transaction format version</li>
+<li><strong>Nonce</strong>: A random number to prevent replay attacks</li>
+<li><strong>Sender</strong>: The account initiating the transaction</li>
+<li><strong>System Fee</strong>: Fee for executing the transaction</li>
+<li><strong>Network Fee</strong>: Fee for including the transaction in a block</li>
+<li><strong>Valid Until Block</strong>: Block height until which the transaction is valid</li>
+<li><strong>Script</strong>: The VM script to execute</li>
+<li><strong>Signers</strong>: Accounts that need to sign the transaction</li>
+<li><strong>Witnesses</strong>: Signatures and verification scripts</li>
+</ul>
+<h2 id="creating-a-basic-transaction"><a class="header" href="#creating-a-basic-transaction">Creating a Basic Transaction</a></h2>
+<p>Here's how to create a basic transaction using the TransactionBuilder:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will send the transaction
+    let account = wallet.default_account()?;
+    
+    // Create a transaction
+    let transaction = TransactionBuilder::new()
+        .version(0)
+        .nonce(rand::random::&lt;u32&gt;())
+        .valid_until_block(provider.get_block_count().await? + 100)
+        .script(
+            ScriptBuilder::new()
+                .emit_app_call(
+                    "d2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?,
+                    "transfer",
+                    &amp;[
+                        ContractParameter::hash160(account.address().script_hash()),
+                        ContractParameter::hash160("NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?),
+                        ContractParameter::integer(1000),
+                        ContractParameter::any(None),
+                    ],
+                )
+                .to_array()
+        )
+        .sign(account)?
+        .build();
+    
+    // Send the transaction
+    let txid = provider.send_raw_transaction(&amp;transaction).await?;
+    println!("Transaction sent with ID: {}", txid);
+    
+    // Wait for the transaction to be confirmed
+    let receipt = provider.wait_for_transaction(&amp;txid, 60, 2).await?;
+    println!("Transaction confirmed: {:?}", receipt);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="transferring-neo-or-gas"><a class="header" href="#transferring-neo-or-gas">Transferring NEO or GAS</a></h2>
+<p>The NeoRust SDK provides convenient methods for transferring NEO and GAS tokens:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will send the transaction
+    let account = wallet.default_account()?;
+    
+    // Create a GAS token instance
+    let gas_token = GasToken::new(provider.clone());
+    
+    // Transfer 1 GAS to another address
+    let recipient = "NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?;
+    let amount = 1_00000000; // 1 GAS (with 8 decimals)
+    
+    let txid = gas_token.transfer(account, recipient, amount, None).await?;
+    println!("GAS transfer sent with transaction ID: {}", txid);
+    
+    // Similarly for NEO token
+    let neo_token = NeoToken::new(provider.clone());
+    
+    // Transfer 1 NEO to another address
+    let neo_amount = 1_00000000; // 1 NEO (with 8 decimals)
+    
+    let neo_txid = neo_token.transfer(account, recipient, neo_amount, None).await?;
+    println!("NEO transfer sent with transaction ID: {}", neo_txid);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="multi-signature-transactions"><a class="header" href="#multi-signature-transactions">Multi-signature Transactions</a></h2>
+<p>Neo supports multi-signature accounts, which require multiple signatures to authorize a transaction:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load wallets for all signers
+    let wallet1_path = Path::new("wallet1.json");
+    let wallet2_path = Path::new("wallet2.json");
+    let wallet3_path = Path::new("wallet3.json");
+    
+    let password = "my-secure-password";
+    
+    let wallet1 = Wallet::load(wallet1_path, password)?;
+    let wallet2 = Wallet::load(wallet2_path, password)?;
+    let wallet3 = Wallet::load(wallet3_path, password)?;
+    
+    let account1 = wallet1.default_account()?;
+    let account2 = wallet2.default_account()?;
+    let account3 = wallet3.default_account()?;
+    
+    // Create a multi-signature account (2 of 3)
+    let multi_sig_account = Account::create_multi_sig(
+        2,
+        &amp;[
+            account1.public_key().clone(),
+            account2.public_key().clone(),
+            account3.public_key().clone(),
+        ],
+    )?;
+    
+    println!("Multi-signature address: {}", multi_sig_account.address());
+    
+    // Create a transaction from the multi-signature account
+    let mut transaction = TransactionBuilder::new()
+        .version(0)
+        .nonce(rand::random::&lt;u32&gt;())
+        .valid_until_block(provider.get_block_count().await? + 100)
+        .script(
+            ScriptBuilder::new()
+                .emit_app_call(
+                    "d2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?,
+                    "transfer",
+                    &amp;[
+                        ContractParameter::hash160(multi_sig_account.address().script_hash()),
+                        ContractParameter::hash160("NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?),
+                        ContractParameter::integer(1000),
+                        ContractParameter::any(None),
+                    ],
+                )
+                .to_array()
+        )
+        .build();
+    
+    // Sign with the required number of accounts (2 of 3)
+    transaction = transaction.sign(account1)?;
+    transaction = transaction.sign(account2)?;
+    
+    // Send the transaction
+    let txid = provider.send_raw_transaction(&amp;transaction).await?;
+    println!("Multi-signature transaction sent with ID: {}", txid);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="transaction-fees"><a class="header" href="#transaction-fees">Transaction Fees</a></h2>
+<p>Neo N3 transactions require two types of fees:</p>
+<ol>
+<li><strong>System Fee</strong>: Cost of executing the transaction script</li>
+<li><strong>Network Fee</strong>: Cost of including the transaction in a block</li>
+</ol>
+<p>You can estimate these fees before sending a transaction:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will send the transaction
+    let account = wallet.default_account()?;
+    
+    // Create a transaction
+    let transaction = TransactionBuilder::new()
+        .version(0)
+        .nonce(rand::random::&lt;u32&gt;())
+        .valid_until_block(provider.get_block_count().await? + 100)
+        .script(
+            ScriptBuilder::new()
+                .emit_app_call(
+                    "d2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?,
+                    "transfer",
+                    &amp;[
+                        ContractParameter::hash160(account.address().script_hash()),
+                        ContractParameter::hash160("NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?),
+                        ContractParameter::integer(1000),
+                        ContractParameter::any(None),
+                    ],
+                )
+                .to_array()
+        )
+        .build();
+    
+    // Estimate system fee
+    let system_fee = provider.estimate_system_fee(&amp;transaction).await?;
+    println!("Estimated system fee: {} GAS", system_fee);
+    
+    // Estimate network fee
+    let network_fee = provider.estimate_network_fee(&amp;transaction).await?;
+    println!("Estimated network fee: {} GAS", network_fee);
+    
+    // Total fee
+    let total_fee = system_fee + network_fee;
+    println!("Total estimated fee: {} GAS", total_fee);
+    
+    // Add fees to the transaction
+    let transaction_with_fees = TransactionBuilder::from_transaction(transaction)
+        .system_fee(system_fee)
+        .network_fee(network_fee)
+        .sign(account)?
+        .build();
+    
+    // Send the transaction
+    let txid = provider.send_raw_transaction(&amp;transaction_with_fees).await?;
+    println!("Transaction sent with ID: {}", txid);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="checking-transaction-status"><a class="header" href="#checking-transaction-status">Checking Transaction Status</a></h2>
+<p>You can check the status of a transaction after sending it:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Transaction ID to check
+    let txid = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef".parse::&lt;TxHash&gt;()?;
+    
+    // Get transaction
+    let transaction = provider.get_transaction(&amp;txid).await?;
+    
+    if let Some(tx) = transaction {
+        println!("Transaction found: {:?}", tx);
+        
+        // Get application log
+        let app_log = provider.get_application_log(&amp;txid).await?;
+        
+        if let Some(log) = app_log {
+            println!("Transaction execution:");
+            println!("  VM State: {}", log.execution.vm_state);
+            println!("  Gas Consumed: {}", log.execution.gas_consumed);
+            
+            for (i, notification) in log.execution.notifications.iter().enumerate() {
+                println!("  Notification #{}: {}", i + 1, notification.event_name);
+                println!("    Contract: {}", notification.contract);
+                println!("    State: {:?}", notification.state);
+            }
+        }
+    } else {
+        println!("Transaction not found. It may be pending or invalid.");
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="best-practices-2"><a class="header" href="#best-practices-2">Best Practices</a></h2>
+<ol>
+<li><strong>Always Verify Addresses</strong>: Double-check recipient addresses before sending transactions.</li>
+<li><strong>Set Appropriate Valid Until Block</strong>: Set a reasonable expiration for your transactions.</li>
+<li><strong>Estimate Fees</strong>: Always estimate and include appropriate fees to ensure your transaction is processed.</li>
+<li><strong>Wait for Confirmation</strong>: Always wait for transaction confirmation before considering it complete.</li>
+<li><strong>Error Handling</strong>: Implement proper error handling for transaction failures.</li>
+<li><strong>Test on TestNet</strong>: Always test your transactions on TestNet before moving to MainNet.</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="nep-17-tokens"><a class="header" href="#nep-17-tokens">NEP-17 Tokens</a></h1>
+<p>This tutorial covers working with NEP-17 tokens on the Neo N3 blockchain using the NeoRust SDK.</p>
+<h2 id="understanding-nep-17"><a class="header" href="#understanding-nep-17">Understanding NEP-17</a></h2>
+<p>NEP-17 is Neo's token standard, similar to Ethereum's ERC-20. It defines a standard interface for fungible tokens on the Neo blockchain. NEP-17 tokens have the following key methods:</p>
+<ul>
+<li><code>symbol</code>: Returns the token's symbol</li>
+<li><code>decimals</code>: Returns the number of decimal places the token uses</li>
+<li><code>totalSupply</code>: Returns the total token supply</li>
+<li><code>balanceOf</code>: Returns the token balance of a specific address</li>
+<li><code>transfer</code>: Transfers tokens from one address to another</li>
+</ul>
+<h2 id="creating-a-nep-17-token-instance"><a class="header" href="#creating-a-nep-17-token-instance">Creating a NEP-17 Token Instance</a></h2>
+<p>To interact with a NEP-17 token, you first need to create a token instance:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // NEP-17 token contract hash (e.g., GAS token)
+    let gas_hash = "0xd2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?;
+    
+    // Create a NEP-17 token instance
+    let gas_token = Nep17Contract::new(gas_hash, provider.clone());
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="getting-token-information"><a class="header" href="#getting-token-information">Getting Token Information</a></h2>
+<p>You can retrieve basic information about a token:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // NEP-17 token contract hash (e.g., GAS token)
+    let gas_hash = "0xd2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?;
+    
+    // Create a NEP-17 token instance
+    let gas_token = Nep17Contract::new(gas_hash, provider.clone());
+    
+    // Get token information
+    let symbol = gas_token.symbol().await?;
+    let decimals = gas_token.decimals().await?;
+    let total_supply = gas_token.total_supply().await?;
+    
+    println!("Token: {} (Decimals: {})", symbol, decimals);
+    println!("Total Supply: {}", total_supply);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="checking-token-balance"><a class="header" href="#checking-token-balance">Checking Token Balance</a></h2>
+<p>You can check the token balance of an address:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // NEP-17 token contract hash (e.g., GAS token)
+    let gas_hash = "0xd2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?;
+    
+    // Create a NEP-17 token instance
+    let gas_token = Nep17Contract::new(gas_hash, provider.clone());
+    
+    // Address to check balance for
+    let address = "NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?;
+    
+    // Get token balance
+    let balance = gas_token.balance_of(address).await?;
+    
+    println!("Balance: {}", balance);
+    
+    // For better display, consider the token's decimals
+    let decimals = gas_token.decimals().await?;
+    let formatted_balance = balance as f64 / 10f64.powi(decimals as i32);
+    
+    println!("Formatted Balance: {} {}", formatted_balance, gas_token.symbol().await?);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="transferring-tokens"><a class="header" href="#transferring-tokens">Transferring Tokens</a></h2>
+<p>You can transfer tokens from one address to another:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will send the tokens
+    let account = wallet.default_account()?;
+    
+    // NEP-17 token contract hash (e.g., GAS token)
+    let gas_hash = "0xd2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?;
+    
+    // Create a NEP-17 token instance
+    let gas_token = Nep17Contract::new(gas_hash, provider.clone());
+    
+    // Recipient address
+    let recipient = "NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?;
+    
+    // Amount to transfer (considering decimals)
+    let decimals = gas_token.decimals().await?;
+    let amount = 1 * 10i64.pow(decimals as u32); // 1 token with proper decimal places
+    
+    // Transfer tokens
+    let txid = gas_token.transfer(account, recipient, amount, None).await?;
+    
+    println!("Transfer sent with transaction ID: {}", txid);
+    
+    // Wait for the transaction to be confirmed
+    let receipt = provider.wait_for_transaction(&amp;txid, 60, 2).await?;
+    println!("Transaction confirmed: {:?}", receipt);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="working-with-neo-and-gas-tokens"><a class="header" href="#working-with-neo-and-gas-tokens">Working with NEO and GAS Tokens</a></h2>
+<p>The NeoRust SDK provides specialized classes for the native NEO and GAS tokens:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account
+    let account = wallet.default_account()?;
+    
+    // Create NEO token instance
+    let neo_token = NeoToken::new(provider.clone());
+    
+    // Create GAS token instance
+    let gas_token = GasToken::new(provider.clone());
+    
+    // Get NEO balance
+    let neo_balance = neo_token.balance_of(account.address()).await?;
+    println!("NEO Balance: {}", neo_balance);
+    
+    // Get GAS balance
+    let gas_balance = gas_token.balance_of(account.address()).await?;
+    println!("GAS Balance: {}", gas_balance);
+    
+    // Transfer NEO
+    let recipient = "NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?;
+    let neo_amount = 1_00000000; // 1 NEO (with 8 decimals)
+    
+    let neo_txid = neo_token.transfer(account, recipient, neo_amount, None).await?;
+    println!("NEO transfer sent with transaction ID: {}", neo_txid);
+    
+    // Transfer GAS
+    let gas_amount = 1_00000000; // 1 GAS (with 8 decimals)
+    
+    let gas_txid = gas_token.transfer(account, recipient, gas_amount, None).await?;
+    println!("GAS transfer sent with transaction ID: {}", gas_txid);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="monitoring-token-transfers"><a class="header" href="#monitoring-token-transfers">Monitoring Token Transfers</a></h2>
+<p>You can monitor token transfers by subscribing to the Transfer event:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node with WebSocket support
+    let provider = Provider::new_ws("wss://testnet1.neo.coz.io:4443/ws").await?;
+    
+    // NEP-17 token contract hash (e.g., GAS token)
+    let gas_hash = "0xd2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?;
+    
+    // Subscribe to Transfer events
+    let mut events = provider.subscribe_contract_event(gas_hash).await?;
+    
+    println!("Listening for token transfers...");
+    
+    // Process events as they arrive
+    while let Some(event) = events.next().await {
+        if event.event_name == "Transfer" {
+            if let Some(from) = event.state.get(0) {
+                if let Some(to) = event.state.get(1) {
+                    if let Some(amount) = event.state.get(2) {
+                        println!("Transfer: {} tokens from {} to {}", 
+                            amount.as_integer().unwrap_or_default(),
+                            from.as_address().map(|a| a.to_string()).unwrap_or_default(),
+                            to.as_address().map(|a| a.to_string()).unwrap_or_default()
+                        );
+                    }
+                }
+            }
+        }
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="working-with-famous-neo-n3-contracts"><a class="header" href="#working-with-famous-neo-n3-contracts">Working with Famous Neo N3 Contracts</a></h2>
+<p>The NeoRust SDK provides direct support for several famous Neo N3 contracts:</p>
+<h3 id="flamingo-finance"><a class="header" href="#flamingo-finance">Flamingo Finance</a></h3>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use neo::neo_contract::famous::flamingo::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 MainNet node
+    let provider = Provider::new_http("https://mainnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account
+    let account = wallet.default_account()?;
+    
+    // Create Flamingo Finance instance
+    let flamingo = FlamingoFinance::new(provider.clone());
+    
+    // Get FLM token balance
+    let flm_balance = flamingo.flm_token().balance_of(account.address()).await?;
+    println!("FLM Balance: {}", flm_balance);
+    
+    // Get liquidity pool information
+    let pool_info = flamingo.get_pool_info(FlamingoPool::NeoGas).await?;
+    println!("Pool Info: {:?}", pool_info);
+    
+    // Add liquidity to a pool
+    let neo_amount = 1_00000000; // 1 NEO
+    let gas_amount = 1_00000000; // 1 GAS
+    
+    let add_liquidity_txid = flamingo.add_liquidity(
+        account,
+        FlamingoPool::NeoGas,
+        neo_amount,
+        gas_amount,
+        None,
+    ).await?;
+    
+    println!("Add Liquidity transaction ID: {}", add_liquidity_txid);
+    
+    Ok(())
+}</code></pre></pre>
+<h3 id="neoburgerneo"><a class="header" href="#neoburgerneo">NeoburgerNeo</a></h3>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use neo::neo_contract::famous::neoburger::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 MainNet node
+    let provider = Provider::new_http("https://mainnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account
+    let account = wallet.default_account()?;
+    
+    // Create NeoburgerNeo instance
+    let neoburger = NeoburgerNeo::new(provider.clone());
+    
+    // Get bNEO token balance
+    let bneo_balance = neoburger.bneo_token().balance_of(account.address()).await?;
+    println!("bNEO Balance: {}", bneo_balance);
+    
+    // Wrap NEO to get bNEO
+    let neo_amount = 1_00000000; // 1 NEO
+    let wrap_txid = neoburger.wrap_neo(account, neo_amount).await?;
+    println!("Wrap NEO transaction ID: {}", wrap_txid);
+    
+    // Unwrap bNEO to get NEO
+    let bneo_amount = 1_00000000; // 1 bNEO
+    let unwrap_txid = neoburger.unwrap_bneo(account, bneo_amount).await?;
+    println!("Unwrap bNEO transaction ID: {}", unwrap_txid);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="best-practices-3"><a class="header" href="#best-practices-3">Best Practices</a></h2>
+<ol>
+<li><strong>Check Balances Before Transfers</strong>: Always check that an account has sufficient balance before attempting a transfer.</li>
+<li><strong>Consider Decimals</strong>: Remember to account for token decimals when displaying balances or specifying transfer amounts.</li>
+<li><strong>Wait for Confirmations</strong>: Always wait for transaction confirmations before considering a transfer complete.</li>
+<li><strong>Error Handling</strong>: Implement proper error handling for token operations.</li>
+<li><strong>Gas Costs</strong>: Be aware of the gas costs associated with token transfers and other operations.</li>
+<li><strong>Test on TestNet</strong>: Always test your token operations on TestNet before moving to MainNet.</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="neo-name-service-nns"><a class="header" href="#neo-name-service-nns">Neo Name Service (NNS)</a></h1>
+<p>This tutorial covers working with the Neo Name Service (NNS) on the Neo N3 blockchain using the NeoRust SDK.</p>
+<h2 id="understanding-nns"><a class="header" href="#understanding-nns">Understanding NNS</a></h2>
+<p>The Neo Name Service (NNS) is a distributed, open-source naming system based on the Neo blockchain. It maps human-readable names to machine-readable identifiers such as Neo addresses, contract script hashes, and more. This makes it easier to work with blockchain addresses and resources.</p>
+<h2 id="key-concepts"><a class="header" href="#key-concepts">Key Concepts</a></h2>
+<ul>
+<li><strong>Domain</strong>: A human-readable name registered in the NNS (e.g., <code>example.neo</code>)</li>
+<li><strong>Record</strong>: Data associated with a domain (e.g., address, text record, etc.)</li>
+<li><strong>TTL</strong>: Time-to-live for a domain record</li>
+<li><strong>Owner</strong>: The account that owns a domain and can manage its records</li>
+<li><strong>Resolver</strong>: Contract that translates between domain names and addresses/resources</li>
+</ul>
+<h2 id="creating-an-nns-instance"><a class="header" href="#creating-an-nns-instance">Creating an NNS Instance</a></h2>
+<p>To interact with the NNS, you first need to create an NNS instance:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="checking-domain-availability"><a class="header" href="#checking-domain-availability">Checking Domain Availability</a></h2>
+<p>Before registering a domain, you should check if it's available:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    // Check if a domain is available
+    let domain = "example.neo";
+    let is_available = nns.is_available(domain).await?;
+    
+    if is_available {
+        println!("Domain {} is available for registration", domain);
+    } else {
+        println!("Domain {} is already registered", domain);
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="registering-a-domain"><a class="header" href="#registering-a-domain">Registering a Domain</a></h2>
+<p>If a domain is available, you can register it:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will register the domain
+    let account = wallet.default_account()?;
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    // Check if a domain is available
+    let domain = "example.neo";
+    let is_available = nns.is_available(domain).await?;
+    
+    if is_available {
+        // Register the domain
+        let registration_period = 1; // in years
+        let txid = nns.register(account, domain, registration_period).await?;
+        
+        println!("Domain registration initiated with transaction ID: {}", txid);
+        
+        // Wait for the transaction to be confirmed
+        let receipt = provider.wait_for_transaction(&amp;txid, 60, 2).await?;
+        println!("Domain registration confirmed: {:?}", receipt);
+    } else {
+        println!("Domain {} is already registered", domain);
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="setting-domain-records"><a class="header" href="#setting-domain-records">Setting Domain Records</a></h2>
+<p>Once you own a domain, you can set various records for it:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that owns the domain
+    let account = wallet.default_account()?;
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    // Domain name
+    let domain = "example.neo";
+    
+    // Set an address record
+    let address = account.address();
+    let txid = nns.set_address(account, domain, address).await?;
+    
+    println!("Address record set with transaction ID: {}", txid);
+    
+    // Wait for the transaction to be confirmed
+    let receipt = provider.wait_for_transaction(&amp;txid, 60, 2).await?;
+    println!("Address record confirmed: {:?}", receipt);
+    
+    // Set a text record
+    let key = "email";
+    let value = "contact@example.neo";
+    let text_txid = nns.set_text(account, domain, key, value).await?;
+    
+    println!("Text record set with transaction ID: {}", text_txid);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="resolving-domain-records"><a class="header" href="#resolving-domain-records">Resolving Domain Records</a></h2>
+<p>You can resolve domain records to get the associated data:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    // Domain name
+    let domain = "example.neo";
+    
+    // Resolve address
+    let address = nns.resolve_address(domain).await?;
+    
+    if let Some(addr) = address {
+        println!("Domain {} resolves to address: {}", domain, addr);
+    } else {
+        println!("No address record found for domain {}", domain);
+    }
+    
+    // Resolve text record
+    let key = "email";
+    let text = nns.resolve_text(domain, key).await?;
+    
+    if let Some(value) = text {
+        println!("Text record '{}' for domain {}: {}", key, domain, value);
+    } else {
+        println!("No text record '{}' found for domain {}", key, domain);
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="renewing-a-domain"><a class="header" href="#renewing-a-domain">Renewing a Domain</a></h2>
+<p>Domains need to be renewed periodically to maintain ownership:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that owns the domain
+    let account = wallet.default_account()?;
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    // Domain name
+    let domain = "example.neo";
+    
+    // Check domain expiration
+    let expiration = nns.get_expiration(domain).await?;
+    
+    if let Some(exp) = expiration {
+        println!("Domain {} expires at: {}", domain, exp);
+        
+        // Renew the domain
+        let renewal_period = 1; // in years
+        let txid = nns.renew(account, domain, renewal_period).await?;
+        
+        println!("Domain renewal initiated with transaction ID: {}", txid);
+        
+        // Wait for the transaction to be confirmed
+        let receipt = provider.wait_for_transaction(&amp;txid, 60, 2).await?;
+        println!("Domain renewal confirmed: {:?}", receipt);
+    } else {
+        println!("Domain {} is not registered", domain);
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="transferring-domain-ownership"><a class="header" href="#transferring-domain-ownership">Transferring Domain Ownership</a></h2>
+<p>You can transfer ownership of a domain to another address:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that owns the domain
+    let account = wallet.default_account()?;
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    // Domain name
+    let domain = "example.neo";
+    
+    // New owner address
+    let new_owner = "NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?;
+    
+    // Transfer ownership
+    let txid = nns.transfer(account, domain, new_owner).await?;
+    
+    println!("Domain transfer initiated with transaction ID: {}", txid);
+    
+    // Wait for the transaction to be confirmed
+    let receipt = provider.wait_for_transaction(&amp;txid, 60, 2).await?;
+    println!("Domain transfer confirmed: {:?}", receipt);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="using-nns-in-applications"><a class="header" href="#using-nns-in-applications">Using NNS in Applications</a></h2>
+<p>You can integrate NNS resolution into your applications to allow users to use domain names instead of addresses:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will send tokens
+    let account = wallet.default_account()?;
+    
+    // Create an NNS instance
+    let nns = NameService::new(provider.clone());
+    
+    // Create a GAS token instance
+    let gas_token = GasToken::new(provider.clone());
+    
+    // Domain or address input from user
+    let recipient_input = "example.neo";
+    
+    // Determine if input is a domain or address
+    let recipient_address = if recipient_input.ends_with(".neo") {
+        // Resolve domain to address
+        match nns.resolve_address(recipient_input).await? {
+            Some(addr) =&gt; addr,
+            None =&gt; {
+                println!("Could not resolve domain {}", recipient_input);
+                return Ok(());
+            }
+        }
+    } else {
+        // Parse as address directly
+        recipient_input.parse::&lt;Address&gt;()?
+    };
+    
+    // Amount to transfer
+    let amount = 1_00000000; // 1 GAS (with 8 decimals)
+    
+    // Transfer GAS
+    let txid = gas_token.transfer(account, recipient_address, amount, None).await?;
+    println!("Transfer sent to {} with transaction ID: {}", recipient_input, txid);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="best-practices-4"><a class="header" href="#best-practices-4">Best Practices</a></h2>
+<ol>
+<li><strong>Check Domain Availability</strong>: Always check if a domain is available before attempting to register it.</li>
+<li><strong>Monitor Expiration</strong>: Keep track of domain expiration dates and renew domains before they expire.</li>
+<li><strong>Secure Ownership</strong>: Ensure that the account owning valuable domains is properly secured.</li>
+<li><strong>Validate Input</strong>: When accepting domain names as input, validate them before attempting to resolve.</li>
+<li><strong>Handle Resolution Failures</strong>: Always handle cases where domain resolution fails gracefully.</li>
+<li><strong>Test on TestNet</strong>: Always test your NNS operations on TestNet before moving to MainNet.</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="neo-x-integration"><a class="header" href="#neo-x-integration">Neo X Integration</a></h1>
+<p>This tutorial covers working with Neo X, an EVM-compatible chain maintained by Neo, using the NeoRust SDK.</p>
+<h2 id="understanding-neo-x"><a class="header" href="#understanding-neo-x">Understanding Neo X</a></h2>
+<p>Neo X is an EVM-compatible chain maintained by the Neo ecosystem. It provides Ethereum compatibility while leveraging Neo's infrastructure and security. Key features include:</p>
+<ul>
+<li><strong>EVM Compatibility</strong>: Run Ethereum smart contracts and use Ethereum tools</li>
+<li><strong>Bridge Functionality</strong>: Transfer tokens between Neo N3 and Neo X</li>
+<li><strong>Shared Security</strong>: Benefit from Neo's consensus mechanism</li>
+<li><strong>Cross-Chain Interoperability</strong>: Interact with both Neo and Ethereum ecosystems</li>
+</ul>
+<h2 id="setting-up-neo-x-provider"><a class="header" href="#setting-up-neo-x-provider">Setting Up Neo X Provider</a></h2>
+<p>To interact with Neo X, you first need to create a Neo X provider:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use neo::neo_x::evm::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo X node
+    let provider = NeoXProvider::new_http("https://rpc.neoX.io");
+    
+    // Get the current block number
+    let block_number = provider.get_block_number().await?;
+    println!("Current Neo X block number: {}", block_number);
+    
+    // Get chain ID
+    let chain_id = provider.get_chain_id().await?;
+    println!("Neo X chain ID: {}", chain_id);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="creating-and-sending-neo-x-transactions"><a class="header" href="#creating-and-sending-neo-x-transactions">Creating and Sending Neo X Transactions</a></h2>
+<p>You can create and send transactions on the Neo X chain:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use neo::neo_x::evm::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo X node
+    let provider = NeoXProvider::new_http("https://rpc.neoX.io");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will send the transaction
+    let account = wallet.default_account()?;
+    
+    // Create a transaction
+    let transaction = NeoXTransaction::new()
+        .to("0x1234567890123456789012345678901234567890")
+        .value(1_000_000_000_000_000_000u128) // 1 ETH in wei
+        .gas_price(20_000_000_000u64) // 20 Gwei
+        .gas_limit(21_000u64)
+        .nonce(provider.get_transaction_count(account.address().to_eth_address(), None).await?)
+        .chain_id(provider.get_chain_id().await?)
+        .build();
+    
+    // Sign the transaction
+    let signed_tx = transaction.sign(account)?;
+    
+    // Send the transaction
+    let txid = provider.send_raw_transaction(&amp;signed_tx).await?;
+    println!("Transaction sent with ID: {}", txid);
+    
+    // Wait for the transaction to be confirmed
+    let receipt = provider.wait_for_transaction(&amp;txid, 60, 2).await?;
+    println!("Transaction confirmed: {:?}", receipt);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="interacting-with-evm-smart-contracts"><a class="header" href="#interacting-with-evm-smart-contracts">Interacting with EVM Smart Contracts</a></h2>
+<p>You can interact with EVM smart contracts on Neo X:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use neo::neo_x::evm::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo X node
+    let provider = NeoXProvider::new_http("https://rpc.neoX.io");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will interact with the contract
+    let account = wallet.default_account()?;
+    
+    // ERC-20 token contract address
+    let contract_address = "0x1234567890123456789012345678901234567890";
+    
+    // Create a contract instance
+    let contract = NeoXContract::new(contract_address, provider.clone());
+    
+    // Call a read-only method (balanceOf)
+    let balance = contract.call_read(
+        "balanceOf",
+        &amp;[account.address().to_eth_address()],
+    ).await?;
+    
+    println!("Token balance: {}", balance.as_u256().unwrap_or_default());
+    
+    // Call a state-changing method (transfer)
+    let recipient = "0x0987654321098765432109876543210987654321";
+    let amount = 1_000_000_000_000_000_000u128; // 1 token with 18 decimals
+    
+    let tx = contract.call_write(
+        account,
+        "transfer",
+        &amp;[recipient, amount.to_string()],
+        None,
+    ).await?;
+    
+    println!("Transfer transaction sent with ID: {}", tx);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="using-the-neo-x-bridge"><a class="header" href="#using-the-neo-x-bridge">Using the Neo X Bridge</a></h2>
+<p>The Neo X Bridge allows you to transfer tokens between Neo N3 and Neo X:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use neo::neo_x::bridge::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to Neo N3 and Neo X nodes
+    let neo_provider = Provider::new_http("https://mainnet1.neo.coz.io:443");
+    let neox_provider = NeoXProvider::new_http("https://rpc.neoX.io");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account
+    let account = wallet.default_account()?;
+    
+    // Create a bridge contract instance
+    let bridge = NeoXBridgeContract::new(neo_provider.clone(), neox_provider.clone());
+    
+    // Bridge GAS from Neo N3 to Neo X
+    let amount = 1_00000000; // 1 GAS (with 8 decimals)
+    
+    let txid = bridge.bridge_to_neox(
+        account,
+        BridgeToken::Gas,
+        amount,
+        account.address().to_eth_address(),
+    ).await?;
+    
+    println!("Bridge transaction sent with ID: {}", txid);
+    
+    // Wait for the transaction to be confirmed and processed by the bridge
+    println!("Waiting for bridge processing (this may take several minutes)...");
+    let receipt = neo_provider.wait_for_transaction(&amp;txid, 300, 2).await?;
+    println!("Bridge transaction confirmed on Neo N3: {:?}", receipt);
+    
+    // Check if tokens were received on Neo X
+    // Note: There might be a delay before tokens appear on Neo X
+    let erc20_address = bridge.get_neox_token_address(BridgeToken::Gas).await?;
+    let contract = NeoXContract::new(erc20_address, neox_provider.clone());
+    
+    let balance = contract.call_read(
+        "balanceOf",
+        &amp;[account.address().to_eth_address()],
+    ).await?;
+    
+    println!("Bridged GAS balance on Neo X: {}", balance.as_u256().unwrap_or_default());
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="bridging-tokens-from-neo-x-to-neo-n3"><a class="header" href="#bridging-tokens-from-neo-x-to-neo-n3">Bridging Tokens from Neo X to Neo N3</a></h2>
+<p>You can also bridge tokens from Neo X back to Neo N3:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use neo::neo_x::bridge::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to Neo N3 and Neo X nodes
+    let neo_provider = Provider::new_http("https://mainnet1.neo.coz.io:443");
+    let neox_provider = NeoXProvider::new_http("https://rpc.neoX.io");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account
+    let account = wallet.default_account()?;
+    
+    // Create a bridge contract instance
+    let bridge = NeoXBridgeContract::new(neo_provider.clone(), neox_provider.clone());
+    
+    // Bridge GAS from Neo X to Neo N3
+    let amount = 1_000_000_000_000_000_000u128; // 1 GAS (with 18 decimals on Neo X)
+    
+    let txid = bridge.bridge_to_neo(
+        account,
+        BridgeToken::Gas,
+        amount,
+        account.address(),
+    ).await?;
+    
+    println!("Bridge transaction sent with ID: {}", txid);
+    
+    // Wait for the transaction to be confirmed and processed by the bridge
+    println!("Waiting for bridge processing (this may take several minutes)...");
+    let receipt = neox_provider.wait_for_transaction(&amp;txid, 300, 2).await?;
+    println!("Bridge transaction confirmed on Neo X: {:?}", receipt);
+    
+    // Check if tokens were received on Neo N3
+    // Note: There might be a delay before tokens appear on Neo N3
+    let gas_token = GasToken::new(neo_provider.clone());
+    let balance = gas_token.balance_of(account.address()).await?;
+    
+    println!("GAS balance on Neo N3: {}", balance);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="monitoring-bridge-events"><a class="header" href="#monitoring-bridge-events">Monitoring Bridge Events</a></h2>
+<p>You can monitor bridge events to track token transfers between chains:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use neo::neo_x::bridge::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to Neo N3 and Neo X nodes with WebSocket support
+    let neo_provider = Provider::new_ws("wss://mainnet1.neo.coz.io:4443/ws").await?;
+    let neox_provider = NeoXProvider::new_ws("wss://ws.neoX.io").await?;
+    
+    // Create a bridge contract instance
+    let bridge = NeoXBridgeContract::new(neo_provider.clone(), neox_provider.clone());
+    
+    // Subscribe to bridge events on Neo N3
+    let mut neo_events = bridge.subscribe_neo_events().await?;
+    
+    println!("Listening for bridge events on Neo N3...");
+    
+    // Process Neo N3 events in a separate task
+    tokio::spawn(async move {
+        while let Some(event) = neo_events.next().await {
+            println!("Neo N3 Bridge Event: {:?}", event);
+            
+            if event.event_name == "TokensLocked" {
+                if let Some(from) = event.state.get(0) {
+                    if let Some(to) = event.state.get(1) {
+                        if let Some(amount) = event.state.get(2) {
+                            if let Some(token) = event.state.get(3) {
+                                println!("Tokens Locked: {} {} from {} to {}", 
+                                    amount.as_integer().unwrap_or_default(),
+                                    token.as_string().unwrap_or_default(),
+                                    from.as_address().map(|a| a.to_string()).unwrap_or_default(),
+                                    to.as_string().unwrap_or_default()
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Subscribe to bridge events on Neo X
+    let mut neox_events = bridge.subscribe_neox_events().await?;
+    
+    println!("Listening for bridge events on Neo X...");
+    
+    // Process Neo X events
+    while let Some(event) = neox_events.next().await {
+        println!("Neo X Bridge Event: {:?}", event);
+        
+        if event.event_name == "TokensUnlocked" {
+            println!("Tokens Unlocked: from {} to {} amount {}", 
+                event.get_param("from").unwrap_or_default(),
+                event.get_param("to").unwrap_or_default(),
+                event.get_param("amount").unwrap_or_default()
+            );
+        }
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="best-practices-5"><a class="header" href="#best-practices-5">Best Practices</a></h2>
+<ol>
+<li><strong>Gas Management</strong>: Be aware of gas costs on Neo X, which follow Ethereum's gas model.</li>
+<li><strong>Bridge Delays</strong>: Expect delays when bridging tokens between chains, as cross-chain operations require confirmations on both chains.</li>
+<li><strong>Address Formats</strong>: Remember that Neo N3 and Neo X use different address formats. Use the appropriate conversion methods.</li>
+<li><strong>Security</strong>: Always verify addresses and amounts before sending transactions or bridging tokens.</li>
+<li><strong>Testing</strong>: Test bridge operations with small amounts before transferring larger values.</li>
+<li><strong>Error Handling</strong>: Implement proper error handling for both Neo N3 and Neo X operations.</li>
+<li><strong>Monitoring</strong>: Set up monitoring for bridge events to track the status of cross-chain transfers.</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="sgx-support-1"><a class="header" href="#sgx-support-1">SGX Support</a></h1>
+<p>This tutorial covers using the Intel SGX (Software Guard Extensions) features of the NeoRust SDK for secure blockchain operations.</p>
+<h2 id="understanding-intel-sgx"><a class="header" href="#understanding-intel-sgx">Understanding Intel SGX</a></h2>
+<p>Intel SGX is a set of security-related instruction codes built into modern Intel CPUs. It allows user-level code to allocate private regions of memory, called enclaves, which are protected from processes running at higher privilege levels. Key benefits include:</p>
+<ul>
+<li><strong>Hardware-Level Security</strong>: Protection of sensitive data and code from the operating system, hypervisor, BIOS, and other privileged software</li>
+<li><strong>Secure Computation</strong>: Ability to perform computations on sensitive data within the enclave</li>
+<li><strong>Remote Attestation</strong>: Verification that code is running in a genuine SGX enclave</li>
+<li><strong>Sealing</strong>: Secure storage of sensitive data for later use within an enclave</li>
+</ul>
+<h2 id="prerequisites-1"><a class="header" href="#prerequisites-1">Prerequisites</a></h2>
+<p>Before using the SGX features of NeoRust, you need:</p>
+<ol>
+<li>
+<p><strong>Intel SGX-compatible hardware</strong></p>
+<ul>
+<li>CPU with SGX support (check with <code>cpuid</code> or Intel's processor list)</li>
+<li>SGX enabled in BIOS/UEFI</li>
+</ul>
+</li>
+<li>
+<p><strong>Intel SGX Software Stack</strong></p>
+<ul>
+<li>Intel SGX Driver</li>
+<li>Intel SGX SDK v2.12</li>
+<li>Intel SGX PSW (Platform Software)</li>
+</ul>
+</li>
+<li>
+<p><strong>Rust Toolchain</strong></p>
+<ul>
+<li>Rust nightly-2022-10-22 (required by the Apache Teaclave SGX SDK)</li>
+<li>Install with: <code>rustup install nightly-2022-10-22</code></li>
+<li>Set as default for this project: <code>rustup override set nightly-2022-10-22</code></li>
+</ul>
+</li>
+</ol>
+<p>For detailed installation instructions, see the <a href="https://github.com/R3E-Network/NeoRust/blob/master/SGX_SETUP.md">SGX Setup Guide</a>.</p>
+<h2 id="enabling-sgx-support-in-neorust"><a class="header" href="#enabling-sgx-support-in-neorust">Enabling SGX Support in NeoRust</a></h2>
+<p>To enable SGX support in your project, add the <code>sgx</code> feature to your Cargo.toml:</p>
+<pre><code class="language-toml">[dependencies]
+neo = { git = "https://github.com/R3E-Network/NeoRust", features = ["sgx"] }
+</code></pre>
+<p>You also need to uncomment the SGX dependencies in the NeoRust Cargo.toml:</p>
+<pre><code class="language-toml"># SGX dependencies
+sgx_types = { version = "=1.1.1", optional = true }
+sgx_urts = { version = "=1.1.1", optional = true }
+sgx_tstd = { version = "=1.1.1", optional = true }
+sgx_tcrypto = { version = "=1.1.1", optional = true }
+
+[features]
+sgx = ["sgx-deps"]
+sgx-deps = [
+    "sgx_types",
+    "sgx_urts",
+    "sgx_tstd",
+    "sgx_tcrypto"
+]
+</code></pre>
+<h2 id="building-the-sgx-components"><a class="header" href="#building-the-sgx-components">Building the SGX Components</a></h2>
+<p>Use the provided Makefile for SGX to build the enclave components:</p>
+<pre><code class="language-bash">make -f Makefile.sgx
+</code></pre>
+<p>This will build both the trusted enclave components and the untrusted application components.</p>
+<h2 id="creating-an-sgx-enclave-manager"><a class="header" href="#creating-an-sgx-enclave-manager">Creating an SGX Enclave Manager</a></h2>
+<p>The first step in using SGX features is to create an enclave manager:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Path to the enclave shared object
+    let enclave_path = "path/to/enclave.so";
+    
+    // Initialize the SGX enclave
+    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
+    println!("SGX enclave initialized successfully!");
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="secure-wallet-management-with-sgx"><a class="header" href="#secure-wallet-management-with-sgx">Secure Wallet Management with SGX</a></h2>
+<p>One of the primary use cases for SGX in blockchain applications is secure wallet management:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Path to the enclave shared object
+    let enclave_path = "path/to/enclave.so";
+    
+    // Initialize the SGX enclave
+    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
+    
+    // Create a wallet with a password
+    let password = "my-secure-password";
+    let wallet = enclave_manager.create_wallet(password)?;
+    
+    // Get the wallet's public key
+    let public_key = wallet.get_public_key();
+    println!("Wallet public key: {:?}", public_key);
+    
+    // The private key never leaves the enclave
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="signing-transactions-securely"><a class="header" href="#signing-transactions-securely">Signing Transactions Securely</a></h2>
+<p>With SGX, you can sign transactions without exposing private keys:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Path to the enclave shared object
+    let enclave_path = "path/to/enclave.so";
+    
+    // Initialize the SGX enclave
+    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
+    
+    // Create a wallet with a password
+    let password = "my-secure-password";
+    let wallet = enclave_manager.create_wallet(password)?;
+    
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Create a transaction
+    let transaction = TransactionBuilder::new()
+        .version(0)
+        .nonce(rand::random::&lt;u32&gt;())
+        .valid_until_block(provider.get_block_count().await? + 100)
+        .script(
+            ScriptBuilder::new()
+                .contract_call(
+                    "d2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?,
+                    "transfer",
+                    &amp;[
+                        ContractParameter::hash160(wallet.get_address().script_hash()),
+                        ContractParameter::hash160("NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?),
+                        ContractParameter::integer(1_00000000), // 1 GAS
+                        ContractParameter::any(None),
+                    ],
+                )
+                .to_array()
+        )
+        .build();
+    
+    // Sign the transaction securely within the enclave
+    let signed_tx = wallet.sign_transaction(&amp;transaction)?;
+    
+    // Send the transaction
+    let txid = provider.send_raw_transaction(&amp;signed_tx).await?;
+    println!("Transaction sent with ID: {}", txid);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="secure-rpc-client"><a class="header" href="#secure-rpc-client">Secure RPC Client</a></h2>
+<p>The SGX module also provides a secure RPC client for blockchain interactions:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Path to the enclave shared object
+    let enclave_path = "path/to/enclave.so";
+    
+    // Initialize the SGX enclave
+    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
+    
+    // Create a secure RPC client
+    let rpc_url = "https://testnet1.neo.coz.io:443";
+    let rpc_client = enclave_manager.create_rpc_client(rpc_url)?;
+    
+    // Use the secure RPC client
+    let block_count = rpc_client.get_block_count().await?;
+    println!("Current block height: {}", block_count);
+    
+    // The RPC client encrypts sensitive data and performs secure validation
+    // of responses within the enclave
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="secure-storage"><a class="header" href="#secure-storage">Secure Storage</a></h2>
+<p>The SGX module provides secure storage for sensitive data:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Path to the enclave shared object
+    let enclave_path = "path/to/enclave.so";
+    
+    // Initialize the SGX enclave
+    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
+    
+    // Create a secure storage instance
+    let storage = enclave_manager.create_storage()?;
+    
+    // Store sensitive data
+    let key = "api_key";
+    let value = "my-secret-api-key";
+    storage.set(key, value)?;
+    
+    // Retrieve sensitive data
+    let retrieved_value = storage.get(key)?;
+    println!("Retrieved value: {}", retrieved_value);
+    
+    // The data is encrypted and stored securely
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="remote-attestation"><a class="header" href="#remote-attestation">Remote Attestation</a></h2>
+<p>Remote attestation allows you to verify that your code is running in a genuine SGX enclave:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Path to the enclave shared object
+    let enclave_path = "path/to/enclave.so";
+    
+    // Initialize the SGX enclave
+    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
+    
+    // Generate a remote attestation quote
+    let quote = enclave_manager.generate_attestation_quote()?;
+    
+    // Send the quote to a remote verifier
+    // (implementation depends on your attestation service)
+    let attestation_service_url = "https://attestation.example.com";
+    let verification_result = verify_quote_with_service(attestation_service_url, &amp;quote).await?;
+    
+    if verification_result.is_valid {
+        println!("Remote attestation successful!");
+        // Proceed with secure operations
+    } else {
+        println!("Remote attestation failed!");
+        // Handle the failure
+    }
+    
+    Ok(())
+}
+
+async fn verify_quote_with_service(url: &amp;str, quote: &amp;[u8]) -&gt; Result&lt;VerificationResult, Box&lt;dyn std::error::Error&gt;&gt; {
+    // Implementation of quote verification with a remote attestation service
+    // This is just a placeholder
+    Ok(VerificationResult { is_valid: true })
+}
+
+struct VerificationResult {
+    is_valid: bool,
+}</code></pre></pre>
+<h2 id="simulation-mode"><a class="header" href="#simulation-mode">Simulation Mode</a></h2>
+<p>If you don't have SGX hardware, you can still develop and test using simulation mode:</p>
+<pre><code class="language-bash">export SGX_MODE=SIM
+make -f Makefile.sgx
+</code></pre>
+<p>In your code, you can check if you're running in simulation mode:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Path to the enclave shared object
+    let enclave_path = "path/to/enclave.so";
+    
+    // Initialize the SGX enclave
+    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
+    
+    if enclave_manager.is_simulation_mode() {
+        println!("Running in simulation mode. Security guarantees are not provided.");
+    } else {
+        println!("Running in hardware mode with full SGX protection.");
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="best-practices-6"><a class="header" href="#best-practices-6">Best Practices</a></h2>
+<ol>
+<li><strong>Minimize Enclave Code</strong>: Keep the enclave code small to reduce the attack surface.</li>
+<li><strong>Validate Inputs</strong>: Always validate inputs before passing them to the enclave.</li>
+<li><strong>Secure Key Management</strong>: Never extract private keys from the enclave.</li>
+<li><strong>Use Remote Attestation</strong>: Verify the integrity of the enclave in production environments.</li>
+<li><strong>Regular Updates</strong>: Keep the SGX SDK and drivers updated to address security vulnerabilities.</li>
+<li><strong>Error Handling</strong>: Implement proper error handling for enclave operations.</li>
+<li><strong>Testing</strong>: Test your SGX code in both simulation and hardware modes.</li>
+</ol>
+<h2 id="security-considerations"><a class="header" href="#security-considerations">Security Considerations</a></h2>
+<p>When using SGX for blockchain applications:</p>
+<ol>
+<li><strong>Side-Channel Attacks</strong>: Be aware that SGX is not immune to all side-channel attacks.</li>
+<li><strong>Enclave Interface</strong>: The interface between the untrusted application and the enclave is a potential attack vector.</li>
+<li><strong>Data Sealing</strong>: Use data sealing to protect sensitive data at rest.</li>
+<li><strong>Memory Limitations</strong>: SGX enclaves have memory limitations; design your application accordingly.</li>
+<li><strong>Attestation</strong>: Use remote attestation in production to verify enclave integrity.</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="api-overview"><a class="header" href="#api-overview">API Overview</a></h1>
+<p>This reference provides an overview of the NeoRust SDK API, including the main modules and their functionality.</p>
+<h2 id="core-modules"><a class="header" href="#core-modules">Core Modules</a></h2>
+<p>The NeoRust SDK is organized into several core modules, each responsible for a specific aspect of Neo blockchain interaction:</p>
+<h3 id="neo_wallets"><a class="header" href="#neo_wallets">neo_wallets</a></h3>
+<p>The <code>neo_wallets</code> module provides functionality for creating, loading, and managing Neo wallets and accounts.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+
+// Create a new wallet
+let wallet = Wallet::new("password")?;
+
+// Create a new account
+let account = wallet.create_account()?;
+
+// Get account address
+let address = account.address();
+<span class="boring">}</span></code></pre></pre>
+<p>Key components:</p>
+<ul>
+<li><code>Wallet</code>: Manages multiple accounts and provides wallet-level operations</li>
+<li><code>Account</code>: Represents a Neo account with a key pair</li>
+<li><code>Address</code>: Represents a Neo address</li>
+</ul>
+<h3 id="neo_clients"><a class="header" href="#neo_clients">neo_clients</a></h3>
+<p>The <code>neo_clients</code> module provides clients for interacting with Neo nodes via RPC.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+
+// Create a provider connected to a Neo node
+let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+
+// Get the current block count
+let block_count = provider.get_block_count().await?;
+<span class="boring">}</span></code></pre></pre>
+<p>Key components:</p>
+<ul>
+<li><code>Provider</code>: Main client for interacting with Neo nodes</li>
+<li><code>RpcClient</code>: Low-level RPC client</li>
+<li><code>WebSocketProvider</code>: Provider with WebSocket support for subscriptions</li>
+</ul>
+<h3 id="neo_types"><a class="header" href="#neo_types">neo_types</a></h3>
+<p>The <code>neo_types</code> module provides fundamental Neo blockchain types.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+
+// Create a script hash from a string
+let script_hash = "0xd2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?;
+
+// Create an address from a string
+let address = "NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?;
+
+// Create a transaction hash from a string
+let tx_hash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef".parse::&lt;TxHash&gt;()?;
+<span class="boring">}</span></code></pre></pre>
+<p>Key components:</p>
+<ul>
+<li><code>Address</code>: Neo address</li>
+<li><code>ScriptHash</code>: Contract script hash</li>
+<li><code>TxHash</code>: Transaction hash</li>
+<li><code>ContractParameter</code>: Parameter for contract invocation</li>
+</ul>
+<h3 id="neo_crypto"><a class="header" href="#neo_crypto">neo_crypto</a></h3>
+<p>The <code>neo_crypto</code> module provides cryptographic functionality.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+
+// Generate a new key pair
+let key_pair = KeyPair::new()?;
+
+// Sign a message
+let message = b"Hello, Neo!";
+let signature = key_pair.sign_message(message)?;
+
+// Verify a signature
+let is_valid = key_pair.verify_signature(message, &amp;signature)?;
+<span class="boring">}</span></code></pre></pre>
+<p>Key components:</p>
+<ul>
+<li><code>KeyPair</code>: Represents a public/private key pair</li>
+<li><code>PublicKey</code>: Represents a public key</li>
+<li><code>PrivateKey</code>: Represents a private key</li>
+<li><code>Signature</code>: Represents a cryptographic signature</li>
+</ul>
+<h3 id="neo_builder"><a class="header" href="#neo_builder">neo_builder</a></h3>
+<p>The <code>neo_builder</code> module provides builders for creating transactions and scripts.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+
+// Create a transaction
+let transaction = TransactionBuilder::new()
+    .version(0)
+    .nonce(rand::random::&lt;u32&gt;())
+    .valid_until_block(block_count + 100)
+    .script(script)
+    .sign(account)?
+    .build();
+
+// Create a script
+let script = ScriptBuilder::new()
+    .contract_call(
+        script_hash,
+        "transfer",
+        &amp;[
+            ContractParameter::hash160(from_address.script_hash()),
+            ContractParameter::hash160(to_address.script_hash()),
+            ContractParameter::integer(amount),
+            ContractParameter::any(None),
+        ],
+    )
+    .to_array();
+<span class="boring">}</span></code></pre></pre>
+<p>Key components:</p>
+<ul>
+<li><code>TransactionBuilder</code>: Builder for creating transactions</li>
+<li><code>ScriptBuilder</code>: Builder for creating VM scripts</li>
+</ul>
+<h3 id="neo_contract"><a class="header" href="#neo_contract">neo_contract</a></h3>
+<p>The <code>neo_contract</code> module provides interfaces for interacting with Neo smart contracts.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+
+// Create a NEP-17 token instance
+let token = Nep17Contract::new(token_hash, provider.clone());
+
+// Get token information
+let symbol = token.symbol().await?;
+let decimals = token.decimals().await?;
+let total_supply = token.total_supply().await?;
+
+// Get token balance
+let balance = token.balance_of(address).await?;
+<span class="boring">}</span></code></pre></pre>
+<p>Key components:</p>
+<ul>
+<li><code>Nep17Contract</code>: Interface for NEP-17 tokens</li>
+<li><code>NeoToken</code>: Interface for the NEO token</li>
+<li><code>GasToken</code>: Interface for the GAS token</li>
+<li><code>NameService</code>: Interface for the Neo Name Service</li>
+</ul>
+<h3 id="neo_x"><a class="header" href="#neo_x">neo_x</a></h3>
+<p>The <code>neo_x</code> module provides support for Neo X, an EVM-compatible chain maintained by Neo.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+use neo::neo_x::evm::*;
+
+// Create a Neo X provider
+let provider = NeoXProvider::new_http("https://rpc.neoX.io");
+
+// Create a transaction
+let transaction = NeoXTransaction::new()
+    .to("0x1234567890123456789012345678901234567890")
+    .value(1_000_000_000_000_000_000u128) // 1 ETH in wei
+    .gas_price(20_000_000_000u64) // 20 Gwei
+    .gas_limit(21_000u64)
+    .build();
+<span class="boring">}</span></code></pre></pre>
+<p>Key components:</p>
+<ul>
+<li><code>NeoXProvider</code>: Provider for interacting with Neo X nodes</li>
+<li><code>NeoXTransaction</code>: Transaction for Neo X</li>
+<li><code>NeoXBridgeContract</code>: Interface for the Neo X bridge</li>
+</ul>
+<h3 id="neo_sgx"><a class="header" href="#neo_sgx">neo_sgx</a></h3>
+<p>The <code>neo_sgx</code> module provides support for Intel SGX (Software Guard Extensions) for secure operations.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+
+// Initialize the SGX enclave
+let enclave_manager = SgxEnclaveManager::new("path/to/enclave.so")?;
+
+// Create a wallet with a password
+let wallet = enclave_manager.create_wallet("password")?;
+
+// Sign a transaction securely within the enclave
+let signed_tx = wallet.sign_transaction(&amp;transaction)?;
+<span class="boring">}</span></code></pre></pre>
+<p>Key components:</p>
+<ul>
+<li><code>SgxEnclaveManager</code>: Manager for SGX enclaves</li>
+<li><code>SgxWallet</code>: Secure wallet implementation</li>
+<li><code>SgxRpcClient</code>: Secure RPC client</li>
+</ul>
+<h2 id="prelude"><a class="header" href="#prelude">Prelude</a></h2>
+<p>The <code>prelude</code> module re-exports commonly used types and functions for convenience:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+<span class="boring">}</span></code></pre></pre>
+<p>This imports all the essential types and functions you need for most operations with the NeoRust SDK.</p>
+<h2 id="feature-flags-1"><a class="header" href="#feature-flags-1">Feature Flags</a></h2>
+<p>The NeoRust SDK supports various feature flags to enable specific functionality:</p>
+<ul>
+<li><code>ledger</code>: Support for Ledger hardware wallets</li>
+<li><code>aws</code>: AWS integration</li>
+<li><code>sgx</code>: Intel SGX support</li>
+</ul>
+<p>Enable these features in your Cargo.toml:</p>
+<pre><code class="language-toml">[dependencies]
+neo = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "aws", "sgx"] }
+</code></pre>
+<h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
+<p>The NeoRust SDK uses Rust's <code>Result</code> type for error handling. Most functions return a <code>Result&lt;T, Error&gt;</code> where <code>Error</code> is a custom error type that can represent various error conditions.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+
+fn example() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Create a provider
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Get the current block count
+    match provider.get_block_count().await {
+        Ok(block_count) =&gt; println!("Current block count: {}", block_count),
+        Err(e) =&gt; println!("Error: {}", e),
+    }
+    
+    Ok(())
+}
+<span class="boring">}</span></code></pre></pre>
+<p>For more detailed information on specific modules and types, see the corresponding reference pages.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration"><a class="header" href="#configuration">Configuration</a></h1>
+<p>This reference provides information about configuring the NeoRust SDK, including environment variables, network settings, and other configuration options.</p>
+<h2 id="network-configuration"><a class="header" href="#network-configuration">Network Configuration</a></h2>
+<p>The NeoRust SDK supports connecting to different Neo networks, including MainNet, TestNet, and private networks.</p>
+<h3 id="predefined-networks"><a class="header" href="#predefined-networks">Predefined Networks</a></h3>
+<p>The SDK includes predefined configurations for common Neo networks:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+
+// Connect to Neo N3 MainNet
+let mainnet_provider = Provider::new_http("https://mainnet1.neo.coz.io:443");
+
+// Connect to Neo N3 TestNet
+let testnet_provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+
+// Connect to a local Neo Express instance
+let local_provider = Provider::new_http("http://localhost:10332");
+<span class="boring">}</span></code></pre></pre>
+<h3 id="custom-networks"><a class="header" href="#custom-networks">Custom Networks</a></h3>
+<p>You can also connect to custom Neo networks by providing the RPC URL:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+
+// Connect to a custom Neo N3 node
+let custom_provider = Provider::new_http("https://my-custom-neo-node.example.com:10332");
+<span class="boring">}</span></code></pre></pre>
+<h3 id="websocket-connections"><a class="header" href="#websocket-connections">WebSocket Connections</a></h3>
+<p>For applications that need real-time updates, you can use WebSocket connections:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node with WebSocket support
+    let ws_provider = Provider::new_ws("wss://testnet1.neo.coz.io:4443/ws").await?;
+    
+    // Subscribe to new blocks
+    let mut blocks = ws_provider.subscribe_blocks().await?;
+    
+    println!("Listening for new blocks...");
+    
+    // Process new blocks as they arrive
+    while let Some(block) = blocks.next().await {
+        println!("New block: {} (hash: {})", block.index, block.hash);
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="sdk-configuration"><a class="header" href="#sdk-configuration">SDK Configuration</a></h2>
+<p>The NeoRust SDK can be configured using the <code>Config</code> struct:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+
+// Create a custom configuration
+let config = Config::new()
+    .network(Network::TestNet)
+    .timeout(std::time::Duration::from_secs(30))
+    .max_retry(3)
+    .build();
+
+// Create a provider with the custom configuration
+let provider = Provider::with_config("https://testnet1.neo.coz.io:443", config);
+<span class="boring">}</span></code></pre></pre>
+<h3 id="configuration-options"><a class="header" href="#configuration-options">Configuration Options</a></h3>
+<p>The following options can be configured:</p>
+<div class="table-wrapper"><table><thead><tr><th>Option</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>network</code></td><td>The Neo network to connect to</td><td><code>Network::MainNet</code></td></tr>
+<tr><td><code>timeout</code></td><td>Request timeout</td><td>30 seconds</td></tr>
+<tr><td><code>max_retry</code></td><td>Maximum number of retry attempts</td><td>3</td></tr>
+<tr><td><code>retry_delay</code></td><td>Delay between retry attempts</td><td>1 second</td></tr>
+<tr><td><code>user_agent</code></td><td>User agent string for HTTP requests</td><td><code>"NeoRust/{version}"</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
+<p>The NeoRust SDK respects the following environment variables:</p>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>NEO_RPC_URL</code></td><td>Default RPC URL for Neo N3</td><td>None</td></tr>
+<tr><td><code>NEO_WS_URL</code></td><td>Default WebSocket URL for Neo N3</td><td>None</td></tr>
+<tr><td><code>NEO_NETWORK</code></td><td>Default network (<code>mainnet</code>, <code>testnet</code>)</td><td><code>mainnet</code></td></tr>
+<tr><td><code>NEO_PRIVATE_KEY</code></td><td>Default private key for signing transactions</td><td>None</td></tr>
+<tr><td><code>NEO_GAS_PRICE</code></td><td>Default gas price for transactions</td><td>Network default</td></tr>
+<tr><td><code>NEO_LOG_LEVEL</code></td><td>Logging level (<code>error</code>, <code>warn</code>, <code>info</code>, <code>debug</code>, <code>trace</code>)</td><td><code>info</code></td></tr>
+</tbody></table>
+</div>
+<p>You can set these environment variables in your shell or use a <code>.env</code> file with the <code>dotenv</code> crate:</p>
+<pre><pre class="playground"><code class="language-rust">use dotenv::dotenv;
+use neo::prelude::*;
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load environment variables from .env file
+    dotenv().ok();
+    
+    // Create a provider using the NEO_RPC_URL environment variable
+    let provider = Provider::from_env()?;
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="logging-configuration"><a class="header" href="#logging-configuration">Logging Configuration</a></h2>
+<p>The NeoRust SDK uses the <code>tracing</code> crate for logging. You can configure the logging level and output:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use tracing_subscriber::{fmt, EnvFilter};
+
+fn main() {
+    // Initialize the logger with custom configuration
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env()
+            .add_directive("neo=debug".parse().unwrap())
+            .add_directive("warn".parse().unwrap()))
+        .init();
+    
+    // Now logs will be output according to the configuration
+}</code></pre></pre>
+<p>You can also use the <code>NEO_LOG_LEVEL</code> environment variable to control the logging level:</p>
+<pre><code class="language-bash"># Set the log level to debug
+export NEO_LOG_LEVEL=debug
+
+# Run your application
+cargo run
+</code></pre>
+<h2 id="gas-configuration"><a class="header" href="#gas-configuration">Gas Configuration</a></h2>
+<p>You can configure gas settings for transactions:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will send the transaction
+    let account = wallet.default_account()?;
+    
+    // Create a transaction with custom gas settings
+    let transaction = TransactionBuilder::new()
+        .version(0)
+        .nonce(rand::random::&lt;u32&gt;())
+        .valid_until_block(provider.get_block_count().await? + 100)
+        .script(
+            ScriptBuilder::new()
+                .contract_call(
+                    "d2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?,
+                    "transfer",
+                    &amp;[
+                        ContractParameter::hash160(account.address().script_hash()),
+                        ContractParameter::hash160("NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?),
+                        ContractParameter::integer(1_00000000), // 1 GAS
+                        ContractParameter::any(None),
+                    ],
+                )
+                .to_array()
+        )
+        .system_fee(1_00000000) // 1 GAS system fee
+        .network_fee(0_50000000) // 0.5 GAS network fee
+        .sign(account)?
+        .build();
+    
+    // Send the transaction
+    let txid = provider.send_raw_transaction(&amp;transaction).await?;
+    println!("Transaction sent with ID: {}", txid);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="sgx-configuration"><a class="header" href="#sgx-configuration">SGX Configuration</a></h2>
+<p>If you're using the SGX features, you can configure the SGX environment:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Configure SGX
+    let sgx_config = SgxConfig::new()
+        .enclave_path("path/to/enclave.so")
+        .simulation_mode(false)
+        .build();
+    
+    // Initialize the SGX enclave with the configuration
+    let enclave_manager = SgxEnclaveManager::with_config(sgx_config)?;
+    
+    // Use the enclave manager
+    let wallet = enclave_manager.create_wallet("my-secure-password")?;
+    
+    Ok(())
+}</code></pre></pre>
+<p>You can also use environment variables for SGX configuration:</p>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>SGX_MODE</code></td><td>SGX mode (<code>HW</code> or <code>SIM</code>)</td><td><code>HW</code></td></tr>
+<tr><td><code>SGX_ENCLAVE_PATH</code></td><td>Path to the enclave shared object</td><td>None</td></tr>
+<tr><td><code>SGX_AESM_ADDR</code></td><td>Address of the AESM service</td><td><code>127.0.0.1:2222</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="best-practices-7"><a class="header" href="#best-practices-7">Best Practices</a></h2>
+<ol>
+<li><strong>Environment-Specific Configuration</strong>: Use different configurations for development, testing, and production environments.</li>
+<li><strong>Secure Credential Management</strong>: Never hardcode private keys or passwords in your code.</li>
+<li><strong>Timeout Configuration</strong>: Set appropriate timeouts based on your network conditions.</li>
+<li><strong>Logging Configuration</strong>: Configure logging appropriately for your environment.</li>
+<li><strong>Gas Estimation</strong>: Use gas estimation functions instead of hardcoding gas values.</li>
+<li><strong>Error Handling</strong>: Implement proper error handling for configuration errors.</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="error-handling-1"><a class="header" href="#error-handling-1">Error Handling</a></h1>
+<p>This reference provides information about error handling in the NeoRust SDK, including error types, error propagation, and best practices for handling errors.</p>
+<h2 id="error-types"><a class="header" href="#error-types">Error Types</a></h2>
+<p>The NeoRust SDK uses a comprehensive error handling system based on Rust's <code>Result</code> type. The main error types in the SDK include:</p>
+<h3 id="neoerror"><a class="header" href="#neoerror">NeoError</a></h3>
+<p>The <code>NeoError</code> is the primary error type used throughout the SDK. It encompasses various error categories:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum NeoError {
+    // RPC errors
+    RpcError(RpcError),
+    
+    // Wallet errors
+    WalletError(WalletError),
+    
+    // Cryptographic errors
+    CryptoError(CryptoError),
+    
+    // Transaction errors
+    TransactionError(TransactionError),
+    
+    // Contract errors
+    ContractError(ContractError),
+    
+    // Serialization errors
+    SerializationError(SerializationError),
+    
+    // IO errors
+    IoError(std::io::Error),
+    
+    // Other errors
+    Other(String),
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="rpcerror"><a class="header" href="#rpcerror">RpcError</a></h3>
+<p>The <code>RpcError</code> represents errors that occur during RPC communication with Neo nodes:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum RpcError {
+    // HTTP errors
+    HttpError(reqwest::Error),
+    
+    // JSON-RPC errors
+    JsonRpcError {
+        code: i64,
+        message: String,
+        data: Option&lt;serde_json::Value&gt;,
+    },
+    
+    // WebSocket errors
+    WebSocketError(String),
+    
+    // Timeout errors
+    TimeoutError,
+    
+    // Other errors
+    Other(String),
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="walleterror"><a class="header" href="#walleterror">WalletError</a></h3>
+<p>The <code>WalletError</code> represents errors related to wallet operations:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum WalletError {
+    // Password errors
+    InvalidPassword,
+    
+    // Account errors
+    AccountNotFound,
+    InvalidAccount,
+    
+    // Key errors
+    InvalidPrivateKey,
+    InvalidPublicKey,
+    
+    // File errors
+    FileError(std::io::Error),
+    
+    // Other errors
+    Other(String),
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="cryptoerror"><a class="header" href="#cryptoerror">CryptoError</a></h3>
+<p>The <code>CryptoError</code> represents errors related to cryptographic operations:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum CryptoError {
+    // Signature errors
+    SignatureError,
+    VerificationError,
+    
+    // Key errors
+    InvalidKey,
+    
+    // Hash errors
+    HashError,
+    
+    // Other errors
+    Other(String),
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="transactionerror"><a class="header" href="#transactionerror">TransactionError</a></h3>
+<p>The <code>TransactionError</code> represents errors related to transaction operations:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum TransactionError {
+    // Validation errors
+    InvalidTransaction,
+    InvalidSignature,
+    
+    // Fee errors
+    InsufficientFunds,
+    
+    // Network errors
+    NetworkError,
+    
+    // Other errors
+    Other(String),
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="contracterror"><a class="header" href="#contracterror">ContractError</a></h3>
+<p>The <code>ContractError</code> represents errors related to smart contract operations:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum ContractError {
+    // Invocation errors
+    InvocationError,
+    
+    // Parameter errors
+    InvalidParameter,
+    
+    // Execution errors
+    ExecutionError,
+    
+    // Other errors
+    Other(String),
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="error-propagation"><a class="header" href="#error-propagation">Error Propagation</a></h2>
+<p>The NeoRust SDK uses Rust's <code>?</code> operator for error propagation. This allows for concise error handling code:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+use std::path::Path;
+
+fn load_wallet_and_get_balance(
+    wallet_path: &amp;Path,
+    password: &amp;str,
+    provider: &amp;Provider,
+    token_hash: ScriptHash,
+) -&gt; Result&lt;u64, NeoError&gt; {
+    // Load the wallet
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the default account
+    let account = wallet.default_account()?;
+    
+    // Create a NEP-17 token instance
+    let token = Nep17Contract::new(token_hash, provider.clone());
+    
+    // Get the token balance
+    let balance = token.balance_of(account.address())?;
+    
+    Ok(balance)
+}
+<span class="boring">}</span></code></pre></pre>
+<p>In this example, if any of the operations fail, the error is propagated up the call stack.</p>
+<h2 id="converting-between-error-types"><a class="header" href="#converting-between-error-types">Converting Between Error Types</a></h2>
+<p>The NeoRust SDK provides <code>From</code> implementations for converting between different error types:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>impl From&lt;std::io::Error&gt; for NeoError {
+    fn from(error: std::io::Error) -&gt; Self {
+        NeoError::IoError(error)
+    }
+}
+
+impl From&lt;WalletError&gt; for NeoError {
+    fn from(error: WalletError) -&gt; Self {
+        NeoError::WalletError(error)
+    }
+}
+
+// ... and so on for other error types
+<span class="boring">}</span></code></pre></pre>
+<p>This allows for easy conversion between error types using the <code>?</code> operator.</p>
+<h2 id="handling-rpc-errors"><a class="header" href="#handling-rpc-errors">Handling RPC Errors</a></h2>
+<p>When working with RPC calls, you may need to handle specific error codes:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Try to get a transaction
+    let tx_hash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef".parse::&lt;TxHash&gt;()?;
+    
+    match provider.get_transaction(&amp;tx_hash).await {
+        Ok(tx) =&gt; {
+            println!("Transaction found: {:?}", tx);
+        },
+        Err(NeoError::RpcError(RpcError::JsonRpcError { code, message, .. })) if code == -100 =&gt; {
+            println!("Transaction not found: {}", message);
+        },
+        Err(e) =&gt; {
+            println!("Error: {}", e);
+            return Err(e.into());
+        }
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="handling-wallet-errors"><a class="header" href="#handling-wallet-errors">Handling Wallet Errors</a></h2>
+<p>When working with wallets, you may need to handle specific wallet errors:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+use std::path::Path;
+
+fn open_wallet(wallet_path: &amp;Path, password: &amp;str) -&gt; Result&lt;Wallet, NeoError&gt; {
+    match Wallet::load(wallet_path, password) {
+        Ok(wallet) =&gt; {
+            println!("Wallet loaded successfully");
+            Ok(wallet)
+        },
+        Err(NeoError::WalletError(WalletError::InvalidPassword)) =&gt; {
+            println!("Invalid password");
+            Err(NeoError::WalletError(WalletError::InvalidPassword))
+        },
+        Err(NeoError::WalletError(WalletError::FileError(e))) =&gt; {
+            println!("File error: {}", e);
+            Err(NeoError::WalletError(WalletError::FileError(e)))
+        },
+        Err(e) =&gt; {
+            println!("Error: {}", e);
+            Err(e)
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="handling-transaction-errors"><a class="header" href="#handling-transaction-errors">Handling Transaction Errors</a></h2>
+<p>When sending transactions, you may need to handle specific transaction errors:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will send the transaction
+    let account = wallet.default_account()?;
+    
+    // Create a transaction
+    let transaction = TransactionBuilder::new()
+        .version(0)
+        .nonce(rand::random::&lt;u32&gt;())
+        .valid_until_block(provider.get_block_count().await? + 100)
+        .script(
+            ScriptBuilder::new()
+                .contract_call(
+                    "d2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?,
+                    "transfer",
+                    &amp;[
+                        ContractParameter::hash160(account.address().script_hash()),
+                        ContractParameter::hash160("NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?),
+                        ContractParameter::integer(1_00000000), // 1 GAS
+                        ContractParameter::any(None),
+                    ],
+                )
+                .to_array()
+        )
+        .sign(account)?
+        .build();
+    
+    // Send the transaction
+    match provider.send_raw_transaction(&amp;transaction).await {
+        Ok(txid) =&gt; {
+            println!("Transaction sent with ID: {}", txid);
+        },
+        Err(NeoError::TransactionError(TransactionError::InsufficientFunds)) =&gt; {
+            println!("Insufficient funds to send the transaction");
+        },
+        Err(NeoError::RpcError(RpcError::JsonRpcError { code, message, .. })) =&gt; {
+            println!("RPC error: {} (code: {})", message, code);
+        },
+        Err(e) =&gt; {
+            println!("Error: {}", e);
+            return Err(e.into());
+        }
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="custom-error-types"><a class="header" href="#custom-error-types">Custom Error Types</a></h2>
+<p>You can create custom error types for your application that wrap the NeoRust SDK errors:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum AppError {
+    #[error("Neo SDK error: {0}")]
+    NeoError(#[from] NeoError),
+    
+    #[error("Configuration error: {0}")]
+    ConfigError(String),
+    
+    #[error("Database error: {0}")]
+    DbError(String),
+    
+    #[error("User error: {0}")]
+    UserError(String),
+}
+
+fn app_function() -&gt; Result&lt;(), AppError&gt; {
+    // Use the NeoRust SDK
+    let wallet = Wallet::new("password").map_err(AppError::NeoError)?;
+    
+    // Or with the ? operator
+    let wallet = Wallet::new("password")?;
+    
+    Ok(())
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="error-logging"><a class="header" href="#error-logging">Error Logging</a></h2>
+<p>The NeoRust SDK uses the <code>tracing</code> crate for logging errors. You can configure the logging level to see more detailed error information:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use tracing_subscriber::{fmt, EnvFilter};
+
+fn main() {
+    // Initialize the logger with custom configuration
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env()
+            .add_directive("neo=debug".parse().unwrap())
+            .add_directive("warn".parse().unwrap()))
+        .init();
+    
+    // Now errors will be logged with more detail
+}</code></pre></pre>
+<h2 id="sgx-error-handling"><a class="header" href="#sgx-error-handling">SGX Error Handling</a></h2>
+<p>If you're using the SGX features, there are additional error types for SGX-specific operations:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum SgxError {
+    // Enclave errors
+    EnclaveError(sgx_types::sgx_status_t),
+    
+    // Attestation errors
+    AttestationError,
+    
+    // Sealing errors
+    SealingError,
+    
+    // Other errors
+    Other(String),
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Handling SGX errors:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Path to the enclave shared object
+    let enclave_path = "path/to/enclave.so";
+    
+    // Initialize the SGX enclave
+    match SgxEnclaveManager::new(enclave_path) {
+        Ok(enclave_manager) =&gt; {
+            println!("SGX enclave initialized successfully!");
+            
+            // Use the enclave manager
+        },
+        Err(NeoError::SgxError(SgxError::EnclaveError(status))) =&gt; {
+            println!("SGX enclave initialization failed with status: {:?}", status);
+        },
+        Err(e) =&gt; {
+            println!("Error: {}", e);
+            return Err(e.into());
+        }
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="neo-x-error-handling"><a class="header" href="#neo-x-error-handling">Neo X Error Handling</a></h2>
+<p>If you're using the Neo X features, there are additional error types for Neo X-specific operations:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum NeoXError {
+    // EVM errors
+    EvmError(String),
+    
+    // Bridge errors
+    BridgeError(String),
+    
+    // Other errors
+    Other(String),
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Handling Neo X errors:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use neo::neo_x::evm::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Create a Neo X provider
+    let provider = NeoXProvider::new_http("https://rpc.neoX.io");
+    
+    // Create a transaction
+    let transaction = NeoXTransaction::new()
+        .to("0x1234567890123456789012345678901234567890")
+        .value(1_000_000_000_000_000_000u128) // 1 ETH in wei
+        .gas_price(20_000_000_000u64) // 20 Gwei
+        .gas_limit(21_000u64)
+        .build();
+    
+    // Send the transaction
+    match provider.send_transaction(&amp;transaction).await {
+        Ok(txid) =&gt; {
+            println!("Transaction sent with ID: {}", txid);
+        },
+        Err(NeoError::NeoXError(NeoXError::EvmError(message))) =&gt; {
+            println!("EVM error: {}", message);
+        },
+        Err(e) =&gt; {
+            println!("Error: {}", e);
+            return Err(e.into());
+        }
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="best-practices-8"><a class="header" href="#best-practices-8">Best Practices</a></h2>
+<ol>
+<li><strong>Use the <code>?</code> Operator</strong>: Use the <code>?</code> operator for concise error propagation.</li>
+<li><strong>Match on Specific Errors</strong>: Match on specific error types when you need to handle them differently.</li>
+<li><strong>Custom Error Types</strong>: Create custom error types for your application that wrap the NeoRust SDK errors.</li>
+<li><strong>Error Logging</strong>: Configure logging to see more detailed error information.</li>
+<li><strong>Error Context</strong>: Add context to errors to make them more informative.</li>
+<li><strong>Error Recovery</strong>: Implement recovery strategies for recoverable errors.</li>
+<li><strong>Error Testing</strong>: Write tests for error conditions to ensure they're handled correctly.</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="example-code"><a class="header" href="#example-code">Example Code</a></h1>
+<p>This section contains examples demonstrating how to use the NeoRust SDK.</p>
+<h2 id="wallet-management-1"><a class="header" href="#wallet-management-1">Wallet Management</a></h2>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Create a new wallet
+    let password = "my-secure-password";
+    let wallet = Wallet::new(password)?;
+    
+    // Generate a new account
+    let account = wallet.create_account()?;
+    println!("New account address: {}", account.address());
+    
+    // Save the wallet to a file
+    wallet.save("my-wallet.json")?;
+    
+    Ok(())
+}</code></pre></pre>
+<p>For more examples, see the <code>examples</code> directory in the NeoRust repository.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+        <script>
+            window.playground_line_numbers = true;
+        </script>
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace.js"></script>
+        <script src="editor.js"></script>
+        <script src="mode-rust.js"></script>
+        <script src="theme-dawn.js"></script>
+        <script src="theme-tomorrow_night.js"></script>
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            MathJax.Hub.Register.StartupHook('End', function() {
+                window.setTimeout(window.print, 100);
+            });
+        });
+        </script>
+
+    </div>
+    </body>
+</html>

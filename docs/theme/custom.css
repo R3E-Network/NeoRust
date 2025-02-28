@@ -1,0 +1,152 @@
+/* Custom styles for NeoRust SDK Documentation */
+
+/* Logo container styling */
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 20px;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+
+.logo-container img {
+  max-height: 60px;
+  width: auto;
+}
+
+/* Admonition styling */
+.admonition {
+  margin: 20px 0;
+  padding: 15px;
+  border-radius: 4px;
+  border-left: 5px solid;
+}
+
+.admonition.note {
+  background-color: #e7f2fa;
+  border-left-color: #2196f3;
+}
+
+.admonition.warning {
+  background-color: #fff8e6;
+  border-left-color: #ff9800;
+}
+
+.admonition.danger {
+  background-color: #fde7e7;
+  border-left-color: #f44336;
+}
+
+.admonition.tip {
+  background-color: #e6f7e6;
+  border-left-color: #4caf50;
+}
+
+/* Code block styling */
+pre {
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  padding: 10px;
+  overflow-x: auto;
+}
+
+code {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.9em;
+}
+
+/* Table styling */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+th, td {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+}
+
+th {
+  background-color: #f5f5f5;
+  font-weight: bold;
+  text-align: left;
+}
+
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Heading styling */
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 2em;
+  border-bottom: 1px solid #eaecef;
+  padding-bottom: 0.3em;
+}
+
+h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid #eaecef;
+  padding-bottom: 0.3em;
+}
+
+/* Link styling */
+a {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Blockquote styling */
+blockquote {
+  margin: 0;
+  padding: 0 1em;
+  color: #6a737d;
+  border-left: 0.25em solid #dfe2e5;
+}
+
+/* Mermaid diagram styling */
+.mermaid {
+  text-align: center;
+  margin: 20px 0;
+}
+
+/* TOC styling */
+.table-of-contents {
+  background-color: #f8f9fa;
+  border: 1px solid #eaecef;
+  border-radius: 4px;
+  padding: 15px;
+  margin: 20px 0;
+}
+
+.table-of-contents ul {
+  padding-left: 20px;
+}
+
+/* Print styling for PDF output */
+@media print {
+  .logo-container img {
+    max-height: 50px;
+  }
+  
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  
+  a {
+    color: #000;
+    text-decoration: underline;
+  }
+}
