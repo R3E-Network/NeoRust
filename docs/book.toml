@@ -1,0 +1,59 @@
+[book]
+title = "NeoRust SDK Documentation"
+authors = ["R3E Network"]
+description = "Documentation for the NeoRust SDK, a comprehensive Rust SDK for interacting with the Neo N3 blockchain"
+src = "src"
+language = "en"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/R3E-Network/NeoRust"
+edit-url-template = "https://github.com/R3E-Network/NeoRust/edit/master/docs/{path}"
+additional-css = ["theme/custom.css", "./mdbook-admonish.css"]
+mathjax-support = true
+copy-fonts = true
+no-section-label = false
+site-url = "/NeoRust/"
+
+[output.html.playground]
+editable = true
+line-numbers = true
+
+[output.html.search]
+enable = true
+limit-results = 20
+teaser-word-count = 30
+use-boolean-and = true
+boost-title = 2
+boost-hierarchy = 1
+boost-paragraph = 1
+expand = true
+heading-split-level = 3
+
+[output.html.fold]
+enable = true
+level = 0
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[preprocessor.toc]
+command = "mdbook-toc"
+renderer = ["html"]
+
+[preprocessor.admonish]
+command = "mdbook-admonish"
+assets_version = "3.0.3" # do not edit: managed by `mdbook-admonish install`
+
+[output.linkcheck]
+follow-web-links = false
+traverse-parent-directories = false
+exclude = [ "github\\.com", "https://github.com/R3E-Network/NeoRust/blob/master/SGX_SETUP.md" ]
+
+# PDF output is disabled for now
+# [output.pdf]
+# optional = true
+# page-break = true
+# command = "mdbook-pdf"
+# install-missing = false

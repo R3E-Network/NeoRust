@@ -1,0 +1,429 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Configuration - NeoRust SDK Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Documentation for the NeoRust SDK, a comprehensive Rust SDK for interacting with the Neo N3 blockchain">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../theme/custom.css">
+        <link rel="stylesheet" href=".././mdbook-admonish.css">
+
+        <!-- MathJax -->
+        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">NeoRust SDK Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/R3E-Network/NeoRust" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/R3E-Network/NeoRust/edit/master/docs/src/reference/configuration.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="configuration"><a class="header" href="#configuration">Configuration</a></h1>
+<p>This reference provides information about configuring the NeoRust SDK, including environment variables, network settings, and other configuration options.</p>
+<h2 id="network-configuration"><a class="header" href="#network-configuration">Network Configuration</a></h2>
+<p>The NeoRust SDK supports connecting to different Neo networks, including MainNet, TestNet, and private networks.</p>
+<h3 id="predefined-networks"><a class="header" href="#predefined-networks">Predefined Networks</a></h3>
+<p>The SDK includes predefined configurations for common Neo networks:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+
+// Connect to Neo N3 MainNet
+let mainnet_provider = Provider::new_http("https://mainnet1.neo.coz.io:443");
+
+// Connect to Neo N3 TestNet
+let testnet_provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+
+// Connect to a local Neo Express instance
+let local_provider = Provider::new_http("http://localhost:10332");
+<span class="boring">}</span></code></pre></pre>
+<h3 id="custom-networks"><a class="header" href="#custom-networks">Custom Networks</a></h3>
+<p>You can also connect to custom Neo networks by providing the RPC URL:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+
+// Connect to a custom Neo N3 node
+let custom_provider = Provider::new_http("https://my-custom-neo-node.example.com:10332");
+<span class="boring">}</span></code></pre></pre>
+<h3 id="websocket-connections"><a class="header" href="#websocket-connections">WebSocket Connections</a></h3>
+<p>For applications that need real-time updates, you can use WebSocket connections:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node with WebSocket support
+    let ws_provider = Provider::new_ws("wss://testnet1.neo.coz.io:4443/ws").await?;
+    
+    // Subscribe to new blocks
+    let mut blocks = ws_provider.subscribe_blocks().await?;
+    
+    println!("Listening for new blocks...");
+    
+    // Process new blocks as they arrive
+    while let Some(block) = blocks.next().await {
+        println!("New block: {} (hash: {})", block.index, block.hash);
+    }
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="sdk-configuration"><a class="header" href="#sdk-configuration">SDK Configuration</a></h2>
+<p>The NeoRust SDK can be configured using the <code>Config</code> struct:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+
+// Create a custom configuration
+let config = Config::new()
+    .network(Network::TestNet)
+    .timeout(std::time::Duration::from_secs(30))
+    .max_retry(3)
+    .build();
+
+// Create a provider with the custom configuration
+let provider = Provider::with_config("https://testnet1.neo.coz.io:443", config);
+<span class="boring">}</span></code></pre></pre>
+<h3 id="configuration-options"><a class="header" href="#configuration-options">Configuration Options</a></h3>
+<p>The following options can be configured:</p>
+<div class="table-wrapper"><table><thead><tr><th>Option</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>network</code></td><td>The Neo network to connect to</td><td><code>Network::MainNet</code></td></tr>
+<tr><td><code>timeout</code></td><td>Request timeout</td><td>30 seconds</td></tr>
+<tr><td><code>max_retry</code></td><td>Maximum number of retry attempts</td><td>3</td></tr>
+<tr><td><code>retry_delay</code></td><td>Delay between retry attempts</td><td>1 second</td></tr>
+<tr><td><code>user_agent</code></td><td>User agent string for HTTP requests</td><td><code>"NeoRust/{version}"</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
+<p>The NeoRust SDK respects the following environment variables:</p>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>NEO_RPC_URL</code></td><td>Default RPC URL for Neo N3</td><td>None</td></tr>
+<tr><td><code>NEO_WS_URL</code></td><td>Default WebSocket URL for Neo N3</td><td>None</td></tr>
+<tr><td><code>NEO_NETWORK</code></td><td>Default network (<code>mainnet</code>, <code>testnet</code>)</td><td><code>mainnet</code></td></tr>
+<tr><td><code>NEO_PRIVATE_KEY</code></td><td>Default private key for signing transactions</td><td>None</td></tr>
+<tr><td><code>NEO_GAS_PRICE</code></td><td>Default gas price for transactions</td><td>Network default</td></tr>
+<tr><td><code>NEO_LOG_LEVEL</code></td><td>Logging level (<code>error</code>, <code>warn</code>, <code>info</code>, <code>debug</code>, <code>trace</code>)</td><td><code>info</code></td></tr>
+</tbody></table>
+</div>
+<p>You can set these environment variables in your shell or use a <code>.env</code> file with the <code>dotenv</code> crate:</p>
+<pre><pre class="playground"><code class="language-rust">use dotenv::dotenv;
+use neo::prelude::*;
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load environment variables from .env file
+    dotenv().ok();
+    
+    // Create a provider using the NEO_RPC_URL environment variable
+    let provider = Provider::from_env()?;
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="logging-configuration"><a class="header" href="#logging-configuration">Logging Configuration</a></h2>
+<p>The NeoRust SDK uses the <code>tracing</code> crate for logging. You can configure the logging level and output:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use tracing_subscriber::{fmt, EnvFilter};
+
+fn main() {
+    // Initialize the logger with custom configuration
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env()
+            .add_directive("neo=debug".parse().unwrap())
+            .add_directive("warn".parse().unwrap()))
+        .init();
+    
+    // Now logs will be output according to the configuration
+}</code></pre></pre>
+<p>You can also use the <code>NEO_LOG_LEVEL</code> environment variable to control the logging level:</p>
+<pre><code class="language-bash"># Set the log level to debug
+export NEO_LOG_LEVEL=debug
+
+# Run your application
+cargo run
+</code></pre>
+<h2 id="gas-configuration"><a class="header" href="#gas-configuration">Gas Configuration</a></h2>
+<p>You can configure gas settings for transactions:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+use std::path::Path;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Connect to a Neo N3 TestNet node
+    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
+    
+    // Load your wallet
+    let wallet_path = Path::new("my-wallet.json");
+    let password = "my-secure-password";
+    let wallet = Wallet::load(wallet_path, password)?;
+    
+    // Get the account that will send the transaction
+    let account = wallet.default_account()?;
+    
+    // Create a transaction with custom gas settings
+    let transaction = TransactionBuilder::new()
+        .version(0)
+        .nonce(rand::random::&lt;u32&gt;())
+        .valid_until_block(provider.get_block_count().await? + 100)
+        .script(
+            ScriptBuilder::new()
+                .contract_call(
+                    "d2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?,
+                    "transfer",
+                    &amp;[
+                        ContractParameter::hash160(account.address().script_hash()),
+                        ContractParameter::hash160("NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?),
+                        ContractParameter::integer(1_00000000), // 1 GAS
+                        ContractParameter::any(None),
+                    ],
+                )
+                .to_array()
+        )
+        .system_fee(1_00000000) // 1 GAS system fee
+        .network_fee(0_50000000) // 0.5 GAS network fee
+        .sign(account)?
+        .build();
+    
+    // Send the transaction
+    let txid = provider.send_raw_transaction(&amp;transaction).await?;
+    println!("Transaction sent with ID: {}", txid);
+    
+    Ok(())
+}</code></pre></pre>
+<h2 id="sgx-configuration"><a class="header" href="#sgx-configuration">SGX Configuration</a></h2>
+<p>If you're using the SGX features, you can configure the SGX environment:</p>
+<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Configure SGX
+    let sgx_config = SgxConfig::new()
+        .enclave_path("path/to/enclave.so")
+        .simulation_mode(false)
+        .build();
+    
+    // Initialize the SGX enclave with the configuration
+    let enclave_manager = SgxEnclaveManager::with_config(sgx_config)?;
+    
+    // Use the enclave manager
+    let wallet = enclave_manager.create_wallet("my-secure-password")?;
+    
+    Ok(())
+}</code></pre></pre>
+<p>You can also use environment variables for SGX configuration:</p>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>SGX_MODE</code></td><td>SGX mode (<code>HW</code> or <code>SIM</code>)</td><td><code>HW</code></td></tr>
+<tr><td><code>SGX_ENCLAVE_PATH</code></td><td>Path to the enclave shared object</td><td>None</td></tr>
+<tr><td><code>SGX_AESM_ADDR</code></td><td>Address of the AESM service</td><td><code>127.0.0.1:2222</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<ol>
+<li><strong>Environment-Specific Configuration</strong>: Use different configurations for development, testing, and production environments.</li>
+<li><strong>Secure Credential Management</strong>: Never hardcode private keys or passwords in your code.</li>
+<li><strong>Timeout Configuration</strong>: Set appropriate timeouts based on your network conditions.</li>
+<li><strong>Logging Configuration</strong>: Configure logging appropriately for your environment.</li>
+<li><strong>Gas Estimation</strong>: Use gas estimation functions instead of hardcoding gas values.</li>
+<li><strong>Error Handling</strong>: Implement proper error handling for configuration errors.</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../reference/api-overview.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../reference/error-handling.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../reference/api-overview.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../reference/error-handling.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+        <script>
+            window.playground_line_numbers = true;
+        </script>
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
