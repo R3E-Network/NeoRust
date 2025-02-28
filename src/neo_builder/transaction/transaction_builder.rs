@@ -149,7 +149,19 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	pub const DUMMY_PUB_KEY: &'static str =
 		"02ec143f00b88524caf36a0121c2de09eef0519ddbe1c710a00f0e2663201ee4c0";
 
-	// Constructor
+	/// Creates a new `TransactionBuilder` instance with default values.
+	///
+	/// # Returns
+	///
+	/// A new `TransactionBuilder` instance with default values.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	///
+	/// let tx_builder = TransactionBuilder::new();
+	/// ```
 	pub fn new() -> Self {
 		Self {
 			client: None,
@@ -166,6 +178,25 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		}
 	}
 
+	/// Creates a new `TransactionBuilder` instance with a client reference.
+	///
+	/// # Arguments
+	///
+	/// * `client` - A reference to an RPC client for network operations.
+	///
+	/// # Returns
+	///
+	/// A new `TransactionBuilder` instance with the specified client.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	///
+	/// let provider = HttpProvider::new("https://testnet1.neo.org:443");
+	/// let client = RpcClient::new(provider);
+	/// let tx_builder = TransactionBuilder::with_client(&client);
+	/// ```
 	pub fn with_client(client: &'a RpcClient<P>) -> Self {
 		Self {
 			client: Some(client),
@@ -182,12 +213,50 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		}
 	}
 
-	// Configuration
+	/// Sets the version of the transaction.
+	///
+	/// # Arguments
+	///
+	/// * `version` - The transaction version (typically 0 for Neo N3).
+	///
+	/// # Returns
+	///
+	/// A mutable reference to the `TransactionBuilder` for method chaining.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	///
+	/// let mut tx_builder = TransactionBuilder::new();
+	/// tx_builder.version(0);
+	/// ```
 	pub fn version(&mut self, version: u8) -> &mut Self {
 		self.version = version;
 		self
 	}
 
+	/// Sets the nonce of the transaction.
+	///
+	/// The nonce is a random number used to prevent transaction duplication.
+	///
+	/// # Arguments
+	///
+	/// * `nonce` - A random number to prevent transaction duplication.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing a mutable reference to the `TransactionBuilder` for method chaining,
+	/// or a `TransactionError` if the nonce is invalid.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	///
+	/// let mut tx_builder = TransactionBuilder::new();
+	/// tx_builder.nonce(1234567890).unwrap();
+	/// ```
 	pub fn nonce(&mut self, nonce: u32) -> Result<&mut Self, TransactionError> {
 		// Validate
 		if nonce > u32::MAX {
@@ -198,9 +267,38 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		Ok(self)
 	}
 
-	// Other methods
-
-	// Set valid until block
+	/// Sets the block height until which the transaction is valid.
+	///
+	/// In Neo N3, transactions have a limited validity period defined by block height.
+	/// This helps prevent transaction replay attacks and cleans up the memory pool.
+	///
+	/// # Arguments
+	///
+	/// * `block` - The block height until which the transaction is valid.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing a mutable reference to the `TransactionBuilder` for method chaining,
+	/// or a `TransactionError` if the block height is invalid.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	///
+	/// #[tokio::main]
+	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+	///     let provider = HttpProvider::new("https://testnet1.neo.org:443");
+	///     let client = RpcClient::new(provider);
+	///     
+	///     let current_height = client.get_block_count().await?;
+	///     
+	///     let mut tx_builder = TransactionBuilder::with_client(&client);
+	///     tx_builder.valid_until_block(current_height + 5760)?; // Valid for ~1 day
+	///     
+	///     Ok(())
+	/// }
+	/// ```
 	pub fn valid_until_block(&mut self, block: u32) -> Result<&mut Self, TransactionError> {
 		if block == 0 {
 			return Err(TransactionError::InvalidBlock);
@@ -506,7 +604,59 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		return false;
 	}
 
-	// Sign transaction
+	/// Signs the transaction with the provided signers.
+	///
+	/// This method creates an unsigned transaction, signs it with the appropriate signers,
+	/// and returns the signed transaction. For account signers, it uses the account's private key
+	/// to create a signature. For contract signers, it creates a contract witness.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing the signed `Transaction` if successful,
+	/// or a `BuilderError` if an error occurs during signing.
+	///
+	/// # Errors
+	///
+	/// Returns an error if:
+	/// - The transaction cannot be built (see `get_unsigned_tx`)
+	/// - A multi-signature account is used (these require manual signing)
+	/// - An account does not have a private key
+	/// - Witness creation fails
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	/// use std::str::FromStr;
+	///
+	/// #[tokio::main]
+	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+	///     let provider = HttpProvider::new("https://testnet1.neo.org:443");
+	///     let client = RpcClient::new(provider);
+	///     
+	///     // Create an account for signing
+	///     let account = Account::from_wif("YOUR_WIF_HERE")?;
+	///     
+	///     // Create a script (simplified for example)
+	///     let script = vec![0x01, 0x02, 0x03]; // Placeholder for actual script
+	///     
+	///     // Create and configure the transaction
+	///     let mut tx_builder = TransactionBuilder::with_client(&client);
+	///     tx_builder
+	///         .script(Some(script))
+	///         .set_signers(vec![account.clone().into()])?
+	///         .valid_until_block(client.get_block_count().await? + 5760)?; // Valid for ~1 day
+	///
+	///     // Sign the transaction
+	///     let signed_tx = tx_builder.sign().await?;
+	///     
+	///     // Send the transaction to the network
+	///     let tx_hash = signed_tx.send().await?;
+	///     println!("Transaction sent: {}", tx_hash);
+	///     
+	///     Ok(())
+	/// }
+	/// ```
 	pub async fn sign(&mut self) -> Result<Transaction<P>, BuilderError> {
 		init_logger();
 		let mut unsigned_tx = self.get_unsigned_tx().await?;
@@ -567,6 +717,32 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		false
 	}
 
+	/// Sets the signers for the transaction.
+	///
+	/// Signers are entities that authorize the transaction. They can be accounts, contracts,
+	/// or other entities that can provide a signature or verification method.
+	///
+	/// # Arguments
+	///
+	/// * `signers` - A vector of `Signer` objects representing the transaction signers.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing a mutable reference to the `TransactionBuilder` for method chaining,
+	/// or a `TransactionError` if there are duplicate signers or if adding the signers would
+	/// exceed the maximum allowed number of attributes.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	///
+	/// let account = Account::create().unwrap();
+	/// let signer: Signer = account.into();
+	///
+	/// let mut tx_builder = TransactionBuilder::new();
+	/// tx_builder.set_signers(vec![signer]).unwrap();
+	/// ```
 	pub fn set_signers(&mut self, signers: Vec<Signer>) -> Result<&mut Self, TransactionError> {
 		if self.contains_duplicate_signers(&signers) {
 			return Err(TransactionError::TransactionConfiguration(
@@ -580,6 +756,37 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		Ok(self)
 	}
 
+	/// Adds transaction attributes to the transaction.
+	///
+	/// Transaction attributes provide additional metadata or functionality to the transaction.
+	/// This method checks for duplicate attribute types and ensures the total number of attributes
+	/// does not exceed the maximum allowed.
+	///
+	/// # Arguments
+	///
+	/// * `attributes` - A vector of `TransactionAttribute` objects to add to the transaction.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing a mutable reference to the `TransactionBuilder` for method chaining,
+	/// or a `TransactionError` if adding the attributes would exceed the maximum allowed number
+	/// of attributes or if an attribute of the same type already exists.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	///
+	/// let mut tx_builder = TransactionBuilder::new();
+	/// 
+	/// // Add a high-priority attribute
+	/// let high_priority_attr = TransactionAttribute::HighPriority;
+	/// 
+	/// // Add a not-valid-before attribute
+	/// let not_valid_before_attr = TransactionAttribute::NotValidBefore { height: 1000 };
+	/// 
+	/// tx_builder.add_attributes(vec![high_priority_attr, not_valid_before_attr]).unwrap();
+	/// ```
 	pub fn add_attributes(
 		&mut self,
 		attributes: Vec<TransactionAttribute>,
@@ -741,6 +948,44 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	/// The check and potential execution of the consumer is only performed when the transaction is built, i.e., when calling `TransactionBuilder::sign` or `TransactionBuilder::get_unsigned_transaction`.
 	/// - Parameter consumer: The consumer
 	/// - Returns: This transaction builder (self)
+	/// Checks if the sender account can cover the transaction fees and executes a callback if not.
+	///
+	/// This method allows you to provide a callback function that will be executed if the sender
+	/// account does not have enough GAS to cover the network and system fees. The callback
+	/// receives the required fee amount and the sender's current balance.
+	///
+	/// # Arguments
+	///
+	/// * `consumer` - A callback function that takes two `i64` parameters: the required fee and
+	///   the sender's current balance.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing a mutable reference to the `TransactionBuilder` for method chaining,
+	/// or a `TransactionError` if a fee error handler is already set.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	///
+	/// #[tokio::main]
+	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+	///     let provider = HttpProvider::new("https://testnet1.neo.org:443");
+	///     let client = RpcClient::new(provider);
+	///     
+	///     let mut tx_builder = TransactionBuilder::with_client(&client);
+	///     
+	///     // Add a callback for insufficient funds
+	///     tx_builder.do_if_sender_cannot_cover_fees(|required_fee, balance| {
+	///         println!("Insufficient funds: Required {} GAS, but only have {} GAS", 
+	///             required_fee as f64 / 100_000_000.0, 
+	///             balance as f64 / 100_000_000.0);
+	///     })?;
+	///     
+	///     Ok(())
+	/// }
+	/// ```
 	pub fn do_if_sender_cannot_cover_fees<F>(
 		&mut self,
 		mut consumer: F,
