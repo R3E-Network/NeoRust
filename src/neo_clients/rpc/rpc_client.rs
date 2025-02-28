@@ -51,8 +51,8 @@ impl FromStr for NeoClient {
 
 /// An abstract provider for interacting with the [Neo JSON RPC
 /// API](https://github.com/neo/wiki/JSON-RPC). Must be instantiated
-/// with a data transport which implements the [`JsonRpcClient`](trait@crate::JsonRpcClient) trait
-/// (e.g. [HTTP](crate::Http), Websockets etc.)
+/// with a data transport which implements the `JsonRpcClient` trait
+/// (e.g. HTTP, Websockets etc.)
 ///
 /// # Example
 ///
@@ -1184,8 +1184,7 @@ pub trait ProviderExt: Sealed {
 
 	/// Customize `Provider` settings for chain.
 	///
-	/// E.g. [`Chain::average_blocktime_hint()`] returns the average block time which can be used to
-	/// tune the polling interval.
+	/// E.g. the average block time can be used to tune the polling interval.
 	///
 	/// Returns the customized `Provider`
 	fn for_network(mut self, network: u32) -> Self
