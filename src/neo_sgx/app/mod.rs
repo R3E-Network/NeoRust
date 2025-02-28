@@ -3,7 +3,9 @@ pub mod network;
 pub mod storage;
 pub mod wallet;
 
+#[cfg(feature = "sgx_deps")]
 use sgx_types::*;
+#[cfg(feature = "sgx_deps")]
 use sgx_urts::SgxEnclave;
 use std::path::Path;
 
@@ -13,10 +15,18 @@ pub use storage::*;
 pub use wallet::*;
 
 /// Main SGX enclave wrapper for the untrusted app
+#[cfg(feature = "sgx_deps")]
 pub struct SgxEnclaveManager {
 	enclave: SgxEnclave,
 }
 
+#[cfg(not(feature = "sgx_deps"))]
+pub struct SgxEnclaveManager {
+	// Placeholder for when SGX dependencies are not available
+	_private: (),
+}
+
+#[cfg(feature = "sgx_deps")]
 impl SgxEnclaveManager {
 	/// Creates a new SGX enclave manager
 	///
@@ -58,12 +68,30 @@ impl SgxEnclaveManager {
 
 		Ok(Self { enclave })
 	}
+}
+
+#[cfg(not(feature = "sgx_deps"))]
+impl SgxEnclaveManager {
+	/// Creates a new SGX enclave manager
+	///
+	/// # Arguments
+	///
+	/// * `enclave_path` - Path to the enclave shared object file
+	///
+	/// # Returns
+	///
+	/// A new SGX enclave manager
+	pub fn new(_enclave_path: &str) -> Result<Self, ()> {
+		// Placeholder implementation when SGX dependencies are not available
+		Ok(Self { _private: () })
+	}
 
 	/// Gets a reference to the enclave
 	///
 	/// # Returns
 	///
 	/// A reference to the enclave
+	#[cfg(feature = "sgx_deps")]
 	pub fn get_enclave(&self) -> &SgxEnclave {
 		&self.enclave
 	}
@@ -73,6 +101,7 @@ impl SgxEnclaveManager {
 	/// # Returns
 	///
 	/// A new SGX crypto instance
+	#[cfg(feature = "sgx_deps")]
 	pub fn create_crypto(&self) -> SgxCrypto {
 		SgxCrypto::new(self.enclave.clone())
 	}
@@ -82,13 +111,37 @@ impl SgxEnclaveManager {
 	/// # Returns
 	///
 	/// A new SGX wallet instance
+	#[cfg(feature = "sgx_deps")]
 	pub fn create_wallet(&self, password: &str) -> Result<SgxWallet, sgx_status_t> {
 		SgxWallet::new(self.enclave.clone(), password)
 	}
+	
+	#[cfg(not(feature = "sgx_deps"))]
+	pub fn get_enclave(&self) -> &() {
+		&self._private
+	}
+	
+	#[cfg(not(feature = "sgx_deps"))]
+	pub fn create_crypto(&self) -> SgxCrypto {
+		unimplemented!("SGX dependencies not available")
+	}
+	
+	#[cfg(not(feature = "sgx_deps"))]
+	pub fn create_wallet(&self, _password: &str) -> Result<SgxWallet, ()> {
+		unimplemented!("SGX dependencies not available")
+	}
 }
 
+#[cfg(feature = "sgx_deps")]
 impl Drop for SgxEnclaveManager {
 	fn drop(&mut self) {
 		// Enclave will be automatically destroyed when SgxEnclave is dropped
+	}
+}
+
+#[cfg(not(feature = "sgx_deps"))]
+impl Drop for SgxEnclaveManager {
+	fn drop(&mut self) {
+		// No-op for non-SGX builds
 	}
 }

@@ -1,4 +1,5 @@
 use sgx_types::*;
+#[cfg(feature = "sgx_deps")]
 use sgx_urts::SgxEnclave;
 
 /// Wrapper for wallet operations in the untrusted app
