@@ -1,0 +1,12 @@
+/home/ubuntu/NeoRust/neo-cli/target/debug/deps/libproc_macro2-be94f4c6ff6d1528.rmeta: /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/lib.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/marker.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/parse.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/rcvec.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/detection.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/fallback.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/extra.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/wrapper.rs
+
+/home/ubuntu/NeoRust/neo-cli/target/debug/deps/proc_macro2-be94f4c6ff6d1528.d: /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/lib.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/marker.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/parse.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/rcvec.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/detection.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/fallback.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/extra.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/wrapper.rs
+
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/lib.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/marker.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/parse.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/rcvec.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/detection.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/fallback.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/extra.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro2-1.0.93/src/wrapper.rs:

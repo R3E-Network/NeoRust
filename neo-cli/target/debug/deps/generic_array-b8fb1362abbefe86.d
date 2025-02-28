@@ -1,0 +1,12 @@
+/home/ubuntu/NeoRust/neo-cli/target/debug/deps/libgeneric_array-b8fb1362abbefe86.rmeta: /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/lib.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/hex.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/impls.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/iter.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/arr.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/functional.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/sequence.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/internal.rs
+
+/home/ubuntu/NeoRust/neo-cli/target/debug/deps/generic_array-b8fb1362abbefe86.d: /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/lib.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/hex.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/impls.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/iter.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/arr.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/functional.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/sequence.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/internal.rs
+
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/lib.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/hex.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/impls.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/iter.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/arr.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/functional.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/sequence.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/generic-array-1.2.0/src/internal.rs:

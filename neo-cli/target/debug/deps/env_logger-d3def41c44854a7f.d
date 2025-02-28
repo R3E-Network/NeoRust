@@ -1,0 +1,11 @@
+/home/ubuntu/NeoRust/neo-cli/target/debug/deps/libenv_logger-d3def41c44854a7f.rmeta: /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/lib.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/logger.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/mod.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/humantime.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/writer/mod.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/writer/buffer.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/writer/target.rs
+
+/home/ubuntu/NeoRust/neo-cli/target/debug/deps/env_logger-d3def41c44854a7f.d: /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/lib.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/logger.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/mod.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/humantime.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/writer/mod.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/writer/buffer.rs /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/writer/target.rs
+
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/lib.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/logger.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/mod.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/humantime.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/writer/mod.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/writer/buffer.rs:
+/home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/env_logger-0.11.6/src/fmt/writer/target.rs:
