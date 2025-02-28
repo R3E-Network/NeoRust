@@ -5,6 +5,77 @@
 #![deny(unsafe_code, rustdoc::broken_intra_doc_links)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+//! # Neo Clients
+//!
+//! Client interfaces for interacting with Neo N3 blockchain nodes.
+//!
+//! ## Overview
+//!
+//! The neo_clients module provides a comprehensive set of client interfaces for connecting to
+//! and interacting with Neo N3 blockchain nodes. It includes:
+//!
+//! - RPC clients for making JSON-RPC calls to Neo nodes
+//! - Multiple transport providers (HTTP, WebSocket, IPC)
+//! - Subscription support for real-time blockchain events
+//! - Mock clients for testing
+//! - Extension traits for domain-specific functionality
+//! - Error handling for network and protocol issues
+//!
+//! The module is designed to be flexible, allowing developers to choose the appropriate
+//! client implementation and transport mechanism for their specific use case.
+//!
+//! ## Examples
+//!
+//! ### Connecting to a Neo N3 node using HTTP
+//!
+//! ```rust
+//! use neo::prelude::*;
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Create an HTTP provider connected to a Neo N3 TestNet node
+//!     let provider = HttpProvider::new("https://testnet1.neo.org:443");
+//!     
+//!     // Create an RPC client with the provider
+//!     let client = RpcClient::new(provider);
+//!     
+//!     // Get the current block count
+//!     let block_count = client.get_block_count().await?;
+//!     println!("Current block count: {}", block_count);
+//!     
+//!     // Get information about the blockchain
+//!     let version = client.get_version().await?;
+//!     println!("Node version: {}", version.user_agent);
+//!     
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ### Using WebSocket for real-time updates
+//!
+//! ```rust
+//! use neo::prelude::*;
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Connect to a Neo N3 node using WebSocket
+//!     let ws = WebSocketProvider::connect("wss://testnet1.neo.org:4443/ws").await?;
+//!     let client = RpcClient::new(ws);
+//!     
+//!     // Subscribe to new blocks
+//!     let mut block_subscription = client.subscribe_to_new_blocks().await?;
+//!     
+//!     // Process the first 5 new blocks
+//!     for _ in 0..5 {
+//!         if let Some(block) = block_subscription.next().await {
+//!             println!("New block: {}", block.hash);
+//!         }
+//!     }
+//!     
+//!     Ok(())
+//! }
+//! ```
+
 use lazy_static::lazy_static;
 
 pub use api_trait::*;

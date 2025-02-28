@@ -21,6 +21,40 @@ use neo::{
 	types::ContractParameterType::H256,
 };
 
+/// A Neo N3 blockchain transaction.
+///
+/// The `Transaction` struct represents a transaction on the Neo N3 blockchain. It contains
+/// all the necessary information for a transaction, including version, nonce, validity period,
+/// signers, fees, attributes, script, and witnesses.
+///
+/// # Fields
+///
+/// * `network` - An optional reference to an RPC client for network operations.
+/// * `version` - The transaction version.
+/// * `nonce` - A random number to prevent transaction duplication.
+/// * `valid_until_block` - The block height until which the transaction is valid.
+/// * `signers` - A list of transaction signers.
+/// * `size` - The size of the transaction in bytes.
+/// * `sys_fee` - The system fee for the transaction.
+/// * `net_fee` - The network fee for the transaction.
+/// * `attributes` - Transaction attributes.
+/// * `script` - The transaction script.
+/// * `witnesses` - Transaction witnesses (signatures).
+/// * `block_count_when_sent` - The block count when the transaction was sent.
+///
+/// # Examples
+///
+/// ```rust
+/// use neo::prelude::*;
+///
+/// // Create a new transaction
+/// let tx = Transaction::new();
+///
+/// // Transactions are typically created using the TransactionBuilder
+/// let provider = HttpProvider::new("https://testnet1.neo.org:443");
+/// let client = RpcClient::new(provider);
+/// let mut tx_builder = TransactionBuilder::with_client(&client);
+/// ```
 #[derive(Serialize, Getters, Setters, MutGetters, CopyGetters, Debug, Clone)]
 pub struct Transaction<'a, P: JsonRpcProvider + 'static> {
 	#[serde(skip)]
@@ -202,6 +236,47 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 		writer.write_var_bytes(&self.script);
 	}
 
+	/// Sends the transaction to the Neo N3 network.
+	///
+	/// This method validates the transaction, converts it to a hexadecimal string,
+	/// and sends it to the network using the RPC client. It also records the current
+	/// block count for transaction tracking purposes.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing the `RawTransaction` response if successful,
+	/// or a `TransactionError` if an error occurs.
+	///
+	/// # Errors
+	///
+	/// Returns an error if:
+	/// * The number of signers does not match the number of witnesses
+	/// * The transaction exceeds the maximum transaction size
+	/// * The network client encounters an error when sending the transaction
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	/// use std::str::FromStr;
+	///
+	/// #[tokio::main]
+	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+	///     let provider = HttpProvider::new("https://testnet1.neo.org:443");
+	///     let client = RpcClient::new(provider);
+	///     
+	///     // Create and sign a transaction (simplified for example)
+	///     let mut tx_builder = TransactionBuilder::with_client(&client);
+	///     // ... configure transaction ...
+	///     let mut signed_tx = tx_builder.sign().await?;
+	///     
+	///     // Send the transaction to the network
+	///     let response = signed_tx.send_tx().await?;
+	///     println!("Transaction sent: {}", response.hash);
+	///     
+	///     Ok(())
+	/// }
+	/// ```
 	pub async fn send_tx(&mut self) -> Result<RawTransaction, TransactionError>
 // where
 	// 	P: APITrait,
@@ -247,6 +322,35 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 	/// * The transaction has not been sent yet
 	/// * The maximum number of blocks is reached without finding the transaction
 	/// * There is an error communicating with the blockchain
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	/// use std::str::FromStr;
+	///
+	/// #[tokio::main]
+	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+	///     let provider = HttpProvider::new("https://testnet1.neo.org:443");
+	///     let client = RpcClient::new(provider);
+	///     
+	///     // Create and sign a transaction (simplified for example)
+	///     let mut tx_builder = TransactionBuilder::with_client(&client);
+	///     // ... configure transaction ...
+	///     let mut signed_tx = tx_builder.sign().await?;
+	///     
+	///     // Send the transaction to the network
+	///     let response = signed_tx.send_tx().await?;
+	///     println!("Transaction sent: {}", response.hash);
+	///     
+	///     // Wait for the transaction to be included in a block
+	///     // Will wait for up to 10 blocks
+	///     signed_tx.track_tx(10).await?;
+	///     println!("Transaction confirmed!");
+	///     
+	///     Ok(())
+	/// }
+	/// ```
 	pub async fn track_tx(&self, max_blocks: u32) -> Result<(), TransactionError> {
 		let block_count_when_sent =
 			self.block_count_when_sent.ok_or(TransactionError::IllegalState(
@@ -293,6 +397,61 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 		)))
 	}
 
+	/// Retrieves the application log for this transaction.
+	///
+	/// Application logs contain detailed information about the execution of a transaction,
+	/// including notifications, stack items, and any exceptions that occurred during execution.
+	///
+	/// # Arguments
+	///
+	/// * `provider` - A provider implementing the `APITrait` to make the RPC call.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing the `ApplicationLog` if successful,
+	/// or a `TransactionError` if an error occurs.
+	///
+	/// # Errors
+	///
+	/// Returns an error if:
+	/// * The transaction has not been sent yet
+	/// * The transaction ID cannot be calculated
+	/// * The provider encounters an error when retrieving the application log
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	///
+	/// #[tokio::main]
+	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+	///     let provider = HttpProvider::new("https://testnet1.neo.org:443");
+	///     let client = RpcClient::new(provider);
+	///     
+	///     // Create and sign a transaction (simplified for example)
+	///     let mut tx_builder = TransactionBuilder::with_client(&client);
+	///     // ... configure transaction ...
+	///     let mut signed_tx = tx_builder.sign().await?;
+	///     
+	///     // Send the transaction to the network
+	///     let response = signed_tx.send_tx().await?;
+	///     println!("Transaction sent: {}", response.hash);
+	///     
+	///     // Wait for the transaction to be included in a block
+	///     signed_tx.track_tx(10).await?;
+	///     
+	///     // Get the application log
+	///     let app_log = signed_tx.get_application_log(&client).await?;
+	///     println!("Transaction execution state: {}", app_log.execution_state);
+	///     
+	///     // Check for notifications
+	///     for notification in app_log.notifications {
+	///         println!("Notification: {}", notification.event_name);
+	///     }
+	///     
+	///     Ok(())
+	/// }
+	/// ```
 	pub async fn get_application_log<P>(
 		&self,
 		provider: &P,

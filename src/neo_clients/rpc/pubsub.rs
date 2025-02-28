@@ -54,7 +54,7 @@ where
 	/// Most providers treat `SubscriptionStream` IDs as global singletons.
 	/// Instantiating this directly with a known ID will likely cause any
 	/// existing streams with that ID to end. To avoid this, start a new stream
-	/// using [`RpcClient::subscribe`] instead of `SubscriptionStream::new`.
+	/// using the provider's subscription method instead of `SubscriptionStream::new`.
 	pub fn new(id: U256, provider: &'a RpcClient<P>) -> Result<Self, P::Error> {
 		// Call the underlying PubsubClient's subscribe
 		let rx = provider.as_ref().subscribe(id)?;

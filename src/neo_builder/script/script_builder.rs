@@ -512,9 +512,31 @@ impl ScriptBuilder {
 
 	/// Builds a contract script for the given sender, NEF checksum, and contract name.
 	///
+	/// This method creates a script for deploying a smart contract on the Neo N3 blockchain.
+	///
 	/// # Arguments
 	///
 	/// * `sender` - The 160-bit hash of the contract sender.
+	/// * `nef_checksum` - The checksum of the NEF (Neo Executable Format) file.
+	/// * `name` - The name of the contract.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing a `Bytes` object with the contract deployment script,
+	/// or a `BuilderError` if an error occurs.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	/// use std::str::FromStr;
+	///
+	/// let sender = ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap();
+	/// let nef_checksum = 1234567890;
+	/// let name = "MyContract";
+	///
+	/// let script = ScriptBuilder::build_contract_script(&sender, nef_checksum, name).unwrap();
+	/// ```
 	/// * `nef_checksum` - The checksum of the NEF file.
 	/// * `name` - The name of the contract.
 	///
@@ -537,6 +559,9 @@ impl ScriptBuilder {
 
 	/// Builds a script that calls a contract method and unwraps the iterator result.
 	///
+	/// This method is particularly useful when calling contract methods that return iterators.
+	/// It automatically handles the iteration process and collects the results into an array.
+	///
 	/// # Arguments
 	///
 	/// * `contract_hash` - The 160-bit hash of the contract to call.
@@ -547,8 +572,36 @@ impl ScriptBuilder {
 	///
 	/// # Returns
 	///
-	/// A `Result` containing a `Bytes` object containing the script,
-	/// or a `BuilderError` if an error occurs.
+	/// A `Result` containing a `Bytes` object with the script that calls the contract method
+	/// and unwraps the iterator result into an array, or a `BuilderError` if an error occurs.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	/// use std::str::FromStr;
+	///
+	/// // Call a contract method that returns an iterator and collect up to 100 items
+	/// let contract_hash = ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap();
+	/// let method = "getTokens";
+	/// let params = vec![ContractParameter::from("owner_address")];
+	/// let max_items = 100;
+	///
+	/// // Build the script
+	/// let script = ScriptBuilder::build_contract_call_and_unwrap_iterator(
+	///     &contract_hash,
+	///     method,
+	///     &params,
+	///     max_items,
+	///     Some(CallFlags::All)
+	/// ).unwrap();
+	///
+	/// // The resulting script will:
+	/// // 1. Call the contract method
+	/// // 2. Iterate through the returned iterator
+	/// // 3. Collect up to max_items into an array
+	/// // 4. Leave the array on the stack
+	/// ```
 	pub fn build_contract_call_and_unwrap_iterator(
 		contract_hash: &H160,
 		method: &str,
@@ -602,6 +655,24 @@ impl ScriptBuilder {
 	}
 
 	/// Returns the length of the script in bytes.
+	///
+	/// This method is useful for determining the current position in the script,
+	/// which is needed for calculating jump offsets in control flow operations.
+	///
+	/// # Returns
+	///
+	/// The length of the script in bytes.
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::ScriptBuilder;
+	///
+	/// let mut builder = ScriptBuilder::new();
+	/// builder.push_data("Hello, Neo!".as_bytes().to_vec());
+	/// let script_length = builder.len();
+	/// println!("Script length: {} bytes", script_length);
+	/// ```
 	pub fn len(&self) -> usize {
 		self.script().size()
 	}
