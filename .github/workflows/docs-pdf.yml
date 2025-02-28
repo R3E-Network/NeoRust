@@ -58,15 +58,10 @@ jobs:
             mv rust-toolchain.toml.bak rust-toolchain.toml
           fi
       
-      - name: Build documentation
+      - name: Build documentation and generate PDF
         run: |
           cd docs
           mdbook build
-      
-      - name: Generate PDF
-        run: |
-          cd docs
-          mdbook-pdf
       
       - name: Upload PDF as artifact
         uses: actions/upload-artifact@v4

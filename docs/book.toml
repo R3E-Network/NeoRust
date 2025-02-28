@@ -51,9 +51,9 @@ follow-web-links = false
 traverse-parent-directories = false
 exclude = [ "github\\.com", "https://github.com/R3E-Network/NeoRust/blob/master/SGX_SETUP.md" ]
 
-# PDF output is disabled for now
-# [output.pdf]
-# optional = true
-# page-break = true
-# command = "mdbook-pdf"
-# install-missing = false
+# PDF output configuration
+[output.pdf]
+optional = true
+page-break = true
+command = "mdbook-pdf"
+install-missing = false
