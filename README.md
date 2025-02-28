@@ -30,19 +30,27 @@ NeoRust is a comprehensive Rust SDK for interacting with the Neo N3 blockchain. 
 
 ## Installation
 
-Add NeoRust to your `Cargo.toml`:
+Add neo3 to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-NeoRust = "0.1.0"
+neo3 = "0.1.0"
 ```
 
 For the latest development version, you can use the Git repository:
 
 ```toml
 [dependencies]
-NeoRust = { git = "https://github.com/R3E-Network/NeoRust.git" }
+neo3 = { git = "https://github.com/R3E-Network/NeoRust.git" }
 ```
+
+### Documentation
+
+Comprehensive documentation is available at:
+
+- **Online Documentation**: [https://r3e-network.github.io/NeoRust/docs/](https://r3e-network.github.io/NeoRust/docs/)
+- **PDF Documentation**: [https://r3e-network.github.io/NeoRust/docs/pdf/neorust-sdk-documentation.pdf](https://r3e-network.github.io/NeoRust/docs/pdf/neorust-sdk-documentation.pdf)
+- **API Reference**: [https://docs.rs/neo3](https://docs.rs/neo3)
 
 ## Quick Start
 
