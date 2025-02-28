@@ -352,6 +352,36 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		Ok((result))
 	}
 
+	/// Builds a transaction from the current builder configuration
+	///
+	/// # Returns
+	///
+	/// A `Result` containing the built transaction or a `TransactionError`
+	///
+	/// # Examples
+	///
+	/// ```rust
+	/// use neo::prelude::*;
+	///
+	/// #[tokio::main]
+	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+	///     let provider = HttpProvider::new("https://testnet1.neo.org:443");
+	///     let client = RpcClient::new(provider);
+	///     
+	///     let mut tx_builder = TransactionBuilder::with_client(&client);
+	///     tx_builder.version(0)
+	///               .nonce(1234567890)?
+	///               .valid_until_block(100)?;
+	///     
+	///     let tx = tx_builder.build().await?;
+	///     
+	///     Ok(())
+	/// }
+	/// ```
+	pub async fn build(&mut self) -> Result<Transaction<P>, TransactionError> {
+		self.get_unsigned_tx().await
+	}
+	
 	// Get unsigned transaction
 	pub async fn get_unsigned_tx(&mut self) -> Result<Transaction<P>, TransactionError> {
 		// Validate configuration

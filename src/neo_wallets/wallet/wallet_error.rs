@@ -1,7 +1,7 @@
 use p256::ecdsa;
 use thiserror::Error;
 
-use neo::prelude::{BuilderError, CryptoError, TransactionError};
+use neo::prelude::{BuilderError, CryptoError, TransactionError, ProviderError};
 
 /// Errors that may occur within wallet operations.
 ///
@@ -24,6 +24,15 @@ use neo::prelude::{BuilderError, CryptoError, TransactionError};
 /// - `CryptoError`: Wraps cryptographic errors, potentially from operations like hashing or encryption.
 /// - `TransactionError`: Encapsulates errors that may occur during transaction creation or processing.
 /// - `BuilderError`: Wraps errors that occur during the construction of complex objects, possibly due to invalid parameters.
+/// - `DecryptionError`: Indicates an error occurred during account decryption.
+/// - `SigningError`: Indicates an error occurred during transaction signing.
+/// - `FileError`: Indicates an error occurred during file operations.
+/// - `ParseError`: Indicates an error occurred during parsing operations.
+/// - `ImportError`: Indicates an error occurred during key import operations.
+/// - `InvalidPassword`: Indicates that an invalid password was provided.
+/// - `NoAccounts`: Indicates that no accounts were found in the wallet.
+/// - `YubiHsmError`: Wraps errors related to YubiHSM operations.
+/// - `ProviderError`: Wraps errors from the RPC provider.
 ///
 /// # Examples
 ///
@@ -97,6 +106,8 @@ pub enum WalletError {
 	/// components, such as invalid parameters or configurations that cannot be applied.
 	#[error(transparent)]
 	BuilderError(#[from] BuilderError),
+	
+	/// Indicates an invalid signature
 	#[error("Invalid signature")]
 	VerifyError,
 
@@ -111,4 +122,36 @@ pub enum WalletError {
 	/// Errors related to YubiHSM operations
 	#[error("YubiHSM error: {0}")]
 	YubiHsmError(String),
+
+	/// Errors from the RPC provider
+	#[error(transparent)]
+	ProviderError(#[from] ProviderError),
+	
+	/// Errors during account decryption
+	#[error("Decryption error: {0}")]
+	DecryptionError(String),
+	
+	/// Errors during transaction signing
+	#[error("Signing error: {0}")]
+	SigningError(String),
+	
+	/// Errors during file operations
+	#[error("File error: {0}")]
+	FileError(String),
+	
+	/// Errors during parsing operations
+	#[error("Parse error: {0}")]
+	ParseError(String),
+	
+	/// Errors during key import operations
+	#[error("Import error: {0}")]
+	ImportError(String),
+	
+	/// Invalid password provided
+	#[error("Invalid password")]
+	InvalidPassword,
+	
+	/// Errors during deserialization
+	#[error("Deserialization error: {0}")]
+	DeserializationError(String),
 }

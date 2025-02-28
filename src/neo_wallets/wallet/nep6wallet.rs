@@ -8,7 +8,7 @@ use neo::prelude::{NEP6Account, ScryptParamsDef};
 /// Represents a NEP-6 wallet.
 #[derive(Serialize, Deserialize, Clone, Getters, CopyGetters)]
 #[getset(get = "pub", set = "pub")]
-pub struct NEP6Wallet {
+pub struct Nep6Wallet {
 	/// The name of the wallet.
 	#[serde(rename = "name")]
 	pub(crate) name: String,
@@ -27,7 +27,7 @@ pub struct NEP6Wallet {
 	pub(crate) extra: Option<HashMap<String, String>>,
 }
 
-impl NEP6Wallet {
+impl Nep6Wallet {
 	/// Creates a new NEP-6 wallet with the given parameters.
 	///
 	/// # Arguments
@@ -42,7 +42,7 @@ impl NEP6Wallet {
 	///
 	/// ```
 	/// use std::collections::HashMap;
-	/// use NeoRust::prelude::{NEP6Wallet, ScryptParamsDef};
+	/// use NeoRust::prelude::{Nep6Wallet, ScryptParamsDef};
 	///
 	/// let name = "MyWallet".to_string();
 	/// let version = "1.0".to_string();
@@ -50,7 +50,7 @@ impl NEP6Wallet {
 	/// let accounts = vec![];
 	/// let extra = Some(HashMap::new());
 	///
-	/// let wallet = NEP6Wallet::new(name, version, scrypt, accounts, extra);
+	/// let wallet = Nep6Wallet::new(name, version, scrypt, accounts, extra);
 	/// ```
 	pub fn new(
 		name: String,
@@ -65,13 +65,13 @@ impl NEP6Wallet {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::{ContractParameterType, NEP6Wallet, ScryptParamsDef};
+	use neo::prelude::{ContractParameterType, Nep6Wallet, ScryptParamsDef};
 
 	#[test]
 	fn test_read_wallet() {
 		let data = include_str!("../../../test_resources/wallet/wallet.json");
-		let wallet: NEP6Wallet = serde_json::from_str(data)
-			.expect("Should be able to deserialize valid NEP6Wallet JSON in test");
+		let wallet: Nep6Wallet = serde_json::from_str(data)
+			.expect("Should be able to deserialize valid Nep6Wallet JSON in test");
 
 		assert_eq!(wallet.clone().name, "Wallet");
 		assert_eq!(wallet.clone().version, "1.0");

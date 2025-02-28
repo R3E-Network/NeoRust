@@ -82,6 +82,25 @@ impl NefFile {
 		reader.read_serializable()
 			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to deserialize NEF file: {}", e)))
 	}
+	
+	/// Deserializes a NEF file from a byte array
+	///
+	/// # Arguments
+	///
+	/// * `bytes` - The byte array to deserialize
+	///
+	/// # Returns
+	///
+	/// A `Result` containing the deserialized NEF file or a `TypeError`
+	pub fn deserialize(bytes: &[u8]) -> Result<Self, TypeError> {
+		if bytes.len() > 0x100000 {
+			return Err(TypeError::InvalidArgError("NEF file is too large".to_string()));
+		}
+
+		let mut reader = Decoder::new(bytes);
+		reader.read_serializable()
+			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to deserialize NEF file: {}", e)))
+	}
 
 	fn read_from_stack_item(item: StackItem) -> Result<Self, TypeError> {
 		if let StackItem::ByteString { value: bytes } = item {

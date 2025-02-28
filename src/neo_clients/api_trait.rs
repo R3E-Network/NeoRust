@@ -116,6 +116,17 @@ pub trait APITrait: Sync + Send + Debug {
 	async fn get_version(&self) -> Result<NeoVersion, Self::Error>;
 
 	async fn send_raw_transaction(&self, hex: String) -> Result<RawTransaction, Self::Error>;
+	
+	/// Sends a transaction to the network
+	///
+	/// # Arguments
+	///
+	/// * `tx` - The transaction to send
+	///
+	/// # Returns
+	///
+	/// A `Result` containing the transaction hash or a `ProviderError`
+	async fn send_transaction<'a>(&self, tx: Transaction<'a, Self::Provider>) -> Result<H256, Self::Error>;
 
 	async fn submit_block(&self, hex: String) -> Result<SubmitBlock, Self::Error>;
 
@@ -266,6 +277,39 @@ pub trait APITrait: Sync + Send + Debug {
 		start_key: Option<&str>,
 		count: Option<u32>,
 	) -> Result<States, Self::Error>;
+
+	async fn get_block_by_hash(&self, hash: &str, full_tx: bool) -> Result<NeoBlock, Self::Error>;
+
+	async fn broadcast_address(&self) -> Result<bool, Self::Error>;
+
+	async fn broadcast_block(&self, block: NeoBlock) -> Result<bool, Self::Error>;
+
+	async fn broadcast_get_blocks(&self, hash: &str, count: u32) -> Result<bool, Self::Error>;
+
+	async fn broadcast_transaction(&self, tx: RTransaction) -> Result<bool, Self::Error>;
+
+	async fn create_contract_deployment_transaction(
+		&self,
+		nef: NefFile,
+		manifest: ContractManifest,
+		signers: Vec<Signer>,
+	) -> Result<TransactionBuilder<Self::Provider>, Self::Error>;
+
+	async fn create_contract_update_transaction(
+		&self,
+		contract_hash: H160,
+		nef: NefFile,
+		manifest: ContractManifest,
+		signers: Vec<Signer>,
+	) -> Result<TransactionBuilder<Self::Provider>, Self::Error>;
+
+	async fn create_invocation_transaction(
+		&self,
+		contract_hash: H160,
+		method: &str,
+		params: Vec<ContractParameter>,
+		signers: Vec<Signer>,
+	) -> Result<TransactionBuilder<Self::Provider>, Self::Error>;
 
 	async fn get_block_by_index(&self, index: u32, full_tx: bool) -> Result<NeoBlock, Self::Error>;
 

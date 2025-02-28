@@ -140,6 +140,8 @@ impl From<CryptoError> for NeoError {
             CryptoError::SigningError => NeoError::SignError(SignError::RecoverFailed),
             CryptoError::SignatureVerificationError => NeoError::InvalidSignature,
             CryptoError::FromHexError(err) => NeoError::InvalidEncoding(format!("Hex error: {}", err)),
+            CryptoError::DecryptionError(msg) => NeoError::IllegalState(format!("Decryption error: {}", msg)),
+            CryptoError::KeyError(msg) => NeoError::IllegalState(format!("Key error: {}", msg)),
         }
     }
 }

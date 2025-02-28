@@ -71,11 +71,11 @@ impl WalletBackup {
 		// Read file content
 		let file_content = std::fs::read_to_string(path).map_err(|e| WalletError::IoError(e))?;
 
-		// Parse JSON to NEP6Wallet
+		// Parse JSON to Nep6Wallet
 		let nep6_wallet = serde_json::from_str(&file_content)
 			.map_err(|e| WalletError::AccountState(format!("Deserialization error: {}", e)))?;
 
-		// Convert NEP6Wallet to Wallet
+		// Convert Nep6Wallet to Wallet
 		Wallet::from_nep6(nep6_wallet)
 	}
 }
