@@ -415,15 +415,13 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	/// # Returns
 	///
 	/// A `Result` containing the transaction hash or a `ProviderError`
-	async fn send_transaction<'a, P>(&self, tx: Transaction<'a, P>) -> Result<H256, ProviderError> 
-	where
-		P: JsonRpcProvider + 'static
+	async fn send_transaction<'a>(&self, tx: Transaction<'a, P>) -> Result<H256, ProviderError> 
 	{
 		let tx_hex = hex::encode(tx.to_array());
 		let result = self.send_raw_transaction(tx_hex).await?;
 		
 		// Convert the transaction hash to H256
-		let tx_hash = H256::from_str(&result.hash)
+		let tx_hash = H256::from_str(&result.hash.to_string())
 			.map_err(|e| ProviderError::ParseError(format!("Failed to parse transaction hash: {}", e)))?;
 		
 		Ok(tx_hash)

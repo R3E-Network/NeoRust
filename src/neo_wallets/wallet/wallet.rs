@@ -122,7 +122,7 @@ impl Wallet {
 	}
 
 	/// Converts the wallet to a NEP6Wallet format.
-	pub fn to_nep6(&self) -> Result<NEP6Wallet, WalletError> {
+	pub fn to_nep6(&self) -> Result<Nep6Wallet, WalletError> {
 		let accounts = self
 			.accounts
 			.clone()
@@ -138,7 +138,7 @@ impl Wallet {
 			})
 			.collect::<Vec<NEP6Account>>();
 			
-		Ok(NEP6Wallet {
+		Ok(Nep6Wallet {
 			name: self.name.clone(),
 			version: self.version.clone(),
 			scrypt: self.scrypt_params.clone(),
@@ -148,7 +148,7 @@ impl Wallet {
 	}
 
 	/// Creates a wallet from a NEP6Wallet format.
-	pub fn from_nep6(nep6: NEP6Wallet) -> Result<Self, WalletError> {
+	pub fn from_nep6(nep6: Nep6Wallet) -> Result<Self, WalletError> {
 		let accounts = nep6
 			.accounts()
 			.into_iter()
@@ -253,9 +253,9 @@ impl Wallet {
 
 		// Write to file at path
 		let mut file = File::create(path)
-			.map_err(|e| WalletError::IoError(e))?;
+			.map_err(|e| WalletError::FileError(format!("Failed to create wallet file: {}", e)))?;
 		file.write_all(json.as_bytes())
-			.map_err(|e| WalletError::IoError(e))?;
+			.map_err(|e| WalletError::FileError(format!("Failed to write wallet file: {}", e)))?;
 
 		Ok(())
 	}
@@ -508,7 +508,7 @@ impl Wallet {
 		};
 		
 		// Build the transaction
-		let mut tx = tx_builder.build().await?;
+		let mut tx = tx_builder.get_unsigned_tx().await?;
 		
 		// Create a witness for the transaction
 		let witness = Witness::create(
@@ -556,7 +556,7 @@ impl Wallet {
 		
 		// Create a new account for the wallet
 		let account = Account::create()
-			.map_err(|e| WalletError::CryptoError(e))?;
+			.map_err(|e| WalletError::ProviderError(e))?;
 		wallet.add_account(account);
 		
 		// Encrypt the wallet with the provided password
@@ -581,10 +581,10 @@ impl Wallet {
 	pub fn open_wallet(path: &PathBuf, password: &str) -> Result<Self, WalletError> {
 		// Read the wallet file
 		let wallet_json = std::fs::read_to_string(path)
-			.map_err(|e| WalletError::IoError(format!("Failed to read wallet file: {}", e)))?;
+			.map_err(|e| WalletError::FileError(format!("Failed to read wallet file: {}", e)))?;
 		
 		// Parse the wallet JSON
-		let nep6_wallet: NEP6Wallet = serde_json::from_str(&wallet_json)
+		let nep6_wallet: Nep6Wallet = serde_json::from_str(&wallet_json)
 			.map_err(|e| WalletError::DeserializationError(format!("Failed to parse wallet JSON: {}", e)))?;
 		
 		// Convert to Wallet
@@ -623,7 +623,7 @@ impl Wallet {
 	/// A `Result` containing the new account or a `WalletError`
 	pub fn create_new_account(&mut self) -> Result<&Account, WalletError> {
 		let account = Account::create()
-			.map_err(|e| WalletError::CryptoError(e))?;
+			.map_err(|e| WalletError::ProviderError(e))?;
 		let script_hash = account.address_or_scripthash.script_hash();
 		self.add_account(account);
 		
@@ -646,7 +646,7 @@ impl Wallet {
 		
 		// Create an account from the key pair
 		let account = Account::from_key_pair(key_pair, None, None)
-			.map_err(|e| WalletError::ProviderError(e))?;
+			.map_err(|e| WalletError::AccountState(format!("Failed to create account: {}", e)))?;
 		let script_hash = account.address_or_scripthash.script_hash();
 		
 		// Add the account to the wallet
@@ -655,7 +655,7 @@ impl Wallet {
 		Ok(self.get_account(&script_hash).unwrap())
 	}
 	
-	/// Gets the unclaimed GAS for the wallet.
+	/// Gets the unclaimed GAS for the wallet as a float value.
 	///
 	/// # Arguments
 	///
@@ -663,8 +663,8 @@ impl Wallet {
 	///
 	/// # Returns
 	///
-	/// A `Result` containing the unclaimed GAS amount or a `WalletError`
-	pub async fn get_unclaimed_gas<P>(&self, rpc_client: &RpcClient<P>) -> Result<f64, WalletError>
+	/// A `Result` containing the unclaimed GAS amount as a float or a `WalletError`
+	pub async fn get_unclaimed_gas_as_float<P>(&self, rpc_client: &RpcClient<P>) -> Result<f64, WalletError>
 	where
 		P: JsonRpcProvider + 'static
 	{
