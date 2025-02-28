@@ -1,0 +1,76 @@
+name: Generate Documentation PDF
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'docs/**'
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'docs/**'
+  workflow_dispatch:
+
+jobs:
+  build-pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v1
+        with:
+          mdbook-version: 'latest'
+      
+      - name: Install mdBook plugins
+        run: |
+          cargo install mdbook-mermaid
+          cargo install mdbook-toc
+          cargo install mdbook-admonish
+          cargo install mdbook-linkcheck
+      
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+      
+      - name: Install mdbook-pdf
+        run: |
+          cargo install mdbook-pdf
+      
+      - name: Build documentation
+        run: |
+          cd docs
+          mdbook build
+      
+      - name: Generate PDF
+        run: |
+          cd docs
+          mdbook-pdf
+      
+      - name: Upload PDF as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: neorust-documentation
+          path: docs/book/pdf/output.pdf
+      
+      - name: Create release directory
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          mkdir -p docs/releases
+          cp docs/book/pdf/output.pdf docs/releases/neorust-sdk-documentation.pdf
+      
+      - name: Deploy to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/book/html
+          destination_dir: docs
+          
+      - name: Upload PDF to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/releases
+          destination_dir: docs/pdf
+          keep_files: true
