@@ -16,10 +16,14 @@ use crate::{crypto::HashableForVec, neo_types::Address};
 
 impl WalletSigner<YubiSigner<NistP256>> {
 	/// Connects to a yubi key's ECDSA account at the provided id
-	pub fn connect(connector: Connector, credentials: Credentials, id: object::Id) -> Self {
-		let client = Client::open(connector, credentials, true).unwrap();
-		let signer = YubiSigner::create(client, id).unwrap();
-		signer.into()
+	pub fn connect(connector: Connector, credentials: Credentials, id: object::Id) -> Result<Self, WalletError> {
+		let client = Client::open(connector, credentials, true)
+			.map_err(|e| WalletError::YubiHsmError(format!("Failed to open YubiHSM client: {}", e)))?;
+			
+		let signer = YubiSigner::create(client, id)
+			.map_err(|e| WalletError::YubiHsmError(format!("Failed to create YubiHSM signer: {}", e)))?;
+			
+		Ok(signer.into())
 	}
 
 	/// Creates a new random ECDSA keypair on the yubi at the provided id
@@ -29,13 +33,18 @@ impl WalletSigner<YubiSigner<NistP256>> {
 		id: object::Id,
 		label: Label,
 		domain: Domain,
-	) -> Self {
-		let client = Client::open(connector, credentials, true).unwrap();
+	) -> Result<Self, WalletError> {
+		let client = Client::open(connector, credentials, true)
+			.map_err(|e| WalletError::YubiHsmError(format!("Failed to open YubiHSM client: {}", e)))?;
+			
 		let id = client
 			.generate_asymmetric_key(id, label, domain, Capability::SIGN_ECDSA, EcP256)
-			.unwrap();
-		let signer = YubiSigner::create(client, id).unwrap();
-		signer.into()
+			.map_err(|e| WalletError::YubiHsmError(format!("Failed to generate asymmetric key: {}", e)))?;
+			
+		let signer = YubiSigner::create(client, id)
+			.map_err(|e| WalletError::YubiHsmError(format!("Failed to create YubiHSM signer: {}", e)))?;
+			
+		Ok(signer.into())
 	}
 
 	/// Uploads the provided keypair on the yubi at the provided id
@@ -46,13 +55,18 @@ impl WalletSigner<YubiSigner<NistP256>> {
 		label: Label,
 		domain: Domain,
 		key: impl Into<Vec<u8>>,
-	) -> Self {
-		let client = Client::open(connector, credentials, true).unwrap();
+	) -> Result<Self, WalletError> {
+		let client = Client::open(connector, credentials, true)
+			.map_err(|e| WalletError::YubiHsmError(format!("Failed to open YubiHSM client: {}", e)))?;
+			
 		let id = client
 			.put_asymmetric_key(id, label, domain, Capability::SIGN_ECDSA, EcP256, key)
-			.unwrap();
-		let signer = YubiSigner::create(client, id).unwrap();
-		signer.into()
+			.map_err(|e| WalletError::YubiHsmError(format!("Failed to put asymmetric key: {}", e)))?;
+			
+		let signer = YubiSigner::create(client, id)
+			.map_err(|e| WalletError::YubiHsmError(format!("Failed to create YubiHSM signer: {}", e)))?;
+			
+		Ok(signer.into())
 	}
 
 	// /// Verifies a given message and signature.
@@ -81,13 +95,20 @@ impl WalletSigner<YubiSigner<NistP256>> {
 
 impl From<YubiSigner<NistP256>> for WalletSigner<YubiSigner<NistP256>> {
 	fn from(signer: YubiSigner<NistP256>) -> Self {
-		// this will never fail
-		let public_key = PublicKey::from_encoded_point(signer.public_key()).unwrap();
+		// this should never fail for a valid YubiSigner
+		let public_key = PublicKey::from_encoded_point(signer.public_key())
+			.expect("YubiSigner should always provide a valid public key");
+			
 		let public_key = public_key.to_encoded_point(true);
 		let public_key = public_key.as_bytes();
+		
 		// The first byte can be either 0x02 or 0x03 for compressed public keys
 		debug_assert!(public_key[0] == 0x02 || public_key[0] == 0x03);
-		let address = public_key_to_address(&Secp256r1PublicKey::from_bytes(&public_key).unwrap());
+		
+		let secp_public_key = Secp256r1PublicKey::from_bytes(&public_key)
+			.expect("YubiSigner public key should be convertible to Secp256r1PublicKey");
+			
+		let address = public_key_to_address(&secp_public_key);
 
 		Self { signer, address, network: None }
 	}
@@ -102,28 +123,29 @@ pub mod tests {
 	#[tokio::test]
 	async fn from_key() {
 		let key = hex::decode("2d8c44dc2dd2f0bea410e342885379192381e82d855b1b112f9b55544f1e0900")
-			.unwrap();
+			.expect("Should be able to decode valid hex");
 
 		let connector = yubihsm::Connector::mockhsm();
 		let wallet = WalletSigner::from_key(
 			connector,
 			Credentials::default(),
 			0,
-			Label::from_bytes(&[]).unwrap(),
-			Domain::at(1).unwrap(),
+			Label::from_bytes(&[]).expect("Empty label should be valid"),
+			Domain::at(1).expect("Domain 1 should be valid"),
 			key,
-		);
+		).expect("Should be able to create wallet from key");
 
 		let msg = "Some data";
-		let sig = wallet.sign_message(msg.as_bytes()).await.unwrap();
+		let sig = wallet.sign_message(msg.as_bytes()).await.expect("Should be able to sign message");
 
-		let verify_key =
-			p256::ecdsa::VerifyingKey::from_encoded_point(wallet.signer.public_key()).unwrap();
+		let verify_key = p256::ecdsa::VerifyingKey::from_encoded_point(wallet.signer.public_key())
+			.expect("Should be able to create verifying key from public key");
+			
 		assert!(verify_key.verify(msg.as_bytes(), &sig).is_ok());
 
 		assert_eq!(
 			wallet.address(),
-			Address::from_str("NPZyWCdSCWghLM7hcxT5kgc7cC2V2RGeHZ").unwrap()
+			Address::from_str("NPZyWCdSCWghLM7hcxT5kgc7cC2V2RGeHZ").expect("Should be able to parse valid address")
 		);
 	}
 
@@ -134,15 +156,16 @@ pub mod tests {
 			connector,
 			Credentials::default(),
 			0,
-			Label::from_bytes(&[]).unwrap(),
-			Domain::at(1).unwrap(),
-		);
+			Label::from_bytes(&[]).expect("Empty label should be valid"),
+			Domain::at(1).expect("Domain 1 should be valid"),
+		).expect("Should be able to create new wallet");
 
 		let msg = "Some data";
-		let sig = wallet.sign_message(msg.as_bytes()).await.unwrap();
-		// assert!(wallet.verify_message(msg.as_bytes(), &sig).await.is_ok());
-		let verify_key =
-			p256::ecdsa::VerifyingKey::from_encoded_point(wallet.signer.public_key()).unwrap();
+		let sig = wallet.sign_message(msg.as_bytes()).await.expect("Should be able to sign message");
+		
+		let verify_key = p256::ecdsa::VerifyingKey::from_encoded_point(wallet.signer.public_key())
+			.expect("Should be able to create verifying key from public key");
+			
 		assert!(verify_key.verify(msg.as_bytes(), &sig).is_ok());
 	}
 }
