@@ -342,16 +342,19 @@ mod tests {
 	// }
 
 	#[test]
-	fn test_is_single_sig_script() {
+	fn test_is_single_sig_script() -> Result<(), BuilderError> {
 		let script = format!(
 			"{}2102028a99826edc0c97d18e22b6932373d908d323aa7f92656a77ec26e8861699ef{}{}",
-			OpCode::PushData1.to_string(),
-			OpCode::Syscall.to_string(),
+			OpCode::PushData1.to_hex_string(),
+			OpCode::Syscall.to_hex_string(),
 			InteropService::SystemCryptoCheckSig.hash()
 		);
 
-		let verification = VerificationScript::from(script.from_hex().unwrap());
+		let verification = VerificationScript::from(script.from_hex()
+			.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?);
 		assert!(verification.is_single_sig());
+		
+		Ok(())
 	}
 
 	// #[test]
@@ -452,24 +455,30 @@ mod tests {
 	// }
 
 	#[test]
-	fn test_throw_on_invalid_script() {
-		let script = VerificationScript::from("0123456789abcdef".from_hex().unwrap());
+	fn test_throw_on_invalid_script() -> Result<(), BuilderError> {
+		let script = VerificationScript::from("0123456789abcdef".from_hex()
+			.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?);
 
 		let err = script.get_signing_threshold().unwrap_err();
-		assert_eq!(err.to_string(), "Invalid operation");
+		assert_eq!(err.to_string(), "Invalid script: Invalid verification script");
 
 		let err = script.get_public_keys().unwrap_err();
-		assert_eq!(err.to_string(), "Invalid operation");
+		assert_eq!(err.to_string(), "Invalid script: Invalid verification script");
 		let err = script.get_nr_of_accounts().unwrap_err();
-		assert_eq!(err.to_string(), "Invalid operation");
+		assert_eq!(err.to_string(), "Invalid script: Invalid verification script");
+		
+		Ok(())
 	}
 
 	#[test]
-	fn test_size() {
-		let script = "147e5f3c929dd830d961626551dbea6b70e4b2837ed2fe9089eed2072ab3a655523ae0fa8711eee4769f1913b180b9b3410bbb2cf770f529c85f6886f22cbaaf".from_hex().unwrap();
+	fn test_size() -> Result<(), BuilderError> {
+		let script = "147e5f3c929dd830d961626551dbea6b70e4b2837ed2fe9089eed2072ab3a655523ae0fa8711eee4769f1913b180b9b3410bbb2cf770f529c85f6886f22cbaaf".from_hex()
+			.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 
 		let verification = VerificationScript::from(script);
 		assert_eq!(verification.size(), 65);
+		
+		Ok(())
 	}
 
 	// #[test]
@@ -487,48 +496,54 @@ mod tests {
 	// }
 
 	#[test]
-	fn test_is_multi_sig() {
+	fn test_is_multi_sig() -> Result<(), BuilderError> {
 		let script = format!(
 			"{}{}{}{}{}{}{}{}{}{}",
-			OpCode::Push2.to_string(),
-			OpCode::PushData1.to_string(),
+			OpCode::Push2.to_hex_string(),
+			OpCode::PushData1.to_hex_string(),
 			"2102028a99826edc0c97d18e22b6932373d908d323aa7f92656a77ec26e8861699ef",
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			"21031d8e1630ce640966967bc6d95223d21f44304133003140c3b52004dc981349c9",
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			"2103f0f9b358dfed564e74ffe242713f8bc866414226649f59859b140a130818898b",
-			OpCode::Push3.to_string(),
-			OpCode::Syscall.to_string(),
+			OpCode::Push3.to_hex_string(),
+			OpCode::Syscall.to_hex_string(),
 			InteropService::SystemCryptoCheckMultiSig.hash()
 		)
 		.from_hex()
-		.unwrap();
+		.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 
 		let verification = VerificationScript::from(script);
 		assert!(verification.is_multi_sig());
+		
+		Ok(())
 	}
 
 	#[test]
-	fn test_fail_is_multi_sig_too_short() {
-		let script = "a89429c3be9f".from_hex().unwrap();
+	fn test_fail_is_multi_sig_too_short() -> Result<(), BuilderError> {
+		let script = "a89429c3be9f".from_hex()
+			.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 		let verification = VerificationScript::from(script);
-
+		let script = "a89429c3be9f".from_hex()
+			.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 		assert!(!verification.is_multi_sig());
+		
+		Ok(())
 	}
 
 	#[test]
 	fn test_fail_is_multi_sig_n_less_than_one() {
 		let script = format!(
 			"{}{}{}{}{}{}3073b3bb",
-			OpCode::Push0.to_string(),
-			OpCode::PushData1.to_string(),
+			OpCode::Push0.to_hex_string(),
+			OpCode::PushData1.to_hex_string(),
 			"2102028a99826edc0c97d18e22b6932373d908d323aa7f92656a77ec26e8861699ef",
-			OpCode::Push1.to_string(),
-			OpCode::PushNull.to_string(),
-			OpCode::Syscall.to_string(),
+			OpCode::Push1.to_hex_string(),
+			OpCode::PushNull.to_hex_string(),
+			OpCode::Syscall.to_hex_string(),
 		)
 		.from_hex()
-		.unwrap();
+		.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
@@ -538,11 +553,11 @@ mod tests {
 	fn test_fail_is_multi_sig_abrupt_end() {
 		let script = format!(
 			"{}{}2102028a99826edc0c97d18e22b6932373d908d323aa7f92656a77ec26e8861699ef",
-			OpCode::Push2.to_string(),
-			OpCode::PushData1.to_string(),
+			OpCode::Push2.to_hex_string(),
+			OpCode::PushData1.to_hex_string(),
 		)
 		.from_hex()
-		.unwrap();
+		.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
@@ -552,17 +567,17 @@ mod tests {
 	fn test_fail_is_multi_sig_wrong_push_data() {
 		let script = format!(
 			"{}{}{}{}{}{}{}{}3073b3bb",
-			OpCode::Push2.to_string(),
-			OpCode::PushData1.to_string(),
+			OpCode::Push2.to_hex_string(),
+			OpCode::PushData1.to_hex_string(),
 			"2102028a99826edc0c97d18e22b6932373d908d323aa7f92656a77ec26e8861699ef",
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			"43031d8e1630ce640966967bc6d95223d21f44304133003140c3b52004dc981349c9",
-			OpCode::Push2.to_string(),
-			OpCode::PushNull.to_string(),
-			OpCode::Syscall.to_string(),
+			OpCode::Push2.to_hex_string(),
+			OpCode::PushNull.to_hex_string(),
+			OpCode::Syscall.to_hex_string(),
 		)
 		.from_hex()
-		.unwrap();
+		.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
@@ -572,17 +587,17 @@ mod tests {
 	fn test_fail_is_multi_sig_n_greater_than_m() {
 		let script = format!(
 			"{}{}{}{}{}{}{}{}3073b3bb",
-			OpCode::Push3.to_string(),
-			OpCode::PushData1.to_string(),
+			OpCode::Push3.to_hex_string(),
+			OpCode::PushData1.to_hex_string(),
 			"2102028a99826edc0c97d18e22b6932373d908d323aa7f92656a77ec26e8861699ef",
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			"21031d8e1630ce640966967bc6d95223d21f44304133003140c3b52004dc981349c9",
-			OpCode::Push2.to_string(),
-			OpCode::PushNull.to_string(),
-			OpCode::Syscall.to_string()
+			OpCode::Push2.to_hex_string(),
+			OpCode::PushNull.to_hex_string(),
+			OpCode::Syscall.to_hex_string()
 		)
 		.from_hex()
-		.unwrap();
+		.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
@@ -592,17 +607,17 @@ mod tests {
 	fn test_fail_is_multi_sig_m_incorrect() {
 		let script = format!(
 			"{}{}{}{}{}{}{}{}3073b3bb",
-			OpCode::Push2.to_string(),
-			OpCode::PushData1.to_string(),
+			OpCode::Push2.to_hex_string(),
+			OpCode::PushData1.to_hex_string(),
 			"2102028a99826edc0c97d18e22b6932373d908d323aa7f92656a77ec26e8861699ef",
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			"21031d8e1630ce640966967bc6d95223d21f44304133003140c3b52004dc981349c9",
-			OpCode::Push3.to_string(),
-			OpCode::PushNull.to_string(),
-			OpCode::Syscall.to_string()
+			OpCode::Push3.to_hex_string(),
+			OpCode::PushNull.to_hex_string(),
+			OpCode::Syscall.to_hex_string()
 		)
 		.from_hex()
-		.unwrap();
+		.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
@@ -612,16 +627,16 @@ mod tests {
 	fn test_fail_is_multi_sig_missing_push_null() {
 		let script = format!(
 			"{}{}{}{}{}{}{}3073b3bb",
-			OpCode::Push2.to_string(),
-			OpCode::PushData1.to_string(),
+			OpCode::Push2.to_hex_string(),
+			OpCode::PushData1.to_hex_string(),
 			"2102028a99826edc0c97d18e22b6932373d908d323aa7f92656a77ec26e8861699ef",
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			"21031d8e1630ce640966967bc6d95223d21f44304133003140c3b52004dc981349c9",
-			OpCode::Push2.to_string(),
-			OpCode::Syscall.to_string()
+			OpCode::Push2.to_hex_string(),
+			OpCode::Syscall.to_hex_string()
 		)
 		.from_hex()
-		.unwrap();
+		.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
@@ -631,16 +646,16 @@ mod tests {
 	fn test_fail_is_multi_sig_missing_syscall() {
 		let script = format!(
 			"{}{}{}{}{}{}{}3073b3bb",
-			OpCode::Push2.to_string(),
-			OpCode::PushData1.to_string(),
+			OpCode::Push2.to_hex_string(),
+			OpCode::PushData1.to_hex_string(),
 			"2102028a99826edc0c97d18e22b6932373d908d323aa7f92656a77ec26e8861699ef",
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			"21031d8e1630ce640966967bc6d95223d21f44304133003140c3b52004dc981349c9",
-			OpCode::Push2.to_string(),
-			OpCode::PushNull.to_string()
+			OpCode::Push2.to_hex_string(),
+			OpCode::PushNull.to_hex_string()
 		)
 		.from_hex()
-		.unwrap();
+		.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
@@ -650,17 +665,17 @@ mod tests {
 	fn test_fail_is_multi_sig_wrong_interop_service() {
 		let script = format!(
 			"{}{}{}{}{}{}{}{}103ab300",
-			OpCode::Push2.to_string(),
-			OpCode::PushData1.to_string(),
+			OpCode::Push2.to_hex_string(),
+			OpCode::PushData1.to_hex_string(),
 			"2102028a99826edc0c97d18e22b6932373d908d323aa7f92656a77ec26e8861699ef",
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			"21031d8e1630ce640966967bc6d95223d21f44304133003140c3b52004dc981349c9",
-			OpCode::Push3.to_string(),
-			OpCode::PushNull.to_string(),
-			OpCode::Syscall.to_string()
+			OpCode::Push3.to_hex_string(),
+			OpCode::PushNull.to_hex_string(),
+			OpCode::Syscall.to_hex_string()
 		)
 		.from_hex()
-		.unwrap();
+		.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 
 		let verification = VerificationScript::from(script);
 		assert!(!verification.is_multi_sig());
@@ -670,13 +685,13 @@ mod tests {
 	fn test_public_keys_from_single_sig() {
 		let script = format!(
 			"{}{}{}{}",
-			OpCode::PushData1.to_string(),
+			OpCode::PushData1.to_hex_string(),
 			"2102028a99826edc0c97d18e22b6932373d908d323aa7f92656a77ec26e8861699ef",
-			OpCode::Syscall.to_string(),
+			OpCode::Syscall.to_hex_string(),
 			InteropService::SystemCryptoCheckSig.hash()
 		)
 		.from_hex()
-		.unwrap();
+		.map_err(|e| BuilderError::InvalidScript(format!("Failed to decode hex: {}", e)))?;
 
 		let verification = VerificationScript::from(script);
 
