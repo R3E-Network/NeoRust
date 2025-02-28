@@ -1,3 +1,66 @@
+//! # Neo Types
+//!
+//! Core data types for the Neo N3 blockchain.
+//!
+//! ## Overview
+//!
+//! The neo_types module provides fundamental data types and structures for working with
+//! the Neo N3 blockchain. It includes:
+//!
+//! - Address and ScriptHash types for identifying accounts and contracts
+//! - Contract-related types (parameters, manifests, NEF files)
+//! - Neo Name Service (NNS) types
+//! - Numeric types with blockchain-specific operations
+//! - Serialization and deserialization utilities
+//! - Stack item representations for VM operations
+//! - Blockchain-specific enumerations (OpCode, VMState)
+//!
+//! This module forms the type foundation for the entire SDK, providing the core data structures
+//! that represent Neo N3 blockchain concepts.
+//!
+//! ## Examples
+//!
+//! ### Working with Neo N3 addresses and script hashes
+//!
+//! ```rust
+//! use neo::prelude::*;
+//! use std::str::FromStr;
+//!
+//! // Create a script hash from a string
+//! let script_hash = ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap();
+//! println!("Script hash: {}", script_hash);
+//!
+//! // Convert between address and script hash
+//! let address = Address::from_script_hash(&script_hash);
+//! println!("Address: {}", address);
+//!
+//! let recovered_hash = ScriptHash::from_address(&address).unwrap();
+//! assert_eq!(script_hash, recovered_hash);
+//! ```
+//!
+//! ### Working with contract parameters
+//!
+//! ```rust
+//! use neo::prelude::*;
+//! use std::str::FromStr;
+//!
+//! // Create different types of contract parameters
+//! let string_param = ContractParameter::string("Hello, Neo!");
+//! let integer_param = ContractParameter::integer(42);
+//! let bool_param = ContractParameter::bool(true);
+//!
+//! // Create a hash160 parameter from a script hash
+//! let script_hash = ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap();
+//! let hash_param = ContractParameter::hash160(&script_hash);
+//!
+//! // Create an array parameter
+//! let array_param = ContractParameter::array(vec![
+//!     ContractParameter::integer(1),
+//!     ContractParameter::integer(2),
+//!     ContractParameter::integer(3),
+//! ]);
+//! ```
+
 use base64::{engine::general_purpose, Engine};
 pub use log::*;
 use primitive_types::H256;
