@@ -340,6 +340,8 @@ impl AccountTrait for Account {
 			
 		Ok(())
 	}
+	
+
 
 	fn encrypt_private_key(&mut self, password: &str) -> Result<(), Self::Error> {
 		let key_pair = self.key_pair.as_ref().ok_or(Self::Error::IllegalState(
