@@ -347,6 +347,21 @@ impl From<Value> for ContractParameter {
 	}
 }
 
+impl ContractParameter {
+    /// Creates a ContractParameter from a JSON value
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The JSON value to convert
+    ///
+    /// # Returns
+    ///
+    /// A new ContractParameter
+    pub fn from_json(value: Value) -> Self {
+        Self::from(value)
+    }
+}
+
 impl Into<Value> for ContractParameter {
 	fn into(self) -> Value {
 		match self.value {

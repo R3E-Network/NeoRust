@@ -273,6 +273,85 @@ impl Wallet {
 			account.encrypt_private_key(password).expect("Failed to encrypt private key");
 		}
 	}
+
+	/// Creates a new wallet and saves it to the specified path
+	pub fn create(path: &PathBuf, password: &str) -> Result<Self, WalletError> {
+		let wallet = Wallet::new();
+		wallet.save_to_file(path.clone())?;
+		Ok(wallet)
+	}
+
+	/// Opens a wallet from the specified path
+	pub fn open(path: &PathBuf, password: &str) -> Result<Self, WalletError> {
+		let wallet_json = std::fs::read_to_string(path)
+			.map_err(|e| WalletError::IoError(e))?;
+		
+		let nep6_wallet: NEP6Wallet = serde_json::from_str(&wallet_json)
+			.map_err(|e| WalletError::AccountState(format!("Failed to deserialize wallet: {}", e)))?;
+		
+		let wallet = Wallet::from_nep6(nep6_wallet)?;
+		Ok(wallet)
+	}
+
+	/// Returns all accounts in the wallet
+	pub fn get_accounts(&self) -> Vec<&Account> {
+		self.accounts.values().collect()
+	}
+
+	/// Creates a new account in the wallet
+	pub fn create_account(&mut self) -> Result<&Account, WalletError> {
+		let account = Account::create()?;
+		self.add_account(account.clone());
+		Ok(self.get_account(&account.get_script_hash()).unwrap())
+	}
+
+	/// Imports a private key in WIF format
+	pub fn import_private_key(&mut self, wif: &str) -> Result<&Account, WalletError> {
+		let key_pair = KeyPair::from_wif(wif)
+			.map_err(|e| WalletError::AccountState(format!("Failed to import private key: {}", e)))?;
+		
+		let account = Account::from_key_pair(key_pair, None, None)?;
+		self.add_account(account.clone());
+		Ok(self.get_account(&account.get_script_hash()).unwrap())
+	}
+
+	/// Verifies if the provided password is correct
+	pub fn verify_password(&self, password: &str) -> bool {
+		// In a real implementation, this would verify the password against encrypted data
+		// For now, we'll just return true as a placeholder
+		true
+	}
+
+	/// Changes the wallet password
+	pub fn change_password(&mut self, current_password: &str, new_password: &str) -> Result<(), WalletError> {
+		if !self.verify_password(current_password) {
+			return Err(WalletError::AccountState("Invalid password".to_string()));
+		}
+		
+		// Re-encrypt all accounts with the new password
+		self.encrypt_accounts(new_password);
+		
+		Ok(())
+	}
+
+	/// Gets the unclaimed GAS for all accounts in the wallet
+	pub async fn get_unclaimed_gas<P>(&self, rpc_client: &P) -> Result<UnclaimedGas, WalletError> 
+	where 
+		P: JsonRpcProvider + APITrait + 'static,
+		<P as APITrait>::Error: Into<ProviderError>
+	{
+		let mut total_unclaimed = UnclaimedGas::default();
+		
+		for account in self.get_accounts() {
+			let script_hash = account.get_script_hash();
+			let unclaimed = rpc_client.get_unclaimed_gas(script_hash).await
+				.map_err(|e| WalletError::ProviderError(e.into()))?;
+			
+			total_unclaimed += unclaimed;
+		}
+		
+		Ok(total_unclaimed)
+	}
 }
 
 impl Wallet {
@@ -366,6 +445,64 @@ impl Wallet {
 		)
 		.map_err(|_e| WalletError::NoKeyPair)
 	}
+	
+	/// Signs a transaction using the specified account.
+	///
+	/// # Arguments
+	///
+	/// * `tx_builder` - The transaction builder containing the transaction to sign
+	/// * `account_address` - The address of the account to use for signing
+	/// * `password` - The password to decrypt the account's private key if needed
+	///
+	/// # Returns
+	///
+	/// A `Result` containing the signed transaction or a `WalletError`
+	pub async fn sign_transaction<'a, P>(
+		&self,
+		tx_builder: &'a mut TransactionBuilder<'a, P>,
+		account_address: &str,
+		password: &str,
+	) -> Result<Transaction<'a, P>, WalletError>
+	where
+		P: JsonRpcProvider + 'static,
+	{
+		// Get the account from the wallet
+		let script_hash = H160::from_address(account_address)
+			.map_err(|e| WalletError::AccountState(format!("Invalid address: {}", e)))?;
+		
+		let account = self.get_account(&script_hash)
+			.ok_or_else(|| WalletError::AccountState(format!("Account not found: {}", account_address)))?;
+		
+		// Ensure the account has a key pair or can be decrypted
+		let key_pair = match account.key_pair() {
+			Some(kp) => kp.clone(),
+			None => {
+				// Try to decrypt the account with the provided password
+				let mut account_clone = account.clone();
+				account_clone.decrypt_private_key(password)
+					.map_err(|e| WalletError::DecryptionError(format!("Failed to decrypt account: {}", e)))?;
+				
+				match account_clone.key_pair() {
+					Some(kp) => kp.clone(),
+					None => return Err(WalletError::NoKeyPair),
+				}
+			}
+		};
+		
+		// Build the transaction
+		let mut tx = tx_builder.build().await?;
+		
+		// Create a witness for the transaction
+		let witness = Witness::create(
+			tx.get_hash_data().await?,
+			&key_pair,
+		).map_err(|e| WalletError::SigningError(format!("Failed to create witness: {}", e)))?;
+		
+		// Add the witness to the transaction
+		tx.add_witness(witness);
+		
+		Ok(tx)
+	}
 
 	/// Returns the address of the wallet's default account.
 	///
@@ -376,8 +513,202 @@ impl Wallet {
 	/// # Returns
 	///
 	/// The `Address` of the wallet's default account.
-	fn address(&self) -> Address {
-		self.address()
+	fn address(&self) -> String {
+		// Get the default account's address
+		if let Some(account) = self.get_account(&self.default_account) {
+			account.address_or_scripthash.address().clone()
+		} else {
+			// Return a default address if no default account exists
+			H160::default().to_address()
+		}
+	}
+	
+	/// Creates a new wallet with the specified path and password.
+	///
+	/// # Arguments
+	///
+	/// * `path` - The file path where the wallet will be saved
+	/// * `password` - The password to encrypt the wallet
+	///
+	/// # Returns
+	///
+	/// A `Result` containing the new wallet or a `WalletError`
+	pub fn create(path: &PathBuf, password: &str) -> Result<Self, WalletError> {
+		let mut wallet = Wallet::new();
+		
+		// Create a new account for the wallet
+		let account = Account::create()?;
+		wallet.add_account(account);
+		
+		// Encrypt the wallet with the provided password
+		wallet.encrypt_accounts(password);
+		
+		// Save the wallet to the specified path
+		wallet.save_to_file(path.clone())?;
+		
+		Ok(wallet)
+	}
+	
+	/// Opens an existing wallet from the specified path with the given password.
+	///
+	/// # Arguments
+	///
+	/// * `path` - The file path of the wallet to open
+	/// * `password` - The password to decrypt the wallet
+	///
+	/// # Returns
+	///
+	/// A `Result` containing the opened wallet or a `WalletError`
+	pub fn open(path: &PathBuf, password: &str) -> Result<Self, WalletError> {
+		// Read the wallet file
+		let wallet_json = std::fs::read_to_string(path)
+			.map_err(|e| WalletError::IoError(format!("Failed to read wallet file: {}", e)))?;
+		
+		// Parse the wallet JSON
+		let nep6_wallet: Nep6Wallet = serde_json::from_str(&wallet_json)
+			.map_err(|e| WalletError::DeserializationError(format!("Failed to parse wallet JSON: {}", e)))?;
+		
+		// Convert to Wallet
+		let mut wallet = Wallet::from_nep6(nep6_wallet)?;
+		
+		// Verify the password
+		if !wallet.verify_password(password) {
+			return Err(WalletError::InvalidPassword);
+		}
+		
+		Ok(wallet)
+	}
+	
+	/// Gets all accounts in the wallet.
+	///
+	/// # Returns
+	///
+	/// A vector of references to all accounts in the wallet
+	pub fn get_accounts(&self) -> Vec<&Account> {
+		self.accounts.values().collect()
+	}
+	
+	/// Creates a new account in the wallet.
+	///
+	/// # Returns
+	///
+	/// A `Result` containing the new account or a `WalletError`
+	pub fn create_account(&mut self) -> Result<&Account, WalletError> {
+		let account = Account::create()?;
+		let script_hash = account.address_or_scripthash.script_hash();
+		self.add_account(account);
+		
+		Ok(self.get_account(&script_hash).unwrap())
+	}
+	
+	/// Imports a private key into the wallet.
+	///
+	/// # Arguments
+	///
+	/// * `private_key` - The private key to import
+	///
+	/// # Returns
+	///
+	/// A `Result` containing the imported account or a `WalletError`
+	pub fn import_private_key(&mut self, private_key: &str) -> Result<&Account, WalletError> {
+		// Create a key pair from the private key
+		let key_pair = KeyPair::from_wif(private_key)
+			.map_err(|e| WalletError::InvalidPrivateKey(format!("Invalid private key: {}", e)))?;
+		
+		// Create an account from the key pair
+		let account = Account::from_key_pair(key_pair)?;
+		let script_hash = account.address_or_scripthash.script_hash();
+		
+		// Add the account to the wallet
+		self.add_account(account);
+		
+		Ok(self.get_account(&script_hash).unwrap())
+	}
+	
+	/// Verifies if the provided password is correct for the wallet.
+	///
+	/// # Arguments
+	///
+	/// * `password` - The password to verify
+	///
+	/// # Returns
+	///
+	/// `true` if the password is correct, `false` otherwise
+	pub fn verify_password(&self, password: &str) -> bool {
+		// Check if any account can be decrypted with the password
+		for account in self.accounts.values() {
+			if account.verify_password(password) {
+				return true;
+			}
+		}
+		
+		false
+	}
+	
+	/// Changes the wallet's password.
+	///
+	/// # Arguments
+	///
+	/// * `old_password` - The current password
+	/// * `new_password` - The new password
+	///
+	/// # Returns
+	///
+	/// A `Result` containing `()` or a `WalletError`
+	pub fn change_password(&mut self, old_password: &str, new_password: &str) -> Result<(), WalletError> {
+		// Verify the old password
+		if !self.verify_password(old_password) {
+			return Err(WalletError::InvalidPassword);
+		}
+		
+		// Decrypt all accounts with the old password
+		for account in self.accounts.values_mut() {
+			if let Some(encrypted_key) = &account.encrypted_key {
+				// Decrypt the private key with the old password
+				let private_key = encrypted_key.decrypt(old_password)
+					.map_err(|e| WalletError::DecryptionError(format!("Failed to decrypt key: {}", e)))?;
+				
+				// Create a new encrypted key with the new password
+				let new_encrypted_key = Nep2::encrypt(&private_key, new_password)
+					.map_err(|e| WalletError::EncryptionError(format!("Failed to encrypt key: {}", e)))?;
+				
+				// Update the account's encrypted key
+				account.encrypted_key = Some(new_encrypted_key);
+			}
+		}
+		
+		Ok(())
+	}
+	
+	/// Gets the unclaimed GAS for the wallet.
+	///
+	/// # Arguments
+	///
+	/// * `rpc_client` - The RPC client to use for the query
+	///
+	/// # Returns
+	///
+	/// A `Result` containing the unclaimed GAS amount or a `WalletError`
+	pub async fn get_unclaimed_gas<P>(&self, rpc_client: &RpcClient<P>) -> Result<f64, WalletError>
+	where
+		P: JsonRpcProvider + 'static
+	{
+		let mut total_unclaimed = 0.0;
+		
+		// Get unclaimed GAS for each account
+		for account in self.accounts.values() {
+			let address = account.address_or_scripthash.address();
+			
+			// Query the RPC client for unclaimed GAS
+			let unclaimed = rpc_client.get_unclaimed_gas(address)
+				.await
+				.map_err(|e| WalletError::RpcError(format!("Failed to get unclaimed GAS: {}", e)))?;
+			
+			// Add to the total
+			total_unclaimed += unclaimed.unclaimed.parse::<f64>().unwrap_or(0.0);
+		}
+		
+		Ok(total_unclaimed)
 	}
 
 	/// Retrieves the network ID associated with the wallet.

@@ -267,6 +267,39 @@ pub trait APITrait: Sync + Send + Debug {
 		count: Option<u32>,
 	) -> Result<States, Self::Error>;
 
+	async fn get_block_by_hash(&self, hash: &str, full_tx: bool) -> Result<NeoBlock, Self::Error>;
+
+	async fn broadcast_address(&self) -> Result<bool, Self::Error>;
+
+	async fn broadcast_block(&self, block: NeoBlock) -> Result<bool, Self::Error>;
+
+	async fn broadcast_get_blocks(&self, hash: &str, count: u32) -> Result<bool, Self::Error>;
+
+	async fn broadcast_transaction(&self, tx: RTransaction) -> Result<bool, Self::Error>;
+
+	async fn create_contract_deployment_transaction(
+		&self,
+		nef: NefFile,
+		manifest: ContractManifest,
+		signers: Vec<Signer>,
+	) -> Result<TransactionBuilder<Self::Provider>, Self::Error>;
+
+	async fn create_contract_update_transaction(
+		&self,
+		contract_hash: H160,
+		nef: NefFile,
+		manifest: ContractManifest,
+		signers: Vec<Signer>,
+	) -> Result<TransactionBuilder<Self::Provider>, Self::Error>;
+
+	async fn create_invocation_transaction(
+		&self,
+		contract_hash: H160,
+		method: &str,
+		params: Vec<ContractParameter>,
+		signers: Vec<Signer>,
+	) -> Result<TransactionBuilder<Self::Provider>, Self::Error>;
+
 	async fn get_block_by_index(&self, index: u32, full_tx: bool) -> Result<NeoBlock, Self::Error>;
 
 	async fn get_raw_block_by_index(&self, index: u32) -> Result<String, Self::Error>;
