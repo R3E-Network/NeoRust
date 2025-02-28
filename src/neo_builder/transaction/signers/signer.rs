@@ -599,8 +599,10 @@ mod tests {
 
 	#[test]
 	fn test_build_valid_signer1() {
-		let mut signer = AccountSigner::called_by_entry(&SCRIPT_HASH.deref().into()).unwrap();
-		signer.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2]).expect("");
+		let mut signer = AccountSigner::called_by_entry(&SCRIPT_HASH.deref().into())
+			.expect("Should be able to create AccountSigner with called_by_entry scope in test");
+		signer.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2])
+			.expect("Should be able to set allowed contracts in test");
 
 		assert_eq!(signer.signer_hash, *SCRIPT_HASH);
 		assert_eq!(
@@ -618,8 +620,10 @@ mod tests {
 
 	#[test]
 	fn test_build_valid_signer2() {
-		let mut signer = AccountSigner::none(&SCRIPT_HASH.deref().into()).unwrap();
-		signer.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2]).expect("");
+		let mut signer = AccountSigner::none(&SCRIPT_HASH.deref().into())
+			.expect("Should be able to create AccountSigner with none scope in test");
+		signer.set_allowed_contracts(vec![*SCRIPT_HASH1, *SCRIPT_HASH2])
+			.expect("Should be able to set allowed contracts in test");
 
 		assert_eq!(signer.signer_hash, *SCRIPT_HASH);
 		assert_eq!(signer.get_scopes(), &vec![WitnessScope::CustomContracts]);
@@ -632,10 +636,11 @@ mod tests {
 
 	#[test]
 	fn test_build_valid_signer3() {
-		let mut signer = AccountSigner::none(&SCRIPT_HASH.deref().into()).unwrap();
+		let mut signer = AccountSigner::none(&SCRIPT_HASH.deref().into())
+			.expect("Should be able to create AccountSigner with none scope in test");
 		signer
 			.set_allowed_groups(vec![GROUP_PUB_KEY1.clone(), GROUP_PUB_KEY2.clone()])
-			.expect("");
+			.expect("Should be able to set allowed groups in test");
 
 		assert_eq!(signer.signer_hash, *SCRIPT_HASH);
 		assert_eq!(signer.get_scopes(), &vec![WitnessScope::CustomGroups]);

@@ -70,7 +70,8 @@ impl Witness {
 
 		let mut builder = ScriptBuilder::new();
 		for param in params {
-			builder.push_param(&param).expect("Failed to push param");
+			builder.push_param(&param)
+				.map_err(|e| BuilderError::IllegalArgument(format!("Failed to push parameter: {}", e)))?;
 		}
 		let invocation_script = builder.to_bytes();
 
