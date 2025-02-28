@@ -194,10 +194,12 @@ futures = []
 ledger = ["coins-ledger"]
 aws = []#, "spki"]
 #yubi = ["yubihsm"]
-sgx = ["sgx-deps"]
-sgx-deps = [
-    "sgx_types",
-    "sgx_urts",
-    "sgx_tstd",
-    "sgx_tcrypto"
-]
+# SGX feature is commented out by default to allow compilation without SGX SDK
+# Uncomment these features along with the SGX dependencies to use SGX features
+# sgx = ["sgx-deps"]
+# sgx-deps = [
+#     "sgx_types",
+#     "sgx_urts",
+#     "sgx_tstd",
+#     "sgx_tcrypto"
+# ]
