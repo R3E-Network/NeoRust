@@ -1,16 +1,16 @@
-cargo-features = ["edition2024"]
-
 [package]
-name = "NeoRust"
+name = "neo3"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 authors = ["R3E Network <contact@r3e.network>"]
 license = "MIT OR Apache-2.0"
-documentation = "https://docs.rs/neo"
-repository = "https://github.com/R3E-Network/neo-rs"
-homepage = "https://github.com/R3E-Network/neo-rs"
-categories = ["cryptography::cryptocurrencies"]
-keywords = ["crypto", "neo", "neo-N3", "web3"]
+description = "A comprehensive Rust SDK for interacting with the Neo N3 blockchain"
+documentation = "https://docs.rs/neo3"
+repository = "https://github.com/R3E-Network/NeoRust"
+homepage = "https://github.com/R3E-Network/NeoRust"
+readme = "README.md"
+categories = ["cryptography::cryptocurrencies", "api-bindings", "blockchain"]
+keywords = ["crypto", "neo", "neo-N3", "web3", "blockchain"]
 exclude = [
     ".github/",
     "bin/",
@@ -19,6 +19,7 @@ exclude = [
     "**/test-data/",
     "**/testdata/",
     "scripts/",
+    "docs/book/",
 ]
 
 [lib]
@@ -196,12 +197,5 @@ futures = []
 ledger = ["coins-ledger"]
 aws = []#, "spki"]
 #yubi = ["yubihsm"]
-# SGX feature is commented out by default to allow compilation without SGX SDK
-# Uncomment these features along with the SGX dependencies to use SGX features
-# sgx = ["sgx-deps"]
-# sgx-deps = [
-#     "sgx_types",
-#     "sgx_urts",
-#     "sgx_tstd",
-#     "sgx_tcrypto"
-# ]
+sgx = []
+default = []

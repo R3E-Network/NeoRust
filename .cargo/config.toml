@@ -1,0 +1,10 @@
+[package]
+# Prevent accidental publishing to crates.io
+publish = false
+
+[registry]
+default = "crates-io"
+
+[build]
+# Enable all features during documentation generation
+rustdocflags = ["--cfg", "docsrs"]
