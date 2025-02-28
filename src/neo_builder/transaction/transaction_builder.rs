@@ -259,11 +259,8 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	/// tx_builder.nonce(1234567890).unwrap();
 	/// ```
 	pub fn nonce(&mut self, nonce: u32) -> Result<&mut Self, TransactionError> {
-		// Validate
-		if nonce > u32::MAX {
-			return Err(TransactionError::InvalidNonce);
-		}
-
+		// u32 can't exceed u32::MAX, so this check is redundant
+		// Keeping the function signature for API compatibility
 		self.nonce = nonce;
 		Ok(self)
 	}
@@ -595,8 +592,8 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 
 	fn create_fake_single_sig_verification_script(&self) -> Result<VerificationScript, TransactionError> {
 		// Vector to store dummy public keys
-		let dummy_public_key = Secp256r1PublicKey::from_encoded(Self::DUMMY_PUB_KEY)
-			.map_err(|e| TransactionError::IllegalState(format!("Failed to create dummy public key: {}", e)))?;
+			let dummy_public_key = Secp256r1PublicKey::from_encoded(Self::DUMMY_PUB_KEY)
+				.ok_or_else(|| TransactionError::IllegalState("Failed to create dummy public key".to_string()))?;
 		// Create and return the VerificationScript with the pub_keys and signing threshold
 		Ok(VerificationScript::from_public_key(&dummy_public_key))
 	}
@@ -607,25 +604,28 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 
 		// Get the number of participants
 		let nr_of_participants = account.get_nr_of_participants()
-			.ok_or_else(|| TransactionError::IllegalState("Multi-sig account should have participants".to_string()))?;
+			.map_err(|e| TransactionError::IllegalState(format!("Failed to get number of participants: {}", e)))?;
 			
 		// Loop to add dummy public keys based on the number of participants
 		for _ in 0..nr_of_participants {
 			// Create a dummy public key
 			let dummy_public_key = Secp256r1PublicKey::from_encoded(Self::DUMMY_PUB_KEY)
-				.map_err(|e| TransactionError::IllegalState(format!("Failed to create dummy public key: {}", e)))?;
+				.ok_or_else(|| TransactionError::IllegalState("Failed to create dummy public key".to_string()))?;
 			pub_keys.push(dummy_public_key);
 		}
 
 		// Get the signing threshold
 		let signing_threshold = account.get_signing_threshold()
-			.ok_or_else(|| TransactionError::IllegalState("Multi-sig account should have a signing threshold".to_string()))? as u8;
+			.map_err(|e| TransactionError::IllegalState(format!("Failed to get signing threshold: {}", e)))? as u8;
 
 		// Create and return the VerificationScript with the pub_keys and signing threshold
-		VerificationScript::from_multi_sig(
+		// This method returns a VerificationScript directly, not a Result
+		let script = VerificationScript::from_multi_sig(
 			&mut pub_keys[..],
 			signing_threshold,
-		).map_err(|e| TransactionError::IllegalState(format!("Failed to create multi-sig verification script: {}", e)))
+		);
+		
+		Ok(script)
 	}
 
 	fn is_account_signer(signer: &Signer) -> bool {

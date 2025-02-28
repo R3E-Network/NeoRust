@@ -69,37 +69,51 @@ impl<'a> Decoder<'a> {
 	}
 
 	/// Reads an unsigned 16-bit integer from the byte slice.
-	pub fn read_u16(&mut self) -> u16 {
-		let bytes = self.read_bytes(2).unwrap();
-		u16::from_ne_bytes(bytes.try_into().unwrap())
+	pub fn read_u16(&mut self) -> Result<u16, CodecError> {
+		let bytes = self.read_bytes(2)?;
+		bytes.try_into()
+			.map(u16::from_ne_bytes)
+			.map_err(|_| CodecError::InvalidEncoding("Failed to convert bytes to u16".to_string()))
 	}
 
 	/// Reads a signed 16-bit integer from the byte slice.
-	pub fn read_i16(&mut self) -> i16 {
-		let bytes = self.read_bytes(2).unwrap();
-		i16::from_ne_bytes(bytes.try_into().unwrap())
+	pub fn read_i16(&mut self) -> Result<i16, CodecError> {
+		let bytes = self.read_bytes(2)?;
+		bytes.try_into()
+			.map(i16::from_ne_bytes)
+			.map_err(|_| CodecError::InvalidEncoding("Failed to convert bytes to i16".to_string()))
 	}
 
 	/// Reads an unsigned 32-bit integer from the byte slice.
-	pub fn read_u32(&mut self) -> u32 {
-		let bytes = self.read_bytes(4).unwrap();
-		u32::from_ne_bytes(bytes.try_into().unwrap())
+	pub fn read_u32(&mut self) -> Result<u32, CodecError> {
+		let bytes = self.read_bytes(4)?;
+		bytes.try_into()
+			.map(u32::from_ne_bytes)
+			.map_err(|_| CodecError::InvalidEncoding("Failed to convert bytes to u32".to_string()))
 	}
 
 	/// Reads a signed 32-bit integer from the byte slice.
-	pub fn read_i32(&mut self) -> i32 {
-		let bytes = self.read_bytes(4).unwrap();
-		i32::from_ne_bytes(bytes.try_into().unwrap())
+	pub fn read_i32(&mut self) -> Result<i32, CodecError> {
+		let bytes = self.read_bytes(4)?;
+		bytes.try_into()
+			.map(i32::from_ne_bytes)
+			.map_err(|_| CodecError::InvalidEncoding("Failed to convert bytes to i32".to_string()))
 	}
 
 	/// Reads an unsigned 64-bit integer from the byte slice.
-	pub fn read_u64(&mut self) -> u64 {
-		let bytes = self.read_bytes(8).unwrap();
-		u64::from_ne_bytes(bytes.try_into().unwrap())
+	pub fn read_u64(&mut self) -> Result<u64, CodecError> {
+		let bytes = self.read_bytes(8)?;
+		bytes.try_into()
+			.map(u64::from_ne_bytes)
+			.map_err(|_| CodecError::InvalidEncoding("Failed to convert bytes to u64".to_string()))
 	}
-	pub fn read_i64(&mut self) -> i64 {
-		let bytes = self.read_bytes(8).unwrap();
-		i64::from_ne_bytes(bytes.try_into().unwrap())
+	
+	/// Reads a signed 64-bit integer from the byte slice.
+	pub fn read_i64(&mut self) -> Result<i64, CodecError> {
+		let bytes = self.read_bytes(8)?;
+		bytes.try_into()
+			.map(i64::from_ne_bytes)
+			.map_err(|_| CodecError::InvalidEncoding("Failed to convert bytes to i64".to_string()))
 	}
 
 	pub fn read_bigint(&mut self) -> Result<BigInt, CodecError> {
@@ -109,12 +123,12 @@ impl<'a> Decoder<'a> {
 		let len = match byte {
 			0..=0x4b => 1,
 			0x4c => self.read_u8() as usize,
-			0x4d => self.read_u16() as usize,
-			0x4e => self.read_u32() as usize,
+			0x4d => self.read_u16()? as usize,
+			0x4e => self.read_u32()? as usize,
 			_ => return Err(CodecError::InvalidFormat),
 		};
 
-		let bytes = self.read_bytes(len).unwrap();
+		let bytes = self.read_bytes(len)?;
 		if negative {
 			// Flip sign bit
 			if let Some(byte) = bytes.to_owned().get_mut(len - 1) {
@@ -129,11 +143,11 @@ impl<'a> Decoder<'a> {
 	}
 
 	/// Reads an encoded EC point from the byte slice.
-	pub fn read_encoded_ec_point(&mut self) -> Result<Vec<u8>, &'static str> {
+	pub fn read_encoded_ec_point(&mut self) -> Result<Vec<u8>, CodecError> {
 		let byte = self.read_u8();
 		match byte {
-			0x02 | 0x03 => Ok(self.read_bytes(32).unwrap()),
-			_ => Err("Invalid encoded EC point"),
+			0x02 | 0x03 => self.read_bytes(32),
+			_ => Err(CodecError::InvalidEncoding("Invalid encoded EC point".to_string())),
 		}
 	}
 
@@ -149,7 +163,7 @@ impl<'a> Decoder<'a> {
 
 	/// Reads a variable-length byte slice from the byte slice.
 	pub fn read_var_bytes(&mut self) -> Result<Vec<u8>, CodecError> {
-		let len = self.read_var_int().unwrap() as usize;
+		let len = self.read_var_int()? as usize;
 		self.read_bytes(len)
 	}
 
@@ -157,15 +171,15 @@ impl<'a> Decoder<'a> {
 	pub fn read_var_int(&mut self) -> Result<i64, CodecError> {
 		let first = self.read_u8();
 		match first {
-			0xfd => Ok(self.read_i16() as i64),
-			0xfe => Ok(self.read_i32() as i64),
-			0xff => Ok(self.read_i64() as i64),
+			0xfd => self.read_i16().map(|v| v as i64),
+			0xfe => self.read_i32().map(|v| v as i64),
+			0xff => self.read_i64(),
 			_ => Ok(first as i64),
 		}
 	}
 
 	pub fn read_var_string(&mut self) -> Result<String, CodecError> {
-		let bytes = self.read_var_bytes().unwrap();
+		let bytes = self.read_var_bytes()?;
 
 		let string = match String::from_utf8(bytes.to_vec()) {
 			Ok(s) => s,
@@ -186,8 +200,10 @@ impl<'a> Decoder<'a> {
 		let opcode = self.read_u8();
 		let len = match OpCode::try_from(opcode)? {
 			OpCode::PushData1 => self.read_u8() as usize,
-			OpCode::PushData2 => self.read_i16() as usize,
-			OpCode::PushData4 => self.read_i32() as usize,
+			OpCode::PushData2 => self.read_i16()
+				.map_err(|e| CodecError::InvalidEncoding(format!("Failed to read i16: {}", e)))? as usize,
+			OpCode::PushData4 => self.read_i32()
+				.map_err(|e| CodecError::InvalidEncoding(format!("Failed to read i32: {}", e)))? as usize,
 			_ => return Err(CodecError::InvalidOpCode),
 		};
 
@@ -219,7 +235,7 @@ impl<'a> Decoder<'a> {
 
 	/// Reads a push string from the byte slice.
 	pub fn read_push_string(&mut self) -> Result<String, CodecError> {
-		let bytes = self.read_push_bytes().unwrap();
+		let bytes = self.read_push_bytes()?;
 		String::from_utf8(Vec::from(bytes))
 			.map_err(|_| CodecError::InvalidEncoding("Invalid UTF-8".to_string()))
 	}
@@ -231,12 +247,12 @@ impl<'a> Decoder<'a> {
 
 	/// Reads a list of deserializable values from the byte slice.
 	pub fn read_serializable_list<T: NeoSerializable>(&mut self) -> Result<Vec<T>, CodecError> {
-		let len = self.read_var_int().unwrap();
+		let len = self.read_var_int()?;
 		let mut list = Vec::with_capacity(len as usize);
 		for _ in 0..len {
 			T::decode(self)
-				.and_then(|item| Ok(list.push(item)))
-				.expect("TODO: panic message");
+				.map(|item| list.push(item))
+				.map_err(|_| CodecError::InvalidFormat)?;
 		}
 		Ok(list)
 	}
@@ -244,14 +260,14 @@ impl<'a> Decoder<'a> {
 	pub fn read_serializable_list_var_bytes<T: NeoSerializable>(
 		&mut self,
 	) -> Result<Vec<T>, CodecError> {
-		let len = self.read_var_int().unwrap();
+		let len = self.read_var_int()?;
 		let mut bytes_read = 0;
 		let offset = self.pointer;
 		let mut list = Vec::with_capacity(len as usize);
 		while bytes_read < len {
 			T::decode(self)
-				.and_then(|item| Ok(list.push(item)))
-				.expect("TODO: panic message");
+				.map(|item| list.push(item))
+				.map_err(|_| CodecError::InvalidFormat)?;
 			bytes_read = (self.pointer - offset) as i64;
 		}
 		Ok(list)
@@ -349,30 +365,30 @@ mod tests {
 	#[test]
 	fn test_read_u32() {
 		let max = [0xffu8; 4];
-		assert_eq!(Decoder::new(&max).read_u32(), 4_294_967_295);
+		assert_eq!(Decoder::new(&max).read_u32().unwrap(), 4_294_967_295);
 
 		let one = hex::decode("01000000").unwrap();
-		assert_eq!(Decoder::new(&one).read_u32(), 1);
+		assert_eq!(Decoder::new(&one).read_u32().unwrap(), 1);
 
 		let zero = [0u8; 4];
-		assert_eq!(Decoder::new(&zero).read_u32(), 0);
+		assert_eq!(Decoder::new(&zero).read_u32().unwrap(), 0);
 
 		let custom = hex::decode("8cae0000ff").unwrap();
-		assert_eq!(Decoder::new(&custom).read_u32(), 44_684);
+		assert_eq!(Decoder::new(&custom).read_u32().unwrap(), 44_684);
 	}
 
 	#[test]
 	fn test_read_i64() {
 		let min = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80];
-		assert_eq!(Decoder::new(&min).read_i64(), i64::MIN);
+		assert_eq!(Decoder::new(&min).read_i64().unwrap(), i64::MIN);
 
 		let max = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f];
-		assert_eq!(Decoder::new(&max).read_i64(), i64::MAX);
+		assert_eq!(Decoder::new(&max).read_i64().unwrap(), i64::MAX);
 
 		let zero = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
-		assert_eq!(Decoder::new(&zero).read_i64(), 0);
+		assert_eq!(Decoder::new(&zero).read_i64().unwrap(), 0);
 
 		let custom = [0x11, 0x33, 0x22, 0x8c, 0xae, 0x00, 0x00, 0x00, 0xff];
-		assert_eq!(Decoder::new(&custom).read_i64(), 749_675_361_041);
+		assert_eq!(Decoder::new(&custom).read_i64().unwrap(), 749_675_361_041);
 	}
 }

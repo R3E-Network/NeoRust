@@ -378,7 +378,7 @@ impl From<Vec<Value>> for ContractParameter {
 
 // impl Into<Vec<Value>> for ContractParameter{
 // 	fn into(self) -> Vec<Value> {
-// 		match self.value.clone().unwrap() {
+// 		match self.value.clone().expect("Parameter value should not be None") {
 // 			ParameterValue::Array(a) => a.into_iter().map(|v| v.into()).collect(),
 // 			ParameterValue::Map(m) => m.into_iter().map(|v| v.into()).collect(),
 // 			_ => panic!("Cannot convert {:?} to Vec<Value>", self.clone()),
@@ -638,17 +638,17 @@ impl ContractParameterMap {
 }
 
 impl ParameterValue {
-	pub fn to_bool(&self) -> bool {
+	pub fn to_bool(&self) -> Result<bool, String> {
 		match self {
-			ParameterValue::Boolean(b) => *b,
-			_ => panic!("Cannot convert {:?} to bool", self.clone()),
+			ParameterValue::Boolean(b) => Ok(*b),
+			_ => Err(format!("Cannot convert {:?} to bool", self)),
 		}
 	}
 
-	pub fn to_integer(&self) -> i64 {
+	pub fn to_integer(&self) -> Result<i64, String> {
 		match self {
-			ParameterValue::Integer(i) => *i,
-			_ => panic!("Cannot convert {:?} to i64", self.clone()),
+			ParameterValue::Integer(i) => Ok(*i),
+			_ => Err(format!("Cannot convert {:?} to i64", self)),
 		}
 	}
 
@@ -663,10 +663,10 @@ impl ParameterValue {
 		}
 	}
 
-	pub fn to_string(&self) -> String {
+	pub fn to_string(&self) -> Result<String, String> {
 		match self {
-			ParameterValue::String(s) => s.clone(),
-			_ => panic!("Cannot convert {:?} to String", self.clone()),
+			ParameterValue::String(s) => Ok(s.clone()),
+			_ => Err(format!("Cannot convert {:?} to String", self)),
 		}
 	}
 
@@ -712,20 +712,20 @@ impl ParameterValue {
 		}
 	}
 
-	pub fn to_array(&self) -> Vec<ContractParameter> {
+	pub fn to_array(&self) -> Result<Vec<ContractParameter>, String> {
 		match self {
-			ParameterValue::Array(a) => a.clone(),
-			_ => panic!("Cannot convert {:?} to Vec<ContractParameter>", self.clone()),
+			ParameterValue::Array(a) => Ok(a.clone()),
+			_ => Err(format!("Cannot convert {:?} to Vec<ContractParameter>", self)),
 		}
 	}
 
-	pub fn to_map(&self) -> ContractParameterMap {
+	pub fn to_map(&self) -> Result<ContractParameterMap, String> {
 		match self {
-			ParameterValue::Map(m) => m.clone(),
-			_ => panic!(
+			ParameterValue::Map(m) => Ok(m.clone()),
+			_ => Err(format!(
 				"Cannot convert {:?} to HashMap<ContractParameter, ContractParameter>",
-				self.clone()
-			),
+				self
+			)),
 		}
 	}
 
@@ -750,7 +750,13 @@ mod tests {
 		let param = ContractParameter::string("value".to_string());
 		// assert_param(&param, "value", ContractParameterType::String);
 		assert_eq!(param.typ, ContractParameterType::String);
-		assert_eq!(param.value.unwrap().to_string(), "value");
+		assert_eq!(
+			param.value.as_ref()
+				.expect("Parameter value should not be None")
+				.to_string()
+				.expect("Should be able to convert to string"),
+			"value"
+		);
 	}
 
 	#[test]
@@ -759,28 +765,52 @@ mod tests {
 		let param = ContractParameter::byte_array(bytes.clone());
 		// assert_param(&param, bytes, ContractParameterType::ByteArray);
 		assert_eq!(param.typ, ContractParameterType::ByteArray);
-		assert_eq!(param.value.unwrap().to_byte_array(), bytes);
+		assert_eq!(
+			param.value.as_ref()
+				.expect("Parameter value should not be None")
+				.to_byte_array()
+				.expect("Should be able to convert to byte array"),
+			bytes
+		);
 	}
 
 	#[test]
 	fn test_bytes_from_hex_string() {
-		let param = ContractParameter::byte_array("a602".from_hex().unwrap());
+		let param = ContractParameter::byte_array(
+			"a602".from_hex()
+				.expect("Should be able to decode valid hex string in test")
+		);
 		// assert_param(&param, vec![0xa6, 0x02], ContractParameterType::ByteArray);
 		assert_eq!(param.typ, ContractParameterType::ByteArray);
-		assert_eq!(param.value.unwrap().to_byte_array(), vec![0xa6, 0x02]);
+		assert_eq!(
+			param.value.as_ref()
+				.expect("Parameter value should not be None")
+				.to_byte_array()
+				.expect("Should be able to convert to byte array"),
+			vec![0xa6, 0x02]
+		);
 	}
 
 	#[test]
 	fn test_array_from_array() {
 		let params = vec![
 			ContractParameter::string("value".to_string()),
-			ContractParameter::byte_array("0101".from_hex().unwrap()),
+			ContractParameter::byte_array(
+				"0101".from_hex()
+					.expect("Should be able to decode valid hex string in test")
+			),
 		];
 
 		let param = ContractParameter::array(params.clone());
 		// assert_param(&param, params, ContractParameterType::Array);
 		assert_eq!(param.typ, ContractParameterType::Array);
-		assert_eq!(param.value.unwrap().to_array(), params);
+		assert_eq!(
+			param.value.as_ref()
+				.expect("Parameter value should not be None")
+				.to_array()
+				.expect("Should be able to convert to array"),
+			params
+		);
 	}
 
 	#[test]
@@ -801,7 +831,10 @@ mod tests {
 
 		let params = vec![
 			ContractParameter::string("value".to_string()),
-			ContractParameter::byte_array("0101".from_hex().unwrap()),
+			ContractParameter::byte_array(
+				"0101".from_hex()
+					.expect("Should be able to decode valid hex string in test")
+			),
 			ContractParameter::array(nested_params),
 			ContractParameter::integer(55),
 		];
@@ -810,7 +843,7 @@ mod tests {
 
 		assert_eq!(param.typ, ContractParameterType::Array);
 
-		// let nested_vec = nested.value.as_ref().unwrap();
+		// let nested_vec = nested.value.as_ref().expect("Parameter value should not be None");
 		// assert_eq!(nested_vec.len(), 4);
 		//
 		// let nested_nested = &nested_vec[3];
@@ -826,10 +859,13 @@ mod tests {
 		let param = ContractParameter::map(map);
 
 		assert_eq!(param.typ, ContractParameterType::Map);
-		let map = param.value.as_ref().unwrap();
+		let map = param.value.as_ref()
+			.expect("Parameter value should not be None");
 
-		let map = map.to_map();
-		let (key, val) = map.0.iter().next().unwrap();
+		let map = map.to_map()
+			.expect("Should be able to convert to map");
+		let (key, val) = map.0.iter().next()
+			.expect("Map should not be empty in test");
 		assert_eq!(*key, ContractParameter::integer(1));
 		assert_eq!(*val, ContractParameter::string("first".to_string()));
 	}
@@ -850,16 +886,32 @@ mod tests {
 
 		let param = ContractParameter::map(map);
 
-		let outer_map = param.value.as_ref().unwrap();
-		assert_eq!(outer_map.to_map().0.len(), 1);
+		let outer_map = param.value.as_ref()
+			.expect("Parameter value should not be None");
+		assert_eq!(
+			outer_map.to_map()
+				.expect("Should be able to convert to map")
+				.0.len(), 
+			1
+		);
 
-		let outer_map = outer_map.to_map();
-		let inner_param = outer_map.0.get(&ContractParameter::integer(16)).unwrap();
-		let inner_map = inner_param.value.as_ref().unwrap();
+		let outer_map = outer_map.to_map()
+			.expect("Should be able to convert to map");
+		let inner_param = outer_map.0.get(&ContractParameter::integer(16))
+			.expect("Map should contain key 16 in test");
+		let inner_map = inner_param.value.as_ref()
+			.expect("Inner parameter value should not be None");
 
-		assert_eq!(inner_map.to_map().0.len(), 1);
-		let inner_map = inner_map.to_map();
-		let (key, val) = inner_map.0.iter().next().unwrap();
+		assert_eq!(
+			inner_map.to_map()
+				.expect("Should be able to convert to map")
+				.0.len(), 
+			1
+		);
+		let inner_map = inner_map.to_map()
+			.expect("Should be able to convert to map");
+		let (key, val) = inner_map.0.iter().next()
+			.expect("Inner map should not be empty in test");
 		assert_eq!(*key, ContractParameter::string("halo".to_string()));
 		assert_eq!(*val, ContractParameter::integer(1234));
 	}
@@ -884,23 +936,30 @@ mod tests {
 		let param = ContractParameter::array(array_params);
 
 		// Serialize
-		let json = serde_json::to_string(&param).unwrap();
+		let json = serde_json::to_string(&param)
+			.expect("Should be able to serialize ContractParameter to JSON in test");
 
 		// Deserialize
-		let deserialized: ContractParameter = serde_json::from_str(&json).unwrap();
+		let deserialized: ContractParameter = serde_json::from_str(&json)
+			.expect("Should be able to deserialize ContractParameter from JSON in test");
 
 		// Assert
 		assert_eq!(deserialized, param);
 
 		// Round trip
-		let roundtrip_json = serde_json::to_string(&deserialized).unwrap();
-		let roundtrip = serde_json::from_str::<ContractParameter>(&roundtrip_json).unwrap();
+		let roundtrip_json = serde_json::to_string(&deserialized)
+			.expect("Should be able to serialize ContractParameter to JSON in test");
+		let roundtrip = serde_json::from_str::<ContractParameter>(&roundtrip_json)
+			.expect("Should be able to deserialize ContractParameter from JSON in test");
 
 		assert_eq!(roundtrip, param);
 	}
 	#[test]
 	fn test_bytes_equals() {
-		let param1 = ContractParameter::byte_array("796573".from_hex().unwrap());
+		let param1 = ContractParameter::byte_array(
+			"796573".from_hex()
+				.expect("Should be able to decode valid hex string in test")
+		);
 		let param2 = ContractParameter::byte_array(vec![0x79, 0x65, 0x73]);
 		assert_eq!(param1, param2);
 	}
@@ -910,7 +969,13 @@ mod tests {
 		let param = ContractParameter::byte_array("Neo".as_bytes().to_vec());
 		// assert_param(&param, b"Neo", ContractParameterType::ByteArray);
 		assert_eq!(param.typ, ContractParameterType::ByteArray);
-		assert_eq!(param.value.unwrap().to_byte_array(), b"Neo");
+		assert_eq!(
+			param.value.as_ref()
+				.expect("Parameter value should not be None")
+				.to_byte_array()
+				.expect("Should be able to convert to byte array"),
+			b"Neo"
+		);
 	}
 
 	#[test]
@@ -918,7 +983,13 @@ mod tests {
 		let param = ContractParameter::bool(false);
 		// assert_param(&param, false, ContractParameterType::Boolean);
 		assert_eq!(param.typ, ContractParameterType::Boolean);
-		assert_eq!(param.value.unwrap().to_bool(), false);
+		assert_eq!(
+			param.value.as_ref()
+				.expect("Parameter value should not be None")
+				.to_bool()
+				.expect("Should be able to convert to bool"),
+			false
+		);
 	}
 
 	#[test]
@@ -926,7 +997,13 @@ mod tests {
 		let param = ContractParameter::integer(10);
 		// assert_param(&param, 10, ContractParameterType::Integer);
 		assert_eq!(param.typ, ContractParameterType::Integer);
-		assert_eq!(param.value.unwrap().to_integer(), 10);
+		assert_eq!(
+			param.value.as_ref()
+				.expect("Parameter value should not be None")
+				.to_integer()
+				.expect("Should be able to convert to integer"),
+			10
+		);
 	}
 
 	#[test]
@@ -935,7 +1012,13 @@ mod tests {
 		let param = ContractParameter::h160(&hash);
 		// assert_param(&param, hash.into(), ContractParameterType::H160);
 		assert_eq!(param.typ, ContractParameterType::H160);
-		assert_eq!(param.value.unwrap().to_h160(), hash);
+		assert_eq!(
+			param.value.as_ref()
+				.expect("Parameter value should not be None")
+				.to_h160()
+				.expect("Should be able to convert to H160"),
+			hash
+		);
 	}
 
 	#[test]
@@ -944,20 +1027,33 @@ mod tests {
 		let param = ContractParameter::h256(&hash);
 		// assert_param(&param, hash.into(), ContractParameterType::H256);
 		assert_eq!(param.typ, ContractParameterType::H256);
-		assert_eq!(param.value.unwrap().to_h256(), hash);
+		assert_eq!(
+			param.value.as_ref()
+				.expect("Parameter value should not be None")
+				.to_h256()
+				.expect("Should be able to convert to H256"),
+			hash
+		);
 	}
 
 	#[test]
 	fn test_public_key() {
 		let key = "03b4af8efe55d98b44eedfcfaa39642fd5d53ad543d18d3cc2db5880970a4654f6"
 			.from_hex()
-			.unwrap()
+			.expect("Should be able to decode valid hex string in test")
 			.to_vec();
-		let key = Secp256r1PublicKey::from_bytes(&key).unwrap();
+		let key = Secp256r1PublicKey::from_bytes(&key)
+			.expect("Should be able to create public key from valid bytes in test");
 		let param = ContractParameter::public_key(&key);
 		// assert_param(&param, key, ContractParameterType::PublicKey);
 		assert_eq!(param.typ, ContractParameterType::PublicKey);
-		assert_eq!(param.value.unwrap().to_public_key(), key);
+		assert_eq!(
+			param.value.as_ref()
+				.expect("Parameter value should not be None")
+				.to_public_key()
+				.expect("Should be able to convert to public key"),
+			key
+		);
 	}
 
 	#[test]
@@ -966,7 +1062,13 @@ mod tests {
 		let param = ContractParameter::signature(sig);
 		// assert_param(&param, sig, ContractParameterType::Signature);
 		assert_eq!(param.typ, ContractParameterType::Signature);
-		assert_eq!(param.value.unwrap().to_signature(), sig);
+		assert_eq!(
+			param.value.as_ref()
+				.expect("Parameter value should not be None")
+				.to_signature()
+				.expect("Should be able to convert to signature"),
+			sig
+		);
 	}
 
 	#[test]
@@ -975,17 +1077,35 @@ mod tests {
 		// assert_param(&string_param, "hello".as_bytes(), ContractParameterType::String);
 
 		assert_eq!(string_param.typ, ContractParameterType::String);
-		assert_eq!(string_param.value.unwrap().to_string(), "hello");
+		assert_eq!(
+			string_param.value.as_ref()
+				.expect("Parameter value should not be None")
+				.to_string()
+				.expect("Should be able to convert to string"),
+			"hello"
+		);
 
 		let bool_param = ContractParameter::from(true);
 		// assert_param(&bool_param, true, ContractParameterType::Boolean);
 		assert_eq!(bool_param.typ, ContractParameterType::Boolean);
-		assert_eq!(bool_param.value.unwrap().to_bool(), true);
+		assert_eq!(
+			bool_param.value.as_ref()
+				.expect("Parameter value should not be None")
+				.to_bool()
+				.expect("Should be able to convert to bool"),
+			true
+		);
 
 		let int_param = ContractParameter::from(10);
 		// assert_param(&int_param, 10, ContractParameterType::Integer);
 		assert_eq!(int_param.typ, ContractParameterType::Integer);
-		assert_eq!(int_param.value.unwrap().to_integer(), 10);
+		assert_eq!(
+			int_param.value.as_ref()
+				.expect("Parameter value should not be None")
+				.to_integer()
+				.expect("Should be able to convert to integer"),
+			10
+		);
 	}
 
 	#[test]
@@ -996,14 +1116,29 @@ mod tests {
 
 		assert_eq!(param.typ, ContractParameterType::Array);
 
-		let array = param.value.unwrap().to_array();
+		let array = param.value.as_ref()
+			.expect("Parameter value should not be None")
+			.to_array()
+			.expect("Should be able to convert to array");
 		assert_eq!(array.len(), 2);
 		// assert_param(&array[0], 1, ContractParameterType::Integer);
 		assert_eq!(&array[0].typ, &ContractParameterType::Integer);
-		assert_eq!(&array[0].value.clone().unwrap().to_integer(), &1);
+		assert_eq!(
+			&array[0].value.clone()
+				.expect("Parameter value should not be None")
+				.to_integer()
+				.expect("Should be able to convert to integer"),
+			&1
+		);
 		// assert_param(&array[1], "test".as_bytes(), ContractParameterType::String);
 		assert_eq!(&array[1].typ, &ContractParameterType::String);
-		assert_eq!(&array[1].value.clone().unwrap().to_string(), "test");
+		assert_eq!(
+			&array[1].value.clone()
+				.expect("Parameter value should not be None")
+				.to_string()
+				.expect("Should be able to convert to string"),
+			"test"
+		);
 	}
 
 	#[test]
@@ -1015,12 +1150,21 @@ mod tests {
 
 		assert_eq!(param.typ, ContractParameterType::Map);
 
-		let map = param.value.as_ref().unwrap();
+		let map = param.value.as_ref()
+			.expect("Parameter value should not be None");
 
-		let map = map.to_map();
-		let (key, val) = map.0.iter().next().unwrap();
+		let map = map.to_map()
+			.expect("Should be able to convert to map");
+		let (key, val) = map.0.iter().next()
+			.expect("Map should not be empty in test");
 		assert_eq!(key.typ, ContractParameterType::String);
-		assert_eq!(key.value.clone().unwrap().to_string(), "key");
+		assert_eq!(
+			key.value.clone()
+				.expect("Parameter value should not be None")
+				.to_string()
+				.expect("Should be able to convert to string"), 
+			"key"
+		);
 	}
 
 	#[test]

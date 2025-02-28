@@ -18,7 +18,7 @@ pub trait APITrait: Sync + Send + Debug {
 	/// The HTTP or Websocket provider.
 	fn rpc_client(&self) -> &RpcClient<Self::Provider>;
 
-	async fn network(&self) -> u32;
+	async fn network(&self) -> Result<u32, ProviderError>;
 
 	fn nns_resolver(&self) -> H160 {
 		H160::from(NEOCONFIG.lock().unwrap().nns_resolver.clone())

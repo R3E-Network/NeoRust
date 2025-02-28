@@ -24,8 +24,8 @@ pub enum TypeError {
 	Transaction(String),
 	#[error("Invalid script: {0}")]
 	InvalidScript(String),
-	#[error("Invalid format")]
-	InvalidFormat,
+	#[error("Invalid format: {0}")]
+	InvalidFormat(String),
 	#[error("neo-rs not initialized")]
 	NeoNotInitialized,
 	// #[error("Contract error: {0}")]

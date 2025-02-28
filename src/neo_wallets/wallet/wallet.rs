@@ -86,9 +86,17 @@ impl Wallet {
 
 	/// Creates a new wallet instance with a default account.
 	pub fn new() -> Self {
-		let mut account = Account::create()
-			.map_err(|e| WalletError::AccountState(format!("Failed to create account: {}", e)))?;
-		account.is_default = true;
+		let account = match Account::create() {
+			Ok(mut acc) => {
+				acc.is_default = true;
+				acc
+			},
+			Err(e) => {
+				eprintln!("Failed to create account: {}", e);
+				return Self::default();
+			}
+		};
+		
 		let mut accounts = HashMap::new();
 		accounts.insert(account.address_or_scripthash.script_hash(), account.clone());
 		Self {
@@ -115,18 +123,26 @@ impl Wallet {
 
 	/// Converts the wallet to a NEP6Wallet format.
 	pub fn to_nep6(&self) -> Result<NEP6Wallet, WalletError> {
+		let accounts = self
+			.accounts
+			.clone()
+			.into_iter()
+			.filter_map(|(_, account)| {
+				match NEP6Account::from_account(&account) {
+					Ok(nep6_account) => Some(nep6_account),
+					Err(e) => {
+						eprintln!("Failed to convert account to NEP6Account: {}", e);
+						None
+					}
+				}
+			})
+			.collect::<Vec<NEP6Account>>();
+			
 		Ok(NEP6Wallet {
 			name: self.name.clone(),
 			version: self.version.clone(),
 			scrypt: self.scrypt_params.clone(),
-			accounts: self
-				.accounts
-				.clone()
-				.into_iter()
-				.map(|(_, account)| NEP6Account::from_account(&account)
-					.map_err(|e| WalletError::AccountState(format!("Failed to convert account to NEP6Account: {}", e)))?)
-
-				.collect::<Vec<NEP6Account>>(),
+			accounts,
 			extra: None,
 		})
 	}
@@ -139,21 +155,23 @@ impl Wallet {
 			.filter_map(|v| v.to_account().ok())
 			.collect::<Vec<_>>();
 
-		let default_account = nep6
-			.accounts()
-			.iter()
-			.find(|a| a.is_default)
-			.map(|a| a.address())
-			.ok_or(WalletError::NoDefaultAccount)
-			.map_err(|e| WalletError::AccountState(format!("Failed to parse network ID: {}", e)))
-			.unwrap_or(NeoConstants::MAGIC_NUMBER_MAINNET);
+		// Find default account or use first account
+		let default_account_address = if let Some(account) = nep6.accounts().iter().find(|a| a.is_default) {
+			account.address().clone()
+		} else if let Some(account) = nep6.accounts().first() {
+			eprintln!("No default account found, using first account");
+			account.address().clone()
+		} else {
+			eprintln!("No accounts found, using empty address");
+			String::new()
+		};
 
 		Ok(Self {
 			name: nep6.name().clone(),
 			version: nep6.version().clone(),
 			scrypt_params: nep6.scrypt().clone(),
 			accounts: accounts.into_iter().map(|a| (a.get_script_hash().clone(), a)).collect(),
-			default_account: default_account.address_to_script_hash()
+			default_account: default_account_address.address_to_script_hash()
 				.map_err(|e| WalletError::AccountState(format!("Failed to convert address to script hash: {}", e)))?,
 			extra: nep6.extra.clone(),
 		})

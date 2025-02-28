@@ -1,7 +1,7 @@
 use crate::prelude::deserialize_hardforks;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NeoVersion {
 	#[serde(rename = "tcpport", default = "default_tcp_port")]
 	pub tcp_port: Option<u16>,
@@ -57,7 +57,7 @@ impl PartialEq for NeoVersion {
 	}
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Hash)]
 pub struct NeoProtocol {
 	#[serde(default = "default_network")]
 	pub network: u32,

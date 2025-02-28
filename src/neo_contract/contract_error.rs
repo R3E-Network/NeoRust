@@ -35,4 +35,19 @@ pub enum ContractError {
 	/// Error indicating a provider error, transparently wrapped
 	#[error(transparent)]
 	ProviderError(#[from] ProviderError),
+	/// Error indicating that a provider is not set
+	#[error("Provider not set: {0}")]
+	ProviderNotSet(String),
+	/// Error indicating that an invocation failed
+	#[error("Invocation failed: {0}")]
+	InvocationFailed(String),
+	/// Error indicating an invalid response
+	#[error("Invalid response: {0}")]
+	InvalidResponse(String),
+	/// Error indicating an invalid account
+	#[error("Invalid account: {0}")]
+	InvalidAccount(String),
+	/// Error indicating an invalid script hash
+	#[error("Invalid script hash: {0}")]
+	InvalidScriptHash(String),
 }

@@ -7,7 +7,7 @@ use neo::prelude::{
 	deserialize_h256, deserialize_h256_option, serialize_h256, serialize_h256_option, NeoWitness,
 };
 
-#[derive(Serialize, Deserialize, Hash, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NeoBlock {
 	// Transaction, TransactionResult
 	#[serde(serialize_with = "serialize_h256")]
@@ -44,6 +44,25 @@ impl NeoBlock {
 	pub fn get_nonce_as_u64(&self) -> Result<u64, ParseIntError> {
 		u64::from_str_radix(&self.nonce, 16)
 	}
+}
+
+impl std::hash::Hash for NeoBlock {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.hash.hash(state);
+        self.size.hash(state);
+        self.version.hash(state);
+        self.prev_block_hash.hash(state);
+        self.merkle_root_hash.hash(state);
+        self.time.hash(state);
+        self.nonce.hash(state);
+        self.index.hash(state);
+        self.primary.hash(state);
+        self.next_consensus.hash(state);
+        self.witnesses.hash(state);
+        // Skip transactions as RTransaction doesn't implement Hash
+        self.confirmations.hash(state);
+        self.next_block_hash.hash(state);
+    }
 }
 
 fn default_transactions() -> Option<Vec<RTransaction>> {

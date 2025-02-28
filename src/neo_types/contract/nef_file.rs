@@ -126,7 +126,9 @@ impl NeoSerializable for NefFile {
 	}
 
 	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
-		let magic = reader.read_u32();
+		let magic = reader.read_u32()
+			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to read magic: {}", e)))?;
+			
 		if magic != Self::MAGIC {
 			return Err(TypeError::InvalidEncoding("Invalid magic".to_string()));
 		}
@@ -146,7 +148,8 @@ impl NeoSerializable for NefFile {
 
 		let method_tokens = reader.read_serializable_list()?;
 
-		if reader.read_u16() != 0 {
+		if reader.read_u16()
+			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to read reserve bytes: {}", e)))? != 0 {
 			return Err(TypeError::InvalidEncoding("Invalid reserve bytes".to_string()));
 		}
 
@@ -216,7 +219,8 @@ impl NeoSerializable for MethodToken {
 	{
 		let hash = reader.read_serializable()?;
 		let method = reader.read_var_string()?;
-		let params_count = reader.read_u16();
+		let params_count = reader.read_u16()
+			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to read params_count: {}", e)))?;
 		let has_return_value = reader.read_bool();
 		let call_flags = reader.read_u8();
 

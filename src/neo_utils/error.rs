@@ -32,17 +32,16 @@ where
 /// let result: Result<u32, NeoError> = Err(NeoError::IllegalState("Original error".to_string()));
 /// let result_with_context = with_context(result, || "Additional context");
 /// ```
-pub fn with_context<T, E, C, F>(result: Result<T, E>, context_fn: F) -> Result<T, E>
+pub fn with_context<T, E, C, F, G>(result: Result<T, E>, context_fn: F, error_mapper: G) -> Result<T, E>
 where
     E: std::fmt::Display,
     F: FnOnce() -> C,
     C: std::fmt::Display,
+    G: FnOnce(String) -> E,
 {
     result.map_err(|err| {
         let context = context_fn();
-        // This assumes E has a constructor that takes a string
-        // You may need to adjust this based on your error types
-        format!("{}: {}", context, err).into()
+        error_mapper(format!("{}: {}", context, err))
     })
 }
 

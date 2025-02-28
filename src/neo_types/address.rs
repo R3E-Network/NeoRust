@@ -94,9 +94,9 @@ impl AddressExtension for String {
 
 	fn hex_to_script_hash(&self) -> Result<ScriptHash, TypeError> {
 		if self.is_valid_hex() {
-			ScriptHash::from_hex(self.as_str()).map_err(|_| TypeError::InvalidFormat)
+			ScriptHash::from_hex(self.as_str()).map_err(|_| TypeError::InvalidFormat("Invalid hex format".to_string()))
 		} else {
-			Err(TypeError::InvalidFormat)
+			Err(TypeError::InvalidFormat("Invalid hex format".to_string()))
 		}
 	}
 

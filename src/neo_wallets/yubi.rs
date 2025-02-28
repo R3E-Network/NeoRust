@@ -9,10 +9,13 @@ use yubihsm::{
 
 use neo::{
 	neo_clients::public_key_to_address,
-	prelude::{Secp256r1PublicKey, WalletSigner},
+	prelude::{Secp256r1PublicKey, WalletSigner, WalletError},
 };
 
-use crate::{crypto::HashableForVec, neo_types::Address};
+use crate::{
+	crypto::HashableForVec, 
+	neo_types::Address,
+};
 
 impl WalletSigner<YubiSigner<NistP256>> {
 	/// Connects to a yubi key's ECDSA account at the provided id
@@ -96,9 +99,12 @@ impl WalletSigner<YubiSigner<NistP256>> {
 impl From<YubiSigner<NistP256>> for WalletSigner<YubiSigner<NistP256>> {
 	fn from(signer: YubiSigner<NistP256>) -> Self {
 		// this should never fail for a valid YubiSigner
-		let public_key = PublicKey::from_encoded_point(signer.public_key())
-			.expect("YubiSigner should always provide a valid public key");
-			
+		let public_key = PublicKey::from_encoded_point(signer.public_key());
+		if !bool::from(public_key.is_some()) {
+			panic!("YubiSigner should always provide a valid public key");
+		}
+		
+		let public_key = public_key.unwrap();
 		let public_key = public_key.to_encoded_point(true);
 		let public_key = public_key.as_bytes();
 		

@@ -37,12 +37,13 @@ impl<'a, P: JsonRpcProvider + 'static> NeoXBridgeContract<'a, P> {
     ///
     /// # Returns
     ///
-    /// A new NeoXBridgeContract instance
-    pub fn new(provider: Option<&'a RpcClient<P>>) -> Self {
-        Self {
-            script_hash: ScriptHash::from_str(Self::CONTRACT_HASH).unwrap(),
+    /// A Result containing a new NeoXBridgeContract instance or an error
+    pub fn new(provider: Option<&'a RpcClient<P>>) -> Result<Self, ContractError> {
+        Ok(Self {
+            script_hash: ScriptHash::from_str(Self::CONTRACT_HASH)
+                .map_err(|e| ContractError::InvalidScriptHash(format!("Invalid contract hash: {}", e)))?,
             provider,
-        }
+        })
     }
     
     /// Creates a new NeoXBridgeContract instance with a custom script hash
@@ -88,7 +89,11 @@ impl<'a, P: JsonRpcProvider + 'static> NeoXBridgeContract<'a, P> {
         ];
         
         let mut builder = self.invoke_function(Self::DEPOSIT, params).await?;
-        builder.set_signers(vec![AccountSigner::called_by_entry(account).unwrap().into()]);
+        builder.set_signers(vec![
+            AccountSigner::called_by_entry(account)
+                .map_err(|e| ContractError::InvalidAccount(format!("Failed to create account signer: {}", e)))?
+                .into()
+        ]);
         
         Ok(builder)
     }
@@ -119,7 +124,11 @@ impl<'a, P: JsonRpcProvider + 'static> NeoXBridgeContract<'a, P> {
         ];
         
         let mut builder = self.invoke_function(Self::WITHDRAW, params).await?;
-        builder.set_signers(vec![AccountSigner::called_by_entry(account).unwrap().into()]);
+        builder.set_signers(vec![
+            AccountSigner::called_by_entry(account)
+                .map_err(|e| ContractError::InvalidAccount(format!("Failed to create account signer: {}", e)))?
+                .into()
+        ]);
         
         Ok(builder)
     }

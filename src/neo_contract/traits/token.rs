@@ -97,11 +97,8 @@ pub trait TokenTrait<'a, P: JsonRpcProvider>: SmartContractTrait<'a, P = P> {
 		let divisor = Decimal::from(10_u32.pow(decimals));
 		let decimal_amount = Decimal::from(amount);
 
-		if decimals >= 0 {
-			decimal_amount / divisor
-		} else {
-			decimal_amount * divisor
-		}
+		// u32 is always non-negative, so this check is redundant
+		decimal_amount / divisor
 	}
 
 	async fn resolve_nns_text_record(&self, name: &NNSName) -> Result<H160, ContractError>;

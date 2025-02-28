@@ -327,11 +327,17 @@ impl AccountTrait for Account {
 		let encrypted_private_key = self
 			.encrypted_private_key
 			.as_ref()
-			.ok_or(Self::Error::IllegalState("No encrypted private key present".to_string()))
-			.unwrap();
-		let key_pair = get_private_key_from_nep2(encrypted_private_key, password).unwrap();
-		self.key_pair =
-			Some(KeyPair::from_private_key(&vec_to_array32(key_pair).unwrap()).unwrap());
+			.ok_or(Self::Error::IllegalState("No encrypted private key present".to_string()))?;
+			
+		let key_pair = get_private_key_from_nep2(encrypted_private_key, password)
+			.map_err(|e| Self::Error::IllegalState(format!("Failed to decrypt private key: {}", e)))?;
+			
+		let key_pair_array = vec_to_array32(key_pair)
+			.map_err(|_| Self::Error::IllegalState("Failed to convert private key to 32-byte array".to_string()))?;
+			
+		self.key_pair = Some(KeyPair::from_private_key(&key_pair_array)
+			.map_err(|e| Self::Error::IllegalState(format!("Failed to create key pair: {}", e)))?);
+			
 		Ok(())
 	}
 
@@ -344,7 +350,8 @@ impl AccountTrait for Account {
 			key_pair.private_key.to_raw_bytes().to_hex().as_str(),
 			password,
 		)
-		.unwrap();
+		.map_err(|e| Self::Error::IllegalState(format!("Failed to encrypt private key: {}", e)))?;
+		
 		self.encrypted_private_key = Some(encrypted_private_key);
 		self.key_pair = None;
 		Ok(())
@@ -446,7 +453,9 @@ impl AccountTrait for Account {
 	}
 
 	fn from_address(address: &str) -> Result<Self, Self::Error> {
-		let address = Address::from_str(address).unwrap();
+		let address = Address::from_str(address)
+			.map_err(|_| Self::Error::IllegalState(format!("Invalid address format: {}", address)))?;
+			
 		Ok(Self {
 			address_or_scripthash: AddressOrScriptHash::Address(address.clone()),
 			label: Some(address),
@@ -471,12 +480,11 @@ impl AccountTrait for Account {
 
 impl PrehashSigner<Secp256r1Signature> for Account {
 	fn sign_prehash(&self, _prehash: &[u8]) -> Result<Secp256r1Signature, Error> {
-		if self.key_pair.is_none() {
-			return Err(Error::new());
-		}
-
-		let key_pair = self.key_pair.as_ref().unwrap();
-		let signature = key_pair.private_key.sign_prehash(_prehash).unwrap();
+		let key_pair = self.key_pair.as_ref().ok_or_else(|| Error::new())?;
+		
+		let signature = key_pair.private_key.sign_prehash(_prehash)
+			.map_err(|_| Error::new())?;
+			
 		Ok(signature)
 	}
 }
@@ -548,7 +556,8 @@ impl Account {
 		let mut balances = HashMap::new();
 		for balance in response.balances {
 			let asset_hash = balance.asset_hash;
-			let amount = balance.amount.parse::<u64>().unwrap();
+			let amount = balance.amount.parse::<u64>()
+				.map_err(|e| ProviderError::CustomError(format!("Failed to parse balance amount: {}", e)))?;
 			balances.insert(asset_hash, amount);
 		}
 		Ok(balances)

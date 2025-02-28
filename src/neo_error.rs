@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 use neo::prelude::{
-    BuilderError, CodecError, ContractError, CryptoError, Nep2Error, ProviderError, ProtocolError, 
+    CodecError, ContractError, CryptoError, Nep2Error, ProviderError, ProtocolError, 
     SignError, TransactionError, TypeError, WalletError,
 };
 

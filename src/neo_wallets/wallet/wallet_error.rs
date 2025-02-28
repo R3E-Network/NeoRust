@@ -103,4 +103,12 @@ pub enum WalletError {
 	/// Errors related to Ledger hardware wallet operations
 	#[error("Ledger error: {0}")]
 	LedgerError(String),
+	
+	/// Error indicating no accounts in wallet
+	#[error("No accounts in wallet")]
+	NoAccounts,
+	
+	/// Errors related to YubiHSM operations
+	#[error("YubiHSM error: {0}")]
+	YubiHsmError(String),
 }

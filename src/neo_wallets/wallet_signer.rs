@@ -89,7 +89,7 @@ impl<D: Sync + Send + PrehashSigner<Signature<NistP256>>> WalletSigner<D> {
 			// tx_with_network.set_network(self.network.map(|n| n as u32));
 		}
 		let hash_data = tx_with_network.get_hash_data().await
-			.map_err(|_| WalletError::TransactionError("Failed to get transaction hash data".to_string()))?;
+			.map_err(|e| WalletError::TransactionError(neo::prelude::TransactionError::TransactionConfiguration(format!("Failed to get transaction hash data: {}", e))))?;
 			
 		self.signer
 			.sign_prehash(&hash_data)
