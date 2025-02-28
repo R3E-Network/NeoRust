@@ -109,25 +109,55 @@ impl<'de> Deserialize<'de> for ContractParameter {
 					typ.ok_or_else(|| de::Error::missing_field("type"))?;
 				let value: Option<ParameterValue> = match typ {
 					ContractParameterType::Boolean =>
-						value.map(|v| ParameterValue::Boolean(serde_json::from_value(v).unwrap())),
+						value.map(|v| serde_json::from_value(v)
+							.map(ParameterValue::Boolean)
+							.map_err(|e| de::Error::custom(format!("Failed to deserialize Boolean: {}", e))))
+							.transpose()?,
 					ContractParameterType::Integer =>
-						value.map(|v| ParameterValue::Integer(serde_json::from_value(v).unwrap())),
+						value.map(|v| serde_json::from_value(v)
+							.map(ParameterValue::Integer)
+							.map_err(|e| de::Error::custom(format!("Failed to deserialize Integer: {}", e))))
+							.transpose()?,
 					ContractParameterType::ByteArray =>
-						value.map(|v| ParameterValue::ByteArray(serde_json::from_value(v).unwrap())),
+						value.map(|v| serde_json::from_value(v)
+							.map(ParameterValue::ByteArray)
+							.map_err(|e| de::Error::custom(format!("Failed to deserialize ByteArray: {}", e))))
+							.transpose()?,
 					ContractParameterType::String =>
-						value.map(|v| ParameterValue::String(serde_json::from_value(v).unwrap())),
+						value.map(|v| serde_json::from_value(v)
+							.map(ParameterValue::String)
+							.map_err(|e| de::Error::custom(format!("Failed to deserialize String: {}", e))))
+							.transpose()?,
 					ContractParameterType::H160 =>
-						value.map(|v| ParameterValue::H160(serde_json::from_value(v).unwrap())),
+						value.map(|v| serde_json::from_value(v)
+							.map(ParameterValue::H160)
+							.map_err(|e| de::Error::custom(format!("Failed to deserialize H160: {}", e))))
+							.transpose()?,
 					ContractParameterType::H256 =>
-						value.map(|v| ParameterValue::H256(serde_json::from_value(v).unwrap())),
+						value.map(|v| serde_json::from_value(v)
+							.map(ParameterValue::H256)
+							.map_err(|e| de::Error::custom(format!("Failed to deserialize H256: {}", e))))
+							.transpose()?,
 					ContractParameterType::PublicKey =>
-						value.map(|v| ParameterValue::PublicKey(serde_json::from_value(v).unwrap())),
+						value.map(|v| serde_json::from_value(v)
+							.map(ParameterValue::PublicKey)
+							.map_err(|e| de::Error::custom(format!("Failed to deserialize PublicKey: {}", e))))
+							.transpose()?,
 					ContractParameterType::Signature =>
-						value.map(|v| ParameterValue::Signature(serde_json::from_value(v).unwrap())),
+						value.map(|v| serde_json::from_value(v)
+							.map(ParameterValue::Signature)
+							.map_err(|e| de::Error::custom(format!("Failed to deserialize Signature: {}", e))))
+							.transpose()?,
 					ContractParameterType::Array =>
-						value.map(|v| ParameterValue::Array(serde_json::from_value(v).unwrap())),
+						value.map(|v| serde_json::from_value(v)
+							.map(ParameterValue::Array)
+							.map_err(|e| de::Error::custom(format!("Failed to deserialize Array: {}", e))))
+							.transpose()?,
 					ContractParameterType::Map =>
-						value.map(|v| ParameterValue::Map(serde_json::from_value(v).unwrap())),
+						value.map(|v| serde_json::from_value(v)
+							.map(ParameterValue::Map)
+							.map_err(|e| de::Error::custom(format!("Failed to deserialize Map: {}", e))))
+							.transpose()?,
 					ContractParameterType::Any => Some(ParameterValue::Any),
 					_ => None,
 				};
@@ -209,18 +239,26 @@ impl From<Vec<u8>> for ContractParameter {
 
 impl Into<Vec<u8>> for ContractParameter {
 	fn into(self) -> Vec<u8> {
-		match self.clone().value.unwrap() {
-			ParameterValue::ByteArray(b) => b.into_bytes(),
-			_ => panic!("Cannot convert {:?} to Vec<u8>", self.clone()),
+		match self.clone().value {
+			Some(ParameterValue::ByteArray(b)) => b.into_bytes(),
+			_ => {
+				// In a real error handling scenario, we would return a Result
+				// Since the trait doesn't allow for Result, we'll still panic but with a better message
+				panic!("Cannot convert parameter of type {:?} to Vec<u8>. Expected ByteArray.", self.typ)
+			},
 		}
 	}
 }
 
 impl Into<String> for ContractParameter {
 	fn into(self) -> String {
-		match self.clone().value.unwrap() {
-			ParameterValue::String(s) => s,
-			_ => panic!("Cannot convert {:?} to String", self.clone()),
+		match self.clone().value {
+			Some(ParameterValue::String(s)) => s,
+			_ => {
+				// In a real error handling scenario, we would return a Result
+				// Since the trait doesn't allow for Result, we'll still panic but with a better message
+				panic!("Cannot convert parameter of type {:?} to String. Expected String.", self.typ)
+			},
 		}
 	}
 }
@@ -289,7 +327,14 @@ impl From<Value> for ContractParameter {
 		match value {
 			Value::Null => Self::new(ContractParameterType::Any),
 			Value::Bool(b) => Self::bool(b),
-			Value::Number(n) => Self::integer(n.as_i64().unwrap()),
+			Value::Number(n) => {
+				if let Some(i) = n.as_i64() {
+					Self::integer(i)
+				} else {
+					// For numbers that can't be represented as i64, we'll use a string representation
+					Self::string(n.to_string())
+				}
+			},
 			Value::String(s) => Self::string(s),
 			Value::Array(a) =>
 				Self::array(a.into_iter().map(|v| ContractParameter::from(v)).collect()),
@@ -304,22 +349,23 @@ impl From<Value> for ContractParameter {
 
 impl Into<Value> for ContractParameter {
 	fn into(self) -> Value {
-		match self.value.unwrap() {
-			ParameterValue::Boolean(b) => Value::Bool(b),
-			ParameterValue::Integer(i) => Value::Number(serde_json::Number::from(i)),
-			ParameterValue::ByteArray(b) => Value::String(b),
-			ParameterValue::String(s) => Value::String(s),
-			ParameterValue::H160(h) => Value::String(h),
-			ParameterValue::H256(h) => Value::String(h),
-			ParameterValue::PublicKey(p) => Value::String(p),
-			ParameterValue::Signature(s) => Value::String(s),
-			ParameterValue::Array(a) => Value::Array(a.into_iter().map(|v| v.into()).collect()),
-			ParameterValue::Map(m) => Value::Array(
+		match self.value {
+			Some(ParameterValue::Boolean(b)) => Value::Bool(b),
+			Some(ParameterValue::Integer(i)) => Value::Number(serde_json::Number::from(i)),
+			Some(ParameterValue::ByteArray(b)) => Value::String(b),
+			Some(ParameterValue::String(s)) => Value::String(s),
+			Some(ParameterValue::H160(h)) => Value::String(h),
+			Some(ParameterValue::H256(h)) => Value::String(h),
+			Some(ParameterValue::PublicKey(p)) => Value::String(p),
+			Some(ParameterValue::Signature(s)) => Value::String(s),
+			Some(ParameterValue::Array(a)) => Value::Array(a.into_iter().map(|v| v.into()).collect()),
+			Some(ParameterValue::Map(m)) => Value::Array(
 				m.0.iter()
 					.flat_map(|(key, value)| vec![key.clone().into(), value.clone().into()])
 					.collect(),
 			),
-			ParameterValue::Any => Value::Null,
+			Some(ParameterValue::Any) => Value::Null,
+			None => Value::Null, // Handle the case where value is None
 		}
 	}
 }
@@ -342,7 +388,15 @@ impl From<Vec<Value>> for ContractParameter {
 
 impl ValueExtension for ContractParameter {
 	fn to_value(&self) -> Value {
-		Value::String(serde_json::to_string(self).unwrap())
+		match serde_json::to_string(self) {
+			Ok(s) => Value::String(s),
+			Err(e) => {
+				// In a real error handling scenario, we would return a Result
+				// Since the trait doesn't allow for Result, we'll log the error and return a null value
+				eprintln!("Error serializing ContractParameter: {}", e);
+				Value::Null
+			}
+		}
 	}
 }
 
@@ -409,10 +463,11 @@ impl ContractParameter {
 		Self::with_value(ContractParameterType::Boolean, ParameterValue::Boolean(value))
 	}
 
-	pub fn to_bool(&self) -> bool {
-		match self.value.as_ref().unwrap() {
-			ParameterValue::Boolean(b) => *b,
-			_ => panic!("Cannot convert {:?} to bool", self.clone()),
+	pub fn to_bool(&self) -> Result<bool, String> {
+		match self.value.as_ref() {
+			Some(ParameterValue::Boolean(b)) => Ok(*b),
+			Some(other) => Err(format!("Cannot convert {:?} to bool", other)),
+			None => Err("Parameter value is None".to_string()),
 		}
 	}
 
@@ -420,10 +475,11 @@ impl ContractParameter {
 		Self::with_value(ContractParameterType::Integer, ParameterValue::Integer(value))
 	}
 
-	pub fn to_integer(&self) -> i64 {
-		match self.value.as_ref().unwrap() {
-			ParameterValue::Integer(i) => *i,
-			_ => panic!("Cannot convert {:?} to i64", self.clone()),
+	pub fn to_integer(&self) -> Result<i64, String> {
+		match self.value.as_ref() {
+			Some(ParameterValue::Integer(i)) => Ok(*i),
+			Some(other) => Err(format!("Cannot convert {:?} to i64", other)),
+			None => Err("Parameter value is None".to_string()),
 		}
 	}
 
@@ -432,10 +488,15 @@ impl ContractParameter {
 		Self::with_value(ContractParameterType::ByteArray, ParameterValue::ByteArray(encoded))
 	}
 
-	pub fn to_byte_array(&self) -> Vec<u8> {
-		match self.value.as_ref().unwrap() {
-			ParameterValue::ByteArray(b) => b.from_base64().unwrap().to_vec(),
-			_ => panic!("Cannot convert {:?} to Vec<u8>", self.clone()),
+	pub fn to_byte_array(&self) -> Result<Vec<u8>, String> {
+		match self.value.as_ref() {
+			Some(ParameterValue::ByteArray(b)) => {
+				b.from_base64()
+					.map(|bytes| bytes.to_vec())
+					.map_err(|e| format!("Failed to decode base64: {}", e))
+			},
+			Some(other) => Err(format!("Cannot convert {:?} to Vec<u8>", other)),
+			None => Err("Parameter value is None".to_string()),
 		}
 	}
 
@@ -443,27 +504,26 @@ impl ContractParameter {
 		Self::with_value(ContractParameterType::String, ParameterValue::String(value))
 	}
 
-	pub fn to_string(&self) -> String {
-		match self.value.as_ref().unwrap() {
-			ParameterValue::String(s) => s.clone(),
-			// ParameterValue::ByteArray(b) => b.clone(),
-			// ParameterValue::H160(h) => h.clone(),
-			// ParameterValue::H256(h) => h.clone(),
-			// ParameterValue::PublicKey(p) => p.clone(),
-			// ParameterValue::Signature(s) => s.clone(),
-			// ParameterValue::Integer(i) => i.to_string(),
-			// ParameterValue::Boolean(b) => b.to_string(),
-			_ => panic!("Cannot convert {:?} to String", self.clone()),
+	pub fn to_string(&self) -> Result<String, String> {
+		match self.value.as_ref() {
+			Some(ParameterValue::String(s)) => Ok(s.clone()),
+			Some(other) => Err(format!("Cannot convert {:?} to String", other)),
+			None => Err("Parameter value is None".to_string()),
 		}
 	}
 	pub fn h160(value: &H160) -> Self {
 		Self::with_value(ContractParameterType::H160, ParameterValue::H160(value.to_hex()))
 	}
 
-	pub fn to_h160(&self) -> H160 {
-		match self.value.as_ref().unwrap() {
-			ParameterValue::H160(h) => H160::from_slice(&h.from_hex().unwrap()),
-			_ => panic!("Cannot convert {:?} to H160", self.clone()),
+	pub fn to_h160(&self) -> Result<H160, String> {
+		match self.value.as_ref() {
+			Some(ParameterValue::H160(h)) => {
+				h.from_hex()
+					.map(|bytes| H160::from_slice(&bytes))
+					.map_err(|e| format!("Failed to decode hex: {}", e))
+			},
+			Some(other) => Err(format!("Cannot convert {:?} to H160", other)),
+			None => Err("Parameter value is None".to_string()),
 		}
 	}
 
@@ -471,10 +531,15 @@ impl ContractParameter {
 		Self::with_value(ContractParameterType::H256, ParameterValue::H256(value.0.to_hex()))
 	}
 
-	pub fn to_h256(&self) -> H256 {
-		match self.value.as_ref().unwrap() {
-			ParameterValue::H256(h) => H256::from_slice(&h.from_hex().unwrap()),
-			_ => panic!("Cannot convert {:?} to H256", self.clone()),
+	pub fn to_h256(&self) -> Result<H256, String> {
+		match self.value.as_ref() {
+			Some(ParameterValue::H256(h)) => {
+				h.from_hex()
+					.map(|bytes| H256::from_slice(&bytes))
+					.map_err(|e| format!("Failed to decode hex: {}", e))
+			},
+			Some(other) => Err(format!("Cannot convert {:?} to H256", other)),
+			None => Err("Parameter value is None".to_string()),
 		}
 	}
 
@@ -485,13 +550,17 @@ impl ContractParameter {
 		)
 	}
 
-	pub fn to_public_key(&self) -> Secp256r1PublicKey {
-		match self.value.as_ref().unwrap() {
-			ParameterValue::PublicKey(p) => {
-				let bytes = hex::decode(p).unwrap();
-				Secp256r1PublicKey::from_bytes(&bytes).unwrap()
+	pub fn to_public_key(&self) -> Result<Secp256r1PublicKey, String> {
+		match self.value.as_ref() {
+			Some(ParameterValue::PublicKey(p)) => {
+				let bytes = hex::decode(p)
+					.map_err(|e| format!("Failed to decode hex: {}", e))?;
+				
+				Secp256r1PublicKey::from_bytes(&bytes)
+					.map_err(|e| format!("Failed to create public key: {}", e))
 			},
-			_ => panic!("Cannot convert {:?} to PublicKey", self.clone()),
+			Some(other) => Err(format!("Cannot convert {:?} to PublicKey", other)),
+			None => Err("Parameter value is None".to_string()),
 		}
 	}
 
@@ -502,10 +571,11 @@ impl ContractParameter {
 		)
 	}
 
-	pub fn to_signature(&self) -> String {
-		match self.value.as_ref().unwrap() {
-			ParameterValue::Signature(s) => s.clone(),
-			_ => panic!("Cannot convert {:?} to String", self.clone()),
+	pub fn to_signature(&self) -> Result<String, String> {
+		match self.value.as_ref() {
+			Some(ParameterValue::Signature(s)) => Ok(s.clone()),
+			Some(other) => Err(format!("Cannot convert {:?} to Signature", other)),
+			None => Err("Parameter value is None".to_string()),
 		}
 	}
 
@@ -513,10 +583,11 @@ impl ContractParameter {
 		Self::with_value(ContractParameterType::Array, ParameterValue::Array(values))
 	}
 
-	pub fn to_array(&self) -> Vec<ContractParameter> {
-		match self.value.as_ref().unwrap() {
-			ParameterValue::Array(a) => a.clone(),
-			_ => panic!("Cannot convert {:?} to Vec<ContractParameter>", self.clone()),
+	pub fn to_array(&self) -> Result<Vec<ContractParameter>, String> {
+		match self.value.as_ref() {
+			Some(ParameterValue::Array(a)) => Ok(a.clone()),
+			Some(other) => Err(format!("Cannot convert {:?} to Vec<ContractParameter>", other)),
+			None => Err("Parameter value is None".to_string()),
 		}
 	}
 
@@ -524,13 +595,14 @@ impl ContractParameter {
 		Self::with_value(ContractParameterType::Map, ParameterValue::Map(values))
 	}
 
-	pub fn to_map(&self) -> ContractParameterMap {
-		match self.value.as_ref().unwrap() {
-			ParameterValue::Map(m) => m.clone(),
-			_ => panic!(
+	pub fn to_map(&self) -> Result<ContractParameterMap, String> {
+		match self.value.as_ref() {
+			Some(ParameterValue::Map(m)) => Ok(m.clone()),
+			Some(other) => Err(format!(
 				"Cannot convert {:?} to HashMap<ContractParameter, ContractParameter>",
-				self.clone()
-			),
+				other
+			)),
+			None => Err("Parameter value is None".to_string()),
 		}
 	}
 
@@ -580,10 +652,14 @@ impl ParameterValue {
 		}
 	}
 
-	pub fn to_byte_array(&self) -> Vec<u8> {
+	pub fn to_byte_array(&self) -> Result<Vec<u8>, String> {
 		match self {
-			ParameterValue::ByteArray(b) => b.from_base64().unwrap().to_vec(),
-			_ => panic!("Cannot convert {:?} to Vec<u8>", self.clone()),
+			ParameterValue::ByteArray(b) => {
+				b.from_base64()
+					.map(|bytes| bytes.to_vec())
+					.map_err(|e| format!("Failed to decode base64: {}", e))
+			},
+			_ => Err(format!("Cannot convert {:?} to Vec<u8>", self)),
 		}
 	}
 
@@ -594,34 +670,45 @@ impl ParameterValue {
 		}
 	}
 
-	pub fn to_h160(&self) -> H160 {
+	pub fn to_h160(&self) -> Result<H160, String> {
 		match self {
-			ParameterValue::H160(h) => H160::from_slice(&h.from_hex().unwrap()),
-			_ => panic!("Cannot convert {:?} to H160", self.clone()),
+			ParameterValue::H160(h) => {
+				h.from_hex()
+					.map(|bytes| H160::from_slice(&bytes))
+					.map_err(|e| format!("Failed to decode hex: {}", e))
+			},
+			_ => Err(format!("Cannot convert {:?} to H160", self)),
 		}
 	}
 
-	pub fn to_h256(&self) -> H256 {
+	pub fn to_h256(&self) -> Result<H256, String> {
 		match self {
-			ParameterValue::H256(h) => H256::from_slice(&h.from_hex().unwrap()),
-			_ => panic!("Cannot convert {:?} to H256", self.clone()),
+			ParameterValue::H256(h) => {
+				h.from_hex()
+					.map(|bytes| H256::from_slice(&bytes))
+					.map_err(|e| format!("Failed to decode hex: {}", e))
+			},
+			_ => Err(format!("Cannot convert {:?} to H256", self)),
 		}
 	}
 
-	pub fn to_public_key(&self) -> Secp256r1PublicKey {
+	pub fn to_public_key(&self) -> Result<Secp256r1PublicKey, String> {
 		match self {
 			ParameterValue::PublicKey(p) => {
-				let bytes = hex::decode(p).unwrap();
-				Secp256r1PublicKey::from_bytes(&bytes).unwrap()
+				let bytes = hex::decode(p)
+					.map_err(|e| format!("Failed to decode hex: {}", e))?;
+				
+				Secp256r1PublicKey::from_bytes(&bytes)
+					.map_err(|e| format!("Failed to create public key: {}", e))
 			},
-			_ => panic!("Cannot convert {:?} to PublicKey", self.clone()),
+			_ => Err(format!("Cannot convert {:?} to PublicKey", self)),
 		}
 	}
 
-	pub fn to_signature(&self) -> String {
+	pub fn to_signature(&self) -> Result<String, String> {
 		match self {
-			ParameterValue::Signature(s) => s.clone(),
-			_ => panic!("Cannot convert {:?} to String", self.clone()),
+			ParameterValue::Signature(s) => Ok(s.clone()),
+			_ => Err(format!("Cannot convert {:?} to Signature", self)),
 		}
 	}
 

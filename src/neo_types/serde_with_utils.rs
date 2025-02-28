@@ -112,7 +112,8 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	let bytes = hex::decode(s.trim_start_matches("0x")).unwrap();
+	let bytes = hex::decode(s.trim_start_matches("0x"))
+		.map_err(|e| serde::de::Error::custom(format!("Failed to decode hex string: {}", e)))?;
 	Ok(bytes)
 }
 
@@ -146,7 +147,8 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	let url = Url::parse(&s).unwrap();
+	let url = Url::parse(&s)
+		.map_err(|e| serde::de::Error::custom(format!("Failed to parse URL '{}': {}", s, e)))?;
 	Ok(url)
 }
 
@@ -170,7 +172,8 @@ where
 	let s: Option<String> = Deserialize::deserialize(deserializer)?;
 	match s {
 		Some(s) => {
-			let url = Url::parse(&s).unwrap();
+			let url = Url::parse(&s)
+				.map_err(|e| serde::de::Error::custom(format!("Failed to parse URL '{}': {}", s, e)))?;
 			Ok(Some(url))
 		},
 		None => Ok(None),
@@ -258,9 +261,11 @@ where
 	let s: String = Deserialize::deserialize(deserializer)?;
 	let v = if s.starts_with("0x") {
 		let s = s.trim_start_matches("0x");
-		u32::from_str_radix(&s, 16).unwrap()
+		u32::from_str_radix(&s, 16)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse hex u32 '{}': {}", s, e)))?
 	} else {
-		u32::from_str_radix(&s, 10).unwrap()
+		u32::from_str_radix(&s, 10)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse decimal u32 '{}': {}", s, e)))?
 	};
 	Ok(v)
 }
@@ -457,7 +462,12 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	let key = Secp256r1PrivateKey::from_bytes(parse_string_h256(&s).as_bytes()).unwrap();
+	let h256 = parse_string_h256(&s)
+		.map_err(|e| serde::de::Error::custom(format!("Failed to parse H256 from string '{}': {}", s, e)))?;
+		
+	let key = Secp256r1PrivateKey::from_bytes(h256.as_bytes())
+		.map_err(|e| serde::de::Error::custom(format!("Failed to create private key from bytes: {}", e)))?;
+		
 	Ok(key)
 }
 
@@ -478,7 +488,12 @@ where
 	D: Deserializer<'de>,
 {
 	let s: String = Deserialize::deserialize(deserializer)?;
-	let key = Secp256r1PublicKey::from_bytes(parse_string_h256(&s).as_bytes()).unwrap();
+	let h256 = parse_string_h256(&s)
+		.map_err(|e| serde::de::Error::custom(format!("Failed to parse H256 from string '{}': {}", s, e)))?;
+		
+	let key = Secp256r1PublicKey::from_bytes(h256.as_bytes())
+		.map_err(|e| serde::de::Error::custom(format!("Failed to create public key from bytes: {}", e)))?;
+		
 	Ok(key)
 }
 
@@ -498,11 +513,17 @@ where
 {
 	let string_seq = <Vec<String>>::deserialize(deserializer)?;
 	let mut vec: Vec<Secp256r1PublicKey> = Vec::new();
+	
 	for v_str in string_seq {
-		let v = parse_string_h256(&v_str);
-		let key = Secp256r1PublicKey::from_bytes(v.as_bytes()).unwrap();
+		let v = parse_string_h256(&v_str)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse H256 from string '{}': {}", v_str, e)))?;
+			
+		let key = Secp256r1PublicKey::from_bytes(v.as_bytes())
+			.map_err(|e| serde::de::Error::custom(format!("Failed to create public key from bytes: {}", e)))?;
+			
 		vec.push(key);
 	}
+	
 	Ok(vec)
 }
 
@@ -513,16 +534,18 @@ where
 	D: Deserializer<'de>,
 {
 	let string_seq = <Vec<String>>::deserialize(deserializer)?;
-	// match string_seq {
-	// 	Some(s) => Ok(Some(s)),
-	// 	None => Ok(None),
-	// }
+	
 	let mut vec: Vec<Secp256r1PublicKey> = Vec::new();
 	for v_str in string_seq {
-		let v = parse_string_h256(&v_str);
-		let key = Secp256r1PublicKey::from_bytes(v.as_bytes()).unwrap();
+		let v = parse_string_h256(&v_str)
+			.map_err(|e| serde::de::Error::custom(format!("Failed to parse H256 from string '{}': {}", v_str, e)))?;
+			
+		let key = Secp256r1PublicKey::from_bytes(v.as_bytes())
+			.map_err(|e| serde::de::Error::custom(format!("Failed to create public key from bytes: {}", e)))?;
+			
 		vec.push(key);
 	}
+	
 	Ok(Some(vec))
 }
 
@@ -586,8 +609,12 @@ where
 	let s: Option<String> = Deserialize::deserialize(deserializer)?;
 	match s {
 		Some(s) => {
-			let pubkey_bytes = parse_string_h256(&s);
-			let key = Secp256r1PublicKey::from_bytes(pubkey_bytes.as_bytes()).unwrap();
+			let pubkey_bytes = parse_string_h256(&s)
+				.map_err(|e| serde::de::Error::custom(format!("Failed to parse H256 from string '{}': {}", s, e)))?;
+				
+			let key = Secp256r1PublicKey::from_bytes(pubkey_bytes.as_bytes())
+				.map_err(|e| serde::de::Error::custom(format!("Failed to create public key from bytes: {}", e)))?;
+				
 			Ok(Some(key))
 		},
 		None => Ok(None),

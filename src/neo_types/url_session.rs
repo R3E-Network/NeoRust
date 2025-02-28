@@ -10,10 +10,10 @@ impl URLSession {
 		let client = Client::new();
 
 		// Send the request and await the response
-		let response = client.execute(request).await.unwrap();
+		let response = client.execute(request).await?;
 
 		// Get the response bytes
-		let data = response.bytes().await.unwrap().to_vec();
+		let data = response.bytes().await?.to_vec();
 
 		// Return the data or any errors
 		Ok(data)
