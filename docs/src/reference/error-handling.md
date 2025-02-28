@@ -184,27 +184,114 @@ fn load_wallet_and_get_balance(
 
 In this example, if any of the operations fail, the error is propagated up the call stack.
 
-## Converting Between Error Types
+### Adding Context to Errors
 
-The NeoRust SDK provides `From` implementations for converting between different error types:
+Sometimes it's useful to add context to errors to make them more informative:
 
 ```rust
-impl From<std::io::Error> for NeoError {
-    fn from(error: std::io::Error) -> Self {
-        NeoError::IoError(error)
+use neo::prelude::*;
+use std::path::Path;
+
+fn load_wallet_and_get_balance(
+    wallet_path: &Path,
+    password: &str,
+    provider: &Provider,
+    token_hash: ScriptHash,
+) -> Result<u64, NeoError> {
+    // Load the wallet with context
+    let wallet = Wallet::load(wallet_path, password)
+        .map_err(|e| NeoError::IllegalState(format!("Failed to load wallet: {}", e)))?;
+    
+    // Get the default account with context
+    let account = wallet.default_account()
+        .map_err(|e| NeoError::IllegalState(format!("Failed to get default account: {}", e)))?;
+    
+    // Create a NEP-17 token instance
+    let token = Nep17Contract::new(token_hash, provider.clone());
+    
+    // Get the token balance with context
+    let balance = token.balance_of(account.address())
+        .map_err(|e| NeoError::IllegalState(format!("Failed to get token balance: {}", e)))?;
+    
+    Ok(balance)
+}
+```
+
+### Using Option to Result Conversion
+
+The NeoRust SDK provides utility functions for converting `Option` to `Result`:
+
+```rust
+use neo::prelude::*;
+
+fn get_value_from_option<T>(option: Option<T>, error_message: &str) -> Result<T, NeoError> {
+    option.ok_or_else(|| NeoError::IllegalState(error_message.to_string()))
+}
+
+fn example() -> Result<(), NeoError> {
+    let optional_value: Option<u64> = Some(42);
+    
+    // Convert Option to Result with a custom error message
+    let value = get_value_from_option(optional_value, "Value is None")?;
+    
+    // Or use the ok_or_else method directly
+    let value = optional_value.ok_or_else(|| NeoError::IllegalState("Value is None".to_string()))?;
+    
+    Ok(())
+}
+```
+
+## Converting Between Error Types
+
+The NeoRust SDK provides comprehensive `From` implementations for converting between different error types:
+
+```rust
+// From implementations for domain-specific errors
+impl From<BuilderError> for NeoError {
+    fn from(err: BuilderError) -> Self {
+        // Conversion logic that maps BuilderError variants to appropriate NeoError variants
+    }
+}
+
+impl From<CryptoError> for NeoError {
+    fn from(err: CryptoError) -> Self {
+        // Conversion logic that maps CryptoError variants to appropriate NeoError variants
     }
 }
 
 impl From<WalletError> for NeoError {
-    fn from(error: WalletError) -> Self {
-        NeoError::WalletError(error)
+    fn from(err: WalletError) -> Self {
+        NeoError::WalletError(err)
     }
 }
 
-// ... and so on for other error types
+// From implementations for standard library errors
+impl From<std::io::Error> for NeoError {
+    fn from(err: std::io::Error) -> Self {
+        NeoError::IoError(err)
+    }
+}
+
+impl From<serde_json::Error> for NeoError {
+    fn from(err: serde_json::Error) -> Self {
+        NeoError::SerializationError(err.to_string())
+    }
+}
+
+impl From<hex::FromHexError> for NeoError {
+    fn from(err: hex::FromHexError) -> Self {
+        NeoError::InvalidEncoding(format!("Hex error: {}", err))
+    }
+}
+
+impl From<std::num::ParseIntError> for NeoError {
+    fn from(err: std::num::ParseIntError) -> Self {
+        NeoError::IllegalArgument(format!("Integer parsing error: {}", err))
+    }
+}
 ```
 
-This allows for easy conversion between error types using the `?` operator.
+This allows for easy conversion between error types using the `?` operator. When you use the `?` operator on a function that returns a domain-specific error type, it will be automatically converted to `NeoError` if you're in a function that returns `Result<T, NeoError>`.
 
 ## Handling RPC Errors
 
@@ -499,5 +586,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 5. **Error Context**: Add context to errors to make them more informative.
 6. **Error Recovery**: Implement recovery strategies for recoverable errors.
 7. **Error Testing**: Write tests for error conditions to ensure they're handled correctly.
+8. **Avoid `unwrap()` and `expect()`**: In production code, avoid using `unwrap()` or `expect()` as they will panic on errors. Instead, use proper error handling with `Result` and the `?` operator.
+9. **Convert Domain-Specific Errors**: Use `.into()` to convert domain-specific errors to `NeoError` when needed.
+10. **Provide Descriptive Error Messages**: When creating errors, provide descriptive messages that help identify the cause of the error.
 
 <!-- toc -->
