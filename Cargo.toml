@@ -1,7 +1,9 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "NeoRust"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["R3E Network <contact@r3e.network>"]
 license = "MIT OR Apache-2.0"
 documentation = "https://docs.rs/neo"
@@ -160,7 +162,7 @@ scale-info = { version = ">=1.0, <3", features = ["derive"], default-features = 
 ring = { version = "0.17.8", features = [] }
 
 # aws
-rusoto_core = { version = "0.48.0", default-features = false, optional = true }
+rusoto_core = { version = "0.48.0", default-features = false, features = ["rustls"], optional = true }
 rusoto_kms = { version = "0.48.0", default-features = false, optional = true }
 # ledger
 coins-ledger = { version = "0.12.0", default-features = false, optional = true }

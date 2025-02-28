@@ -252,24 +252,24 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 			self.block_count_when_sent.ok_or(TransactionError::IllegalState(
 				"Cannot track transaction before it has been sent.".to_string(),
 			))?;
-		
+
 		let tx_id = self.get_tx_id()?;
 		let mut current_block = block_count_when_sent;
 		let max_block = block_count_when_sent + max_blocks;
-		
+
 		while current_block <= max_block {
 			// Get the current block count
 			let latest_block = self.network().unwrap().get_block_count().await?;
-			
+
 			// If there are new blocks, check them for our transaction
 			if latest_block > current_block {
 				for block_index in current_block..latest_block {
 					// Get the block hash for this index
 					let block_hash = self.network().unwrap().get_block_hash(block_index).await?;
-					
+
 					// Get the block with full transaction details
 					let block = self.network().unwrap().get_block(block_hash, true).await?;
-					
+
 					// Check if our transaction is in this block
 					if let Some(transactions) = &block.transactions {
 						for tx in transactions.iter() {
@@ -278,15 +278,15 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 							}
 						}
 					}
-					
+
 					current_block = block_index + 1;
 				}
 			}
-			
+
 			// Wait a bit before checking again
 			tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 		}
-		
+
 		Err(TransactionError::IllegalState(format!(
 			"Transaction {} not found after waiting for {} blocks",
 			tx_id, max_blocks
@@ -319,7 +319,6 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 }
 
 // This commented-out code has been replaced by the send_tx method above
-
 
 impl<'a, P: JsonRpcProvider + 'static> Eq for Transaction<'a, P> {}
 

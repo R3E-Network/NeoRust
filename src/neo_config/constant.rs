@@ -3,7 +3,7 @@ impl NeoConstants {
 	// Network Magic Numbers
 	pub const MAGIC_NUMBER_MAINNET: u32 = 860833102;
 	pub const MAGIC_NUMBER_TESTNET: u32 = 894710606;
-	
+
 	// Accounts, Addresses, Keys
 	pub const MAX_PUBLIC_KEYS_PER_MULTI_SIG: u32 = 1024;
 	pub const HASH160_SIZE: u32 = 20;

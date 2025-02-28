@@ -1,8 +1,10 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "examples-wallets"
 version = "0.0.0"
 publish = false
-edition = "2021"
+edition = "2024"
 rust-version = "1.74"
 authors = ["R3E Network <contact@r3e.network>"]
 

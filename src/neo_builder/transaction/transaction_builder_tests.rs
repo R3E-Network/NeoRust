@@ -10,6 +10,7 @@ mod tests {
 			InvocationResult, Signer, StackItem, TestConstants, TransactionAttribute,
 			TransactionError, Witness, WitnessScope,
 		},
+		types::NeoVMStateType,
 	};
 	use lazy_static::lazy_static;
 	use log::info;
@@ -21,6 +22,7 @@ mod tests {
 			NeoConstants, RawTransaction, RpcClient, ScriptBuilder, Secp256r1PrivateKey,
 			TransactionBuilder,
 		},
+		types::VMState,
 	};
 	use num_bigint::BigInt;
 	use primitive_types::{H160, H256};
@@ -29,8 +31,6 @@ mod tests {
 	use std::{default, ops::Deref, str::FromStr, sync::Arc};
 	use tokio::sync::{Mutex, OnceCell};
 	use tracing::debug;
-	use neo::types::VMState;
-	use crate::types::NeoVMStateType;
 
 	lazy_static! {
 		pub static ref ACCOUNT1: Account = Account::from_key_pair(
@@ -1629,9 +1629,13 @@ mod tests {
 		let mut tx_builder = TransactionBuilder::with_client(&client);
 		let _ = tx_builder.do_if_sender_cannot_cover_fees(Box::new(|_, _| {}));
 
-		let result = tx_builder.throw_if_sender_cannot_cover_fees(TransactionError::InsufficientFunds);
+		let result =
+			tx_builder.throw_if_sender_cannot_cover_fees(TransactionError::InsufficientFunds);
 		assert!(result.is_err());
-		assert!(result.unwrap_err().to_string().contains("Cannot handle a supplier for this case, since a consumer "));
+		assert!(result
+			.unwrap_err()
+			.to_string()
+			.contains("Cannot handle a supplier for this case, since a consumer "));
 	}
 
 	#[tokio::test]
@@ -1966,7 +1970,10 @@ mod tests {
 
 		let result = tx_builder.first_signer(&account2);
 		assert!(result.is_err());
-		assert!(result.unwrap_err().to_string().contains("contains a signer with fee-only witness scope"));
+		assert!(result
+			.unwrap_err()
+			.to_string()
+			.contains("contains a signer with fee-only witness scope"));
 	}
 
 	#[tokio::test]
@@ -1985,7 +1992,10 @@ mod tests {
 
 		let result = tx_builder.first_signer(&account2);
 		assert!(result.is_err());
-		assert!(result.unwrap_err().to_string().contains("Could not find a signer with script hash "));
+		assert!(result
+			.unwrap_err()
+			.to_string()
+			.contains("Could not find a signer with script hash "));
 	}
 
 	#[ignore] // Ignoring this test until track_tx implementation is complete
@@ -2301,9 +2311,15 @@ mod tests {
 		let client = {
 			let mut mock_provider = mock_provider.lock().await;
 			mock_provider
-				.mock_response_with_file_ignore_param("invokescript", "invokescript_fault.json", ).await
-				.mock_response_with_file_ignore_param("getblockcount", "getblockcount_1000.json").await
-				.mock_response_with_file_ignore_param("calculatenetworkfee", "calculatenetworkfee.json", ).await
+				.mock_response_with_file_ignore_param("invokescript", "invokescript_fault.json")
+				.await
+				.mock_response_with_file_ignore_param("getblockcount", "getblockcount_1000.json")
+				.await
+				.mock_response_with_file_ignore_param(
+					"calculatenetworkfee",
+					"calculatenetworkfee.json",
+				)
+				.await
 				.mount_mocks()
 				.await;
 			Arc::new(mock_provider.into_client())
@@ -2344,10 +2360,17 @@ mod tests {
 		let client = {
 			let mut mock_provider = mock_provider.lock().await;
 			mock_provider
-				.mock_response_with_file_ignore_param("invokescript", "invokescript_fault.json", ).await
-				.mock_response_with_file_ignore_param("getblockcount", "getblockcount_1000.json").await
-				.mock_response_with_file_ignore_param("calculatenetworkfee", "calculatenetworkfee.json", ).await
-				.mount_mocks().await;
+				.mock_response_with_file_ignore_param("invokescript", "invokescript_fault.json")
+				.await
+				.mock_response_with_file_ignore_param("getblockcount", "getblockcount_1000.json")
+				.await
+				.mock_response_with_file_ignore_param(
+					"calculatenetworkfee",
+					"calculatenetworkfee.json",
+				)
+				.await
+				.mount_mocks()
+				.await;
 			Arc::new(mock_provider.into_client())
 		};
 

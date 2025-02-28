@@ -359,7 +359,14 @@ impl Wallet {
 	/// The network ID as a `u32`.
 	fn network(&self) -> u32 {
 		// Default to MainNet if not specified
-		self.extra.as_ref().and_then(|extra| extra.get("network").map(|n| n.parse::<u32>().unwrap_or(NeoConstants::MAGIC_NUMBER_MAINNET))).unwrap_or(NeoConstants::MAGIC_NUMBER_MAINNET)
+		self.extra
+			.as_ref()
+			.and_then(|extra| {
+				extra
+					.get("network")
+					.map(|n| n.parse::<u32>().unwrap_or(NeoConstants::MAGIC_NUMBER_MAINNET))
+			})
+			.unwrap_or(NeoConstants::MAGIC_NUMBER_MAINNET)
 	}
 
 	//// Sets the network magic (ID) for the wallet.
