@@ -58,8 +58,8 @@ neo3 = { git = "https://github.com/R3E-Network/NeoRust.git" }
 Comprehensive documentation is available at:
 
 - **API Reference**: [https://docs.rs/neo3](https://docs.rs/neo3)
-- **Online Documentation**: [https://r3e-network.github.io/NeoRust/docs/](https://r3e-network.github.io/NeoRust/docs/)
-- **PDF Documentation**: [https://r3e-network.github.io/NeoRust/docs/pdf/neorust-sdk-documentation.pdf](https://r3e-network.github.io/NeoRust/docs/pdf/neorust-sdk-documentation.pdf)
+- **Online Documentation**: [https://r3e-network.github.io/NeoRust/](https://r3e-network.github.io/NeoRust/)
+- **PDF Documentation**: [https://r3e-network.github.io/NeoRust/pdf/neorust-sdk-documentation.pdf](https://r3e-network.github.io/NeoRust/pdf/neorust-sdk-documentation.pdf)
 - **Crate Page**: [https://crates.io/crates/neo3](https://crates.io/crates/neo3)
 
 ## Quick Start
