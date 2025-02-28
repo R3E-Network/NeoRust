@@ -47,7 +47,7 @@ jobs:
           mdbook-pdf
       
       - name: Upload PDF as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: neorust-documentation
           path: docs/book/pdf/output.pdf
