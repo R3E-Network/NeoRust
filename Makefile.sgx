@@ -1,0 +1,135 @@
+######## SGX SDK Settings ########
+
+SGX_SDK ?= /opt/intel/sgxsdk
+SGX_MODE ?= HW
+SGX_ARCH ?= x64
+SGX_DEBUG ?= 1
+
+TOP_DIR := $(shell pwd)
+include $(SGX_SDK)/buildenv.mk
+
+ifeq ($(shell getconf LONG_BIT), 32)
+	SGX_ARCH := x86
+else ifeq ($(findstring -m32, $(CFLAGS)), -m32)
+	SGX_ARCH := x86
+endif
+
+ifeq ($(SGX_ARCH), x86)
+	SGX_COMMON_FLAGS := -m32
+	SGX_LIBRARY_PATH := $(SGX_SDK)/lib
+	SGX_ENCLAVE_SIGNER := $(SGX_SDK)/bin/x86/sgx_sign
+	SGX_EDGER8R := $(SGX_SDK)/bin/x86/sgx_edger8r
+else
+	SGX_COMMON_FLAGS := -m64
+	SGX_LIBRARY_PATH := $(SGX_SDK)/lib64
+	SGX_ENCLAVE_SIGNER := $(SGX_SDK)/bin/x64/sgx_sign
+	SGX_EDGER8R := $(SGX_SDK)/bin/x64/sgx_edger8r
+endif
+
+ifeq ($(SGX_DEBUG), 1)
+	SGX_COMMON_FLAGS += -O0 -g
+else
+	SGX_COMMON_FLAGS += -O2
+endif
+
+SGX_COMMON_FLAGS += -Wall -Wextra -Winit-self -Wpointer-arith -Wreturn-type \
+                    -Waddress -Wsequence-point -Wformat-security \
+                    -Wmissing-include-dirs -Wfloat-equal -Wundef -Wshadow \
+                    -Wcast-align -Wcast-qual -Wconversion -Wredundant-decls
+SGX_COMMON_CFLAGS := $(SGX_COMMON_FLAGS) -Wjump-misses-init -Wstrict-prototypes -Wunsuffixed-float-constants
+SGX_COMMON_CXXFLAGS := $(SGX_COMMON_FLAGS) -Wnon-virtual-dtor -std=c++11
+
+######## App Settings ########
+
+App_Rust_Flags := --release
+App_SRC_Files := $(shell find app/ -type f -name '*.rs') $(shell find app/ -type f -name 'Cargo.toml')
+App_Include_Paths := -I$(SGX_SDK)/include -I$(TOP_DIR)/include
+App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths)
+App_Rust_Path := ./app
+App_Enclave_u_Object := lib/libenclave_u.a
+App_Name := bin/neo_sgx_app
+
+######## Enclave Settings ########
+
+ifneq ($(SGX_MODE), HW)
+	Trts_Library_Name := sgx_trts_sim
+	Service_Library_Name := sgx_tservice_sim
+else
+	Trts_Library_Name := sgx_trts
+	Service_Library_Name := sgx_tservice
+endif
+Crypto_Library_Name := sgx_tcrypto
+KeyExchange_Library_Name := sgx_tkey_exchange
+ProtectedFs_Library_Name := sgx_tprotected_fs
+
+RustEnclave_C_Files := $(wildcard ./enclave/*.c)
+RustEnclave_C_Objects := $(RustEnclave_C_Files:.c=.o)
+RustEnclave_Include_Paths := -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/stlport -I$(SGX_SDK)/include/epid -I ./enclave -I./include
+
+RustEnclave_Link_Libs := -L$(SGX_LIBRARY_PATH) -l$(Trts_Library_Name) -l$(Service_Library_Name) -l$(Crypto_Library_Name) -l$(KeyExchange_Library_Name) -l$(ProtectedFs_Library_Name)
+RustEnclave_Compile_Flags := $(SGX_COMMON_CFLAGS) -nostdinc -fvisibility=hidden -fpie -fstack-protector $(RustEnclave_Include_Paths)
+RustEnclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) \
+	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
+	-Wl,--start-group -lsgx_tstdc -l$(Service_Library_Name) -l$(Crypto_Library_Name) -l$(KeyExchange_Library_Name) -l$(ProtectedFs_Library_Name) -Wl,--end-group \
+	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
+	-Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
+	-Wl,--defsym,__ImageBase=0 \
+	-Wl,--gc-sections \
+	-Wl,--version-script=enclave/Enclave.lds
+
+RustEnclave_Name := lib/enclave.so
+Signed_RustEnclave_Name := bin/enclave.signed.so
+
+.PHONY: all
+all: $(App_Name) $(Signed_RustEnclave_Name)
+
+######## EDL Objects ########
+
+$(TOP_DIR)/src/neo_sgx/edl/NeoRust_u.c: $(SGX_EDGER8R) $(TOP_DIR)/src/neo_sgx/edl/NeoRust.edl
+	@cd $(TOP_DIR)/src/neo_sgx/edl && $(SGX_EDGER8R) --untrusted NeoRust.edl --search-path $(SGX_SDK)/include
+	@echo "GEN  =>  $@"
+
+$(TOP_DIR)/src/neo_sgx/edl/NeoRust_u.o: $(TOP_DIR)/src/neo_sgx/edl/NeoRust_u.c
+	@$(CC) $(App_C_Flags) -c $< -o $@
+	@echo "CC   <=  $<"
+
+$(TOP_DIR)/src/neo_sgx/edl/NeoRust_t.c: $(SGX_EDGER8R) $(TOP_DIR)/src/neo_sgx/edl/NeoRust.edl
+	@cd $(TOP_DIR)/src/neo_sgx/edl && $(SGX_EDGER8R) --trusted NeoRust.edl --search-path $(SGX_SDK)/include
+	@echo "GEN  =>  $@"
+
+$(TOP_DIR)/src/neo_sgx/edl/NeoRust_t.o: $(TOP_DIR)/src/neo_sgx/edl/NeoRust_t.c
+	@$(CC) $(RustEnclave_Compile_Flags) -c $< -o $@
+	@echo "CC   <=  $<"
+
+######## App Objects ########
+
+$(App_Enclave_u_Object): $(TOP_DIR)/src/neo_sgx/edl/NeoRust_u.o
+	@mkdir -p lib
+	@$(AR) rcs $@ $^
+	@echo "AR   =>  $@"
+
+$(App_Name): $(App_Enclave_u_Object) $(App_SRC_Files)
+	@mkdir -p bin
+	@cd $(App_Rust_Path) && SGX_SDK=$(SGX_SDK) cargo build $(App_Rust_Flags)
+	@echo "Cargo  =>  $@"
+	@cp $(App_Rust_Path)/target/release/neo_sgx_app $(App_Name)
+
+######## Enclave Objects ########
+
+$(RustEnclave_Name): $(TOP_DIR)/src/neo_sgx/edl/NeoRust_t.o
+	@mkdir -p lib
+	@cd enclave && SGX_SDK=$(SGX_SDK) cargo build $(App_Rust_Flags)
+	@cp enclave/target/release/libneo_sgx_enclave.a lib/
+	@$(CXX) $(RustEnclave_Link_Flags) -o $@ $(TOP_DIR)/src/neo_sgx/edl/NeoRust_t.o lib/libneo_sgx_enclave.a
+	@echo "LINK =>  $@"
+
+$(Signed_RustEnclave_Name): $(RustEnclave_Name)
+	@mkdir -p bin
+	@$(SGX_ENCLAVE_SIGNER) sign -key enclave/Enclave_private.pem -enclave $(RustEnclave_Name) -out $@ -config enclave/Enclave.config.xml
+	@echo "SIGN =>  $@"
+
+.PHONY: clean
+clean:
+	@rm -rf $(TOP_DIR)/src/neo_sgx/edl/NeoRust_u.* $(TOP_DIR)/src/neo_sgx/edl/NeoRust_t.* $(App_Name) $(RustEnclave_Name) $(Signed_RustEnclave_Name) lib/ bin/
+	@cd $(App_Rust_Path) && cargo clean
+	@cd enclave && cargo clean
