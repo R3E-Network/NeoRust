@@ -180,10 +180,10 @@ bip39 = { version = "2.1.0", features = ["rand"] }
 # These dependencies are only used when the 'sgx_deps' feature is enabled
 # They require the Intel SGX SDK to be installed
 # For development without SGX hardware, use the simulation mode
-sgx_types = { version = "=1.1.1", optional = true }
-sgx_urts = { version = "=1.1.1", optional = true }
-sgx_tstd = { version = "=1.1.1", optional = true }
-sgx_tcrypto = { version = "=1.1.1", optional = true }
+sgx_types = { version = "=1.1.1", optional = true, default-features = false }
+sgx_urts = { version = "=1.1.1", optional = true, default-features = false }
+sgx_tstd = { version = "=1.1.1", optional = true, default-features = false }
+sgx_tcrypto = { version = "=1.1.1", optional = true, default-features = false }
 
 [dev-dependencies]
 mockall = "0.13.0"
@@ -196,5 +196,5 @@ ledger = ["coins-ledger"]
 aws = []#, "spki"]
 #yubi = ["yubihsm"]
 sgx = []
-sgx_deps = ["sgx", "sgx_types", "sgx_urts", "sgx_tcrypto"]
+sgx_deps = ["sgx", "sgx_types", "sgx_urts", "sgx_tcrypto", "sgx_tstd"]
 default = []
