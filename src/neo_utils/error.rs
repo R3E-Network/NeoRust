@@ -94,6 +94,7 @@ pub fn result_to_option<T, E: std::fmt::Display>(result: Result<T, E>) -> Option
 /// # Ok(())
 /// # }
 /// ```
+#[cfg(feature = "crypto-standard")]
 pub async fn retry<T, E, F, Fut>(
 	operation: F,
 	max_attempts: usize,
@@ -115,6 +116,37 @@ where
 				if attempts < max_attempts {
 					eprintln!("Attempt {} failed: {}. Retrying...", attempts, err);
 					tokio::time::sleep(delay).await;
+				}
+				last_error = Some(err);
+			},
+		}
+	}
+
+	Err(last_error.expect("Should have at least one error after failed attempts"))
+}
+
+#[cfg(not(feature = "crypto-standard"))]
+pub async fn retry<T, E, F, Fut>(
+	operation: F,
+	max_attempts: usize,
+	_delay: std::time::Duration,
+) -> Result<T, E>
+where
+	F: Fn() -> Fut,
+	Fut: std::future::Future<Output = Result<T, E>>,
+	E: std::fmt::Display,
+{
+	let mut attempts = 0;
+	let mut last_error = None;
+
+	while attempts < max_attempts {
+		match operation().await {
+			Ok(value) => return Ok(value),
+			Err(err) => {
+				attempts += 1;
+				if attempts < max_attempts {
+					eprintln!("Attempt {} failed: {}. Retrying...", attempts, err);
+					// No sleep in this version since tokio is not available
 				}
 				last_error = Some(err);
 			},

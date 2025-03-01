@@ -158,14 +158,14 @@ mod contract;
 mod nns;
 
 // Core modules - always available
-mod error;
-mod script_hash;
-mod address;
-mod address_or_scripthash;
-mod bytes;
-mod numeric;
-mod string;
-mod util;
+pub mod error;
+pub mod script_hash;
+pub mod address;
+pub mod address_or_scripthash;
+pub mod bytes;
+pub mod numeric;
+pub mod string;
+pub mod util;
 
 // Conditional modules
 #[cfg(any(feature = "transaction", feature = "contract"))]

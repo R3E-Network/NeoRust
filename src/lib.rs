@@ -299,7 +299,8 @@
 
 #![warn(missing_debug_implementations, missing_docs, rust_2018_idioms, unreachable_pub)]
 #![deny(rustdoc::broken_intra_doc_links)]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+// Only enable doc_cfg feature on nightly builds or when explicitly building docs
+#![cfg_attr(all(feature = "nightly", docsrs), feature(doc_cfg))]
 #![doc(test(no_crate_inject, attr(deny(rust_2018_idioms), allow(dead_code, unused_variables))))]
 
 // For macro expansions only, not public API.
@@ -397,8 +398,12 @@ pub use neo_x as x;
 /// Convenient imports for commonly used types and traits.
 pub mod prelude {
 	// Core types and utilities - always available
-	pub use super::neo_error::*;
-	pub use super::neo_types::*;
+	pub use super::neo_error::{NeoError, BuilderError, CodecError, ContractError, ProtocolError, ProviderError, TransactionError, WalletError};
+	pub use super::neo_types::{
+		address::Address,
+		address_or_scripthash::AddressOrScriptHash,
+		script_hash::{ScriptHash, ScriptHashExtension, HashableForVec},
+	};
 	pub use super::neo_utils::error::*;
 
 	// Conditional imports based on features

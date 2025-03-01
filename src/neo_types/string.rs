@@ -1,8 +1,9 @@
 use bs58;
 use hex;
+#[cfg(feature = "crypto-standard")]
 use sha2::{Digest, Sha256};
 
-use neo::prelude::ScriptHash;
+use crate::neo_types::script_hash::ScriptHash;
 
 pub trait StringExt {
 	fn bytes_from_hex(&self) -> Result<Vec<u8>, hex::FromHexError>;
@@ -68,14 +69,22 @@ impl StringExt for String {
 	}
 
 	fn is_valid_address(&self) -> bool {
-		if let Some(data) = self.base58_decoded() {
-			if data.len() == 25 && data[0] == 0x17 {
-				let checksum = &Sha256::digest(&Sha256::digest(&data[..21]))[..4];
-				checksum == &data[21..]
+		#[cfg(feature = "crypto-standard")]
+		{
+			if let Some(data) = self.base58_decoded() {
+				if data.len() == 25 && data[0] == 0x17 {
+					let checksum = &Sha256::digest(&Sha256::digest(&data[..21]))[..4];
+					checksum == &data[21..]
+				} else {
+					false
+				}
 			} else {
 				false
 			}
-		} else {
+		}
+		#[cfg(not(feature = "crypto-standard"))]
+		{
+			// Placeholder implementation when crypto-standard is not enabled
 			false
 		}
 	}

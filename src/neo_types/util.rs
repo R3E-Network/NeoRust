@@ -7,7 +7,7 @@
 
 use primitive_types::{H160, H256, U256};
 
-use neo::prelude::TypeError;
+use crate::neo_types::error::TypeError;
 
 use crate::prelude::ScriptHash;
 

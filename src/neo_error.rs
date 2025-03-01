@@ -1,9 +1,110 @@
 use thiserror::Error;
 
-use neo::prelude::{
-	CodecError, ContractError, CryptoError, Nep2Error, ProtocolError, ProviderError, SignError,
-	TransactionError, TypeError, WalletError,
-};
+use std::fmt;
+use std::error::Error as StdError;
+
+// Define error types directly to avoid circular dependencies
+#[cfg(feature = "crypto-standard")]
+use crate::neo_crypto::error::{CryptoError, Nep2Error, SignError};
+
+// These will be defined later when we implement the corresponding modules
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CodecError(pub String);
+
+impl fmt::Display for CodecError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Codec error: {}", self.0)
+    }
+}
+
+impl StdError for CodecError {}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContractError(pub String);
+
+impl fmt::Display for ContractError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Contract error: {}", self.0)
+    }
+}
+
+impl StdError for ContractError {}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProtocolError(pub String);
+
+impl fmt::Display for ProtocolError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Protocol error: {}", self.0)
+    }
+}
+
+impl StdError for ProtocolError {}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProviderError(pub String);
+
+impl fmt::Display for ProviderError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Provider error: {}", self.0)
+    }
+}
+
+impl StdError for ProviderError {}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransactionError(pub String);
+
+impl fmt::Display for TransactionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Transaction error: {}", self.0)
+    }
+}
+
+impl StdError for TransactionError {}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WalletError(pub String);
+
+impl fmt::Display for WalletError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Wallet error: {}", self.0)
+    }
+}
+
+impl StdError for WalletError {}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeError(pub String);
+
+impl fmt::Display for TypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Type error: {}", self.0)
+    }
+}
+
+impl StdError for TypeError {}
+
+// Define SignError for when crypto-standard is not enabled
+#[cfg(not(feature = "crypto-standard"))]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SignError {
+    RecoverFailed,
+    InvalidSignature,
+}
+
+#[cfg(not(feature = "crypto-standard"))]
+impl fmt::Display for SignError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SignError::RecoverFailed => write!(f, "Failed to recover public key from signature"),
+            SignError::InvalidSignature => write!(f, "Invalid signature"),
+        }
+    }
+}
+
+#[cfg(not(feature = "crypto-standard"))]
+impl StdError for SignError {}
 
 #[derive(Error, Debug)]
 pub enum NeoError {
@@ -75,7 +176,7 @@ pub enum NeoError {
 
 impl Into<TransactionError> for NeoError {
 	fn into(self) -> TransactionError {
-		TransactionError::TransactionConfiguration(self.to_string())
+		TransactionError(self.to_string())
 	}
 }
 
@@ -97,7 +198,32 @@ impl From<&str> for NeoError {
 	}
 }
 
-use neo::prelude::BuilderError;
+// Define BuilderError directly to avoid circular dependencies
+#[derive(Debug)]
+pub enum BuilderError {
+    InvalidScript(String),
+    InvalidOperation,
+    InvalidArgument,
+    InvalidState,
+    InvalidInvocation,
+    StackOverflow,
+    OutOfGas,
+    OutOfMemory,
+    OutOfCycles,
+    UnknownError,
+    UnsupportedOperation(String),
+    SignerConfiguration(String),
+    TransactionConfiguration(String),
+    InvalidConfiguration(String),
+    TooManySigners(String),
+    IllegalState(String),
+    IllegalArgument(String),
+    CodecError(CodecError),
+    #[cfg(feature = "crypto-standard")]
+    CryptoError(CryptoError),
+    ProviderError(ProviderError),
+    TransactionError(Box<TransactionError>),
+}
 
 impl From<BuilderError> for NeoError {
 	fn from(err: BuilderError) -> Self {
@@ -125,19 +251,23 @@ impl From<BuilderError> for NeoError {
 			BuilderError::IllegalState(msg) => NeoError::IllegalState(msg),
 			BuilderError::IllegalArgument(msg) => NeoError::IllegalArgument(msg),
 			BuilderError::CodecError(err) => NeoError::CodecError(err),
+			#[cfg(feature = "crypto-standard")]
 			BuilderError::CryptoError(err) => NeoError::from(err),
+			#[cfg(not(feature = "crypto-standard"))]
+			_ => NeoError::IllegalState("Crypto feature not enabled".to_string()),
 			BuilderError::ProviderError(err) => NeoError::ProviderError(err),
 			BuilderError::TransactionError(err) => NeoError::TransactionError(*err),
 		}
 	}
 }
 
+#[cfg(feature = "crypto-standard")]
 impl From<CryptoError> for NeoError {
 	fn from(err: CryptoError) -> Self {
 		match err {
 			CryptoError::InvalidPassphrase(msg) =>
 				NeoError::IllegalArgument(format!("Invalid passphrase: {}", msg)),
-			CryptoError::InvalidFormat(msg) => NeoError::InvalidFormat,
+			CryptoError::InvalidFormat(_) => NeoError::InvalidFormat,
 			CryptoError::HeaderOutOfRange(byte) =>
 				NeoError::IllegalArgument(format!("Header byte out of range: {}", byte)),
 			CryptoError::RecoverFailed =>
@@ -156,6 +286,7 @@ impl From<CryptoError> for NeoError {
 	}
 }
 
+#[cfg(feature = "crypto-standard")]
 impl From<Nep2Error> for NeoError {
 	fn from(err: Nep2Error) -> Self {
 		match err {
@@ -168,6 +299,7 @@ impl From<Nep2Error> for NeoError {
 }
 
 // Implement From for reqwest::Error to handle HTTP errors
+#[cfg(feature = "crypto-standard")]
 impl From<reqwest::Error> for NeoError {
 	fn from(err: reqwest::Error) -> Self {
 		NeoError::IoError(std::io::Error::new(
