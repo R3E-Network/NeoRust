@@ -559,7 +559,7 @@ Contributions are welcome! Here's how you can contribute to the NeoRust SDK:
 
 ## Package Status
 
-NeoRust is now available on [crates.io](https://crates.io/crates/neo3) as the `neo3` crate. The latest version is `0.1.0`.
+NeoRust is now available on [crates.io](https://crates.io/crates/neo3) as the `neo3` crate. The latest version is `0.1.1`.
 
 This means you can now easily add it to your Rust projects without having to reference the GitHub repository directly.
 
