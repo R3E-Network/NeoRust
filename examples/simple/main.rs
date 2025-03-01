@@ -1,5 +1,5 @@
 use neo::neo_error::NeoError;
-use neo::neo_types::{Byte, Bytes};
+use neo::neo_types::Bytes;
 
 fn main() -> Result<(), NeoError> {
     println!("Hello, Neo!");
