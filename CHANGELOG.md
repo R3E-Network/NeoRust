@@ -15,6 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Optimized
 
+## [0.1.3] - 2025-03-01
+
+### Added
+- Added 'ledger' feature for hardware wallet support
+- Added 'nightly' feature for documentation builds
+- Added conditional compilation for tests with different feature combinations
+
+### Changed
+- Updated feature documentation in README.md
+- Improved feature flag system with better organization
+- Made crypto-related dependencies optional with proper feature gates
+
+### Fixed
+- Fixed test failures when running with different feature combinations
+- Fixed import errors in various modules
+- Fixed circular dependencies between modules
+
 ## [0.1.2] - 2023-11-15
 
 ### Added
@@ -50,4 +67,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]: https://github.com/R3E-Network/NeoRust/compare/v0.1.2...HEAD
 [0.1.2]: https://github.com/R3E-Network/NeoRust/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/R3E-Network/NeoRust/releases/tag/v0.1.1 
+[0.1.1]: https://github.com/R3E-Network/NeoRust/releases/tag/v0.1.1  

@@ -1,6 +1,6 @@
 [package]
 name = "neo3"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 description = "The Neo Rust SDK for interacting with the Neo N3 blockchain"
 repository = "https://github.com/RustForNeo/neo-sdk"
@@ -56,4 +56,4 @@ nightly = []
 ledger = [] # Feature for ledger hardware wallet integration
 
 [dev-dependencies]
-hex-literal = "1.0.0"      
+hex-literal = "1.0.0"        

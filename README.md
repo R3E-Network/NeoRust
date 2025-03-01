@@ -477,16 +477,19 @@ fn configure_neo() {
 
 NeoRust provides several optional features that can be enabled in your `Cargo.toml`:
 
+- **std**: Standard library support with basic serialization (enabled by default)
+- **crypto-standard**: Cryptographic functionality including hash functions, key pair operations, and signature verification (enabled by default)
 - **ledger**: Support for hardware wallets via Ledger devices
-- **aws**: AWS KMS integration for key management 
-- **futures**: Support for asynchronous Futures
-- **sgx**: Intel SGX support for secure enclaves (requires additional setup)
+- **nightly**: Support for nightly Rust features (used for documentation)
+- **ripemd160**: RIPEMD-160 hash function support
+- **sha2**: SHA-2 hash function support
+- **digest**: Cryptographic digest algorithms
 
 Example of enabling multiple features:
 
 ```toml
 [dependencies]
-neo3 = { version = "0.1.2", features = ["ledger", "aws", "futures"] }
+neo3 = { version = "0.1.3", features = ["ledger", "crypto-standard"] }
 ```
 
 ## Feature Flag System
@@ -497,12 +500,8 @@ NeoRust uses a comprehensive feature flag system to allow you to include only th
 
 The following core feature groups are available:
 
-- **std**: Standard library support with basic serialization (default)
-- **transaction**: Transaction creation and signing capabilities
-- **wallet**: Wallet and account management
-- **contract**: Smart contract interaction 
-- **http-client**: HTTP-based RPC client for Neo N3 nodes
-- **ws-client**: WebSocket client for real-time updates
+- **std**: Standard library support with basic serialization (enabled by default)
+- **crypto-standard**: Cryptographic functionality including hash functions, key pair operations, and signature verification (enabled by default)
 
 ### Token Standards
 
@@ -521,12 +520,14 @@ Features for integrating with external systems:
 - **aws**: Amazon Web Services KMS integration
 - **ethereum-compat**: Ethereum compatibility for Neo X integration
 
-### Cryptography Levels
+### Cryptography Features
 
 Choose your required level of cryptographic functionality:
 
-- **crypto-standard**: Basic cryptographic functions (default)
-- **crypto-advanced**: Advanced cryptography with additional algorithms
+- **crypto-standard**: Comprehensive cryptographic functions including hash functions, key pair operations, and signature verification (enabled by default)
+- **sha2**: SHA-2 hash function support (included in crypto-standard)
+- **ripemd160**: RIPEMD-160 hash function support (optional)
+- **digest**: Cryptographic digest algorithms (included in crypto-standard)
 
 ### Wallet Features
 
@@ -549,20 +550,20 @@ Data format support:
 In your `Cargo.toml`, specify exactly what features you need:
 
 ```toml
-# Basic wallet application
-neo3 = { version = "0.1.2", features = ["wallet", "crypto-standard"] }
+# Default features (recommended for most applications)
+neo3 = { version = "0.1.3" }
 
-# Full-featured dApp backend
-neo3 = { version = "0.1.2", features = ["wallet", "transaction", "contract", "http-client", "nep17"] }
+# With hardware wallet support
+neo3 = { version = "0.1.3", features = ["ledger"] }
 
-# Minimal transaction builder
-neo3 = { version = "0.1.2", default-features = false, features = ["transaction"] }
+# Minimal build with no cryptography
+neo3 = { version = "0.1.3", default-features = false, features = ["std"] }
 
-# WebAssembly application
-neo3 = { version = "0.1.2", features = ["wallet", "http-client", "wasm"] }
+# Only with standard library support
+neo3 = { version = "0.1.3", default-features = false, features = ["std"] }
 
-# Secure application with hardware wallet support
-neo3 = { version = "0.1.2", features = ["wallet-hardware", "wallet-secure"] }
+# Full cryptographic features
+neo3 = { version = "0.1.3", features = ["crypto-standard", "ripemd160"] }
 ```
 
 ### Common Feature Combinations
@@ -571,14 +572,11 @@ Here are some recommended feature combinations for common use cases:
 
 | Use Case | Recommended Features |
 |----------|---------------------|
-| Simple Wallet Tool | `wallet`, `crypto-standard` |
-| Block Explorer | `http-client` |
-| Token Transfer dApp | `wallet`, `transaction`, `http-client`, `nep17` |
-| NFT Marketplace | `wallet`, `transaction`, `http-client`, `nep11` |
-| Smart Contract Development | `wallet`, `transaction`, `contract`, `http-client` |
-| Web dApp (WASM) | `wallet`, `transaction`, `http-client`, `wasm` |
-| Hardware Wallet Integration | `wallet-hardware`, `transaction` |
-| Secure Enterprise Application | `wallet-secure`, `crypto-advanced`, `sgx` |
+| Standard Application | Default features (`std`, `crypto-standard`) |
+| Minimal Application | `std` only |
+| Hardware Wallet Integration | Default features + `ledger` |
+| Documentation Build | Default features + `nightly` |
+| Custom Cryptography | `std` + specific crypto features (`sha2`, `ripemd160`, `digest`) |
 
 ### Performance Benefits
 
@@ -586,10 +584,10 @@ By selecting only the features you need, you can significantly reduce compile ti
 
 | Feature Combination | Approximate Compile Time | Approximate Binary Size |
 |---------------------|--------------------------|-------------------------|
-| All features | 2m 15s | 8.2 MB |
-| Default features | 1m 45s | 6.5 MB |
-| Minimal wallet | 38s | 1.1 MB |
-| HTTP client only | 42s | 1.5 MB |
+| All features | 1m 30s | 7.5 MB |
+| Default features | 1m 15s | 6.0 MB |
+| Std only | 30s | 1.0 MB |
+| Minimal build | 25s | 0.8 MB |
 
 The specific improvements will vary based on your hardware and build configuration.
 
@@ -615,9 +613,9 @@ NeoRust includes convenient scripts for building and testing with different feat
 ./scripts/build.sh
 
 # Build with specific features
-./scripts/build.sh --features ledger,aws,futures
+./scripts/build.sh --features ledger,crypto-standard
 
-# Run tests with default features (ledger,aws,futures)
+# Run tests with default features (std,crypto-standard)
 ./scripts/test.sh
 
 # Run tests and show output
@@ -631,9 +629,9 @@ NeoRust includes convenient scripts for building and testing with different feat
 .\scripts\build.bat
 
 # Build with specific features
-.\scripts\build.bat --features ledger,aws,futures
+.\scripts\build.bat --features ledger,crypto-standard
 
-# Run tests with default features (ledger,aws,futures)
+# Run tests with default features (std,crypto-standard)
 .\scripts\test.bat
 ```
 
@@ -674,7 +672,7 @@ Contributions are welcome! Here's how you can contribute to the NeoRust SDK:
 
 ## Package Status
 
-NeoRust is now available on [crates.io](https://crates.io/crates/neo3) as the `neo3` crate. The latest version is `0.1.2`.
+NeoRust is now available on [crates.io](https://crates.io/crates/neo3) as the `neo3` crate. The latest version is `0.1.3`.
 
 This means you can now easily add it to your Rust projects without having to reference the GitHub repository directly.
 
