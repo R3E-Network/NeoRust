@@ -64,8 +64,21 @@ impl HashableForVec for [u8] {
 	}
 
 	fn hmac_sha512(&self, key: &[u8]) -> Vec<u8> {
-		// Placeholder implementation
-		vec![0u8; 64]
+		#[cfg(feature = "crypto-standard")]
+		{
+			use hmac::{Hmac, Mac};
+			use sha2::Sha512;
+			
+			let mut hmac = Hmac::<Sha512>::new_from_slice(key)
+				.expect("HMAC can take key of any size");
+			hmac.update(self);
+			hmac.finalize().into_bytes().to_vec()
+		}
+		#[cfg(not(feature = "crypto-standard"))]
+		{
+			// Placeholder implementation
+			vec![0u8; 64]
+		}
 	}
 }
 
