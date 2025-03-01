@@ -2,8 +2,8 @@ use bs58;
 use hex;
 #[cfg(feature = "crypto-standard")]
 use sha2::{Digest, Sha256};
-#[cfg(not(feature = "crypto-standard"))]
-use crate::neo_types::ScriptHash;
+
+use crate::neo_types::script_hash::ScriptHash;
 
 pub trait StringExt {
 	fn bytes_from_hex(&self) -> Result<Vec<u8>, hex::FromHexError>;
