@@ -49,7 +49,7 @@ You can also specify features if needed:
 
 ```toml
 [dependencies]
-neo3 = { version = "0.1.3", features = ["ledger", "aws", "futures"] }
+neo3 = { version = "0.1.2", features = ["ledger", "aws", "futures"] }
 ```
 
 For the latest development version, you can use the Git repository:
@@ -486,7 +486,7 @@ Example of enabling multiple features:
 
 ```toml
 [dependencies]
-neo3 = { version = "0.1.3", features = ["ledger", "aws", "futures"] }
+neo3 = { version = "0.1.2", features = ["ledger", "aws", "futures"] }
 ```
 
 ## Feature Flag System
@@ -550,19 +550,19 @@ In your `Cargo.toml`, specify exactly what features you need:
 
 ```toml
 # Basic wallet application
-neo3 = { version = "0.1.3", features = ["wallet", "crypto-standard"] }
+neo3 = { version = "0.1.2", features = ["wallet", "crypto-standard"] }
 
 # Full-featured dApp backend
-neo3 = { version = "0.1.3", features = ["wallet", "transaction", "contract", "http-client", "nep17"] }
+neo3 = { version = "0.1.2", features = ["wallet", "transaction", "contract", "http-client", "nep17"] }
 
 # Minimal transaction builder
-neo3 = { version = "0.1.3", default-features = false, features = ["transaction"] }
+neo3 = { version = "0.1.2", default-features = false, features = ["transaction"] }
 
 # WebAssembly application
-neo3 = { version = "0.1.3", features = ["wallet", "http-client", "wasm"] }
+neo3 = { version = "0.1.2", features = ["wallet", "http-client", "wasm"] }
 
 # Secure application with hardware wallet support
-neo3 = { version = "0.1.3", features = ["wallet-hardware", "wallet-secure"] }
+neo3 = { version = "0.1.2", features = ["wallet-hardware", "wallet-secure"] }
 ```
 
 ### Common Feature Combinations
