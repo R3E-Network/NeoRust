@@ -3,6 +3,7 @@ use clap::{Args, Subcommand};
 use crate::utils::error::{CliError, CliResult};
 use crate::utils::{print_success, print_error, print_info};
 use std::path::PathBuf;
+use neo3::prelude::*;
 
 #[derive(Args, Debug)]
 pub struct NetworkArgs {
@@ -80,10 +81,11 @@ async fn broadcast_addr(state: &mut crate::commands::wallet::CliState) -> CliRes
     
     print_info("Broadcasting network address...");
     
-    // Placeholder - actual implementation will use the NeoRust SDK
-    // let rpc_client = state.rpc_client.as_ref().unwrap();
-    // rpc_client.broadcast_address().await?;
+    let rpc_client = state.rpc_client.as_ref().unwrap();
+    let result = rpc_client.broadcast_address().await
+        .map_err(|e| CliError::Network(format!("Failed to broadcast address: {}", e)))?;
     
+    println!("Response: {}", result);
     print_success("Network address broadcasted successfully");
     Ok(())
 }
@@ -96,11 +98,17 @@ async fn broadcast_block(hash: String, state: &mut crate::commands::wallet::CliS
     
     print_info(&format!("Broadcasting block: {}", hash));
     
-    // Placeholder - actual implementation will use the NeoRust SDK
-    // let rpc_client = state.rpc_client.as_ref().unwrap();
-    // let block = rpc_client.get_block_by_hash(&hash).await?;
-    // rpc_client.broadcast_block(block).await?;
+    let rpc_client = state.rpc_client.as_ref().unwrap();
     
+    // Get the block first
+    let block = rpc_client.get_block_by_hash(&hash).await
+        .map_err(|e| CliError::Network(format!("Failed to get block: {}", e)))?;
+    
+    // Broadcast the block
+    let result = rpc_client.broadcast_block(&block).await
+        .map_err(|e| CliError::Network(format!("Failed to broadcast block: {}", e)))?;
+    
+    println!("Response: {}", result);
     print_success("Block broadcasted successfully");
     Ok(())
 }
@@ -113,10 +121,11 @@ async fn broadcast_get_blocks(hash: String, count: u32, state: &mut crate::comma
     
     print_info(&format!("Requesting {} blocks starting from: {}", count, hash));
     
-    // Placeholder - actual implementation will use the NeoRust SDK
-    // let rpc_client = state.rpc_client.as_ref().unwrap();
-    // rpc_client.broadcast_get_blocks(&hash, count).await?;
+    let rpc_client = state.rpc_client.as_ref().unwrap();
+    let result = rpc_client.broadcast_get_blocks(&hash, count).await
+        .map_err(|e| CliError::Network(format!("Failed to broadcast get blocks: {}", e)))?;
     
+    println!("Response: {}", result);
     print_success("Block request sent successfully");
     Ok(())
 }
@@ -129,19 +138,23 @@ async fn broadcast_transaction(hash_or_file: String, state: &mut crate::commands
     
     print_info(&format!("Broadcasting transaction: {}", hash_or_file));
     
-    // Placeholder - actual implementation will use the NeoRust SDK
-    // let rpc_client = state.rpc_client.as_ref().unwrap();
-    // let tx = if hash_or_file.starts_with("0x") || (hash_or_file.len() == 64 && hash_or_file.chars().all(|c| c.is_ascii_hexdigit())) {
-    //     // Hash provided
-    //     rpc_client.get_transaction(&hash_or_file).await?
-    // } else {
-    //     // File path provided
-    //     let tx_data = std::fs::read(&hash_or_file)?;
-    //     Transaction::deserialize(&tx_data)?
-    // };
-    // 
-    // rpc_client.broadcast_transaction(tx).await?;
+    let rpc_client = state.rpc_client.as_ref().unwrap();
+    let tx = if hash_or_file.starts_with("0x") || (hash_or_file.len() == 64 && hash_or_file.chars().all(|c| c.is_ascii_hexdigit())) {
+        // Hash provided
+        rpc_client.get_transaction(&hash_or_file).await
+            .map_err(|e| CliError::Network(format!("Failed to get transaction: {}", e)))?
+    } else {
+        // File path provided
+        let tx_data = std::fs::read(&hash_or_file)
+            .map_err(|e| CliError::Io(e))?;
+        Transaction::deserialize(&tx_data)
+            .map_err(|e| CliError::Input(format!("Failed to deserialize transaction: {}", e)))?
+    };
     
+    let result = rpc_client.broadcast_transaction(&tx).await
+        .map_err(|e| CliError::Network(format!("Failed to broadcast transaction: {}", e)))?;
+    
+    println!("Response: {}", result);
     print_success("Transaction broadcasted successfully");
     Ok(())
 }
@@ -154,27 +167,61 @@ async fn relay_transaction(path: PathBuf, state: &mut crate::commands::wallet::C
     
     print_info(&format!("Relaying transaction from file: {:?}", path));
     
-    // Placeholder - actual implementation will use the NeoRust SDK
-    // let tx_data = std::fs::read(&path)?;
-    // let tx = Transaction::deserialize(&tx_data)?;
-    // 
-    // let rpc_client = state.rpc_client.as_ref().unwrap();
-    // let result = rpc_client.send_raw_transaction(tx).await?;
-    // 
-    // println!("Transaction hash: {}", result.hash);
+    if !path.exists() {
+        print_error(&format!("Transaction file not found: {:?}", path));
+        return Err(CliError::Input(format!("Transaction file not found: {:?}", path)));
+    }
     
+    let tx_data = std::fs::read(&path)
+        .map_err(|e| CliError::Io(e))?;
+    
+    let tx = Transaction::deserialize(&tx_data)
+        .map_err(|e| CliError::Input(format!("Failed to deserialize transaction: {}", e)))?;
+    
+    let rpc_client = state.rpc_client.as_ref().unwrap();
+    let result = rpc_client.send_raw_transaction(&tx).await
+        .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
+    
+    println!("Transaction hash: {}", result.hash);
     print_success("Transaction relayed successfully");
     Ok(())
 }
 
-async fn connect_to_node(address: String, _state: &mut crate::commands::wallet::CliState) -> CliResult<()> {
+async fn connect_to_node(address: String, state: &mut crate::commands::wallet::CliState) -> CliResult<()> {
     print_info(&format!("Connecting to node: {}", address));
     
-    // Placeholder - actual implementation will use the NeoRust SDK
-    // let rpc_client = RpcClient::new(&format!("http://{}", address))?;
-    // state.rpc_client = Some(rpc_client);
+    // Format address if needed
+    let rpc_url = if address.starts_with("http://") || address.starts_with("https://") {
+        address.to_string()
+    } else {
+        format!("http://{}", address)
+    };
     
-    print_success(&format!("Connected to node: {}", address));
+    // Create RPC client
+    match Http::new(&rpc_url) {
+        Ok(provider) => {
+            // Test the connection
+            let rpc_client = RpcClient::new(provider);
+            
+            // Attempt to get block count to verify connection
+            match rpc_client.get_block_count().await {
+                Ok(block_count) => {
+                    print_info(&format!("Connected to node with block height: {}", block_count));
+                    state.rpc_client = Some(rpc_client);
+                    print_success(&format!("Connected to node: {}", rpc_url));
+                },
+                Err(e) => {
+                    print_error(&format!("Failed to connect to node: {}", e));
+                    return Err(CliError::Network(format!("Failed to connect to node: {}", e)));
+                }
+            }
+        },
+        Err(e) => {
+            print_error(&format!("Failed to create RPC client: {}", e));
+            return Err(CliError::Network(format!("Failed to create RPC client: {}", e)));
+        }
+    }
+    
     Ok(())
 }
 
@@ -186,13 +233,39 @@ async fn list_nodes(state: &mut crate::commands::wallet::CliState) -> CliResult<
     
     print_info("Connected nodes:");
     
-    // Placeholder - actual implementation will use the NeoRust SDK
-    // let rpc_client = state.rpc_client.as_ref().unwrap();
-    // let nodes = rpc_client.get_peers().await?;
-    // 
-    // for (i, node) in nodes.iter().enumerate() {
-    //     println!("{}. {} ({})", i + 1, node.address, node.port);
-    // }
+    let rpc_client = state.rpc_client.as_ref().unwrap();
+    
+    // Get peers from the node
+    match rpc_client.get_peers().await {
+        Ok(peers) => {
+            if peers.connected.is_empty() {
+                println!("  No connected peers found");
+            } else {
+                println!("  Connected peers:");
+                for (i, peer) in peers.connected.iter().enumerate() {
+                    println!("  {}. Address: {}:{}", i + 1, peer.address, peer.port);
+                }
+            }
+            
+            if !peers.unconnected.is_empty() {
+                println!("\n  Unconnected peers:");
+                for (i, peer) in peers.unconnected.iter().enumerate() {
+                    println!("  {}. Address: {}:{}", i + 1, peer.address, peer.port);
+                }
+            }
+            
+            if !peers.bad.is_empty() {
+                println!("\n  Bad peers:");
+                for (i, peer) in peers.bad.iter().enumerate() {
+                    println!("  {}. Address: {}:{}", i + 1, peer.address, peer.port);
+                }
+            }
+        },
+        Err(e) => {
+            print_error(&format!("Failed to get peers: {}", e));
+            return Err(CliError::Network(format!("Failed to get peers: {}", e)));
+        }
+    }
     
     print_success("Node list retrieved successfully");
     Ok(())

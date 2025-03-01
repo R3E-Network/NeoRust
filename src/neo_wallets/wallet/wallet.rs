@@ -338,11 +338,41 @@ impl Wallet {
 		Ok(self.get_account(&account.get_script_hash()).unwrap())
 	}
 
-	/// Verifies if the provided password is correct
+	/// Verifies if the provided password is correct by attempting to decrypt any encrypted account
+	/// 
+	/// This function checks if the provided password can successfully decrypt at least one
+	/// of the encrypted private keys in the wallet. If at least one account can be decrypted,
+	/// the password is considered valid.
+	/// 
+	/// Returns true if the password is correct, false otherwise.
 	pub fn verify_password(&self, password: &str) -> bool {
-		// In a real implementation, this would verify the password against encrypted data
-		// For now, we'll just return true as a placeholder
-		true
+		// If there are no accounts, we can't verify the password
+		if self.accounts.is_empty() {
+			return false;
+		}
+		
+		// Try to decrypt any account with the provided password
+		for account in self.accounts.values() {
+			// Skip accounts that don't have an encrypted private key
+			if account.encrypted_private_key().is_none() {
+				continue;
+			}
+			
+			// Skip accounts that already have a key pair (already decrypted)
+			if account.key_pair().is_some() {
+				continue;
+			}
+			
+			// Try to decrypt the account's private key
+			let mut account_clone = account.clone();
+			match account_clone.decrypt_private_key(password) {
+				Ok(_) => return true, // Password decrypted successfully
+				Err(_) => continue,   // Try the next account
+			}
+		}
+		
+		// If we get here, none of the accounts could be decrypted with the provided password
+		false
 	}
 
 	/// Changes the wallet password
@@ -845,5 +875,24 @@ mod tests {
 
 		assert!(wallet.accounts()[0].key_pair().is_none());
 		assert!(wallet.accounts()[1].key_pair().is_none());
+	}
+
+	#[test]
+	fn test_verify_password() {
+		let mut wallet = Wallet::new();
+		let account = Account::create().unwrap();
+		wallet.add_account(account.clone());
+		
+		// Initially, the account is not encrypted so verification should fail
+		assert!(!wallet.verify_password("password123"));
+		
+		// Encrypt the account
+		wallet.encrypt_accounts("password123");
+		
+		// Now verification should succeed with the correct password
+		assert!(wallet.verify_password("password123"));
+		
+		// And fail with an incorrect password
+		assert!(!wallet.verify_password("wrong_password"));
 	}
 }
