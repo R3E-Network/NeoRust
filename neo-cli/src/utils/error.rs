@@ -23,6 +23,15 @@ pub enum CliError {
     #[error("SDK error: {0}")]
     Sdk(String),
     
+    #[error("Transaction error: {0}")]
+    Transaction(String),
+    
+    #[error("Transaction builder error: {0}")]
+    TransactionBuilder(String),
+    
+    #[error("Builder error: {0}")]
+    Builder(String),
+    
     #[error("Unknown error: {0}")]
     Unknown(String),
     

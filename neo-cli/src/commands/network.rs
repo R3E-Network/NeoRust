@@ -4,6 +4,9 @@ use crate::utils::error::{CliError, CliResult};
 use crate::utils::{print_success, print_error, print_info};
 use std::path::PathBuf;
 use neo3::prelude::*;
+use hex;
+use neo3::neo_serializers::BinaryDeserializable;
+use crate::commands::wallet::CliState;
 
 #[derive(Args, Debug)]
 pub struct NetworkArgs {
@@ -130,7 +133,7 @@ async fn broadcast_get_blocks(hash: String, count: u32, state: &mut crate::comma
     Ok(())
 }
 
-async fn broadcast_transaction(hash_or_file: String, state: &mut crate::commands::wallet::CliState) -> CliResult<()> {
+async fn broadcast_transaction(hash_or_file: String, state: &mut CliState) -> CliResult<()> {
     if state.rpc_client.is_none() {
         print_error("No RPC client is connected. Please connect to a node first.");
         return Err(CliError::Network("No RPC client is connected".to_string()));
@@ -141,13 +144,30 @@ async fn broadcast_transaction(hash_or_file: String, state: &mut crate::commands
     let rpc_client = state.rpc_client.as_ref().unwrap();
     let tx = if hash_or_file.starts_with("0x") || (hash_or_file.len() == 64 && hash_or_file.chars().all(|c| c.is_ascii_hexdigit())) {
         // Hash provided
-        rpc_client.get_transaction(&hash_or_file).await
+        // Convert to H256
+        let hash_str = if hash_or_file.starts_with("0x") {
+            &hash_or_file[2..]
+        } else {
+            &hash_or_file
+        };
+        
+        let hash_bytes = hex::decode(hash_str)
+            .map_err(|e| CliError::Input(format!("Invalid transaction hash format: {}", e)))?;
+        
+        if hash_bytes.len() != 32 {
+            return Err(CliError::Input("Transaction hash must be 32 bytes".to_string()));
+        }
+        
+        let hash = primitive_types::H256::from_slice(&hash_bytes);
+        
+        rpc_client.get_transaction(hash).await
             .map_err(|e| CliError::Network(format!("Failed to get transaction: {}", e)))?
     } else {
         // File path provided
         let tx_data = std::fs::read(&hash_or_file)
-            .map_err(|e| CliError::Io(e))?;
-        Transaction::deserialize(&tx_data)
+            .map_err(|e| CliError::IO(e.to_string()))?;
+        
+        RTransaction::deserialize(&tx_data)
             .map_err(|e| CliError::Input(format!("Failed to deserialize transaction: {}", e)))?
     };
     
@@ -159,7 +179,7 @@ async fn broadcast_transaction(hash_or_file: String, state: &mut crate::commands
     Ok(())
 }
 
-async fn relay_transaction(path: PathBuf, state: &mut crate::commands::wallet::CliState) -> CliResult<()> {
+async fn relay_transaction(path: PathBuf, state: &mut CliState) -> CliResult<()> {
     if state.rpc_client.is_none() {
         print_error("No RPC client is connected. Please connect to a node first.");
         return Err(CliError::Network("No RPC client is connected".to_string()));
@@ -173,9 +193,9 @@ async fn relay_transaction(path: PathBuf, state: &mut crate::commands::wallet::C
     }
     
     let tx_data = std::fs::read(&path)
-        .map_err(|e| CliError::Io(e))?;
+        .map_err(|e| CliError::IO(e.to_string()))?;
     
-    let tx = Transaction::deserialize(&tx_data)
+    let tx = RTransaction::deserialize(&tx_data)
         .map_err(|e| CliError::Input(format!("Failed to deserialize transaction: {}", e)))?;
     
     let rpc_client = state.rpc_client.as_ref().unwrap();
@@ -187,7 +207,7 @@ async fn relay_transaction(path: PathBuf, state: &mut crate::commands::wallet::C
     Ok(())
 }
 
-async fn connect_to_node(address: String, state: &mut crate::commands::wallet::CliState) -> CliResult<()> {
+async fn connect_to_node(address: String, state: &mut CliState) -> CliResult<()> {
     print_info(&format!("Connecting to node: {}", address));
     
     // Format address if needed
@@ -197,32 +217,52 @@ async fn connect_to_node(address: String, state: &mut crate::commands::wallet::C
         format!("http://{}", address)
     };
     
-    // Create RPC client
-    match Http::new(&rpc_url) {
+    // Load current config
+    let mut config = crate::config::CliConfig::load()
+        .map_err(|e| CliError::Config(format!("Failed to load config: {}", e)))?;
+    
+    // Create a new HTTP client
+    match Http::new(rpc_url.as_str()) {
         Ok(provider) => {
-            // Test the connection
-            let rpc_client = RpcClient::new(provider);
-            
-            // Attempt to get block count to verify connection
-            match rpc_client.get_block_count().await {
-                Ok(block_count) => {
-                    print_info(&format!("Connected to node with block height: {}", block_count));
+            // Connect to the node and get information
+            match provider.get_version().await {
+                Ok(result) => {
+                    print_success("Connected to node successfully");
+                    println!("Node Information:");
+                    println!("  RPC Server: {}", rpc_url);
+                    println!("  User Agent: {}", result.user_agent);
+                    println!("  Network Magic: {}", result.protocol.magic);
+                    println!("  Protocol: {}", result.protocol.address_version);
+                    
+                    if let Some(state_root) = result.protocol.state_root {
+                        println!("  State Root Enabled: {}", state_root);
+                    } else {
+                        println!("  State Root: Not available");
+                    }
+                    
+                    // Create RPC client and update state
+                    let rpc_client = RpcClient::new(provider);
                     state.rpc_client = Some(rpc_client);
-                    print_success(&format!("Connected to node: {}", rpc_url));
+                    
+                    // Update the state with the connected URL
+                    state.rpc_url = Some(rpc_url.clone());
+                    config.network.rpc_url = rpc_url.clone();
+                    config.save()
+                        .map_err(|e| CliError::Config(format!("Failed to save config: {}", e)))?;
+                    
+                    Ok(())
                 },
                 Err(e) => {
                     print_error(&format!("Failed to connect to node: {}", e));
-                    return Err(CliError::Network(format!("Failed to connect to node: {}", e)));
+                    Err(CliError::Network(format!("Failed to connect to node: {}", e)))
                 }
             }
         },
         Err(e) => {
-            print_error(&format!("Failed to create RPC client: {}", e));
-            return Err(CliError::Network(format!("Failed to create RPC client: {}", e)));
+            print_error(&format!("Failed to create HTTP client: {}", e));
+            Err(CliError::Network(format!("Failed to create HTTP client: {}", e)))
         }
     }
-    
-    Ok(())
 }
 
 async fn list_nodes(state: &mut crate::commands::wallet::CliState) -> CliResult<()> {

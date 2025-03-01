@@ -115,17 +115,17 @@ impl SgxEnclaveManager {
 	pub fn create_wallet(&self, password: &str) -> Result<SgxWallet, sgx_status_t> {
 		SgxWallet::new(self.enclave.clone(), password)
 	}
-	
+
 	#[cfg(not(feature = "sgx_deps"))]
 	pub fn get_enclave(&self) -> &() {
 		&self._private
 	}
-	
+
 	#[cfg(not(feature = "sgx_deps"))]
 	pub fn create_crypto(&self) -> SgxCrypto {
 		unimplemented!("SGX dependencies not available")
 	}
-	
+
 	#[cfg(not(feature = "sgx_deps"))]
 	pub fn create_wallet(&self, _password: &str) -> Result<SgxWallet, ()> {
 		unimplemented!("SGX dependencies not available")

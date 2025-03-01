@@ -1,0 +1,18 @@
+[build]
+rustdocflags = ["--cfg", "docsrs"]
+
+[env]
+CARGO_WORKSPACE_MEMBERS = ""
+
+# Override workspace-level configuration
+[net]
+offline = false
+git-fetch-with-cli = false
+retry = 2
+
+[cargo-new]
+default-registry = "crates-io"
+
+# Override workspace resolver
+[resolver]
+version = "2" 

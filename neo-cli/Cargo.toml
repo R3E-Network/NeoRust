@@ -8,17 +8,33 @@ license = "MIT"
 
 [dependencies]
 neo3 = { path = ".." }
-clap = { version = "4.4", features = ["derive"] }
-tokio = { version = "1.32", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-anyhow = "1.0"
-thiserror = "2.0.11"
-colored = "3.0.0"
+clap = { version = "4.4.18", features = ["derive"] }
+tokio = { version = "1.35.1", features = ["full"] }
+serde = "1.0.195"
+serde_json = "1.0.114"
+serde_derive = "1.0.195"
+anyhow = "1.0.79"
+thiserror = "1.0.56"
+lazy_static = "1.4.0"
+prettytable-rs = "0.10.0"
+confy = "0.5.1"
+dirs = "5.0.1"
+toml = "0.8.8"
+reqwest = { version = "0.11.22", features = ["json"] }
+num-bigint = "0.4.4"
+num-traits = "0.2.17"
+futures = "0.3.30"
+chrono = "0.4.31"
+base64 = "0.21.5"
+rand = "0.8.5"
+colored = "2.0.4"
 dialoguer = "0.11.0"
-indicatif = "0.17"
-config = "0.15.8"
-dirs = "6.0.0"
-log = "0.4"
-env_logger = "^0.11.3"
-hex = "0.4"
+hex = "0.4.3"
+primitive-types = "0.12.1"
+env_logger = "0.10.1"
+
+[dev-dependencies]
+tempfile = "3.10.0"
+regex = "1.10.5"
+assert_cmd = "2.0.13"
+predicates = "3.1.0"

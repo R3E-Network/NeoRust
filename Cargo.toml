@@ -37,6 +37,9 @@ all-features = true
 # https://doc.rust-lang.org/edition-guide/rust-2021/default-cargo-resolver.html
 resolver = "2"
 
+[workspace]
+members = []
+
 [dependencies]
 tokio = { version = "1.32", features = ["full"] }
 tokio-tungstenite = { version = "0.23.1", default-features = false }

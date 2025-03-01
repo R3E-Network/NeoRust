@@ -136,13 +136,13 @@ async fn deploy_contract(nef_path: PathBuf, manifest_path: PathBuf, account: Opt
                 print_error("No accounts in wallet");
                 return Err(CliError::Wallet("No accounts in wallet".to_string()));
             }
-            accounts[0].address().to_string()
+            accounts[0].get_address().to_string()
         }
     };
     
     // Find account in wallet
     let account_obj = wallet.get_accounts().iter()
-        .find(|a| a.address() == account_address)
+        .find(|a| a.get_address() == account_address)
         .ok_or_else(|| CliError::Wallet(format!("Account not found: {}", account_address)))?
         .clone();
     
@@ -154,15 +154,15 @@ async fn deploy_contract(nef_path: PathBuf, manifest_path: PathBuf, account: Opt
     
     // Get system fee
     let params = vec![
-        neo3::types::ContractParameter::ByteArray(nef_bytes),
-        neo3::types::ContractParameter::String(manifest_json)
+        neo3::types::ContractParameter::byte_array(nef_bytes),
+        neo3::types::ContractParameter::string(manifest_json)
     ];
     
     let invocation_result = rpc_client.invoke_function(
         &H160::from_hex_str("0xfffdc93764dbaddd97c48f252a53ea4643faa3fd").unwrap(), // Management contract
         "deploy",
         params,
-        Some(vec![account_obj.script_hash()]),
+        Some(vec![account_obj.get_script_hash()]),
     ).await.map_err(|e| CliError::Network(format!("Failed to test invoke deploy: {}", e)))?;
     
     let system_fee = invocation_result.gas_consumed;
@@ -175,21 +175,26 @@ async fn deploy_contract(nef_path: PathBuf, manifest_path: PathBuf, account: Opt
     
     // Build transaction
     let signers = vec![Signer {
-        account: account_obj.script_hash(),
+        account: account_obj.get_script_hash(),
         scopes: SignerScope::CalledByEntry,
         allowed_contracts: vec![],
         allowed_groups: vec![],
     }];
     
-    let mut tx_builder = TransactionBuilder::new()
+    let mut tx_builder = TransactionBuilder::new();
+    
+    tx_builder = tx_builder
         .version(0)
         .nonce((rand::random::<u32>() % 1000000) as u32)
+        .map_err(|e| CliError::TransactionBuilder(e.to_string()))?
         .valid_until_block(valid_until_block)
+        .map_err(|e| CliError::TransactionBuilder(e.to_string()))?
         .signers(signers)
-        .system_fee(system_fee);
+        .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
     
     // Add deploy script
-    tx_builder = tx_builder.script(nef.to_bytes())?;
+    tx_builder = tx_builder.script(nef.get_script())
+        .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
     
     // Calculate network fee
     let network_fee = rpc_client.calculate_network_fee(&tx_builder).await
@@ -198,15 +203,18 @@ async fn deploy_contract(nef_path: PathBuf, manifest_path: PathBuf, account: Opt
     tx_builder = tx_builder.network_fee(network_fee);
     
     // Sign transaction
-    let signed_tx = account_obj.sign_tx(tx_builder, &password)
-        .map_err(|e| CliError::Wallet(format!("Failed to sign transaction: {}", e)))?;
+    let signed_tx = sign_transaction(account_obj, tx_builder, &password)?;
     
     // Send transaction
     let result = rpc_client.send_raw_transaction(&signed_tx).await
         .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
     
     // Calculate contract hash
-    let contract_hash = crate::utils::calculate_contract_hash(&account_obj.script_hash(), nef.checksum, manifest.name.as_bytes());
+    let contract_hash = crate::utils::calculate_contract_hash(
+        &account_obj.get_script_hash(), 
+        nef.get_checksum(), 
+        manifest.name.as_ref().map(|s| s.as_bytes()).unwrap_or_default()
+    );
     
     print_success("Contract deployment transaction sent successfully");
     println!("Transaction hash: {}", result.hash);
@@ -262,13 +270,13 @@ async fn update_contract(script_hash: String, nef_path: PathBuf, manifest_path: 
                 print_error("No accounts in wallet");
                 return Err(CliError::Wallet("No accounts in wallet".to_string()));
             }
-            accounts[0].address().to_string()
+            accounts[0].get_address().to_string()
         }
     };
     
     // Find account in wallet
     let account_obj = wallet.get_accounts().iter()
-        .find(|a| a.address() == account_address)
+        .find(|a| a.get_address() == account_address)
         .ok_or_else(|| CliError::Wallet(format!("Account not found: {}", account_address)))?
         .clone();
     
@@ -284,16 +292,16 @@ async fn update_contract(script_hash: String, nef_path: PathBuf, manifest_path: 
     
     // Get system fee
     let params = vec![
-        neo3::types::ContractParameter::Hash160(contract_hash.clone()),
-        neo3::types::ContractParameter::ByteArray(nef_bytes),
-        neo3::types::ContractParameter::String(manifest_json)
+        neo3::types::ContractParameter::h160(contract_hash.clone()),
+        neo3::types::ContractParameter::byte_array(nef_bytes),
+        neo3::types::ContractParameter::string(manifest_json)
     ];
     
     let invocation_result = rpc_client.invoke_function(
         &H160::from_hex_str("0xfffdc93764dbaddd97c48f252a53ea4643faa3fd").unwrap(), // Management contract
         "update",
         params,
-        Some(vec![account_obj.script_hash()]),
+        Some(vec![account_obj.get_script_hash()]),
     ).await.map_err(|e| CliError::Network(format!("Failed to test invoke update: {}", e)))?;
     
     let system_fee = invocation_result.gas_consumed;
@@ -306,33 +314,40 @@ async fn update_contract(script_hash: String, nef_path: PathBuf, manifest_path: 
     
     // Build transaction
     let signers = vec![Signer {
-        account: account_obj.script_hash(),
+        account: account_obj.get_script_hash(),
         scopes: SignerScope::CalledByEntry,
         allowed_contracts: vec![],
         allowed_groups: vec![],
     }];
     
-    let mut tx_builder = TransactionBuilder::new()
+    let mut tx_builder = TransactionBuilder::new();
+    
+    tx_builder = tx_builder
         .version(0)
         .nonce((rand::random::<u32>() % 1000000) as u32)
+        .map_err(|e| CliError::TransactionBuilder(e.to_string()))?
         .valid_until_block(valid_until_block)
+        .map_err(|e| CliError::TransactionBuilder(e.to_string()))?
         .signers(signers)
-        .system_fee(system_fee);
+        .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
     
     // Add update script
     let script = ScriptBuilder::new()
         .contract_call(
             H160::from_hex_str("0xfffdc93764dbaddd97c48f252a53ea4643faa3fd").unwrap(),
             "update",
-            vec![
-                neo3::types::ContractParameter::Hash160(contract_hash),
-                neo3::types::ContractParameter::ByteArray(nef_bytes),
-                neo3::types::ContractParameter::String(manifest_json)
-            ]
+            &[
+                neo3::types::ContractParameter::h160(contract_hash),
+                neo3::types::ContractParameter::byte_array(nef_bytes),
+                neo3::types::ContractParameter::string(manifest_json)
+            ],
+            None
         )
-        .to_array();
+        .map_err(|e| CliError::Builder(e.to_string()))?
+        .build();
     
-    tx_builder = tx_builder.script(script);
+    tx_builder = tx_builder.script(script)
+        .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
     
     // Calculate network fee
     let network_fee = rpc_client.calculate_network_fee(&tx_builder).await
@@ -341,8 +356,7 @@ async fn update_contract(script_hash: String, nef_path: PathBuf, manifest_path: 
     tx_builder = tx_builder.network_fee(network_fee);
     
     // Sign transaction
-    let signed_tx = account_obj.sign_tx(tx_builder, &password)
-        .map_err(|e| CliError::Wallet(format!("Failed to sign transaction: {}", e)))?;
+    let signed_tx = sign_transaction(account_obj, tx_builder, &password)?;
     
     // Send transaction
     let result = rpc_client.send_raw_transaction(&signed_tx).await
@@ -393,11 +407,11 @@ async fn invoke_contract(script_hash: String, method: String, params: Option<Str
         
         // Display result
         println!("Invocation result:");
-        println!("  State: {}", result.state);
+        println!("  State: {:?}", result.state);
         println!("  Gas consumed: {}", result.gas_consumed);
         println!("  Stack:");
         for (i, item) in result.stack.iter().enumerate() {
-            println!("    {}: {}", i, item);
+            println!("    {}: {:?}", i, item);
         }
     } else {
         // Real invocation
@@ -419,13 +433,13 @@ async fn invoke_contract(script_hash: String, method: String, params: Option<Str
                     print_error("No accounts in wallet");
                     return Err(CliError::Wallet("No accounts in wallet".to_string()));
                 }
-                accounts[0].address().to_string()
+                accounts[0].get_address().to_string()
             }
         };
         
         // Find account in wallet
         let account_obj = wallet.get_accounts().iter()
-            .find(|a| a.address() == account_address)
+            .find(|a| a.get_address() == account_address)
             .ok_or_else(|| CliError::Wallet(format!("Account not found: {}", account_address)))?
             .clone();
         
@@ -437,7 +451,7 @@ async fn invoke_contract(script_hash: String, method: String, params: Option<Str
             &contract_hash,
             &method,
             parameters.clone(),
-            Some(vec![account_obj.script_hash()]),
+            Some(vec![account_obj.get_script_hash()]),
         ).await.map_err(|e| CliError::Network(format!("Failed to test invoke: {}", e)))?;
         
         let system_fee = invocation_result.gas_consumed;
@@ -450,25 +464,36 @@ async fn invoke_contract(script_hash: String, method: String, params: Option<Str
         
         // Build transaction
         let signers = vec![Signer {
-            account: account_obj.script_hash(),
+            account: account_obj.get_script_hash(),
             scopes: SignerScope::CalledByEntry,
             allowed_contracts: vec![],
             allowed_groups: vec![],
         }];
         
-        let mut tx_builder = TransactionBuilder::new()
+        let mut tx_builder = TransactionBuilder::new();
+        
+        tx_builder = tx_builder
             .version(0)
             .nonce((rand::random::<u32>() % 1000000) as u32)
+            .map_err(|e| CliError::TransactionBuilder(e.to_string()))?
             .valid_until_block(valid_until_block)
+            .map_err(|e| CliError::TransactionBuilder(e.to_string()))?
             .signers(signers)
-            .system_fee(system_fee);
+            .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
         
-        // Build script
+        // Create a script to execute the invoke
         let script = ScriptBuilder::new()
-            .contract_call(contract_hash, &method, parameters)
-            .to_array();
+            .contract_call(
+                contract_hash,
+                &method,
+                &parameters,
+                None
+            )
+            .map_err(|e| CliError::Builder(e.to_string()))?
+            .build();
         
-        tx_builder = tx_builder.script(script);
+        tx_builder = tx_builder.script(script)
+            .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
         
         // Calculate network fee
         let network_fee = rpc_client.calculate_network_fee(&tx_builder).await
@@ -476,9 +501,11 @@ async fn invoke_contract(script_hash: String, method: String, params: Option<Str
         
         tx_builder = tx_builder.network_fee(network_fee);
         
-        // Sign transaction
-        let signed_tx = account_obj.sign_tx(tx_builder, &password)
-            .map_err(|e| CliError::Wallet(format!("Failed to sign transaction: {}", e)))?;
+        // Build and sign the transaction
+        let tx = tx_builder.build().await
+            .map_err(|e| CliError::Transaction(format!("Failed to build transaction: {}", e)))?;
+        
+        let signed_tx = sign_transaction(account_obj, tx_builder, &password)?;
         
         // Send transaction
         let result = rpc_client.send_raw_transaction(&signed_tx).await
@@ -494,13 +521,13 @@ async fn invoke_contract(script_hash: String, method: String, params: Option<Str
 // Helper to convert JSON to ContractParameter
 fn contract_parameter_from_json(value: serde_json::Value) -> Result<neo3::types::ContractParameter, CliError> {
     match value {
-        serde_json::Value::Null => Ok(neo3::types::ContractParameter::Any),
-        serde_json::Value::Bool(b) => Ok(neo3::types::ContractParameter::Boolean(b)),
+        serde_json::Value::Null => Ok(neo3::types::ContractParameter::any()),
+        serde_json::Value::Bool(b) => Ok(neo3::types::ContractParameter::bool(b)),
         serde_json::Value::Number(n) => {
             if n.is_i64() {
-                Ok(neo3::types::ContractParameter::Integer(n.as_i64().unwrap().into()))
+                Ok(neo3::types::ContractParameter::integer(n.as_i64().unwrap().into()))
             } else if n.is_f64() {
-                Ok(neo3::types::ContractParameter::String(n.to_string()))
+                Ok(neo3::types::ContractParameter::string(n.to_string()))
             } else {
                 Err(CliError::Input("Invalid number type".to_string()))
             }
@@ -510,17 +537,17 @@ fn contract_parameter_from_json(value: serde_json::Value) -> Result<neo3::types:
             if s.starts_with("0x") {
                 let hex_str = &s[2..];
                 match hex::decode(hex_str) {
-                    Ok(bytes) => Ok(neo3::types::ContractParameter::ByteArray(bytes)),
-                    Err(_) => Ok(neo3::types::ContractParameter::String(s))
+                    Ok(bytes) => Ok(neo3::types::ContractParameter::byte_array(bytes)),
+                    Err(_) => Ok(neo3::types::ContractParameter::string(s))
                 }
             } else if s.starts_with("@") { // Special format for Hash160
                 let hash_str = &s[1..];
                 match H160::from_str(hash_str) {
-                    Ok(hash) => Ok(neo3::types::ContractParameter::Hash160(hash)),
-                    Err(_) => Ok(neo3::types::ContractParameter::String(s))
+                    Ok(hash) => Ok(neo3::types::ContractParameter::h160(hash)),
+                    Err(_) => Ok(neo3::types::ContractParameter::string(s))
                 }
             } else {
-                Ok(neo3::types::ContractParameter::String(s))
+                Ok(neo3::types::ContractParameter::string(s))
             }
         },
         serde_json::Value::Array(arr) => {
@@ -528,7 +555,7 @@ fn contract_parameter_from_json(value: serde_json::Value) -> Result<neo3::types:
             for item in arr {
                 params.push(contract_parameter_from_json(item)?);
             }
-            Ok(neo3::types::ContractParameter::Array(params))
+            Ok(neo3::types::ContractParameter::array(params))
         },
         serde_json::Value::Object(_) => {
             Err(CliError::Input("Object parameters not supported".to_string()))
@@ -549,14 +576,31 @@ async fn list_native_contracts(state: &mut crate::commands::wallet::CliState) ->
     let native_contracts = rpc_client.get_native_contracts().await
         .map_err(|e| CliError::Network(format!("Failed to get native contracts: {}", e)))?;
     
-    for contract in native_contracts {
-        println!("Contract Hash: {}", contract.hash);
-        println!("  Name: {}", contract.manifest.name);
-        println!("  ID: {}", contract.id);
+    for (i, contract) in native_contracts.iter().enumerate() {
+        println!("{}. {} ({})", i + 1, contract.name(), contract.hash());
         println!("  Supported Standards: {:?}", contract.manifest.supported_standards);
         println!();
     }
     
     print_success("Native contracts retrieved successfully");
     Ok(())
+}
+
+// Add this helper function at the end of the file
+fn sign_transaction<P>(account: &Account, mut tx_builder: TransactionBuilder<P>, password: &str) -> Result<Transaction<P>, CliError> 
+where 
+    P: JsonRpcProvider + 'static 
+{
+    // Get the private key from the account using the password
+    let private_key = account.decrypt_private_key(password)
+        .map_err(|e| CliError::Wallet(format!("Failed to decrypt private key: {}", e)))?;
+    
+    // Build and sign the transaction
+    let tx = tx_builder.build()
+        .map_err(|e| CliError::Transaction(format!("Failed to build transaction: {}", e)))?;
+        
+    let signed_tx = tx.sign(&private_key)
+        .map_err(|e| CliError::Transaction(format!("Failed to sign transaction: {}", e)))?;
+        
+    Ok(signed_tx)
 }

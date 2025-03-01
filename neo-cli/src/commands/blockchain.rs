@@ -4,6 +4,8 @@ use crate::utils::error::{CliError, CliResult};
 use crate::utils::{print_success, print_error, print_info};
 use std::path::PathBuf;
 use crate::utils::extensions::TransactionExtensions;
+use std::io;
+use hex;
 
 #[derive(Args, Debug)]
 pub struct BlockchainArgs {
@@ -88,10 +90,13 @@ async fn export_blockchain(path: PathBuf, start: u32, end: Option<u32>, state: &
     let total_blocks = end_block - start + 1;
     
     for i in start..=end_block {
-        let block = match rpc_client.get_block(i).await {
+        print!("\rExporting block {} of {}...", i, end_block);
+        io::stdout().flush().map_err(|e| CliError::IO(e.to_string()))?;
+        
+        let block = match rpc_client.get_block_by_index(i, true).await {
             Ok(block) => block,
             Err(e) => {
-                print_error(&format!("Failed to get block {}: {}", i, e));
+                print_error(&format!("Failed to retrieve block {}: {}", i, e));
                 continue;
             }
         };
@@ -128,7 +133,7 @@ async fn show_block(identifier: String, state: &mut crate::commands::wallet::Cli
     let rpc_client = state.rpc_client.as_ref().unwrap();
     
     // Determine if identifier is a hash or an index
-    let block = if identifier.starts_with("0x") || (identifier.len() == 64 && identifier.chars().all(|c| c.is_ascii_hexdigit())) {
+    if identifier.starts_with("0x") || (identifier.len() == 64 && identifier.chars().all(|c| c.is_ascii_hexdigit())) {
         // Identifier is a hash
         match rpc_client.get_block_by_hash(&identifier).await {
             Ok(block) => block,
@@ -138,14 +143,14 @@ async fn show_block(identifier: String, state: &mut crate::commands::wallet::Cli
             }
         }
     } else {
-        // Identifier is an index
-        let index = identifier.parse::<u32>().map_err(|_| CliError::Input("Invalid block index".to_string()))?;
-        match rpc_client.get_block(index).await {
+        // Treat as block index
+        let index = identifier.parse::<u32>().map_err(|_| {
+            CliError::Input(format!("Invalid block identifier. Must be a block hash or block index: {}", identifier))
+        })?;
+        
+        match rpc_client.get_block_by_index(index, true).await {
             Ok(block) => block,
-            Err(e) => {
-                print_error(&format!("Failed to get block by index: {}", e));
-                return Err(CliError::Network(format!("Failed to get block by index: {}", e)));
-            }
+            Err(e) => return Err(CliError::RPC(format!("Failed to get block by index: {}", e))),
         }
     };
     
@@ -154,15 +159,15 @@ async fn show_block(identifier: String, state: &mut crate::commands::wallet::Cli
     println!("Block Index: {}", block.index);
     println!("Block Time: {}", block.time);
     println!("Block Size: {}", block.size);
-    println!("Transaction Count: {}", block.tx.len());
-    println!("Merkle Root: {}", block.merkle_root);
-    println!("Previous Block: {}", block.prev_hash);
+    println!("Transaction Count: {}", block.transactions.len());
+    println!("Merkle Root: {}", block.merkle_root_hash);
+    println!("Previous Block: {}", block.prev_block_hash);
     println!("Next Consensus: {}", block.next_consensus);
     
     // Show transactions if there are any
-    if !block.tx.is_empty() {
+    if !block.transactions.is_empty() {
         println!("\nTransactions:");
-        for (i, tx) in block.tx.iter().enumerate() {
+        for (i, tx) in block.transactions.iter().enumerate() {
             println!("  {}. Hash: {}", i + 1, tx);
         }
     }
@@ -180,8 +185,26 @@ async fn show_transaction(hash: String, state: &mut crate::commands::wallet::Cli
     print_info(&format!("Fetching transaction information for: {}", hash));
     
     let rpc_client = state.rpc_client.as_ref().unwrap();
-    let tx = rpc_client.get_transaction(&hash).await
-        .map_err(|e| CliError::Network(format!("Failed to get transaction: {}", e)))?;
+    
+    // Remove '0x' prefix if present
+    let hash_str = if hash.starts_with("0x") {
+        &hash[2..]
+    } else {
+        &hash
+    };
+    
+    // Convert to H256
+    let hash_bytes = hex::decode(hash_str)
+        .map_err(|e| CliError::Input(format!("Invalid transaction hash format: {}", e)))?;
+    
+    if hash_bytes.len() != 32 {
+        return Err(CliError::Input("Transaction hash must be 32 bytes".to_string()));
+    }
+    
+    let hash = primitive_types::H256::from_slice(&hash_bytes);
+    
+    let tx = rpc_client.get_transaction(hash).await
+        .map_err(|e| CliError::RPC(format!("Failed to retrieve transaction: {}", e)))?;
     
     // Display transaction information
     println!("Transaction Hash: {}", tx.hash);
@@ -207,11 +230,13 @@ async fn show_transaction(hash: String, state: &mut crate::commands::wallet::Cli
         }
     }
     
-    // Display witnesses
-    println!("\nTransaction Witnesses ({}):", tx.witnesses.len());
-    for (i, witness) in tx.witnesses.iter().enumerate() {
-        println!("  {}. Invocation Script: 0x{}", i + 1, hex::encode(&witness.invocation_script));
-        println!("     Verification Script: 0x{}", hex::encode(&witness.verification_script));
+    // Show witnesses if any
+    if !tx.witnesses.is_empty() {
+        println!("\nWitnesses ({}):", tx.witnesses.len());
+        for (i, witness) in tx.witnesses.iter().enumerate() {
+            println!("  {}. Invocation Script: 0x{}", i + 1, hex::encode(&witness.invocation));
+            println!("     Verification Script: 0x{}", hex::encode(&witness.verification));
+        }
     }
     
     // Display script
@@ -230,51 +255,43 @@ async fn show_contract(hash: String, state: &mut crate::commands::wallet::CliSta
     print_info(&format!("Fetching contract information for: {}", hash));
     
     let rpc_client = state.rpc_client.as_ref().unwrap();
-    let contract = rpc_client.get_contract_state(&hash).await
-        .map_err(|e| CliError::Network(format!("Failed to get contract: {}", e)))?;
+    
+    // Convert from string to H160
+    let contract_hash = neo3::prelude::H160::from_str(&hash)
+        .map_err(|_| CliError::Input(format!("Invalid contract hash format: {}", hash)))?;
+    
+    let contract = rpc_client.get_contract_state(contract_hash).await
+        .map_err(|e| CliError::RPC(format!("Failed to retrieve contract: {}", e)))?;
     
     // Display contract information
     println!("Contract Hash: {}", contract.hash);
     println!("Contract ID: {}", contract.id);
-    println!("Contract Update Counter: {}", contract.update_counter);
-    println!("Contract NEF: {}", contract.nef.checksum);
+    println!("Update Counter: {}", contract.update_counter);
     
-    println!("\nContract Manifest:");
-    println!("  Name: {}", contract.manifest.name);
-    println!("  Groups: {}", contract.manifest.groups.len());
-    println!("  Features:");
-    for (feature, value) in contract.manifest.features.iter() {
-        println!("    {}: {}", feature, value);
+    println!("\nManifest:");
+    println!("  Name: {:?}", contract.manifest.name);
+    println!("  Groups: {:?}", contract.manifest.groups);
+    println!("  Features: {:?}", contract.manifest.features);
+    println!("  Supported Standards: {:?}", contract.manifest.supported_standards);
+    println!("  Trusts: {:?}", contract.manifest.trusts);
+    
+    if let Some(abi) = &contract.manifest.abi {
+        println!("\n  ABI Methods ({}):", abi.methods.len());
+        for (i, method) in abi.methods.iter().enumerate() {
+            println!("    {}. {} ({} parameters)", i + 1, method.name, method.parameters.len());
+        }
+        
+        println!("\n  ABI Events ({}):", abi.events.len());
+        for (i, event) in abi.events.iter().enumerate() {
+            println!("    {}. {} ({} parameters)", i + 1, event.name, event.parameters.len());
+        }
+    } else {
+        println!("\n  No ABI available");
     }
     
-    println!("  Supported Standards:");
-    for standard in contract.manifest.supported_standards.iter() {
-        println!("    {}", standard);
-    }
-    
-    println!("\n  ABI Methods ({}):", contract.manifest.abi.methods.len());
-    for (i, method) in contract.manifest.abi.methods.iter().enumerate() {
-        println!("    {}. Name: {}", i + 1, method.name);
-        println!("       Parameters: {:?}", method.parameters);
-        println!("       Return Type: {:?}", method.return_type);
-        println!("       Offset: {}", method.offset);
-        println!("       Safe: {}", method.safe);
-    }
-    
-    println!("\n  ABI Events ({}):", contract.manifest.abi.events.len());
-    for (i, event) in contract.manifest.abi.events.iter().enumerate() {
-        println!("    {}. Name: {}", i + 1, event.name);
-        println!("       Parameters: {:?}", event.parameters);
-    }
-    
-    println!("\n  Permissions ({}):", contract.manifest.permissions.len());
+    println!("\nPermissions ({}):", contract.manifest.permissions.len());
     for (i, perm) in contract.manifest.permissions.iter().enumerate() {
-        println!("    {}. {}", i + 1, perm);
-    }
-    
-    println!("\n  Trusts ({}):", contract.manifest.trusts.len());
-    for (i, trust) in contract.manifest.trusts.iter().enumerate() {
-        println!("    {}. {}", i + 1, trust);
+        println!("    {}. {:?}", i + 1, perm);
     }
     
     print_success("Contract information retrieved successfully");

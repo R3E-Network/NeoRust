@@ -1,10 +1,18 @@
 pub mod error;
 pub mod extensions;
+pub mod config;
 
 use colored::*;
 use dialoguer::{Input, Password};
 use error::{CliError, CliResult};
 use neo3::prelude::*;
+use std::error::Error;
+use std::io::{self, Write};
+use std::fs::File;
+use std::path::Path;
+use std::fmt::Display;
+use primitive_types::H160;
+use neo3::crypto::hash::{HashableForSha256, HashableForRipemd160};
 
 pub fn print_success(message: &str) {
     println!("{}", message.green());
@@ -51,17 +59,15 @@ pub fn prompt_yes_no(prompt: &str) -> CliResult<bool> {
 
 /// Calculate the contract hash based on sender, NEF checksum and contract name
 pub fn calculate_contract_hash(sender: &H160, checksum: u32, name_bytes: &[u8]) -> H160 {
-    use neo3::crypto::*;
-    
     // Concatenate sender bytes, checksum bytes and name bytes
     let mut data = Vec::new();
-    data.extend_from_slice(&sender.to_array());
+    data.extend_from_slice(&sender.0);
     data.extend_from_slice(&checksum.to_le_bytes());
     data.extend_from_slice(name_bytes);
     
     // Calculate the hash
-    let hash = Sha256::hash(&data);
-    let hash = Ripemd160::hash(&hash);
+    let hash = data.sha256_hash();
+    let hash = hash.ripemd160_hash();
     
     H160::from_slice(&hash)
 }
