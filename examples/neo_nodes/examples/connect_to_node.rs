@@ -1,3 +1,4 @@
+use neo3 as neo;
 use neo::{
     neo_clients::{HttpProvider, JsonRpcProvider},
     prelude::RpcClient,

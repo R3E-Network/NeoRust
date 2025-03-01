@@ -1,0 +1,16 @@
+[package]
+name = "neo_contracts_examples"
+version = "0.1.0"
+edition = "2021"
+authors = ["R3E Network <contact@r3e.network>"]
+publish = false
+
+[dependencies]
+neo3 = { path = "../../", package = "neo3" }
+tokio = { version = "1.32", features = ["full"] }
+eyre = "0.6"
+
+# Add examples based on the files in the examples directory
+[[example]]
+name = "deploy_neo_contract"
+path = "examples/deploy_neo_contract.rs" 

@@ -31,3 +31,9 @@ jobs:
         
       - name: Run tests with all compatible features
         run: cargo test --features "ledger,aws,futures" --no-fail-fast -- --nocapture
+        
+      - name: Test examples
+        run: |
+          echo "Testing examples..."
+          chmod +x scripts/test_examples.sh
+          ./scripts/test_examples.sh

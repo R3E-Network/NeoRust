@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use neo3 as neo;
 use neo::{
     neo_clients::{HttpProvider, JsonRpcProvider},
     neo_contract::NeoNameService,

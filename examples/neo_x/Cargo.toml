@@ -6,7 +6,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-neo = { path = "../../" }
+neo3 = { path = "../../" }
 tokio = { version = "1.0", features = ["full"] }
 primitive-types = "0.12.1"
 
