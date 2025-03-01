@@ -53,6 +53,7 @@ digest = ["dep:digest"]
 sha2 = ["dep:sha2"]
 ripemd160 = ["dep:ripemd160"]
 nightly = []
+ledger = [] # Feature for ledger hardware wallet integration
 
 [dev-dependencies]
-hex-literal = "1.0.0"    
+hex-literal = "1.0.0"      
