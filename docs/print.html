@@ -259,18 +259,22 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <h2 id="standard-installation"><a class="header" href="#standard-installation">Standard Installation</a></h2>
 <p>Add the NeoRust SDK to your Cargo.toml:</p>
 <pre><code class="language-toml">[dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust" }
+neo3 = "0.1.3"
 </code></pre>
 <h2 id="feature-flags"><a class="header" href="#feature-flags">Feature Flags</a></h2>
 <p>NeoRust supports various feature flags to enable specific functionality:</p>
 <pre><code class="language-toml">[dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "aws"] }
+neo3 = { version = "0.1.3", features = ["ledger", "crypto-standard"] }
 </code></pre>
 <p>Available features:</p>
 <ul>
+<li><code>std</code>: Standard library support with basic serialization (enabled by default)</li>
+<li><code>crypto-standard</code>: Cryptographic functionality including hash functions, key pair operations, and signature verification (enabled by default)</li>
 <li><code>ledger</code>: Support for Ledger hardware wallets</li>
-<li><code>aws</code>: AWS integration</li>
-<li><code>sgx</code>: Intel SGX support (requires additional setup)</li>
+<li><code>nightly</code>: Support for nightly Rust features (used for documentation)</li>
+<li><code>ripemd160</code>: RIPEMD-160 hash function support</li>
+<li><code>sha2</code>: SHA-2 hash function support</li>
+<li><code>digest</code>: Cryptographic digest algorithms</li>
 </ul>
 <h2 id="sgx-support"><a class="header" href="#sgx-support">SGX Support</a></h2>
 <p>To use the SGX features, you need to install the Intel SGX SDK. See the <a href="guides/../tutorials/sgx.html">SGX Setup Guide</a> for detailed instructions.</p>
