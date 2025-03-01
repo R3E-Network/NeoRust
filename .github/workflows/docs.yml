@@ -45,26 +45,47 @@ jobs:
           toolchain: stable
           override: true
       
+      - name: Setup Chrome (required for PDF generation)
+        uses: browser-actions/setup-chrome@v1
+      
       - name: Install mdBook plugins
         run: |
+          # Temporarily move rust-toolchain.toml to avoid nightly override
+          if [ -f "rust-toolchain.toml" ]; then
+            mv rust-toolchain.toml rust-toolchain.toml.bak
+          fi
+          
+          rustup default stable
           cargo install mdbook-mermaid
           cargo install mdbook-toc
           cargo install mdbook-admonish
           cargo install mdbook-linkcheck
           cargo install mdbook-pdf
+          
+          # Restore rust-toolchain.toml
+          if [ -f "rust-toolchain.toml.bak" ]; then
+            mv rust-toolchain.toml.bak rust-toolchain.toml
+          fi
       
-      - name: Setup Chrome (required for PDF generation)
-        uses: browser-actions/setup-chrome@v1
+      - name: Debug mdbook environment
+        run: |
+          cd docs
+          ls -la
+          mdbook --version
+          echo "Chrome version:"
+          google-chrome --version
+          echo "mdbook-pdf version:"
+          mdbook-pdf --version || echo "mdbook-pdf version check failed"
       
       - name: Build HTML documentation
         run: |
           cd docs
-          mdbook build
+          RUST_BACKTRACE=1 mdbook build
       
       - name: Generate PDF
         run: |
           cd docs
-          mdbook-pdf
+          RUST_BACKTRACE=1 mdbook-pdf
           mkdir -p book/html/pdf
           cp book/pdf/output.pdf book/html/pdf/neorust-sdk-documentation.pdf
       
