@@ -30,7 +30,7 @@ jobs:
         run: cargo build --verbose --no-default-features
         
       - name: Run tests with all compatible features
-        run: cargo test --features "crypto-standard" --no-fail-fast -- --nocapture
+        run: cargo test --features "crypto-standard" --no-fail-fast --lib --bins -- --nocapture
         
       - name: Test examples
         run: |
