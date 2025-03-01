@@ -23,6 +23,17 @@
 //! This module enables secure management of private keys and accounts, allowing users to interact
 //! with the Neo N3 blockchain in a secure manner.
 //!
+//! ## Feature Flags
+//!
+//! This module supports the following feature flags:
+//!
+//! - **wallet**: Core wallet functionality (always available when using this module)
+//! - **wallet-standard**: Enhanced wallet features with standard file formats (default)
+//! - **wallet-hardware**: Support for hardware wallets like Ledger
+//! - **wallet-secure**: Advanced security features for wallets
+//! - **bip39**: Support for BIP-39 mnemonic phrases
+//! - **yubikey**: Support for YubiHSM hardware security modules
+//!
 //! ## Examples
 //!
 //! ### Creating and using a wallet
@@ -98,41 +109,69 @@
 //!     
 //!     // Sign and send the transaction
 //!     let tx = tx_builder.sign_with(&signer).await?;
-//!     let tx_id = tx.send().await?;
+//!     let tx_hash = client.send_raw_transaction(&tx).await?;
 //!     
-//!     println!("Transaction sent: {}", tx_id);
+//!     println!("Transaction sent: {}", tx_hash);
 //!     
 //!     Ok(())
 //! }
 //! ```
 
-#[cfg(feature = "ledger")]
-pub use ledger::{HDPath, LedgerWallet};
-use p256::NistP256;
-#[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
-pub use yubihsm;
-
-pub use error::*;
-use neo::prelude::Account;
+// Core wallet types
 pub use wallet::*;
-pub use wallet_signer::WalletSigner;
-pub use wallet_trait::WalletTrait;
+pub use wallet_trait::*;
+pub use wallet_signer::*;
+pub use error::*;
 
-#[cfg(feature = "ledger")]
-mod ledger;
+// BIP-39 support
+#[cfg(feature = "bip39")]
+#[cfg_attr(docsrs, doc(cfg(feature = "bip39")))]
+pub use bip39_account::*;
+
+// Hardware wallet support
+#[cfg(feature = "wallet-hardware")]
+#[cfg_attr(docsrs, doc(cfg(feature = "wallet-hardware")))]
+pub use ledger::*;
+
+// YubiHSM support
+#[cfg(feature = "yubikey")]
+#[cfg_attr(docsrs, doc(cfg(feature = "yubikey")))]
+pub use yubi::*;
+
+// Core wallet modules
 mod wallet;
 mod wallet_trait;
+mod wallet_signer;
+mod error;
 
-/// A wallet instantiated with a locally stored private key
-pub type LocalWallet = WalletSigner<Account>;
-// pub type LocalWallet = Wallet<ethers_core::k256::ecdsa::SigningKey>;
+// BIP-39 support module
+#[cfg(feature = "bip39")]
+mod bip39_account;
 
-/// A wallet instantiated with a YubiHSM
-pub type YubiWallet = WalletSigner<yubihsm::ecdsa::Signer<NistP256>>;
+// Hardware wallet support module
+#[cfg(feature = "wallet-hardware")]
+mod ledger;
 
-// #[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
+// YubiHSM support module
+#[cfg(feature = "yubikey")]
 mod yubi;
 
-mod bip39_account;
-mod error;
-mod wallet_signer;
+// Type aliases for wallet implementations
+pub type LocalWallet = WalletSigner<crate::prelude::Account>;
+
+// Type aliases for hardware wallet implementations
+#[cfg(feature = "yubikey")]
+#[cfg_attr(docsrs, doc(cfg(feature = "yubikey")))]
+pub type YubiWallet = WalletSigner<yubihsm::ecdsa::Signer<yubihsm::ecdsa::NistP256>>;
+
+// Tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_wallet_creation() {
+        let wallet = Wallet::new().unwrap();
+        assert!(wallet.accounts().is_empty());
+    }
+}

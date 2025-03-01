@@ -18,6 +18,15 @@
 //! properties of Intel SGX to protect sensitive operations and data when interacting
 //! with the Neo N3 blockchain.
 //!
+//! ## Feature Flags
+//!
+//! This module requires the `sgx` feature to be enabled. Additional functionality
+//! is available with the following feature combinations:
+//!
+//! - **sgx**: Core SGX integration (required for all SGX functionality)
+//! - **wallet-secure**: Enhanced wallet security with SGX
+//! - **crypto-advanced**: Advanced cryptography within secure enclaves
+//!
 //! ## Examples
 //!
 //! ### Creating and using a wallet in an SGX enclave
@@ -72,10 +81,32 @@
 //! }
 //! ```
 
+// App-side SGX functionality - requires sgx feature
 #[cfg(feature = "sgx")]
+#[cfg_attr(docsrs, doc(cfg(feature = "sgx")))]
 pub mod app;
+
+// Enclave-side SGX functionality - requires sgx feature
 #[cfg(feature = "sgx")]
+#[cfg_attr(docsrs, doc(cfg(feature = "sgx")))]
 pub mod enclave;
 
+// EDL definitions - requires sgx feature
 #[cfg(feature = "sgx")]
+#[cfg_attr(docsrs, doc(cfg(feature = "sgx")))]
+pub mod edl;
+
+// Re-export app-side SGX functionality
+#[cfg(feature = "sgx")]
+#[cfg_attr(docsrs, doc(cfg(feature = "sgx")))]
 pub use app::*;
+
+// Advanced cryptography in SGX - requires crypto-advanced and sgx features
+#[cfg(all(feature = "sgx", feature = "crypto-advanced"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "sgx", feature = "crypto-advanced"))))]
+pub mod crypto;
+
+// Secure wallet functionality - requires wallet-secure and sgx features
+#[cfg(all(feature = "sgx", feature = "wallet-secure"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "sgx", feature = "wallet-secure"))))]
+pub mod wallet;

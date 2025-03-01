@@ -1,0 +1,141 @@
+name: Feature Combinations Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-test-matrix:
+    name: Build with different feature combinations
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        feature-set:
+          - "default"
+          - "std"
+          - "wallet,crypto-standard"
+          - "transaction,crypto-standard"
+          - "contract,transaction"
+          - "http-client"
+          - "ws-client"
+          - "nep17,contract,http-client"
+          - "nep11,contract,http-client"
+          - "wallet,transaction,http-client"
+          - "wallet-secure,crypto-advanced"
+          - "wallet-hardware,transaction"
+          - "ethereum-compat,transaction,http-client"
+          - "sgx,wallet-secure"
+          - "wasm,wallet,http-client"
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+      
+      - name: Build with "${{ matrix.feature-set }}" features
+        run: |
+          if [ "${{ matrix.feature-set }}" == "default" ]; then
+            cargo build --verbose
+          elif [ "${{ matrix.feature-set }}" == "std" ]; then
+            cargo build --verbose --no-default-features --features="std"
+          else
+            cargo build --verbose --no-default-features --features="${{ matrix.feature-set }}"
+          fi
+      
+      - name: Run tests with "${{ matrix.feature-set }}" features
+        run: |
+          if [ "${{ matrix.feature-set }}" == "default" ]; then
+            cargo test --verbose
+          elif [ "${{ matrix.feature-set }}" == "std" ]; then
+            cargo test --verbose --no-default-features --features="std"
+          else
+            cargo test --verbose --no-default-features --features="${{ matrix.feature-set }}"
+          fi
+
+  check-compile-times:
+    name: Measure compile times
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      
+      - name: Install cargo-timings
+        run: cargo install cargo-timings
+      
+      - name: Measure compile time with all features
+        run: |
+          cargo +stable clean
+          cargo +stable timings build --all-features
+          mkdir -p target/cargo-timings/all-features
+          cp target/cargo-timings/cargo-timing.html target/cargo-timings/all-features/
+      
+      - name: Measure compile time with minimal features
+        run: |
+          cargo +stable clean
+          cargo +stable timings build --no-default-features --features="wallet,crypto-standard"
+          mkdir -p target/cargo-timings/minimal-features
+          cp target/cargo-timings/cargo-timing.html target/cargo-timings/minimal-features/
+      
+      - name: Upload timing results
+        uses: actions/upload-artifact@v3
+        with:
+          name: cargo-timing-results
+          path: target/cargo-timings/
+          retention-days: 7
+
+  check-binary-sizes:
+    name: Measure binary sizes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      
+      - name: Build with all features
+        run: cargo build --release --all-features
+      
+      - name: Record all features binary size
+        run: |
+          echo "All features binary size:" > binary_sizes.txt
+          ls -lh target/release/libneo3.rlib >> binary_sizes.txt
+          echo "" >> binary_sizes.txt
+      
+      - name: Build with minimal features
+        run: |
+          cargo clean
+          cargo build --release --no-default-features --features="wallet,crypto-standard"
+      
+      - name: Record minimal features binary size
+        run: |
+          echo "Minimal features binary size:" >> binary_sizes.txt
+          ls -lh target/release/libneo3.rlib >> binary_sizes.txt
+      
+      - name: Upload binary size results
+        uses: actions/upload-artifact@v3
+        with:
+          name: binary-size-results
+          path: binary_sizes.txt
+          retention-days: 7 

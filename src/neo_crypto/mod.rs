@@ -17,6 +17,13 @@
 //! This module forms the cryptographic foundation for wallet management, transaction signing,
 //! and secure communication within the Neo N3 ecosystem.
 //!
+//! ## Feature Flags
+//!
+//! The crypto module has different feature levels:
+//!
+//! - **crypto-standard**: Basic cryptographic functions (default)
+//! - **crypto-advanced**: Enhanced cryptography with additional algorithms
+//!
 //! ## Examples
 //!
 //! ### Creating a key pair
@@ -65,21 +72,39 @@
 //! assert_eq!(private_key, recovered_key);
 //! ```
 
-pub use base58_helper::*;
+// Core crypto functionality - available with crypto-standard feature
 pub use error::*;
 pub use hash::*;
 pub use key_pair::*;
 pub use keys::*;
-pub use utils::*;
 pub use wif::*;
+pub use base58_helper::*;
 
-mod base58_helper;
+// Additional functionality available with crypto-advanced feature
+#[cfg(feature = "crypto-advanced")]
+#[cfg_attr(docsrs, doc(cfg(feature = "crypto-advanced")))]
+pub use utils::*;
+
+// Core crypto modules - always available with crypto-standard
 mod error;
 mod hash;
 mod key_pair;
 mod keys;
-mod utils;
 mod wif;
+mod base58_helper;
+
+// Advanced crypto modules - only available with crypto-advanced feature
+#[cfg(feature = "crypto-advanced")]
+mod utils;
+
+// Specialized crypto implementations based on features
+#[cfg(feature = "sgx")]
+#[cfg_attr(docsrs, doc(cfg(feature = "sgx")))]
+pub mod sgx_crypto;
+
+#[cfg(all(feature = "crypto-advanced", feature = "wasm"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "crypto-advanced", feature = "wasm"))))]
+pub mod browser_crypto;
 
 pub(crate) fn add(left: usize, right: usize) -> usize {
 	left + right

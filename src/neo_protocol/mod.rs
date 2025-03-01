@@ -16,6 +16,15 @@
 //! This module forms the foundation for blockchain interactions, defining the data structures
 //! and interfaces that represent the Neo N3 protocol.
 //!
+//! ## Feature Flags
+//!
+//! This module supports the following feature flags:
+//!
+//! - **transaction**: Core transaction functionality
+//! - **crypto-standard**: Required for account management and cryptographic operations
+//! - **wallet**: Enables advanced account features for wallet management
+//! - **http-client**: Required for response types from RPC calls
+//!
 //! ## Examples
 //!
 //! ### Working with Neo N3 accounts
@@ -57,13 +66,44 @@
 //! let private_key = decrypt_from_nep2(nep2_string, password).unwrap();
 //! ```
 
-pub use account::*;
-pub use nep2::*;
+// Core protocol errors are always available
 pub use protocol_error::*;
+
+// Account management requires crypto-standard feature
+#[cfg(feature = "crypto-standard")]
+#[cfg_attr(docsrs, doc(cfg(feature = "crypto-standard")))]
+pub use account::*;
+
+// NEP-2 functionality requires crypto-standard feature
+#[cfg(feature = "crypto-standard")]
+#[cfg_attr(docsrs, doc(cfg(feature = "crypto-standard")))]
+pub use nep2::*;
+
+// Response types from RPC calls require http-client feature
+#[cfg(feature = "http-client")]
+#[cfg_attr(docsrs, doc(cfg(feature = "http-client")))]
 pub use responses::*;
 
-mod account;
-mod nep2;
+// Role-based access control requires transaction feature
+#[cfg(feature = "transaction")]
+#[cfg_attr(docsrs, doc(cfg(feature = "transaction")))]
+pub use role::*;
+
+// Core protocol error is always available
 mod protocol_error;
+
+// Account management requires crypto-standard feature
+#[cfg(feature = "crypto-standard")]
+mod account;
+
+// NEP-2 functionality requires crypto-standard feature
+#[cfg(feature = "crypto-standard")]
+mod nep2;
+
+// Response types from RPC calls require http-client feature
+#[cfg(feature = "http-client")]
 mod responses;
+
+// Role-based access control requires transaction feature
+#[cfg(feature = "transaction")]
 mod role;

@@ -20,6 +20,16 @@
 //! This module makes it easy to interact with both system contracts and custom contracts
 //! on the Neo N3 blockchain.
 //!
+//! ## Feature Flags
+//!
+//! This module uses the following feature flags:
+//!
+//! - **contract**: Core contract functionality (always available when using this module)
+//! - **nep17**: Support for NEP-17 fungible tokens
+//! - **nep11**: Support for NEP-11 non-fungible tokens
+//! - **contract-deploy**: Support for deploying contracts
+//! - **contract-invoke**: Support for invoking contract methods
+//!
 //! ## Examples
 //!
 //! ### Interacting with the NEO token contract
@@ -80,33 +90,81 @@
 //! }
 //! ```
 
+// Core contract functionality - always available
 pub use contract_error::*;
 pub use contract_management::*;
-pub use famous::*;
-pub use fungible_token_contract::*;
-pub use gas_token::*;
-pub use iterator::*;
-pub use name_service::*;
-pub use neo_token::*;
-pub use neo_uri::*;
-pub use nft_contract::*;
-pub use policy_contract::*;
-pub use role_management::*;
 pub use traits::*;
+pub use iterator::*;
+pub use neo_uri::*;
 
+// Token standards - conditionally available
+#[cfg(feature = "nep17")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nep17")))]
+pub use fungible_token_contract::*;
+
+#[cfg(feature = "nep17")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nep17")))]
+pub use gas_token::*;
+
+#[cfg(feature = "nep17")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nep17")))]
+pub use neo_token::*;
+
+#[cfg(feature = "nep11")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nep11")))]
+pub use nft_contract::*;
+
+// System contracts - conditionally available
+#[cfg(feature = "http-client")]
+#[cfg_attr(docsrs, doc(cfg(feature = "http-client")))]
+pub use policy_contract::*;
+
+#[cfg(feature = "http-client")]
+#[cfg_attr(docsrs, doc(cfg(feature = "http-client")))]
+pub use role_management::*;
+
+#[cfg(feature = "http-client")]
+#[cfg_attr(docsrs, doc(cfg(feature = "http-client")))]
+pub use name_service::*;
+
+// Famous contracts - conditionally available
+#[cfg(all(feature = "nep17", feature = "http-client"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "nep17", feature = "http-client"))))]
+pub use famous::*;
+
+// Core contract modules - always available
 mod contract_error;
 mod contract_management;
-mod famous;
-mod fungible_token_contract;
-mod gas_token;
-mod iterator;
-mod name_service;
-mod neo_token;
-mod neo_uri;
-mod nft_contract;
-mod policy_contract;
-mod role_management;
 mod traits;
+mod iterator;
+mod neo_uri;
+
+// Token standard modules
+#[cfg(feature = "nep17")]
+mod fungible_token_contract;
+
+#[cfg(feature = "nep17")]
+mod gas_token;
+
+#[cfg(feature = "nep17")]
+mod neo_token;
+
+#[cfg(feature = "nep11")]
+mod nft_contract;
+
+// System contract modules
+#[cfg(feature = "http-client")]
+mod policy_contract;
+
+#[cfg(feature = "http-client")]
+mod role_management;
+
+#[cfg(feature = "http-client")]
+mod name_service;
+
+// Famous contracts module
+#[cfg(all(feature = "nep17", feature = "http-client"))]
+mod famous;
 
 #[cfg(test)]
 mod tests;

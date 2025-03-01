@@ -13,6 +13,16 @@
 //! - Handling transaction attributes
 //! - Building verification scripts
 //!
+//! ## Feature Flags
+//!
+//! This module supports the following feature flags:
+//!
+//! - **transaction**: Core transaction functionality (always available when using this module)
+//! - **contract-invoke**: Support for contract invocation features 
+//! - **contract-deploy**: Support for contract deployment features
+//! - **http-client**: Integration with RPC clients for transaction submission
+//! - **wallet**: Wallet integration for signing transactions
+//!
 //! ## Examples
 //!
 //! ### Building a Script for Contract Invocation
@@ -72,16 +82,34 @@
 //!
 //! See the [transaction](transaction/index.html) and [script](script/index.html) modules for more details.
 
+// Core builder error is always available
 pub use error::*;
+
+// Script building is always available with transaction feature
 pub use script::*;
+
+// Transaction building is always available with transaction feature
 pub use transaction::*;
+
+// Utility functions for transaction building
 pub use utils::*;
 
+// Core modules - available with transaction feature
 mod error;
 mod script;
 mod transaction;
 mod utils;
 
+// Contract invocation specific functionality
+#[cfg(feature = "contract-invoke")]
+pub mod invoke;
+
+// Contract deployment specific functionality
+#[cfg(feature = "contract-deploy")]
+pub mod deploy;
+
+// Internal function for testing
+#[doc(hidden)]
 pub fn add(left: usize, right: usize) -> usize {
 	left + right
 }

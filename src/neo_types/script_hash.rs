@@ -2,6 +2,7 @@ use byte_slice_cast::AsByteSlice;
 use hex::FromHexError;
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
+use rustc_hex::{FromHex, ToHex};
 
 use neo::prelude::{
 	public_key_to_script_hash, HashableForVec, Secp256r1PublicKey, TypeError,

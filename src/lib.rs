@@ -28,6 +28,20 @@
 //! use neo::prelude::*;
 //! ```
 //!
+//! ## Feature Flags
+//!
+//! NeoRust uses a flexible feature flag system that allows you to include only the 
+//! functionality you need, helping to reduce compile times and binary sizes.
+//!
+//! - **std**: Standard library support with basic serialization and utilities
+//! - **transaction**: Support for creating and signing transactions
+//! - **wallet**: Wallet management functionality
+//! - **contract**: Smart contract interaction capabilities
+//! - **http-client**: HTTP client for Neo N3 node communication
+//! - **ws-client**: WebSocket client for Neo N3 event subscriptions
+//! 
+//! See the README.md for a complete list of features and usage examples.
+//!
 //! ## Usage Examples
 //!
 //! ### Connecting to a Neo N3 node
@@ -293,68 +307,148 @@
 #[allow(unused_extern_crates)]
 extern crate self as neo;
 
-#[doc(inline)]
-pub use neo_builder as builder;
-#[doc(inline)]
-pub use neo_clients as providers;
-#[doc(inline)]
-pub use neo_codec as codec;
-#[doc(inline)]
-pub use neo_config as config;
-#[doc(inline)]
-pub use neo_contract as contract;
-#[doc(inline)]
-pub use neo_crypto as crypto;
-#[doc(inline)]
-pub use neo_protocol as protocol;
-#[doc(inline)]
-pub use neo_types as types;
-#[doc(inline)]
-pub use neo_wallets as wallets;
-#[doc(inline)]
-pub use neo_x as x;
-
-pub mod neo_builder;
-pub mod neo_clients;
-pub mod neo_codec;
-pub mod neo_config;
-pub mod neo_contract;
-pub mod neo_crypto;
+// Core modules - always available
 pub mod neo_error;
-pub mod neo_protocol;
-pub mod neo_types;
 pub mod neo_utils;
+pub mod neo_types;
+
+// Conditional modules based on features
+#[cfg(feature = "crypto-standard")]
+#[cfg_attr(docsrs, doc(cfg(feature = "crypto-standard")))]
+pub mod neo_crypto;
+
+#[cfg(feature = "transaction")]
+#[cfg_attr(docsrs, doc(cfg(feature = "transaction")))]
+pub mod neo_builder;
+
+#[cfg(feature = "http-client")]
+#[cfg_attr(docsrs, doc(cfg(feature = "http-client")))]
+pub mod neo_clients;
+
+#[cfg(any(feature = "transaction", feature = "contract"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "transaction", feature = "contract"))))]
+pub mod neo_codec;
+
+#[cfg(any(feature = "http-client", feature = "ws-client"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "http-client", feature = "ws-client"))))]
+pub mod neo_config;
+
+#[cfg(feature = "contract")]
+#[cfg_attr(docsrs, doc(cfg(feature = "contract")))]
+pub mod neo_contract;
+
+#[cfg(feature = "transaction")]
+#[cfg_attr(docsrs, doc(cfg(feature = "transaction")))]
+pub mod neo_protocol;
+
+#[cfg(feature = "wallet")]
+#[cfg_attr(docsrs, doc(cfg(feature = "wallet")))]
 pub mod neo_wallets;
+
+#[cfg(feature = "ethereum-compat")]
+#[cfg_attr(docsrs, doc(cfg(feature = "ethereum-compat")))]
 pub mod neo_x;
 
+// SGX module is only available when the sgx feature is enabled
 #[cfg(feature = "sgx")]
+#[cfg_attr(docsrs, doc(cfg(feature = "sgx")))]
 pub mod neo_sgx;
+
+// Re-exports for convenience
+#[doc(inline)]
+#[cfg(feature = "transaction")]
+pub use neo_builder as builder;
+
+#[doc(inline)]
+#[cfg(feature = "http-client")]
+pub use neo_clients as providers;
+
+#[doc(inline)]
+#[cfg(any(feature = "transaction", feature = "contract"))]
+pub use neo_codec as codec;
+
+#[doc(inline)]
+#[cfg(any(feature = "http-client", feature = "ws-client"))]
+pub use neo_config as config;
+
+#[doc(inline)]
+#[cfg(feature = "contract")]
+pub use neo_contract as contract;
+
+#[doc(inline)]
+#[cfg(feature = "crypto-standard")]
+pub use neo_crypto as crypto;
+
+#[doc(inline)]
+#[cfg(feature = "transaction")]
+pub use neo_protocol as protocol;
+
+#[doc(inline)]
+pub use neo_types as types;
+
+#[doc(inline)]
+#[cfg(feature = "wallet")]
+pub use neo_wallets as wallets;
+
+#[doc(inline)]
+#[cfg(feature = "ethereum-compat")]
+pub use neo_x as x;
 
 /// Convenient imports for commonly used types and traits.
 pub mod prelude {
-	pub use super::{
-		builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
-		providers::*, types::*, wallets::*, x::*,
-	};
+	// Core types and utilities - always available
+	pub use super::neo_error::*;
+	pub use super::neo_types::*;
+	pub use super::neo_utils::error::*;
+
+	// Conditional imports based on features
+	#[cfg(feature = "transaction")]
+	pub use super::builder::*;
+
+	#[cfg(any(feature = "transaction", feature = "contract"))]
+	pub use super::codec::*;
+
+	#[cfg(any(feature = "http-client", feature = "ws-client"))]
+	pub use super::config::*;
+
+	#[cfg(feature = "contract")]
+	pub use super::contract::*;
+
+	#[cfg(feature = "crypto-standard")]
+	pub use super::crypto::*;
+
+	#[cfg(feature = "transaction")]
+	pub use super::protocol::*;
+
+	#[cfg(feature = "http-client")]
+	pub use super::providers::*;
+
+	#[cfg(feature = "wallet")]
+	pub use super::wallets::*;
+
+	#[cfg(feature = "ethereum-compat")]
+	pub use super::x::*;
 
 	#[cfg(feature = "sgx")]
 	pub use super::neo_sgx::*;
-
-	pub use super::neo_utils::error::*;
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "http-client", feature = "transaction", feature = "wallet"))]
 mod tests {
 	use super::prelude::*;
 	use primitive_types::H160;
 	use std::str::FromStr;
+	
+	#[cfg(feature = "tokio/rt")]
 	use tokio;
+	
+	#[cfg(feature = "http-client")]
 	use url::Url;
 
+	#[cfg(all(test, feature = "tokio/rt"))]
 	#[tokio::test]
 	#[ignore] // Ignoring this test as it requires a live Neo N3 node and real tokens
 	async fn test_create_and_send_transaction() -> Result<(), Box<dyn std::error::Error>> {
-		init_logger();
 		// Initialize the JSON-RPC provider - using TestNet for safer testing
 		let http_provider = HttpProvider::new("https://testnet1.neo.org:443")?;
 		let rpc_client = RpcClient::new(http_provider);
@@ -400,22 +494,6 @@ mod tests {
 		println!("Transaction size: {} bytes", signed_tx.size());
 		println!("System fee: {} GAS", signed_tx.sys_fee as f64 / 100_000_000.0);
 		println!("Network fee: {} GAS", signed_tx.net_fee as f64 / 100_000_000.0);
-
-		// In a real scenario, we would send the transaction and wait for confirmation:
-		/*
-		// Send the transaction
-		let raw_tx = signed_tx.send_tx().await?;
-		println!("Transaction sent: {}", raw_tx.hash);
-
-		// Wait for the transaction to be confirmed
-		println!("Waiting for confirmation...");
-		signed_tx.track_tx(10).await?;
-		println!("Transaction confirmed!");
-
-		// Get the application log
-		let app_log = signed_tx.get_application_log(&rpc_client).await?;
-		println!("Application log: {:?}", app_log);
-		*/
 
 		Ok(())
 	}

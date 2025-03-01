@@ -24,6 +24,14 @@
 //! The module is designed to be flexible, allowing developers to choose the appropriate
 //! client implementation and transport mechanism for their specific use case.
 //!
+//! ## Feature Flags
+//!
+//! This module supports various feature flags to customize client functionality:
+//!
+//! - **http-client**: Enables HTTP transport for interacting with Neo nodes (default)
+//! - **ws-client**: Enables WebSocket transport for real-time updates and subscriptions
+//! - **full-node-client**: Enables both HTTP and WebSocket transports
+//!
 //! ## Examples
 //!
 //! ### Connecting to a Neo N3 node using HTTP
@@ -76,56 +84,62 @@
 //! }
 //! ```
 
+#[cfg(any(feature = "http-client", feature = "ws-client"))]
 use lazy_static::lazy_static;
 
+// Core client functionality - always available
 pub use api_trait::*;
 pub use errors::ProviderError;
 pub use ext::*;
-pub use mock_client::MockClient;
-use neo::prelude::NeoConstants;
 pub use rpc::*;
-#[allow(deprecated)]
-pub use test_provider::{MAINNET, TESTNET};
 pub use utils::*;
 
+// HTTP client functionality
+#[cfg(feature = "http-client")]
+#[cfg_attr(docsrs, doc(cfg(feature = "http-client")))]
+pub use rpc::http::*;
+
+// WebSocket client functionality
+#[cfg(feature = "ws-client")]
+#[cfg_attr(docsrs, doc(cfg(feature = "ws-client")))]
+pub use rpc::ws::*;
+
+// Test utilities - only exposed for testing
+#[cfg(test)]
+pub use mock_client::MockClient;
+
+#[allow(deprecated)]
+#[cfg(test)]
+pub use test_provider::{MAINNET, TESTNET};
+
+// Core modules - always available
 mod api_trait;
-/// Errors
 mod errors;
 mod ext;
-mod mock_blocks;
-mod mock_client;
 mod rpc;
-mod rx;
-/// Crate utilities and type aliases
 mod utils;
 
-lazy_static! {
-	pub static ref HTTP_PROVIDER: RpcClient<Http> = RpcClient::<Http>::try_from(
-		std::env::var("ENDPOINT").unwrap_or_else(|_| NeoConstants::SEED_1.to_string())
-	)
-	.unwrap();
-}
+// Testing modules - only compiled for tests
+#[cfg(test)]
+mod mock_blocks;
+#[cfg(test)]
+mod mock_client;
+#[cfg(test)]
+mod rx;
 
-#[allow(missing_docs)]
-/// Pre-instantiated Infura HTTP clients which rotate through multiple API keys
-/// to prevent rate limits
+#[cfg(test)]
+#[allow(dead_code)]
 mod test_provider {
-	use std::{convert::TryFrom, iter::Cycle, slice::Iter, sync::Mutex};
-
-	use once_cell::sync::Lazy;
-
 	use super::*;
+	use lazy_static::lazy_static;
+	use std::iter::{Cycle, Iter};
+	use std::sync::Mutex;
 
-	// List of infura keys to rotate through so we don't get rate limited
-	const INFURA_KEYS: &[&str] = &["15e8aaed6f894d63a0f6a0206c006cdd"];
+	lazy_static! {
+		pub static ref MAINNET: TestProvider = TestProvider::new(&[], "mainnet");
+		pub static ref TESTNET: TestProvider = TestProvider::new(&[], "testnet");
+	}
 
-	pub static MAINNET: Lazy<TestProvider> =
-		Lazy::new(|| TestProvider::new(INFURA_KEYS, "mainnet"));
-
-	pub static TESTNET: Lazy<TestProvider> =
-		Lazy::new(|| TestProvider::new(INFURA_KEYS, "testnet"));
-
-	#[derive(Debug)]
 	pub struct TestProvider {
 		network: String,
 		keys: Mutex<Cycle<Iter<'static, &'static str>>>,
@@ -133,27 +147,23 @@ mod test_provider {
 
 	impl TestProvider {
 		pub fn new(keys: &'static [&'static str], network: impl Into<String>) -> Self {
-			Self { keys: keys.iter().cycle().into(), network: network.into() }
+			Self { network: network.into(), keys: Mutex::new(keys.iter().cycle()) }
 		}
 
 		pub fn url(&self) -> String {
-			let Self { network, keys } = self;
-			let key = keys.lock().unwrap().next().unwrap();
-			format!("https://{network}.infura.io/v3/{key}")
+			"http://localhost:3000".to_string()
 		}
 
-		pub fn provider(&self) -> RpcClient<Http> {
-			RpcClient::try_from(self.url().as_str()).unwrap()
+		#[cfg(feature = "http-client")]
+		pub fn provider(&self) -> RpcClient<HttpProvider> {
+			let provider = HttpProvider::new(self.url().as_str()).unwrap();
+			RpcClient::new(provider)
 		}
 
-		#[cfg(feature = "ws")]
-		pub async fn ws(&self) -> RpcClient<crate::Ws> {
-			let url = format!(
-				"wss://{}.infura.neo.io/ws/v3/{}",
-				self.network,
-				self.keys.lock().unwrap().next().unwrap()
-			);
-			RpcClient::connect(url.as_str()).await.unwrap()
+		#[cfg(feature = "ws-client")]
+		pub async fn ws(&self) -> RpcClient<WebSocketProvider> {
+			let provider = WebSocketProvider::connect(self.url().as_str()).await.unwrap();
+			RpcClient::new(provider)
 		}
 	}
 }

@@ -15,6 +15,14 @@
 //! This module enables seamless integration between Neo N3 and EVM-compatible ecosystems,
 //! allowing developers to leverage both blockchain environments.
 //!
+//! ## Feature Flags
+//!
+//! This module requires the `ethereum-compat` feature to be enabled:
+//!
+//! - **ethereum-compat**: Core Ethereum compatibility for Neo X integration
+//! - **http-client**: Required for Neo X RPC communication
+//! - **contract**: Required for bridge contract interactions
+//!
 //! ## Examples
 //!
 //! ### Connecting to Neo X and getting chain information
@@ -81,8 +89,22 @@
 //! }
 //! ```
 
-pub mod bridge;
+// EVM compatibility module - requires ethereum-compat feature and http-client
+#[cfg(all(feature = "ethereum-compat", feature = "http-client"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "ethereum-compat", feature = "http-client"))))]
 pub mod evm;
 
-pub use bridge::*;
+// Bridge module - requires contract and http-client features
+#[cfg(all(feature = "ethereum-compat", feature = "contract", feature = "http-client"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "ethereum-compat", feature = "contract", feature = "http-client"))))]
+pub mod bridge;
+
+// Re-export EVM compatibility types
+#[cfg(all(feature = "ethereum-compat", feature = "http-client"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "ethereum-compat", feature = "http-client"))))]
 pub use evm::*;
+
+// Re-export bridge functionality
+#[cfg(all(feature = "ethereum-compat", feature = "contract", feature = "http-client"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "ethereum-compat", feature = "contract", feature = "http-client"))))]
+pub use bridge::*;
