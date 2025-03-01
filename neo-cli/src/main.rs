@@ -8,6 +8,7 @@ use crate::commands::blockchain::{BlockchainArgs, handle_blockchain_command};
 use crate::commands::network::{NetworkArgs, handle_network_command};
 use crate::commands::contract::{ContractArgs, handle_contract_command};
 use crate::commands::defi::{DefiArgs, handle_defi_command};
+use crate::commands::storage::{StorageArgs, handle_storage_command};
 use crate::config::CliConfig;
 use crate::utils::{print_success, print_error};
 use crate::utils::error::CliResult;
@@ -43,6 +44,9 @@ enum Commands {
     
     /// DeFi platform interactions
     Defi(DefiArgs),
+    
+    /// NeoFS storage commands
+    Storage(StorageArgs),
     
     /// Initialize a new configuration file
     Init {
@@ -96,6 +100,9 @@ async fn main() -> CliResult<()> {
         },
         Commands::Defi(args) => {
             handle_defi_command(args, &mut state).await?;
+        },
+        Commands::Storage(args) => {
+            handle_storage_command(args, &mut state).await?;
         },
         Commands::Init { path } => {
             let config_path = path.unwrap_or_else(|| {

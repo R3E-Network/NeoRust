@@ -65,7 +65,6 @@ Comprehensive documentation is available at:
 
 - **API Reference**: [https://docs.rs/neo3](https://docs.rs/neo3)
 - **Online Documentation**: [https://r3e-network.github.io/NeoRust/](https://r3e-network.github.io/NeoRust/)
-- **PDF Documentation**: [https://r3e-network.github.io/NeoRust/pdf/neorust-sdk-documentation.pdf](https://r3e-network.github.io/NeoRust/pdf/neorust-sdk-documentation.pdf)
 - **Crate Page**: [https://crates.io/crates/neo3](https://crates.io/crates/neo3)
 
 ## Quick Start
@@ -479,11 +478,11 @@ NeoRust provides several optional features that can be enabled in your `Cargo.to
 
 - **std**: Standard library support with basic serialization (enabled by default)
 - **crypto-standard**: Cryptographic functionality including hash functions, key pair operations, and signature verification (enabled by default)
+- **digest**: Cryptographic digest algorithms
+- **sha2**: SHA-2 hash function support
+- **ripemd160**: RIPEMD-160 hash function support
 - **ledger**: Support for hardware wallets via Ledger devices
 - **nightly**: Support for nightly Rust features (used for documentation)
-- **ripemd160**: RIPEMD-160 hash function support
-- **sha2**: SHA-2 hash function support
-- **digest**: Cryptographic digest algorithms
 
 Example of enabling multiple features:
 
@@ -494,7 +493,7 @@ neo3 = { version = "0.1.3", features = ["ledger", "crypto-standard"] }
 
 ## Feature Flag System
 
-NeoRust uses a comprehensive feature flag system to allow you to include only the functionality you need. This helps reduce compile times, decrease binary sizes, and simplify dependency management.
+NeoRust uses a feature flag system to allow you to include only the functionality you need. This helps reduce compile times, decrease binary sizes, and simplify dependency management.
 
 ### Core Feature Groups
 
@@ -503,47 +502,19 @@ The following core feature groups are available:
 - **std**: Standard library support with basic serialization (enabled by default)
 - **crypto-standard**: Cryptographic functionality including hash functions, key pair operations, and signature verification (enabled by default)
 
-### Token Standards
-
-Support for Neo N3 token standards:
-
-- **nep17**: NEP-17 fungible token standard support
-- **nep11**: NEP-11 non-fungible token standard support
-
-### Integration Features
-
-Features for integrating with external systems:
-
-- **sgx**: Intel SGX secure enclave integration
-- **wasm**: WebAssembly support for browser environments
-- **ledger**: Ledger hardware wallet support
-- **aws**: Amazon Web Services KMS integration
-- **ethereum-compat**: Ethereum compatibility for Neo X integration
-
 ### Cryptography Features
 
 Choose your required level of cryptographic functionality:
 
-- **crypto-standard**: Comprehensive cryptographic functions including hash functions, key pair operations, and signature verification (enabled by default)
-- **sha2**: SHA-2 hash function support (included in crypto-standard)
-- **ripemd160**: RIPEMD-160 hash function support (optional)
-- **digest**: Cryptographic digest algorithms (included in crypto-standard)
+- **crypto-standard**: Comprehensive cryptographic functions (enabled by default)
+- **sha2**: SHA-2 hash function support
+- **ripemd160**: RIPEMD-160 hash function support
+- **digest**: Cryptographic digest algorithms
 
-### Wallet Features
+### Other Features
 
-Enhanced wallet capabilities:
-
-- **wallet-standard**: Standard wallet with file I/O support (default with wallet)
-- **wallet-hardware**: Hardware wallet support
-- **wallet-secure**: Advanced security features for wallets
-
-### Serialization Support
-
-Data format support:
-
-- **serde**: Serialization/deserialization support
-- **json**: JSON format support
-- **binary-format**: Binary format utilities
+- **ledger**: Support for hardware wallets via Ledger devices
+- **nightly**: Support for nightly Rust features (used for documentation)
 
 ### Example Usage
 

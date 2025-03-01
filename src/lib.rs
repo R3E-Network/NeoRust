@@ -355,6 +355,9 @@ pub mod neo_x;
 #[cfg_attr(docsrs, doc(cfg(feature = "sgx")))]
 pub mod neo_sgx;
 
+/// Support for NeoFS decentralized storage system
+pub mod neo_fs;
+
 // Re-exports for convenience
 #[doc(inline)]
 #[cfg(feature = "transaction")]
@@ -436,6 +439,14 @@ pub mod prelude {
 
 	#[cfg(feature = "sgx")]
 	pub use super::neo_sgx::*;
+
+	// NeoFS exports
+	pub use crate::neo_fs::{
+		client::{NeoFsClient, NeoFsConfig},
+		types::{ContainerId, ObjectId, StoragePolicy, AccessRule},
+		container::{Container, ContainerBuilder},
+		object::{Object, ObjectBuilder},
+	};
 }
 
 #[cfg(all(test, feature = "http-client", feature = "transaction", feature = "wallet"))]
