@@ -49,7 +49,7 @@ You can also specify features if needed:
 
 ```toml
 [dependencies]
-neo3 = { version = "0.1.0", features = ["ledger", "aws", "futures"] }
+neo3 = { version = "0.1.1", features = ["ledger", "aws", "futures"] }
 ```
 
 For the latest development version, you can use the Git repository:
