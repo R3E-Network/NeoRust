@@ -51,7 +51,8 @@ std = ["serde/std", "serde_json/std", "primitive-types/std"]
 crypto-standard = ["crypto", "p256", "elliptic-curve", "signature", "rand_core", "tokio", "reqwest", "digest", "sha2", "ripemd", "hmac"]
 digest = ["dep:digest"]
 sha2 = ["dep:sha2"]
-ripemd160 = ["dep:ripemd160"]        
+ripemd160 = ["dep:ripemd160"]
+nightly = []
 
 [dev-dependencies]
-hex-literal = "1.0.0"  
+hex-literal = "1.0.0"    
