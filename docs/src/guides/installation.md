@@ -14,7 +14,7 @@ Add the NeoRust SDK to your Cargo.toml:
 
 ```toml
 [dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust" }
+neo3 = "0.1.3"
 ```
 
 ## Feature Flags
@@ -23,13 +23,17 @@ NeoRust supports various feature flags to enable specific functionality:
 
 ```toml
 [dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "aws"] }
+neo3 = { version = "0.1.3", features = ["ledger", "crypto-standard"] }
 ```
 
 Available features:
+- `std`: Standard library support with basic serialization (enabled by default)
+- `crypto-standard`: Cryptographic functionality including hash functions, key pair operations, and signature verification (enabled by default)
 - `ledger`: Support for Ledger hardware wallets
-- `aws`: AWS integration
-- `sgx`: Intel SGX support (requires additional setup)
+- `nightly`: Support for nightly Rust features (used for documentation)
+- `ripemd160`: RIPEMD-160 hash function support
+- `sha2`: SHA-2 hash function support
+- `digest`: Cryptographic digest algorithms
 
 ## SGX Support
 
