@@ -6,6 +6,7 @@ use hex::encode as hex_encode;
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "crypto-standard")]
 use sha2::{Digest, Sha256};
 
 /// `Bytes` is a wrapper around a vector of bytes (`Vec<u8>`) providing utility methods
@@ -30,10 +31,18 @@ impl Bytes {
 	}
 
 	fn base58_check_encoded(&self) -> String {
-		let checksum = &Sha256::digest(&Sha256::digest(&self.0))[..4];
-		let mut bytes = self.0.clone();
-		bytes.extend_from_slice(checksum);
-		bs58_encode(&bytes).into_string()
+		#[cfg(feature = "crypto-standard")]
+		{
+			let checksum = &Sha256::digest(&Sha256::digest(&self.0))[..4];
+			let mut bytes = self.0.clone();
+			bytes.extend_from_slice(checksum);
+			bs58_encode(&bytes).into_string()
+		}
+		#[cfg(not(feature = "crypto-standard"))]
+		{
+			// Placeholder implementation when crypto-standard is not enabled
+			bs58_encode(&self.0).into_string()
+		}
 	}
 
 	fn no_prefix_hex(&self) -> String {
@@ -45,17 +54,25 @@ impl Bytes {
 	}
 
 	fn scripthash_to_address(&self) -> String {
-		let mut script = vec![0x17];
-		script.extend_from_slice(&self.0.iter().rev().copied().collect::<Vec<_>>());
+		#[cfg(feature = "crypto-standard")]
+		{
+			let mut script = vec![0x17];
+			script.extend_from_slice(&self.0.iter().rev().copied().collect::<Vec<_>>());
 
-		let mut hasher = Sha256::new();
-		hasher.update(&script);
-		let checksum = &hasher.finalize()[..4];
+			let mut hasher = Sha256::new();
+			hasher.update(&script);
+			let checksum = &hasher.finalize()[..4];
 
-		let mut address = script;
-		address.extend_from_slice(checksum);
+			let mut address = script;
+			address.extend_from_slice(checksum);
 
-		bs58_encode(&address).into_string()
+			bs58_encode(&address).into_string()
+		}
+		#[cfg(not(feature = "crypto-standard"))]
+		{
+			// Placeholder implementation when crypto-standard is not enabled
+			bs58_encode(&self.0).into_string()
+		}
 	}
 
 	fn to_padded(&self, length: usize, trailing: bool) -> Result<Bytes, &'static str> {
