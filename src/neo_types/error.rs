@@ -1,7 +1,5 @@
 use thiserror::Error;
 
-use neo::prelude::CodecError;
-
 #[derive(Error, Debug, PartialEq, Eq, Hash, Clone)]
 pub enum TypeError {
 	#[error("Illegal argument: {0}")]
@@ -52,6 +50,6 @@ pub enum TypeError {
 	NumericOverflow,
 	#[error("Wif error {0}")]
 	WifError(String),
-	#[error(transparent)]
-	CodecError(#[from] CodecError),
+	#[error("Codec error: {0}")]
+	CodecError(String),
 }

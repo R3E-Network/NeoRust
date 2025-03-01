@@ -61,7 +61,7 @@ use std::{
 
 // use zeroize::Zeroize;
 use elliptic_curve::zeroize::Zeroize;
-use neo::prelude::{CryptoError, Decoder, Encoder, NeoConstants, NeoSerializable};
+use crate::neo_crypto::error::CryptoError;
 use p256::{
 	ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey},
 	elliptic_curve::{
@@ -232,7 +232,7 @@ impl Secp256r1PublicKey {
 		if self.inner.to_encoded_point(false).is_identity() {
 			1
 		} else {
-			NeoConstants::PUBLIC_KEY_SIZE_COMPRESSED as usize
+			33 // PUBLIC_KEY_SIZE_COMPRESSED
 		}
 	}
 }
@@ -591,31 +591,32 @@ impl PublicKeyExtension for Secp256r1PublicKey {
 	}
 }
 
-impl NeoSerializable for Secp256r1PublicKey {
-	type Error = CryptoError;
-
-	fn size(&self) -> usize {
-		NeoConstants::PUBLIC_KEY_SIZE_COMPRESSED as usize
-	}
-
-	fn encode(&self, writer: &mut Encoder) {
-		writer.write_bytes(&self.get_encoded(true));
-	}
-
-	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
-		let bytes = reader
-			.read_bytes(NeoConstants::PUBLIC_KEY_SIZE_COMPRESSED as usize)
-			.map_err(|_| CryptoError::InvalidPublicKey)?;
-		Secp256r1PublicKey::from_bytes(&bytes).map_err(|_| CryptoError::InvalidPublicKey)
-	}
-
-	fn to_array(&self) -> Vec<u8> {
-		//self.get_encoded(false)
-		let mut writer = Encoder::new();
-		self.encode(&mut writer);
-		writer.to_bytes()
-	}
-}
+// Temporarily commented out until NeoSerializable trait is properly defined
+// impl NeoSerializable for Secp256r1PublicKey {
+// 	type Error = CryptoError;
+// 
+// 	fn size(&self) -> usize {
+// 		33 // PUBLIC_KEY_SIZE_COMPRESSED
+// 	}
+// 
+// 	fn encode(&self, writer: &mut Encoder) {
+// 		writer.write_bytes(&self.get_encoded(true));
+// 	}
+// 
+// 	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
+// 		let bytes = reader
+// 			.read_bytes(33) // PUBLIC_KEY_SIZE_COMPRESSED
+// 			.map_err(|_| CryptoError::InvalidPublicKey)?;
+// 		Secp256r1PublicKey::from_bytes(&bytes).map_err(|_| CryptoError::InvalidPublicKey)
+// 	}
+// 
+// 	fn to_array(&self) -> Vec<u8> {
+// 		//self.get_encoded(false)
+// 		let mut writer = Encoder::new();
+// 		self.encode(&mut writer);
+// 		writer.to_bytes()
+// 	}
+// }
 
 #[cfg(test)]
 mod tests {

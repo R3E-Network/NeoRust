@@ -397,8 +397,12 @@ pub use neo_x as x;
 /// Convenient imports for commonly used types and traits.
 pub mod prelude {
 	// Core types and utilities - always available
-	pub use super::neo_error::*;
-	pub use super::neo_types::*;
+	pub use super::neo_error::{NeoError, BuilderError, CodecError, ContractError, ProtocolError, ProviderError, TransactionError, WalletError};
+	pub use super::neo_types::{
+		address::Address,
+		address_or_scripthash::AddressOrScriptHash,
+		script_hash::{ScriptHash, ScriptHashExtension, HashableForVec},
+	};
 	pub use super::neo_utils::error::*;
 
 	// Conditional imports based on features

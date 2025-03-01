@@ -86,7 +86,7 @@ pub use base58_helper::*;
 pub use utils::*;
 
 // Core crypto modules - always available with crypto-standard
-mod error;
+pub mod error;
 mod hash;
 mod key_pair;
 mod keys;
