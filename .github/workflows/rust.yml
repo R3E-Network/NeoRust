@@ -24,13 +24,13 @@ jobs:
           components: rustfmt, clippy
       
       - name: Build
-        run: cargo build --verbose --no-default-features --features "ledger,aws,futures"
+        run: cargo build --verbose --no-default-features --features "crypto-standard"
         
       - name: Build without default features
         run: cargo build --verbose --no-default-features
         
       - name: Run tests with all compatible features
-        run: cargo test --features "ledger,aws,futures" --no-fail-fast -- --nocapture
+        run: cargo test --features "crypto-standard" --no-fail-fast -- --nocapture
         
       - name: Test examples
         run: |
