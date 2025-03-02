@@ -2,10 +2,7 @@
 //!
 //! This module contains the script hash type and related functionality.
 
-use std::fmt;
-
 use primitive_types::H160;
-use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "utils")]
 pub use crate::neo_types::script_hash_extension::ScriptHashExtension;
