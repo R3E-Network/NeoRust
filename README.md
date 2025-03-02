@@ -22,35 +22,35 @@ NeoRust is a Rust SDK designed to simplify interaction with the Neo N3 blockchai
 
 ## Features
 
-NeoRust uses a flexible feature flag system to allow you to include only the functionality you need. This helps reduce compile times and binary sizes by only including what your application requires.
+NeoRust uses a modular feature system to allow you to include only the functionality you need. This helps reduce compile times and binary sizes by only including what your application requires.
 
-### Core Features
+### Core Feature Groups
 
-- `std`: Standard library support (enabled by default)
-- `crypto-standard`: Cryptographic primitives for Neo N3 (enabled by default)
+- **Core**: `std` - Standard library support (enabled by default)
+- **Crypto**: `crypto-standard` - Cryptographic functionality using standard libraries (enabled by default)
+- **Utils**: `utils` - Utility functions and helpers
+- **Serde**: `serde-support` - Serialization/deserialization support
+
+### Optional Features
+
+- `contract`: Smart contract interaction and deployment
+- `ledger`: Hardware wallet support
+- `nightly`: Documentation features for nightly Rust
+- `tokio-support`: Asynchronous runtime support
+- `transaction`: Transaction creation and signing
+- `aws-nitro-tee`: AWS Nitro Trusted Execution Environment support
+
+### Cryptography Features
+
+- `ripemd160`: RIPEMD-160 hash function for address generation
+- `sha2`: SHA2 hash functions
+- `digest`: Core digest traits for hash functions
 
 ### Transport Layers
 
 - `http-client`: HTTP client for communicating with Neo N3 nodes via JSON-RPC
 - `websocket`: WebSocket client for real-time updates and event subscription  
 - `rest-client`: RESTful API client for Neo N3 nodes
-
-### Hash Functions
-
-- `ripemd160`: RIPEMD-160 hash function for address generation
-- `sha2`: SHA2 hash functions
-- `digest`: Core digest traits for hash functions
-
-### Blockchain Features
-
-- `transaction`: Transaction creation, signing and broadcasting
-- `wallet`: Wallet management functionality including NEP-6 format
-- `contract`: Smart contract interaction and deployment
-- `ethereum-compat`: Ethereum compatibility layer
-
-### Runtime Dependencies
-
-- `tokio`: Asynchronous runtime for non-blocking operations
 
 ## Installation
 
@@ -206,37 +206,49 @@ neo3 = { version = "0.1.3", features = ["http-client", "transaction"] }
 
 ### Common Feature Combinations
 
-1. **Basic JSON-RPC client**
+1. **Minimal Application**
    ```toml
-   neo3 = { version = "0.1.3", features = ["http-client"] }
+   neo3 = { version = "0.1.3", features = ["std"] }
    ```
 
-2. **Full wallet and transaction support**
+2. **Basic Cryptography**
    ```toml
-   neo3 = { version = "0.1.3", features = ["http-client", "wallet", "transaction"] }
+   neo3 = { version = "0.1.3", features = ["std", "crypto-standard"] }
    ```
 
-3. **Smart contract interaction**
+3. **Transaction Support**
    ```toml
-   neo3 = { version = "0.1.3", features = ["contract"] }
+   neo3 = { version = "0.1.3", features = ["std", "crypto-standard", "transaction"] }
+   ```
+
+4. **Smart Contract Interaction**
+   ```toml
+   neo3 = { version = "0.1.3", features = ["std", "crypto-standard", "contract"] }
    ```
    
-4. **Real-time blockchain events**
+5. **Hardware Wallet Integration**
    ```toml
-   neo3 = { version = "0.1.3", features = ["websocket"] }
+   neo3 = { version = "0.1.3", features = ["std", "crypto-standard", "ledger"] }
+   ```
+   
+6. **AWS Nitro TEE Support**
+   ```toml
+   neo3 = { version = "0.1.3", features = ["std", "crypto-standard", "aws-nitro-tee"] }
    ```
 
 ## Feature Compatibility
 
 Not all features are compatible with each other due to design constraints. Here's a compatibility matrix:
 
-| Feature        | Requires                                 | Notes                                      |
-|----------------|------------------------------------------|-------------------------------------------|
-| `http-client`  | -                                        | Core JSON-RPC client                       |
-| `websocket`    | `tokio`                                  | Real-time event subscriptions              |
-| `transaction`  | `crypto-standard`                        | Transaction creation and signing           |
-| `wallet`       | `crypto-standard`                        | Wallet management                          |
-| `contract`     | `http-client`, `transaction`             | Smart contract interactions                |
+| Feature          | Requires                                 | Notes                                      |
+|------------------|------------------------------------------|-------------------------------------------|
+| `http-client`    | -                                        | Core JSON-RPC client                       |
+| `websocket`      | `tokio-support`                          | Real-time event subscriptions              |
+| `transaction`    | `crypto-standard`                        | Transaction creation and signing           |
+| `wallet`         | `crypto-standard`                        | Wallet management                          |
+| `contract`       | `crypto-standard`                        | Smart contract interactions                |
+| `aws-nitro-tee`  | `crypto-standard`                        | AWS Nitro TEE support                      |
+| `ledger`         | `crypto-standard`                        | Hardware wallet support                    |
 
 ## Example Usage
 

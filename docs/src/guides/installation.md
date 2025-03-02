@@ -26,14 +26,24 @@ NeoRust supports various feature flags to enable specific functionality:
 neo3 = { version = "0.1.3", features = ["ledger", "crypto-standard"] }
 ```
 
-Available features:
-- `std`: Standard library support with basic serialization (enabled by default)
-- `crypto-standard`: Cryptographic functionality including hash functions, key pair operations, and signature verification (enabled by default)
-- `ledger`: Support for Ledger hardware wallets
-- `nightly`: Support for nightly Rust features (used for documentation)
-- `ripemd160`: RIPEMD-160 hash function support
-- `sha2`: SHA-2 hash function support
-- `digest`: Cryptographic digest algorithms
+### Core Feature Groups
+- `std`: Standard library support (enabled by default)
+- `crypto-standard`: Cryptographic functionality using standard libraries (enabled by default)
+- `utils`: Utility functions and helpers
+- `serde-support`: Serialization/deserialization support
+
+### Optional Features
+- `contract`: Smart contract interaction and deployment
+- `ledger`: Hardware wallet support
+- `nightly`: Documentation features for nightly Rust
+- `tokio-support`: Asynchronous runtime support
+- `transaction`: Transaction creation and signing
+- `aws-nitro-tee`: AWS Nitro Trusted Execution Environment support
+
+### Cryptography Features
+- `ripemd160`: RIPEMD-160 hash function for address generation
+- `sha2`: SHA2 hash functions
+- `digest`: Core digest traits for hash functions
 
 ## SGX Support
 
