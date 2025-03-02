@@ -3,6 +3,7 @@
 use std::{
 	str::FromStr,
 	sync::atomic::{AtomicU64, Ordering},
+	fmt,
 };
 
 use async_trait::async_trait;
@@ -13,12 +14,30 @@ use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use url::Url;
 
-use neo::{
-	config::NeoConstants,
-	prelude::{JsonRpcProvider, ProviderError},
+use crate::neo_clients::{
+	errors::ProviderError,
+	rpc::connections::JsonRpcProvider,
 };
 
-use crate::prelude::Authorization;
+// Define Authorization enum here since we can't import it
+#[derive(Debug, Clone)]
+pub enum Authorization {
+    Basic(String, String),
+    Bearer(String),
+}
+
+impl ToString for Authorization {
+    fn to_string(&self) -> String {
+        match self {
+            Authorization::Basic(user, password) => {
+                format!("Basic {}", base64::encode(format!("{}:{}", user, password)))
+            }
+            Authorization::Bearer(token) => {
+                format!("Bearer {}", token)
+            }
+        }
+    }
+}
 
 use super::common::{JsonRpcError, Request, Response};
 
@@ -39,11 +58,19 @@ use super::common::{JsonRpcError, Request, Response};
 /// # Ok(())
 /// # }
 /// ```
-#[derive(Debug)]
 pub struct HttpProvider {
 	id: AtomicU64,
 	client: Client,
 	url: Url,
+}
+
+impl fmt::Debug for HttpProvider {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("HttpProvider")
+			.field("url", &self.url.to_string())
+			.field("id", &self.id.load(std::sync::atomic::Ordering::SeqCst))
+			.finish()
+	}
 }
 
 #[derive(Error, Debug)]
@@ -70,12 +97,11 @@ impl From<ClientError> for ProviderError {
 	fn from(src: ClientError) -> Self {
 		match src {
 			ClientError::ReqwestError(err) => ProviderError::HTTPError(err.into()),
-			ClientError::JsonRpcError(err) => ProviderError::JsonRpcError(err),
+			ClientError::JsonRpcError(err) => ProviderError::JsonRpcError(err.to_string()),
 			ClientError::SerdeJson { err, text } => {
 				debug!("SerdeJson Error: {:#?}, Response: {:#?}", err, text);
 				ProviderError::SerdeJson(err)
 			},
-			_ => ProviderError::IllegalState("unexpected error".to_string()),
 		}
 	}
 }
@@ -123,7 +149,7 @@ impl JsonRpcProvider for HttpProvider {
 impl Default for HttpProvider {
 	/// Default HTTP Provider from SEED_1
 	fn default() -> Self {
-		Self::new(Url::parse(NeoConstants::SEED_1).unwrap()).unwrap()
+		Self::new("http://localhost:10332").unwrap()
 	}
 }
 

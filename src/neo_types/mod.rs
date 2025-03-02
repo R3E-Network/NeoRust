@@ -76,7 +76,12 @@
 use base64::{engine::general_purpose, Engine};
 
 pub use log::*;
-use primitive_types::H256;
+use primitive_types::{H160, H256};
+use std::collections::HashMap;
+
+// Add dedicated import for wallet-related derives
+#[cfg(feature = "wallet")]
+use serde_derive::{Deserialize, Serialize};
 
 #[cfg(feature = "serde")]
 use serde_derive::{Deserialize, Serialize};
@@ -90,6 +95,7 @@ pub use numeric::*;
 pub use script_hash::*;
 pub use string::*;
 pub use util::*;
+pub use constants::*;
 
 // OpCode and VM state - needed for transaction and contract features
 #[cfg(any(feature = "transaction", feature = "contract"))]
@@ -111,8 +117,7 @@ pub use block::*;
 pub use serde_value::*;
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-pub use serde_with_utils::*;
+pub mod serde_with_utils;
 
 // Contract-related types
 #[cfg(feature = "contract")]
@@ -120,8 +125,7 @@ pub use serde_with_utils::*;
 pub use contract::*;
 
 #[cfg(feature = "contract")]
-#[cfg_attr(docsrs, doc(cfg(feature = "contract")))]
-pub use stack_item::*;
+pub mod stack_item;
 
 // Neo Name Service types
 #[cfg(feature = "http-client")]
@@ -152,7 +156,9 @@ pub use plugin_type::*;
 
 // Module declarations - some are always available, others are conditional
 #[cfg(feature = "contract")]
-mod contract;
+pub mod invocation;
+mod constants;
+pub mod contract;
 
 #[cfg(feature = "http-client")]
 mod nns;
@@ -169,10 +175,9 @@ pub mod util;
 
 // Conditional modules
 #[cfg(any(feature = "transaction", feature = "contract"))]
-mod op_code;
+pub mod op_code;
 
-#[cfg(any(feature = "transaction", feature = "contract"))]
-mod vm_state;
+pub mod vm_state;
 
 #[cfg(feature = "transaction")]
 mod block;
@@ -181,7 +186,7 @@ mod block;
 mod serde_value;
 
 #[cfg(feature = "serde")]
-mod serde_with_utils;
+pub mod serde_with_utils;
 
 #[cfg(feature = "contract")]
 mod stack_item;
@@ -221,24 +226,23 @@ impl ExternBase64 for String {
 	}
 }
 
-// Scrypt parameters - needed for wallet encryption
+// Instead of creating a separate module, define ScryptParamsDef directly here
 #[cfg(feature = "wallet")]
 #[cfg_attr(docsrs, doc(cfg(feature = "wallet")))]
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct ScryptParamsDef {
-	#[serde(rename = "n")]
-	pub log_n: u8,
-	#[serde(rename = "r")]
+	/// The number of iterations (N value)
+	pub n: u32,
+	/// The block size factor (r value)
 	pub r: u32,
-	#[serde(rename = "p")]
+	/// The parallelization factor (p value)
 	pub p: u32,
 }
 
 #[cfg(feature = "wallet")]
-#[cfg_attr(docsrs, doc(cfg(feature = "wallet")))]
 impl Default for ScryptParamsDef {
 	fn default() -> Self {
-		Self { log_n: 12, r: 8, p: 8 }
+		Self { n: 16384, r: 8, p: 8 }
 	}
 }
 
@@ -303,3 +307,342 @@ mod tests {
 		assert_eq!(decoded, vec![1, 2, 3, 4]);
 	}
 }
+
+// Add missing Block, Transaction and related types
+#[cfg(any(feature = "rest-client", feature = "websocket"))]
+pub mod block {
+	use crate::neo_types::script_hash::ScriptHash;
+	use primitive_types::H256;
+	use serde::{Deserialize, Serialize};
+
+	/// Represents a Neo N3 block
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Block {
+		/// Block hash
+		pub hash: H256,
+		/// Block size in bytes
+		pub size: u32,
+		/// Block version
+		pub version: u32,
+		/// Previous block hash
+		pub previousblockhash: H256,
+		/// Merkle root hash
+		pub merkleroot: H256,
+		/// Block timestamp
+		pub time: u64,
+		/// Block index (height)
+		pub index: u32,
+		/// Primary nonce
+		pub nonce: String,
+		/// Next consensus address
+		pub nextconsensus: String,
+		/// List of transaction hashes in this block
+		pub tx: Vec<H256>,
+		/// Block confirmations
+		pub confirmations: u32,
+		/// Next block hash
+		pub nextblockhash: Option<H256>,
+	}
+}
+
+#[cfg(any(feature = "rest-client", feature = "websocket"))]
+pub mod transaction {
+	use crate::neo_types::script_hash::ScriptHash;
+	use primitive_types::H256;
+	use serde::{Deserialize, Serialize};
+
+	/// Represents a Neo N3 transaction
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Transaction {
+		/// Transaction hash
+		pub hash: H256,
+		/// Transaction size in bytes
+		pub size: u32,
+		/// Transaction version
+		pub version: u8,
+		/// Transaction nonce
+		pub nonce: u32,
+		/// Sender account
+		pub sender: String,
+		/// System fee
+		pub sysfee: String,
+		/// Network fee
+		pub netfee: String,
+		/// Transaction validity period (block index)
+		pub validuntilblock: u32,
+		/// List of signers
+		pub signers: Vec<Signer>,
+		/// List of transaction attributes
+		pub attributes: Vec<Attribute>,
+		/// Script of the transaction
+		pub script: String,
+		/// List of witnesses
+		pub witnesses: Vec<Witness>,
+		/// Block hash this transaction is in
+		pub blockhash: Option<H256>,
+		/// Block time this transaction is in
+		pub blocktime: Option<u64>,
+		/// Transaction confirmations
+		pub confirmations: u32,
+	}
+
+	/// Represents a transaction signer
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Signer {
+		/// Signer account
+		pub account: String,
+		/// Signer scope
+		pub scopes: String,
+		/// Allowed contract hashes (when `CustomContracts` scope is used)
+		#[serde(skip_serializing_if = "Option::is_none")]
+		pub allowedcontracts: Option<Vec<String>>,
+		/// Allowed groups (when `CustomGroups` scope is used)
+		#[serde(skip_serializing_if = "Option::is_none")]
+		pub allowedgroups: Option<Vec<String>>,
+	}
+
+	/// Transaction attribute
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Attribute {
+		/// Attribute type
+		pub type_: String,
+		/// Attribute value
+		pub value: String,
+	}
+
+	/// Transaction witness
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Witness {
+		/// Witness invocation script
+		pub invocation: String,
+		/// Witness verification script
+		pub verification: String,
+	}
+}
+
+#[cfg(any(feature = "rest-client", feature = "websocket"))]
+pub mod application_log {
+	use primitive_types::H256;
+	use serde::{Deserialize, Serialize};
+	use serde_json::Value;
+
+	/// Represents application execution logs
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct ApplicationLog {
+		/// Transaction hash
+		pub txid: H256,
+		/// Block hash
+		pub blockhash: H256,
+		/// Execution results
+		pub executions: Vec<ExecutionResult>,
+	}
+
+	/// Execution result
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct ExecutionResult {
+		/// Trigger type
+		pub trigger: String,
+		/// VM state
+		pub vmstate: String,
+		/// Exception message if execution failed
+		pub exception: Option<String>,
+		/// Gas consumed
+		pub gasconsumed: String,
+		/// Stack items
+		pub stack: Vec<Value>,
+		/// Notifications
+		pub notifications: Vec<Notification>,
+	}
+
+	/// Neo N3 notification
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Notification {
+		/// Contract hash
+		pub contract: String,
+		/// Event name
+		pub eventname: String,
+		/// Event state
+		pub state: Value,
+	}
+}
+
+#[cfg(any(feature = "rest-client", feature = "websocket"))]
+pub mod contract_state {
+	use serde::{Deserialize, Serialize};
+	
+	/// Neo N3 contract state
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct ContractState {
+		/// Contract hash
+		pub hash: String,
+		/// Contract NEF (Neo Executable Format)
+		pub nef: Nef,
+		/// Contract manifest
+		pub manifest: Manifest,
+	}
+
+	/// Neo NEF (Neo Executable Format)
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Nef {
+		/// NEF magic number
+		pub magic: u32,
+		/// NEF compiler
+		pub compiler: String,
+		/// NEF source
+		pub source: String,
+		/// Token count
+		pub tokens: Vec<String>,
+		/// Script hash
+		pub script: String,
+		/// NEF checksum
+		pub checksum: u32,
+	}
+
+	/// Neo contract manifest
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Manifest {
+		/// Contract name
+		pub name: String,
+		/// Contract groups
+		pub groups: Vec<Group>,
+		/// Contract features
+		pub features: serde_json::Value,
+		/// Supported standards
+		pub supportedstandards: Vec<String>,
+		/// ABI (Application Binary Interface)
+		pub abi: Abi,
+		/// Contract permissions
+		pub permissions: Vec<Permission>,
+		/// Contract trusts
+		pub trusts: Vec<String>,
+		/// Additional contract data
+		pub extra: Option<serde_json::Value>,
+	}
+
+	/// Neo contract group
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Group {
+		/// Public key
+		pub pubkey: String,
+		/// Signature
+		pub signature: String,
+	}
+
+	/// Neo contract ABI
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Abi {
+		/// Contract methods
+		pub methods: Vec<Method>,
+		/// Contract events
+		pub events: Vec<Event>,
+	}
+
+	/// Neo contract method
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Method {
+		/// Method name
+		pub name: String,
+		/// Method parameters
+		pub parameters: Vec<Parameter>,
+		/// Method return type
+		pub returntype: String,
+		/// Method offset
+		pub offset: u32,
+		/// Is method safe (read-only)
+		pub safe: bool,
+	}
+
+	/// Neo contract event
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Event {
+		/// Event name
+		pub name: String,
+		/// Event parameters
+		pub parameters: Vec<Parameter>,
+	}
+
+	/// Neo contract parameter
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Parameter {
+		/// Parameter name
+		pub name: String,
+		/// Parameter type
+		pub type_: String,
+	}
+
+	/// Neo contract permission
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Permission {
+		/// Contract address
+		pub contract: String,
+		/// Allowed methods
+		pub methods: Vec<String>,
+	}
+}
+
+// Re-export types conditionally
+#[cfg(any(feature = "rest-client", feature = "websocket"))]
+pub use block::Block;
+#[cfg(any(feature = "rest-client", feature = "websocket"))]
+pub use transaction::Transaction;
+#[cfg(any(feature = "rest-client", feature = "websocket"))]
+pub use application_log::ApplicationLog;
+#[cfg(any(feature = "rest-client", feature = "websocket"))]
+pub use contract_state::ContractState;
+#[cfg(feature = "websocket")]
+pub mod notification {
+	use serde::{Deserialize, Serialize};
+	use serde_json::Value;
+
+	/// Neo N3 notification
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct Notification {
+		/// Contract hash
+		pub contract: String,
+		/// Event name
+		pub eventname: String,
+		/// Event state
+		pub state: Value,
+	}
+}
+#[cfg(feature = "websocket")]
+pub use notification::Notification;
+
+// We need to import or forward-declare ContractParameter if it's not imported yet
+#[cfg(feature = "contract")]
+use crate::neo_contract::contract_parameter::ContractParameter;
+#[cfg(not(feature = "contract"))]
+/// A forward declaration for ContractParameter when contract feature is not enabled
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ContractParameter;
+
+/// Enum for parameter values used in script building
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ParameterValue {
+	/// A boolean value
+	Bool(bool),
+	/// An integer value
+	Integer(i64),
+	/// A byte array value
+	ByteArray(Vec<u8>),
+	/// A string value
+	String(String),
+	/// A H160 (usually script hash) value
+	H160(H160),
+	/// A H256 (usually transaction hash) value
+	H256(H256),
+	/// A public key value
+	PublicKey(Vec<u8>),
+	/// A signature value
+	Signature(Vec<u8>),
+	/// An array of values
+	Array(Vec<ContractParameter>),
+	/// A map of key-value pairs
+	Map(Box<HashMap<ContractParameter, ContractParameter>>),
+}
+
+#[cfg(feature = "transaction")]
+mod block;
+
+#[cfg(any(feature = "transaction", feature = "contract"))]
+pub use invocation::*;

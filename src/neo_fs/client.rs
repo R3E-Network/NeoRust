@@ -1,5 +1,5 @@
 #[cfg(feature = "http-client")]
-use crate::neo_clients::{HttpProvider, JsonRpcProvider};
+use crate::neo_clients::{http::Http as HttpProvider, JsonRpcProvider};
 use crate::neo_fs::{
 	errors::{NeoFsError, NeoFsResult},
 	types::{AccessRule, ContainerId, ObjectId, ResponseStatus, StoragePolicy},
@@ -58,7 +58,7 @@ impl NeoFsClient {
 
 		#[cfg(all(feature = "http-client", not(feature = "transaction")))]
 		{
-			let provider = HttpProvider::new(&config.endpoint).map_err(|e| {
+			let provider = HttpProvider::new(config.endpoint.as_str()).map_err(|e| {
 				NeoFsError::NetworkError(format!("Failed to create HTTP provider: {}", e))
 			})?;
 
@@ -67,7 +67,7 @@ impl NeoFsClient {
 
 		#[cfg(all(feature = "http-client", feature = "transaction"))]
 		{
-			let provider = HttpProvider::new(&config.endpoint).map_err(|e| {
+			let provider = HttpProvider::new(config.endpoint.as_str()).map_err(|e| {
 				NeoFsError::NetworkError(format!("Failed to create HTTP provider: {}", e))
 			})?;
 
@@ -153,7 +153,8 @@ impl NeoFsClient {
 		let url = format!("{}/{}", self.config.endpoint, endpoint);
 		
 		// Create the request with timeout
-		let mut request_builder = self.provider.client().post(&url)
+		let client = reqwest::Client::new();
+		let mut request_builder = client.post(&url)
 			.timeout(Duration::from_secs(self.config.timeout_seconds))
 			.header("Content-Type", "application/json");
 		
@@ -168,53 +169,34 @@ impl NeoFsClient {
 			let auth_data = format!("{}:{}", endpoint, timestamp);
 			
 			#[cfg(feature = "crypto-standard")]
-			if let Ok(signature) = self.sign_request(auth_data.as_bytes()) {
+			{
+				let signature = self.sign_request(auth_data.as_bytes())?;
 				request_builder = request_builder
-					.header("X-Auth-Address", account.get_address().to_string())
-					.header("X-Auth-Signature", hex::encode(signature))
-					.header("X-Auth-Timestamp", timestamp.to_string());
+					.header("X-Auth-Timestamp", timestamp.to_string())
+					.header("X-Auth-Signature", hex::encode(&signature));
 			}
 		}
 		
-		// Create request body with JSON-RPC format
-		let request_body = serde_json::json!({
-			"jsonrpc": "2.0",
-			"method": endpoint,
-			"params": params,
-			"id": 1
-		});
-		
 		// Send the request
 		let response = request_builder
-			.json(&request_body)
+			.json(&params)
 			.send()
 			.await
-			.map_err(|e| NeoFsError::HttpError(format!("Failed to send request: {}", e)))?;
+			.map_err(|e| NeoFsError::HttpError(e.to_string()))?;
 		
-		// Check for HTTP errors
-		let status = response.status();
-		if !status.is_success() {
-			return Err(NeoFsError::HttpError(format!("HTTP error: {}", status)));
+		// Check for successful status code
+		if !response.status().is_success() {
+			let status = response.status();
+			let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+			return Err(NeoFsError::ResponseError(format!("HTTP {}: {}", status, error_text)));
 		}
 		
-		// Parse response
-		let response_json = response.json::<serde_json::Value>()
+		// Parse the response
+		let result = response.json::<serde_json::Value>()
 			.await
-			.map_err(|e| NeoFsError::InvalidResponse(format!("Failed to parse response: {}", e)))?;
+			.map_err(|e| NeoFsError::DeserializationError(e.to_string()))?;
 		
-		// Check for JSON-RPC error
-		if let Some(error) = response_json.get("error") {
-			return Err(NeoFsError::ApiError(
-				ResponseStatus::Failed,
-				error.to_string()
-			));
-		}
-		
-		// Extract and return result
-		match response_json.get("result") {
-			Some(result) => Ok(result.clone()),
-			None => Err(NeoFsError::InvalidResponse("Missing 'result' field in response".to_string()))
-		}
+		Ok(result)
 	}
 
 	// Internal method for signing NeoFS API requests
@@ -1148,6 +1130,7 @@ impl ObjectOperations {
 	}
 
 	/// Upload a file from a path
+	#[cfg(feature = "tokio")]
 	pub async fn upload_file(
 		&self,
 		container_id: &ContainerId,
@@ -1213,6 +1196,7 @@ impl ObjectOperations {
 	}
 	
 	/// Download an object to a file
+	#[cfg(feature = "tokio")]
 	pub async fn download_to_file(
 		&self,
 		container_id: &ContainerId,
@@ -1267,11 +1251,12 @@ impl ObjectOperations {
 	}
 	
 	/// Stream a large file upload with progress reporting
+	#[cfg(feature = "tokio")]
 	pub async fn stream_file_upload(
 		&self,
 		container_id: &ContainerId,
 		file_path: &std::path::Path,
-		additional_attributes: Vec<(String, String)>,
+			additional_attributes: Vec<(String, String)>,
 		progress_callback: Option<Box<dyn FnMut(usize, usize) + Send>>,
 	) -> NeoFsResult<ObjectId> {
 		use tokio::fs;

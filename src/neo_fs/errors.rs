@@ -57,5 +57,24 @@ impl fmt::Display for NeoFsError {
 
 impl Error for NeoFsError {}
 
+// Add From implementations for common error types
+impl From<serde_json::Error> for NeoFsError {
+	fn from(err: serde_json::Error) -> Self {
+		NeoFsError::SerializationError(err.to_string())
+	}
+}
+
+impl From<hex::FromHexError> for NeoFsError {
+	fn from(err: hex::FromHexError) -> Self {
+		NeoFsError::DeserializationError(err.to_string())
+	}
+}
+
+impl From<std::io::Error> for NeoFsError {
+	fn from(err: std::io::Error) -> Self {
+		NeoFsError::HttpError(err.to_string())
+	}
+}
+
 /// Result type for NeoFS operations
 pub type NeoFsResult<T> = Result<T, NeoFsError>;

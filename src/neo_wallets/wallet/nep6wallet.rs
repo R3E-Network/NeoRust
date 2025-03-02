@@ -1,9 +1,13 @@
 use std::collections::HashMap;
+use std::str::FromStr;
+
+use primitive_types::H160;
+use serde_derive::{Deserialize, Serialize};
+
+use crate::neo_types::ScryptParamsDef;
+use super::wallet::Account;
 
 use getset::{CopyGetters, Getters};
-use serde::{Deserialize, Serialize};
-
-use neo::prelude::{NEP6Account, ScryptParamsDef};
 
 /// Represents a NEP-6 wallet.
 #[derive(Serialize, Deserialize, Clone, Getters, CopyGetters)]
@@ -20,7 +24,7 @@ pub struct Nep6Wallet {
 	pub(crate) scrypt: ScryptParamsDef,
 	/// The accounts associated with the wallet.
 	#[serde(rename = "accounts")]
-	pub(crate) accounts: Vec<NEP6Account>,
+	pub(crate) accounts: Vec<Account>,
 	/// Additional data associated with the wallet.
 	#[serde(rename = "extra")]
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -56,7 +60,7 @@ impl Nep6Wallet {
 		name: String,
 		version: String,
 		scrypt: ScryptParamsDef,
-		accounts: Vec<NEP6Account>,
+		accounts: Vec<Account>,
 		extra: Option<HashMap<String, String>>,
 	) -> Self {
 		Self { name, version, scrypt, accounts, extra }

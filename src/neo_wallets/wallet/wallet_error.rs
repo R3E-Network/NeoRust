@@ -1,7 +1,13 @@
 use p256::ecdsa;
 use thiserror::Error;
 
-use neo::prelude::{BuilderError, CryptoError, ProviderError, TransactionError};
+use crate::neo_error::{BuilderError, ProviderError};
+#[cfg(feature = "crypto-standard")]
+use crate::neo_crypto::error::CryptoError;
+#[cfg(feature = "transaction")]
+use crate::neo_error::TransactionError;
+
+use super::wallet_detailed_error::WalletDetailedError;
 
 /// Errors that may occur within wallet operations.
 ///
@@ -55,103 +61,94 @@ use neo::prelude::{BuilderError, CryptoError, ProviderError, TransactionError};
 /// ```
 ///
 /// This approach allows for precise error handling and reporting, facilitating debugging and user feedback.
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum WalletError {
-	/// Error indicating an issue with the account's state, such as being locked or
-	/// insufficient funds. The contained message provides additional detail.
-	#[error("Account state error: {0}")]
-	AccountState(String),
-
-	/// Indicates that no key pair is available for a cryptographic operation, possibly
-	/// because it has not been generated or imported.
-	#[error("No key pair")]
-	NoKeyPair,
-
-	/// Wraps errors from the `ecdsa` crate, related to ECDSA signature operations.
-	/// This could include errors during signature generation or verification.
 	#[error(transparent)]
-	EcdsaError(#[from] ecdsa::Error),
+	Detailed(#[from] WalletDetailedError),
+	
+	/// Wraps cryptographic errors
+	#[cfg(feature = "crypto-standard")]
+	#[error("Crypto error: {0}")]
+	CryptoError(String),
 
-	/// Represents errors encountered during hex encoding or decoding operations,
-	/// such as an invalid hex character or incorrect string length.
-	#[error(transparent)]
-	HexError(#[from] hex::FromHexError),
+	/// Covers errors related to transaction operations
+	#[cfg(feature = "transaction")]
+	#[error("Transaction error: {0}")]
+	TransactionError(String),
 
-	/// Encapsulates errors arising from IO operations, like reading from or writing to
-	/// files. This includes file not found, permissions issues, and other file-related errors.
-	#[error(transparent)]
-	IoError(#[from] std::io::Error),
-
-	/// Signifies that the wallet does not have a designated default account, which might
-	/// be required for certain operations or configurations.
-	#[error("No default account")]
-	NoDefaultAccount,
-
-	/// Used when a key pair is found to be invalid, such as when a private key does not
-	/// match the public key, or the key pair cannot be used for signing due to corruption.
-	#[error("Invalid key pair")]
-	SignHashError,
-
-	/// Wraps generic cryptographic errors that might occur during operations such as
-	/// encryption, decryption, hashing, or key generation.
-	#[error(transparent)]
-	CryptoError(#[from] CryptoError),
-
-	/// Covers errors related to the creation, signing, or broadcasting of transactions,
-	/// including invalid transaction formats, insufficient gas, or nonce issues.
-	#[error(transparent)]
-	TransactionError(#[from] TransactionError),
-
-	/// Indicates issues encountered during the construction or configuration of wallet
-	/// components, such as invalid parameters or configurations that cannot be applied.
-	#[error(transparent)]
-	BuilderError(#[from] BuilderError),
-
-	/// Indicates an invalid signature
-	#[error("Invalid signature")]
-	VerifyError,
-
-	/// Errors related to Ledger hardware wallet operations
-	#[error("Ledger error: {0}")]
-	LedgerError(String),
-
-	/// Error indicating no accounts in wallet
-	#[error("No accounts in wallet")]
-	NoAccounts,
-
-	/// Errors related to YubiHSM operations
-	#[error("YubiHSM error: {0}")]
-	YubiHsmError(String),
-
+	/// Indicates issues during construction
+	#[error("Builder error: {0}")]
+	BuilderError(String),
+	
 	/// Errors from the RPC provider
-	#[error(transparent)]
-	ProviderError(#[from] ProviderError),
+	#[error("Provider error: {0}")]
+	ProviderError(String),
+	
+	/// General wallet error
+	#[error("General wallet error: {0}")]
+	General(String),
+}
 
-	/// Errors during account decryption
-	#[error("Decryption error: {0}")]
-	DecryptionError(String),
+// Implement conversion from the top-level WalletError
+impl From<crate::neo_error::WalletError> for WalletError {
+	fn from(err: crate::neo_error::WalletError) -> Self {
+		WalletError::General(format!("{}", err))
+	}
+}
 
-	/// Errors during transaction signing
-	#[error("Signing error: {0}")]
-	SigningError(String),
+impl From<String> for WalletError {
+	fn from(s: String) -> Self {
+		WalletError::Detailed(WalletDetailedError::AccountState(s))
+	}
+}
 
-	/// Errors during file operations
-	#[error("File error: {0}")]
-	FileError(String),
+impl From<&str> for WalletError {
+	fn from(s: &str) -> Self {
+		WalletError::Detailed(WalletDetailedError::AccountState(s.to_string()))
+	}
+}
 
-	/// Errors during parsing operations
-	#[error("Parse error: {0}")]
-	ParseError(String),
+impl From<ecdsa::Error> for WalletError {
+	fn from(err: ecdsa::Error) -> Self {
+		WalletError::Detailed(WalletDetailedError::EcdsaError(err))
+	}
+}
 
-	/// Errors during key import operations
-	#[error("Import error: {0}")]
-	ImportError(String),
+impl From<hex::FromHexError> for WalletError {
+	fn from(err: hex::FromHexError) -> Self {
+		WalletError::Detailed(WalletDetailedError::HexError(err))
+	}
+}
 
-	/// Invalid password provided
-	#[error("Invalid password")]
-	InvalidPassword,
+impl From<std::io::Error> for WalletError {
+	fn from(err: std::io::Error) -> Self {
+		WalletError::Detailed(WalletDetailedError::IoError(err))
+	}
+}
 
-	/// Errors during deserialization
-	#[error("Deserialization error: {0}")]
-	DeserializationError(String),
+// Add conversions for external error types
+#[cfg(feature = "crypto-standard")]
+impl From<CryptoError> for WalletError {
+    fn from(err: CryptoError) -> Self {
+        WalletError::CryptoError(err.to_string())
+    }
+}
+
+#[cfg(feature = "transaction")]
+impl From<TransactionError> for WalletError {
+    fn from(err: TransactionError) -> Self {
+        WalletError::TransactionError(err.to_string())
+    }
+}
+
+impl From<ProviderError> for WalletError {
+    fn from(err: ProviderError) -> Self {
+        WalletError::ProviderError(err.to_string())
+    }
+}
+
+impl From<BuilderError> for WalletError {
+    fn from(err: BuilderError) -> Self {
+        WalletError::BuilderError(format!("{:?}", err))
+    }
 }

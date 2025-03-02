@@ -54,6 +54,11 @@ impl ContainerId {
 		hex::decode_to_slice(hex_str.trim_start_matches("0x"), &mut bytes)?;
 		Ok(Self(bytes))
 	}
+	
+	/// Creates a container ID from a string (assumes hex format)
+	pub fn from_string(s: &str) -> Result<Self, hex::FromHexError> {
+		Self::from_hex(s)
+	}
 }
 
 impl fmt::Display for ContainerId {
@@ -82,6 +87,11 @@ impl ObjectId {
 		let mut bytes = [0u8; 32];
 		hex::decode_to_slice(hex_str.trim_start_matches("0x"), &mut bytes)?;
 		Ok(Self(bytes))
+	}
+	
+	/// Creates an object ID from a string (assumes hex format)
+	pub fn from_string(s: &str) -> Result<Self, hex::FromHexError> {
+		Self::from_hex(s)
 	}
 }
 

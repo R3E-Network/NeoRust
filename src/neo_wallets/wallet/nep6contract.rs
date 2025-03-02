@@ -1,56 +1,80 @@
-use getset::Getters;
-use serde::{Deserialize, Serialize};
+use serde_derive::{Deserialize, Serialize};
 
-use neo::prelude::ContractParameterType;
-
-/// Represents a NEP-6 contract.
-#[derive(Clone, Debug, Serialize, Deserialize, Getters)]
+/// Represents a NEP-6 contract in a wallet.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NEP6Contract {
-	/// The script associated with the contract.
-	#[getset(get = "pub")]
-	#[serde(rename = "script")]
+	/// The script content, usually base64 encoded
 	pub script: Option<String>,
-
-	/// Indicates whether the contract is deployed.
-	#[getset(get = "pub")]
-	#[serde(rename = "deployed")]
-	pub is_deployed: bool,
-
-	/// The NEP-6 parameters associated with the contract.
-	#[getset(get = "pub")]
+	/// Parameters for the contract
 	#[serde(rename = "parameters")]
 	pub nep6_parameters: Vec<NEP6Parameter>,
+	/// Whether this contract is deployed
+	#[serde(rename = "deployed")]
+	pub is_deployed: bool,
 }
 
-/// Represents a NEP-6 parameter.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Getters)]
+/// Represents a parameter in a NEP-6 contract.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NEP6Parameter {
-	/// The name of the parameter.
-	#[getset(get = "pub")]
-	#[serde(rename = "name")]
+	/// Parameter name
 	pub param_name: String,
-
-	/// The type of the parameter.
-	#[getset(get = "pub")]
+	/// Parameter type
 	#[serde(rename = "type")]
-	pub param_type: ContractParameterType,
+	pub param_type: String,
 }
 
-impl PartialEq for NEP6Contract {
-	/// Checks if two `NEP6Contract` instances are equal.
-	///
-	/// # Example
-	///
-	/// ```
-	/// use NeoRust::prelude::NEP6Contract;
-	///
-	/// let contract1 = NEP6Contract::default();
-	/// let contract2 = NEP6Contract::default();
-	/// assert_eq!(contract1, contract2);
-	/// ```
-	fn eq(&self, other: &Self) -> bool {
-		self.script == other.script
-			&& self.nep6_parameters == other.nep6_parameters
-			&& self.is_deployed == other.is_deployed
+impl NEP6Contract {
+	/// Creates a new NEP-6 contract.
+	pub fn new(script: Option<String>, parameters: Vec<NEP6Parameter>, is_deployed: bool) -> Self {
+		Self {
+			script,
+			nep6_parameters: parameters,
+			is_deployed,
+		}
+	}
+
+	/// Returns a reference to the script.
+	pub fn script(&self) -> &Option<String> {
+		&self.script
+	}
+
+	/// Returns a reference to the parameters.
+	pub fn parameters(&self) -> &Vec<NEP6Parameter> {
+		&self.nep6_parameters
+	}
+
+	/// Checks if the contract is deployed.
+	pub fn is_deployed(&self) -> bool {
+		self.is_deployed
+	}
+}
+
+impl NEP6Parameter {
+	/// Creates a new NEP-6 parameter.
+	pub fn new(name: String, param_type: String) -> Self {
+		Self {
+			param_name: name,
+			param_type,
+		}
+	}
+
+	/// Returns a reference to the parameter name.
+	pub fn param_name(&self) -> &String {
+		&self.param_name
+	}
+
+	/// Returns a reference to the parameter type.
+	pub fn param_type(&self) -> &String {
+		&self.param_type
+	}
+}
+
+impl Default for NEP6Contract {
+	fn default() -> Self {
+		Self {
+			script: None,
+			nep6_parameters: Vec::new(),
+			is_deployed: false,
+		}
 	}
 }

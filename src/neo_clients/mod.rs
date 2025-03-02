@@ -84,48 +84,41 @@
 //! }
 //! ```
 
-#[cfg(any(feature = "http-client", feature = "ws-client"))]
+#[cfg(any(feature = "http-client", feature = "websocket"))]
 use lazy_static::lazy_static;
 
-// Core client functionality - always available
-pub use api_trait::*;
+// Error module definition
+pub mod errors;
 pub use errors::ProviderError;
-pub use ext::*;
-pub use rpc::*;
-pub use utils::*;
+
+// Core modules
+pub mod rpc;
+pub use rpc::JsonRpcProvider;
+pub use rpc::RpcClient;
 
 // HTTP client functionality
 #[cfg(feature = "http-client")]
-#[cfg_attr(docsrs, doc(cfg(feature = "http-client")))]
-pub use rpc::http::*;
+pub mod http;
+#[cfg(feature = "http-client")]
+pub use http::*;
+
+// Mock client for testing
+#[cfg(feature = "http-client")]
+pub mod mock_client;
+#[cfg(feature = "http-client")]
+pub use mock_client::*;
 
 // WebSocket client functionality
-#[cfg(feature = "ws-client")]
-#[cfg_attr(docsrs, doc(cfg(feature = "ws-client")))]
-pub use rpc::ws::*;
+#[cfg(feature = "websocket")]
+pub mod ws_provider;
+#[cfg(feature = "websocket")]
+pub use ws_provider::{WebSocketProvider, Subscription};
 
-// Test utilities - only exposed for testing
-#[cfg(test)]
-pub use mock_client::MockClient;
-
-#[allow(deprecated)]
-#[cfg(test)]
-pub use test_provider::{MAINNET, TESTNET};
-
-// Core modules - always available
-mod api_trait;
-mod errors;
-mod ext;
-mod rpc;
-mod utils;
-
-// Testing modules - only compiled for tests
-#[cfg(test)]
-mod mock_blocks;
-#[cfg(test)]
-mod mock_client;
-#[cfg(test)]
-mod rx;
+// Rest client
+#[cfg(feature = "rest-client")]
+pub mod rest_client;
+#[cfg(feature = "rest-client")]
+pub use rest_client::*;
 
 #[cfg(test)]
 #[allow(dead_code)]
@@ -157,29 +150,15 @@ mod test_provider {
 		}
 
 		#[cfg(feature = "http-client")]
-		pub fn provider(&self) -> RpcClient<HttpProvider> {
-			let provider = HttpProvider::new(self.url().as_str()).unwrap();
+		pub fn provider(&self) -> RpcClient<rpc::transports::http_provider::HttpProvider> {
+			let provider = rpc::transports::http_provider::HttpProvider::new(self.url().as_str()).unwrap();
 			RpcClient::new(provider)
 		}
 
-		#[cfg(feature = "ws-client")]
+		#[cfg(feature = "websocket")]
 		pub async fn ws(&self) -> RpcClient<WebSocketProvider> {
 			let provider = WebSocketProvider::connect(self.url().as_str()).await.unwrap();
 			RpcClient::new(provider)
 		}
 	}
 }
-
-pub mod http;
-pub mod json_rpc;
-pub mod mock_client;
-pub mod http_provider;
-pub mod ws_provider;
-pub mod rest_client;
-
-pub use http::*;
-pub use json_rpc::*;
-pub use mock_client::*;
-pub use http_provider::*;
-pub use ws_provider::*;
-pub use rest_client::*;

@@ -30,15 +30,72 @@
 //!
 //! ## Feature Flags
 //!
-//! NeoRust uses a flexible feature flag system that allows you to include only the
-//! functionality you need, helping to reduce compile times and binary sizes.
+//! NeoRust is designed with a flexible feature system that allows you to include only the 
+//! functionality you need. This reduces compile times and binary sizes. The features 
+//! are grouped as follows:
+//! 
+//! ### Core Features (Default)
+//! 
+//! * `std` - Standard library support
+//! * `crypto-standard` - Cryptographic primitives for Neo N3
+//! 
+//! ### Transport Layer Features
+//! 
+//! * `http-client` - HTTP JSON-RPC client for Neo N3 nodes
+//! * `websocket` - WebSocket client for real-time blockchain events
+//! * `rest-client` - RESTful API client for Neo N3 nodes
+//! 
+//! ### Blockchain Features
+//! 
+//! * `transaction` - Support for creating and signing transactions
+//! * `wallet` - Core wallet management functionality
+//! * `wallet-standard` - Enhanced wallet features with standard formats
+//! * `wallet-hardware` - Hardware wallet support
+//! * `wallet-secure` - Advanced security features for wallets
+//! * `contract` - Smart contract interaction tools
+//! 
+//! ### Integration Features
+//! 
+//! * `ethereum-compat` - Ethereum compatibility layer
+//! * `ledger` - Ledger hardware wallet support
+//! 
+//! ### Hash Features
+//! 
+//! * `ripemd160` - RIPEMD-160 hash function
+//! * `sha2` - SHA2 hash functions
+//! * `digest` - Core digest traits
+//! 
+//! ### Example Usage
+//! 
+//! Basic JSON-RPC client:
+//! ```toml
+//! neo3 = { version = "0.1.3", features = ["http-client"] }
+//! ```
+//! 
+//! Full wallet and transaction support:
+//! ```toml
+//! neo3 = { version = "0.1.3", features = ["http-client", "wallet", "transaction"] }
+//! ```
+//! 
+//! Hardware wallet support:
+//! ```toml
+//! neo3 = { version = "0.1.3", features = ["wallet-hardware"] }
+//! ```
+//! 
+//! ## Feature Dependencies
+//! 
+//! Features have been designed to minimize circular dependencies:
+//! 
+//! - `contract` requires `transaction`
+//! - `wallet-standard` builds on `wallet`
+//! - `wallet-hardware` builds on `wallet`
+//! - All wallet features require `crypto-standard`
+//! - `transaction` requires `crypto-standard`
 //!
-//! - **std**: Standard library support with basic serialization and utilities
-//! - **transaction**: Support for creating and signing transactions
-//! - **wallet**: Wallet management functionality
-//! - **contract**: Smart contract interaction capabilities
-//! - **http-client**: HTTP client for Neo N3 node communication
-//! - **ws-client**: WebSocket client for Neo N3 event subscriptions
+//! The `wallet` and `transaction` features are now independent, but together they provide 
+//! additional functionality like wallet-signed transactions. See the WALLET_FEATURES.md
+//! document for detailed information about the wallet feature hierarchy and how to avoid
+//! circular dependencies.
 //!
 //! See the README.md for a complete list of features and usage examples.
 //!
@@ -410,9 +467,31 @@ pub mod prelude {
 			address::Address,
 			address_or_scripthash::AddressOrScriptHash,
 			script_hash::{HashableForVec, ScriptHash, ScriptHashExtension},
+			Bytes,
+			serde_with_utils::{
+				serialize_script_hash, deserialize_script_hash,
+				serialize_script_hash_option, deserialize_script_hash_option,
+				serialize_address_or_script_hash, deserialize_address_or_script_hash,
+				serialize_h160, deserialize_h160,
+				serialize_url_option, deserialize_url_option
+			},
 		},
 		neo_utils::error::*,
 	};
+
+	// Add serialization utilities when serde feature is enabled
+	#[cfg(feature = "serde")]
+	pub use super::neo_types::serde_with_utils::{
+		serialize_script_hash, deserialize_script_hash,
+		serialize_script_hash_option, deserialize_script_hash_option,
+		serialize_address_or_script_hash, deserialize_address_or_script_hash,
+		serialize_h160, deserialize_h160,
+		serialize_url_option, deserialize_url_option
+	};
+
+	// Add ToValue trait for serialization needs
+	#[cfg(feature = "http-client")]
+	pub use super::extensions::*;
 
 	// Conditional imports based on features
 	#[cfg(feature = "transaction")]
@@ -426,6 +505,9 @@ pub mod prelude {
 
 	#[cfg(feature = "contract")]
 	pub use super::contract::*;
+
+	#[cfg(feature = "contract")]
+	pub use super::neo_contract::contract_parameter::{ContractParameter, ContractParameterType};
 
 	#[cfg(feature = "crypto-standard")]
 	pub use super::crypto::*;
@@ -452,6 +534,14 @@ pub mod prelude {
 		object::{Object, ObjectBuilder},
 		types::{AccessRule, ContainerId, ObjectId, StoragePolicy},
 	};
+
+	// Add InvocationResult when contract feature is enabled
+	#[cfg(any(feature = "transaction", feature = "contract"))]
+	pub use super::neo_types::invocation::*;
+	
+	// Add ParameterValue when transaction or contract feature is enabled
+	#[cfg(any(feature = "transaction", feature = "contract"))]
+	pub use super::neo_types::ParameterValue;
 }
 
 #[cfg(all(test, feature = "http-client", feature = "transaction", feature = "wallet"))]
@@ -517,5 +607,107 @@ mod tests {
 		println!("Network fee: {} GAS", signed_tx.net_fee as f64 / 100_000_000.0);
 
 		Ok(())
+	}
+}
+
+// Adding trait implementations for serde JSON serialization
+// These extensions will be used by the http-client feature
+pub mod extensions {
+	use serde_json::{Result as JsonResult, Value};
+	
+	pub trait ToValue {
+		fn to_value(&self) -> Value;
+	}
+	
+	impl ToValue for String {
+		fn to_value(&self) -> Value {
+			serde_json::Value::String(self.clone())
+		}
+	}
+	
+	impl ToValue for &str {
+		fn to_value(&self) -> Value {
+			serde_json::Value::String((*self).to_string())
+		}
+	}
+	
+	impl ToValue for u32 {
+		fn to_value(&self) -> Value {
+			serde_json::Value::Number(serde_json::Number::from(*self))
+		}
+	}
+	
+	impl ToValue for i32 {
+		fn to_value(&self) -> Value {
+			serde_json::Value::Number(serde_json::Number::from(*self))
+		}
+	}
+	
+	impl ToValue for bool {
+		fn to_value(&self) -> Value {
+			serde_json::Value::Bool(*self)
+		}
+	}
+
+	#[cfg(feature = "http-client")]
+	impl ToValue for primitive_types::H160 {
+		fn to_value(&self) -> Value {
+			serde_json::Value::String(format!("0x{}", hex::encode(self.0)))
+		}
+	}
+
+	#[cfg(feature = "http-client")]
+	impl ToValue for primitive_types::H256 {
+		fn to_value(&self) -> Value {
+			serde_json::Value::String(format!("0x{}", hex::encode(self.0)))
+		}
+	}
+
+	#[cfg(feature = "http-client")]
+	impl ToValue for i64 {
+		fn to_value(&self) -> Value {
+			serde_json::Value::Number(serde_json::Number::from(*self))
+		}
+	}
+
+	#[cfg(feature = "http-client")]
+	impl ToValue for u64 {
+		fn to_value(&self) -> Value {
+			serde_json::Value::Number(serde_json::Number::from(*self))
+		}
+	}
+
+	#[cfg(feature = "http-client")]
+	impl<T: ToValue> ToValue for Vec<T> {
+		fn to_value(&self) -> Value {
+			let values: Vec<Value> = self.iter().map(|item| item.to_value()).collect();
+			serde_json::Value::Array(values)
+		}
+	}
+
+	#[cfg(feature = "http-client")]
+	impl<T: ToValue> ToValue for &[T] {
+		fn to_value(&self) -> Value {
+			let values: Vec<Value> = self.iter().map(|item| item.to_value()).collect();
+			serde_json::Value::Array(values)
+		}
+	}
+
+	#[cfg(feature = "http-client")]
+	impl<T: ToValue> ToValue for Option<T> {
+		fn to_value(&self) -> Value {
+			match self {
+				Some(value) => value.to_value(),
+				None => serde_json::Value::Null,
+			}
+		}
+	}
+
+	// Convert from std::io::Error to ProviderError
+	#[cfg(feature = "http-client")]
+	impl From<std::io::Error> for crate::neo_clients::errors::ProviderError {
+		fn from(error: std::io::Error) -> Self {
+			Self::CustomError(error.to_string())
+		}
 	}
 }

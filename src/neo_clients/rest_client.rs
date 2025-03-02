@@ -17,7 +17,7 @@ pub enum RestClientError {
     RequestError(String),
     
     #[error("Serialization error: {0}")]
-    SerializationError(#[from] serde_json::Error),
+    SerializationError(String),
     
     #[error("Invalid response: {0}")]
     InvalidResponse(String),
@@ -63,7 +63,7 @@ impl RestClient {
             return Err(RestClientError::ApiError(format!("Status {}: {}", status, text)));
         }
         
-        let data = response.json().await.map_err(|e| RestClientError::SerializationError(e.into()))?;
+        let data = response.json().await.map_err(|e| RestClientError::SerializationError(e.to_string()))?;
         Ok(data)
     }
     
@@ -83,7 +83,7 @@ impl RestClient {
             return Err(RestClientError::ApiError(format!("Status {}: {}", status, text)));
         }
         
-        let data = response.json().await.map_err(|e| RestClientError::SerializationError(e.into()))?;
+        let data = response.json().await.map_err(|e| RestClientError::SerializationError(e.to_string()))?;
         Ok(data)
     }
     
@@ -148,7 +148,7 @@ impl RestClient {
 }
 
 /// Result of a contract invocation
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct InvocationResult {
     /// Script executed for the invocation
     pub script: String,

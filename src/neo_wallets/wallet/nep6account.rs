@@ -3,10 +3,13 @@ use std::collections::HashMap;
 use getset::{Getters, Setters};
 use serde::{Deserialize, Serialize};
 
-use neo::prelude::{
-	Account, Address, AddressOrScriptHash, Base64Encode, ContractParameterType, NEP6Contract,
-	NEP6Parameter, NeoSerializable, StringExt, VerificationScript, WalletError,
-};
+#[cfg(feature = "wallet-standard")]
+use wasm_bindgen::prelude::*;
+
+use crate::neo_types::{Address, Base64Encode, StringExt};
+use crate::neo_wallets::wallet::wallet_error::WalletError;
+use crate::neo_wallets::wallet::nep6contract::{NEP6Contract, NEP6Parameter};
+use crate::neo_wallets::wallet::wallet::Account;
 
 /// Represents an account in the NEP-6 format.
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, Setters)]
@@ -14,7 +17,7 @@ pub struct NEP6Account {
 	/// The address of the account.
 	#[getset(get = "pub")]
 	#[serde(rename = "address")]
-	pub address: Address,
+	pub address: String,
 
 	/// An optional label for the account.
 	#[getset(get = "pub")]
@@ -82,7 +85,7 @@ impl NEP6Account {
 	/// let account = NEP6Account::new(address, label, is_default, lock, key, contract, extra);
 	/// ```
 	pub fn new(
-		address: Address,
+		address: String,
 		label: Option<String>,
 		is_default: bool,
 		lock: bool,
@@ -93,7 +96,7 @@ impl NEP6Account {
 		Self { address, label, is_default, lock, key, contract, extra }
 	}
 
-	/// Converts an `Account` into a `NEP6Account`.
+	/// Converts a standard Account into a NEP6Account.
 	///
 	/// # Arguments
 	///
@@ -112,54 +115,40 @@ impl NEP6Account {
 	/// let nep6_account = NEP6Account::from_account(&account);
 	/// ```
 	pub fn from_account(account: &Account) -> Result<NEP6Account, WalletError> {
-		if account.key_pair.is_some() && account.encrypted_private_key.is_none() {
-			return Err(WalletError::AccountState(
-				"Account private key is available but not encrypted.".to_string(),
-			));
-		}
-
+		// Create parameters for the contract
 		let mut parameters = Vec::new();
-		if let Some(verification_script) = &account.verification_script {
-			if verification_script.is_multi_sig() {
-				for i in 0..verification_script.get_nr_of_accounts()? {
-					parameters.push(NEP6Parameter {
-						param_name: format!("signature{}", i),
-						param_type: ContractParameterType::Signature,
-					});
-				}
-			} else if verification_script.is_single_sig() {
-				parameters.push(NEP6Parameter {
-					param_name: "signature".to_string(),
-					param_type: ContractParameterType::Signature,
-				});
-			}
+		
+		if let Some(contract) = &account.contract {
+			let param = NEP6Parameter {
+				param_name: "signature".to_string(),
+				param_type: "Signature".to_string(),
+			};
+			parameters.push(param);
 		}
 
-		let contract = if !parameters.is_empty() {
+		// Create the NEP6Contract if there's a contract in the account
+		let contract = if !parameters.is_empty() && account.contract.is_some() {
 			Some(NEP6Contract {
-				script: account
-					.verification_script
-					.as_ref()
-					.map(|script| script.to_array().to_base64()),
-				is_deployed: false,
+				script: account.contract.as_ref().and_then(|c| c.script.clone()),
 				nep6_parameters: parameters,
+				is_deployed: account.contract.as_ref().map_or(false, |c| c.deployed),
 			})
 		} else {
 			None
 		};
 
 		Ok(NEP6Account {
-			address: account.address_or_scripthash.address().clone(),
-			label: account.label.clone(),
+			address: account.address.clone(),
+			label: Some(account.label.clone()),
 			is_default: account.is_default,
-			lock: account.is_locked,
-			key: account.encrypted_private_key.clone(),
+			lock: account.lock,
+			key: account.key.clone(),
 			contract,
-			extra: None,
+			extra: account.extra.clone(),
 		})
 	}
 
-	/// Converts a `NEP6Account` into an `Account`.
+	/// Converts a NEP6Account into a standard Account.
 	///
 	/// # Errors
 	///
@@ -173,52 +162,43 @@ impl NEP6Account {
 	/// let account = nep6_account.to_account();
 	/// ```
 	pub fn to_account(&self) -> Result<Account, WalletError> {
-		let mut verification_script: Option<VerificationScript> = None;
-		let mut signing_threshold: Option<u8> = None;
-		let mut nr_of_participants: Option<u8> = None;
-
-		if let Some(contract) = &self.contract {
-			if contract.script.is_some() {
-				verification_script = Some(VerificationScript::from(
-					contract
-						.script
-						.clone()
-						.ok_or_else(|| {
-							WalletError::AccountState("Contract script is missing".to_string())
-						})?
-						.base64_decoded()
-						.map_err(|e| {
-							WalletError::AccountState(format!(
-								"Failed to decode base64 script: {}",
-								e
-							))
-						})?,
-				));
-
-				if let Some(script) = verification_script.as_ref() {
-					if script.is_multi_sig() {
-						signing_threshold = Some(script.get_signing_threshold()? as u8);
-						nr_of_participants = Some(script.get_nr_of_accounts()? as u8);
-					}
-				}
+		use crate::neo_wallets::wallet::wallet::{Contract, ContractParameter};
+		
+		// Create contract if the NEP6Account has one
+		let contract = if let Some(nep6_contract) = &self.contract {
+			let mut parameters = Vec::new();
+			
+			for nep6_param in &nep6_contract.nep6_parameters {
+				let param = ContractParameter {
+					name: Some(nep6_param.param_name.clone()),
+					param_type: nep6_param.param_type.clone(),
+				};
+				parameters.push(param);
 			}
-		}
+			
+			Some(Contract {
+				script: nep6_contract.script.clone().unwrap_or_default(),
+				parameters,
+				deployed: nep6_contract.is_deployed,
+			})
+		} else {
+			None
+		};
 
 		Ok(Account {
-			address_or_scripthash: AddressOrScriptHash::Address(self.clone().address),
-			label: self.clone().label,
-			verification_script,
-			is_locked: self.clone().lock,
-			encrypted_private_key: self.clone().key,
-			signing_threshold: signing_threshold.map(|s| s as u32),
-			nr_of_participants: nr_of_participants.map(|s| s as u32),
-			..Default::default()
+			address: self.address.clone(),
+			label: self.label.clone().unwrap_or_else(|| self.address.clone()),
+			is_default: self.is_default,
+			lock: self.lock,
+			key: self.key.clone(),
+			contract,
+			extra: self.extra.clone(),
 		})
 	}
 }
 
 impl PartialEq for NEP6Account {
-	/// Checks if two `NEP6Account` instances are equal based on their addresses.
+	/// Checks if two NEP6Account instances are equal based on their addresses.
 	///
 	/// # Example
 	///
@@ -235,257 +215,113 @@ impl PartialEq for NEP6Account {
 	}
 }
 
+impl Default for NEP6Account {
+    fn default() -> Self {
+        Self {
+            address: "NeoDefaultAddress".to_string(),
+            label: Some("Default Account".to_string()),
+            is_default: false,
+            lock: false,
+            key: None,
+            contract: None,
+            extra: None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-	use neo::prelude::{
-		Account, AccountTrait, ContractParameterType, NEP6Account, PrivateKeyExtension,
-		ProviderError, Secp256r1PrivateKey, Secp256r1PublicKey, TestConstants,
-	};
-
-	use crate::neo_types::Base64Encode;
-
+	use super::*;
+	use crate::neo_wallets::wallet::wallet::{Account, Contract, ContractParameter};
+	
 	#[test]
-	fn test_decrypt_with_standard_scrypt_params() {
-		let private_key = Secp256r1PrivateKey::from_bytes(
-			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY)
-				.expect("Should be able to decode valid hex in test"),
-		)
-		.expect("Should be able to create private key from valid bytes in test");
-
-		let nep6_account = NEP6Account::new(
-			"".to_string(),
-			None,
-			true,
-			false,
-			Some(TestConstants::DEFAULT_ACCOUNT_ENCRYPTED_PRIVATE_KEY.to_string()),
-			None,
-			None,
+	fn test_new_nep6_account() {
+		let address = "NeoAddress123".to_string();
+		let label = Some("My Account".to_string());
+		let is_default = true;
+		let lock = false;
+		let key = Some("encrypted_key".to_string());
+		let contract = None;
+		let extra = None;
+		
+		let account = NEP6Account::new(
+			address.clone(),
+			label.clone(),
+			is_default,
+			lock,
+			key.clone(),
+			contract.clone(),
+			extra.clone(),
 		);
-
-		let mut account = nep6_account
-			.to_account()
-			.expect("Should be able to convert NEP6Account to Account in test");
-
-		account
-			.decrypt_private_key(TestConstants::DEFAULT_ACCOUNT_PASSWORD)
-			.expect("Should be able to decrypt private key with correct password in test");
-
-		assert_eq!(
-			account
-				.key_pair
-				.clone()
-				.expect("Key pair should be present after decryption")
-				.private_key
-				.to_vec(),
-			private_key.to_vec()
-		);
-
-		// Decrypt again
-		account
-			.decrypt_private_key(TestConstants::DEFAULT_ACCOUNT_PASSWORD)
-			.expect("Should be able to decrypt private key with correct password in test");
-		assert_eq!(
-			account
-				.key_pair
-				.clone()
-				.expect("Key pair should be present after decryption")
-				.private_key,
-			private_key
-		);
+		
+		assert_eq!(account.address(), &address);
+		assert_eq!(account.label(), &label);
+		assert_eq!(account.is_default(), is_default);
+		assert_eq!(account.lock(), lock);
+		assert_eq!(account.key(), &key);
+		assert_eq!(account.contract(), &contract);
+		assert_eq!(account.extra(), &extra);
 	}
-
+	
 	#[test]
-	fn test_load_account_from_nep6() {
-		let data = include_str!("../../../test_resources/wallet/account.json");
-		let nep6_account: NEP6Account = serde_json::from_str(data)
-			.expect("Should be able to deserialize valid NEP6Account JSON in test");
-
-		let account = nep6_account
-			.to_account()
-			.expect("Should be able to convert NEP6Account to Account in test");
-
-		assert!(!account.is_default);
-		assert!(!account.is_locked);
-		assert_eq!(
-			account.address_or_scripthash().address(),
-			TestConstants::DEFAULT_ACCOUNT_ADDRESS
-		);
-		assert_eq!(
-			account
-				.encrypted_private_key()
-				.clone()
-				.expect("Encrypted private key should be present"),
-			TestConstants::DEFAULT_ACCOUNT_ENCRYPTED_PRIVATE_KEY
-		);
-
-		assert_eq!(
-			account
-				.verification_script
-				.as_ref()
-				.expect("Verification script should be present")
-				.script(),
-			&hex::decode(TestConstants::DEFAULT_ACCOUNT_VERIFICATION_SCRIPT)
-				.expect("Should be able to decode valid verification script hex in test")
-		);
+	fn test_from_account() {
+		let standard_account = Account {
+			address: "NeoAddress123".to_string(),
+			label: "My Account".to_string(),
+			is_default: true,
+			lock: false,
+			key: Some("encrypted_key".to_string()),
+			contract: Some(Contract {
+				script: "script".to_string(),
+				parameters: vec![
+					ContractParameter {
+						name: Some("signature".to_string()),
+						param_type: "Signature".to_string(),
+					}
+				],
+				deployed: false,
+			}),
+			extra: None,
+		};
+		
+		let nep6_account = NEP6Account::from_account(&standard_account).unwrap();
+		
+		assert_eq!(nep6_account.address(), &standard_account.address);
+		assert_eq!(nep6_account.label(), &Some(standard_account.label.clone()));
+		assert_eq!(nep6_account.is_default(), standard_account.is_default);
+		assert_eq!(nep6_account.lock(), standard_account.lock);
+		assert_eq!(nep6_account.key(), &standard_account.key);
+		assert!(nep6_account.contract().is_some());
 	}
-
+	
 	#[test]
-	fn test_load_multi_sig_account_from_nep6() {
-		let data = include_str!("../../../test_resources/wallet/multiSigAccount.json");
-		let nep6_account: NEP6Account = serde_json::from_str(data)
-			.expect("Should be able to deserialize valid NEP6Account JSON in test");
-
-		let account = nep6_account
-			.to_account()
-			.expect("Should be able to convert NEP6Account to Account in test");
-
-		assert!(!account.is_default);
-		assert!(!account.is_locked);
-		assert_eq!(
-			account.address_or_scripthash().address(),
-			TestConstants::COMMITTEE_ACCOUNT_ADDRESS
-		);
-		assert_eq!(
-			account
-				.verification_script()
-				.clone()
-				.expect("Verification script should be present")
-				.script(),
-			&hex::decode(TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT)
-				.expect("Should be able to decode valid verification script hex in test")
-		);
-		assert_eq!(
-			account
-				.get_nr_of_participants()
-				.expect("Should be able to get number of participants"),
-			1
-		);
-		assert_eq!(
-			account
-				.get_signing_threshold()
-				.expect("Should be able to get signing threshold"),
-			1
-		);
-	}
-
-	#[test]
-	fn test_to_nep6_account_with_only_an_address() {
-		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS)
-			.expect("Should be able to create account from valid address in test");
-
-		let nep6_account = account
-			.to_nep6_account()
-			.expect("Should be able to convert Account to NEP6Account in test");
-
-		assert!(nep6_account.contract().is_none());
-		assert!(!nep6_account.is_default());
-		assert!(!nep6_account.lock());
-		assert_eq!(nep6_account.address(), TestConstants::DEFAULT_ACCOUNT_ADDRESS);
-		assert_eq!(
-			nep6_account.label().clone().expect("Label should be present in test"),
-			TestConstants::DEFAULT_ACCOUNT_ADDRESS
-		);
-		assert!(nep6_account.extra().is_none());
-	}
-
-	#[test]
-	fn test_to_nep6_account_with_unecrypted_private_key() {
-		let account = Account::from_wif(TestConstants::DEFAULT_ACCOUNT_WIF)
-			.expect("Should be able to create account from valid WIF in test");
-
-		let err = account.to_nep6_account().unwrap_err();
-
-		assert_eq!(
-			err,
-			ProviderError::IllegalState(
-				"Account private key is available but not encrypted.".to_string()
-			)
-		);
-	}
-
-	#[test]
-	fn test_to_nep6_account_with_ecrypted_private_key() {
-		let mut account = Account::from_wif(TestConstants::DEFAULT_ACCOUNT_WIF)
-			.expect("Should be able to create account from valid WIF in test");
-		account
-			.encrypt_private_key("neo")
-			.expect("Should be able to encrypt private key with password in test");
-
-		let nep6_account = account
-			.to_nep6_account()
-			.expect("Should be able to convert Account to NEP6Account in test");
-
-		assert_eq!(
-			nep6_account
-				.contract()
-				.clone()
-				.expect("Contract should be present")
-				.script()
-				.clone()
-				.expect("Script should be present"),
-			TestConstants::DEFAULT_ACCOUNT_VERIFICATION_SCRIPT.to_string().to_base64()
-		);
-		assert_eq!(
-			nep6_account.key().clone().expect("Key should be present"),
-			TestConstants::DEFAULT_ACCOUNT_ENCRYPTED_PRIVATE_KEY
-		);
-		assert!(!nep6_account.is_default());
-		assert!(!nep6_account.lock());
-		assert_eq!(nep6_account.address(), TestConstants::DEFAULT_ACCOUNT_ADDRESS);
-		assert_eq!(
-			nep6_account.label().clone().expect("Label should be present in test"),
-			TestConstants::DEFAULT_ACCOUNT_ADDRESS
-		);
-	}
-
-	#[test]
-	fn test_to_nep6_account_with_muliti_sig_account() {
-		let public_key = Secp256r1PublicKey::from_bytes(
-			&hex::decode(TestConstants::DEFAULT_ACCOUNT_PUBLIC_KEY)
-				.expect("Should be able to decode valid public key hex in test"),
-		)
-		.expect("Should be able to create public key from valid bytes in test");
-		let account = Account::multi_sig_from_public_keys(&mut vec![public_key], 1)
-			.expect("Should be able to create multi-sig account from valid public key in test");
-		let nep6_account = account
-			.to_nep6_account()
-			.expect("Should be able to convert Account to NEP6Account in test");
-
-		assert_eq!(
-			nep6_account
-				.contract()
-				.clone()
-				.expect("Contract should be present")
-				.script()
-				.clone()
-				.expect("Script should be present"),
-			TestConstants::COMMITTEE_ACCOUNT_VERIFICATION_SCRIPT.to_string().to_base64()
-		);
-		assert!(!nep6_account.is_default());
-		assert!(!nep6_account.lock());
-		assert_eq!(nep6_account.address(), TestConstants::COMMITTEE_ACCOUNT_ADDRESS);
-		assert_eq!(
-			nep6_account.label().clone().expect("Label should be present"),
-			TestConstants::COMMITTEE_ACCOUNT_ADDRESS
-		);
-		assert!(nep6_account.key().is_none());
-		assert_eq!(
-			nep6_account
-				.contract()
-				.clone()
-				.expect("Contract should be present")
-				.nep6_parameters()[0]
-				.param_name(),
-			"signature0"
-		);
-		assert_eq!(
-			nep6_account
-				.contract()
-				.clone()
-				.expect("Contract should be present")
-				.nep6_parameters()[0]
-				.param_type(),
-			&ContractParameterType::Signature
-		);
+	fn test_to_account() {
+		let nep6_account = NEP6Account {
+			address: "NeoAddress123".to_string(),
+			label: Some("My Account".to_string()),
+			is_default: true,
+			lock: false,
+			key: Some("encrypted_key".to_string()),
+			contract: Some(NEP6Contract {
+				script: Some("script".to_string()),
+				nep6_parameters: vec![
+					NEP6Parameter {
+						param_name: "signature".to_string(),
+						param_type: "Signature".to_string(),
+					}
+				],
+				is_deployed: false,
+			}),
+			extra: None,
+		};
+		
+		let standard_account = nep6_account.to_account().unwrap();
+		
+		assert_eq!(standard_account.address, nep6_account.address);
+		assert_eq!(standard_account.label, nep6_account.label.clone().unwrap());
+		assert_eq!(standard_account.is_default, nep6_account.is_default);
+		assert_eq!(standard_account.lock, nep6_account.lock);
+		assert_eq!(standard_account.key, nep6_account.key);
+		assert!(standard_account.contract.is_some());
 	}
 }

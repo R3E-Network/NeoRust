@@ -43,6 +43,33 @@ impl StdError for ProtocolError {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProviderError(pub String);
 
+// Add these associated variants to make http-client feature work
+impl ProviderError {
+	pub fn CustomError(msg: String) -> Self {
+		Self(format!("Custom error: {}", msg))
+	}
+	
+	pub fn ParseError(msg: String) -> Self {
+		Self(format!("Parse error: {}", msg))
+	}
+	
+	pub fn JsonRpcError(msg: String) -> Self {
+		Self(format!("JSON RPC error: {}", msg))
+	}
+	
+	pub fn ConnectionError(msg: String) -> Self {
+		Self(format!("Connection error: {}", msg))
+	}
+	
+	pub fn DeserializationError(msg: String) -> Self {
+		Self(format!("Deserialization error: {}", msg))
+	}
+	
+	pub fn InvalidResponse(msg: String) -> Self {
+		Self(format!("Invalid response: {}", msg))
+	}
+}
+
 impl fmt::Display for ProviderError {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		write!(f, "Provider error: {}", self.0)
@@ -50,6 +77,21 @@ impl fmt::Display for ProviderError {
 }
 
 impl StdError for ProviderError {}
+
+// Add implementations for conversion from common error types
+impl From<serde_json::Error> for ProviderError {
+	fn from(err: serde_json::Error) -> Self {
+		Self(format!("JSON error: {}", err))
+	}
+}
+
+// Make this impl conditional on http-client or websocket features
+#[cfg(any(feature = "http-client", feature = "websocket"))]
+impl From<reqwest::Error> for ProviderError {
+	fn from(err: reqwest::Error) -> Self {
+		Self(format!("HTTP error: {}", err))
+	}
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransactionError(pub String);
@@ -73,12 +115,39 @@ impl fmt::Display for WalletError {
 
 impl StdError for WalletError {}
 
+// Create a specific conversion from wallet errors to this general error
+#[cfg(feature = "wallet")]
+impl From<crate::neo_wallets::WalletError> for WalletError {
+	fn from(err: crate::neo_wallets::WalletError) -> Self {
+		WalletError(format!("{}", err))
+	}
+}
+
+// Backwards compatibility helpers
+impl From<String> for WalletError {
+	fn from(s: String) -> Self {
+		WalletError(s)
+	}
+}
+
+impl From<&str> for WalletError {
+	fn from(s: &str) -> Self {
+		WalletError(s.to_string())
+	}
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeError(pub String);
+pub enum TypeError {
+	InvalidNeoName(String),
+	General(String)
+}
 
 impl fmt::Display for TypeError {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "Type error: {}", self.0)
+		match self {
+			TypeError::InvalidNeoName(msg) => write!(f, "Invalid Neo name error: {}", msg),
+			TypeError::General(msg) => write!(f, "Type error: {}", msg),
+		}
 	}
 }
 
@@ -294,17 +363,6 @@ impl From<Nep2Error> for NeoError {
 			Nep2Error::InvalidFormat(msg) =>
 				NeoError::InvalidEncoding(format!("Invalid NEP-2 format: {}", msg)),
 		}
-	}
-}
-
-// Implement From for reqwest::Error to handle HTTP errors
-#[cfg(feature = "crypto-standard")]
-impl From<reqwest::Error> for NeoError {
-	fn from(err: reqwest::Error) -> Self {
-		NeoError::IoError(std::io::Error::new(
-			std::io::ErrorKind::Other,
-			format!("HTTP error: {}", err),
-		))
 	}
 }
 

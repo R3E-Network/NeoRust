@@ -1,3 +1,6 @@
+// Ledger hardware wallet support for Neo N3
+// This module is only enabled when the wallet-hardware feature is enabled
+
 use std::{fmt, str::FromStr, sync::Arc};
 
 use async_trait::async_trait;
@@ -9,11 +12,23 @@ use p256::NistP256;
 use primitive_types::{H160, H256};
 use sha2::Digest;
 use signature::hazmat::{PrehashSigner, PrehashVerifier};
+#[cfg(feature = "yubikey")]
 use yubihsm::ecdsa::Signature;
+#[cfg(not(feature = "yubikey"))]
+use p256::ecdsa::Signature;
 
-use neo::prelude::{APITrait, Address, Transaction, WalletError};
+use neo::prelude::{Address, WalletError};
+// Only import APITrait and Transaction when needed
+#[cfg(feature = "http-client")]
+use neo::prelude::APITrait;
+#[cfg(all(feature = "transaction", feature = "http-client"))]
+use neo::prelude::Transaction;
 
-use crate::prelude::{JsonRpcProvider, ScriptHashExtension, WalletSigner};
+use crate::neo_types::ScriptHashExtension;
+use crate::neo_wallets::wallet_signer::WalletSigner;
+// Only import JsonRpcProvider when http-client feature is enabled
+#[cfg(feature = "http-client")]
+use crate::prelude::JsonRpcProvider;
 
 /// Neo N3 APDU commands for Ledger devices.
 pub mod apdu {

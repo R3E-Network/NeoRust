@@ -4,6 +4,9 @@ use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
 use neo::prelude::*;
+use crate::neo_types::contract_state::ContractState;
+use crate::neo_types::ContractIdentifiers;
+use crate::neo_types::NefFile;
 
 /// A struct representing contract management functionalities
 #[derive(Debug, Clone, Serialize, Deserialize)]

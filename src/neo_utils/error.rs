@@ -115,7 +115,10 @@ where
 				attempts += 1;
 				if attempts < max_attempts {
 					eprintln!("Attempt {} failed: {}. Retrying...", attempts, err);
+					#[cfg(feature = "tokio")]
 					tokio::time::sleep(delay).await;
+					#[cfg(not(feature = "tokio"))]
+					std::thread::sleep(delay);
 				}
 				last_error = Some(err);
 			},

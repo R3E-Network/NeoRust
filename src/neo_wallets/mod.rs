@@ -28,11 +28,20 @@
 //! This module supports the following feature flags:
 //!
 //! - **wallet**: Core wallet functionality (always available when using this module)
-//! - **wallet-standard**: Enhanced wallet features with standard file formats (default)
+//! - **wallet-standard**: Enhanced wallet features with standard file formats
 //! - **wallet-hardware**: Support for hardware wallets like Ledger
 //! - **wallet-secure**: Advanced security features for wallets
 //! - **bip39**: Support for BIP-39 mnemonic phrases
 //! - **yubikey**: Support for YubiHSM hardware security modules
+//!
+//! ## Module Structure
+//!
+//! To avoid circular dependencies, this module uses a layered approach:
+//! 
+//! 1. Core wallet types and basic functionality are in the base wallet feature
+//! 2. Additional features like hardware support are in separate feature flags
+//! 3. Error types use a two-way conversion system to prevent circular references
+//!    between the core library error types and wallet-specific error types
 //!
 //! ## Examples
 //!
@@ -48,20 +57,26 @@
 //!     
 //!     // Create a new account in the wallet
 //!     let account = wallet.create_account()?;
-//!     println!("New account address: {}", account.address());
 //!     
-//!     // Save the wallet to a file
-//!     wallet.save("my_wallet.json")?;
+//!     // Set a default account
+//!     wallet.set_default_account(&account.address)?;
 //!     
-//!     // Load a wallet from a file
+//!     // Get the wallet's default account
+//!     let default_account = wallet.get_default_account()?;
+//!     println!("Default account address: {}", default_account.address);
+//!     
+//!     // Save the wallet to disk
+//!     wallet.save("my_wallet.json", Some("password123"))?;
+//!     
+//!     // Load the wallet from disk
 //!     let loaded_wallet = Wallet::load("my_wallet.json", Some("password123"))?;
-//!     
-//!     // Get the default account
-//!     let default_account = loaded_wallet.default_account()?;
 //!     
 //!     // Sign a message with the default account
 //!     let message = b"Hello, Neo!";
-//!     let signature = default_account.sign(message)?;
+//!     let signature = loaded_wallet.sign_message(message)?;
+//!     
+//!     // Verify the signature
+//!     assert!(loaded_wallet.verify_signature(message, &signature, &default_account.address)?);
 //!     
 //!     Ok(())
 //! }
@@ -119,9 +134,22 @@
 
 // Core wallet types
 pub use error::*;
-pub use wallet::*;
 pub use wallet_signer::*;
 pub use wallet_trait::*;
+pub use account_trait::*;
+
+// Re-export the wallet module contents
+pub use wallet::wallet::*;
+pub use wallet::wallet_error::*;
+pub use wallet::wallet_detailed_error::*;
+pub use wallet::backup::*;
+pub use wallet::nep6wallet::*;
+
+#[cfg(feature = "wallet-standard")]
+pub use wallet::nep6account::*;
+
+#[cfg(feature = "wallet-standard")]
+pub use wallet::nep6contract::*;
 
 // BIP-39 support
 #[cfg(feature = "bip39")]
@@ -140,9 +168,10 @@ pub use yubi::*;
 
 // Core wallet modules
 mod error;
-mod wallet;
+pub mod wallet;
 mod wallet_signer;
 mod wallet_trait;
+mod account_trait;
 
 // BIP-39 support module
 #[cfg(feature = "bip39")]
@@ -157,7 +186,7 @@ mod ledger;
 mod yubi;
 
 // Type aliases for wallet implementations
-pub type LocalWallet = WalletSigner<crate::prelude::Account>;
+pub type LocalWallet = WalletSigner<wallet::wallet::Account>;
 
 // Type aliases for hardware wallet implementations
 #[cfg(feature = "yubikey")]

@@ -2,7 +2,7 @@ use derive_more::Display;
 use getset::{Getters, Setters};
 use serde::{Deserialize, Serialize};
 
-use neo::prelude::TypeError;
+use crate::neo_error::TypeError;
 
 #[derive(Debug, Clone, Display, PartialEq, Eq, Serialize, Deserialize, Getters, Setters)]
 pub struct NNSName {

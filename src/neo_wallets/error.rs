@@ -1,7 +1,8 @@
 use hex::FromHexError;
 use thiserror::Error;
 
-use neo::prelude::{BuilderError, CryptoError, TypeError, WalletError};
+use neo::prelude::{BuilderError as NeoBuilderError, CryptoError, WalletError};
+use crate::neo_error::TypeError;
 
 /// Represents errors that can occur within the signing process.
 ///
@@ -69,8 +70,8 @@ pub enum SignerError {
 	/// Wraps errors related to building or configuring objects, possibly during
 	/// the setup of cryptographic operations or when constructing complex objects
 	/// that have specific requirements.
-	#[error(transparent)]
-	BuilderError(#[from] BuilderError),
+	#[error("Builder error: {0}")]
+	BuilderError(String),
 
 	/// Encapsulates errors that originate from wallet operations.
 	/// This can include issues with creating, loading, or performing transactions with wallets.
@@ -98,4 +99,10 @@ pub enum SignerError {
 	/// such as when deserializing data into a specific structure.
 	#[error(transparent)]
 	TypeError(#[from] TypeError),
+}
+
+impl From<NeoBuilderError> for SignerError {
+	fn from(err: NeoBuilderError) -> Self {
+		SignerError::BuilderError(format!("{:?}", err))
+	}
 }

@@ -16,18 +16,41 @@
 
 NeoRust is a comprehensive Rust SDK for interacting with the Neo N3 blockchain, providing developers with a type-safe, intuitive interface for building Neo applications.
 
+## Overview
+
+NeoRust is a Rust SDK designed to simplify interaction with the Neo N3 blockchain. It provides a rich set of features including wallet management, transaction building, and smart contract interactions.
+
 ## Features
 
-- **Complete Neo N3 support**: Access all Neo N3 functionality through a unified API
-- **RPC Client**: Easily interact with Neo nodes via JSON-RPC
-- **Wallet management**: Create, import, and export wallets and keys
-- **Transaction building**: Construct, sign, and broadcast transactions
-- **Contract interaction**: Deploy, invoke, and test smart contracts
-- **Asset management**: Work with NEP-17 and NEP-11 tokens
-- **Network abstraction**: Seamlessly switch between MainNet, TestNet, and custom networks
-- **Secure cryptography**: Advanced cryptographic operations for keys and signatures
-- **NeoFS integration**: Interact with Neo's decentralized storage system
-- **Blockchain primitives**: Work with addresses, script hashes, signatures, and other low-level types
+NeoRust uses a flexible feature flag system to allow you to include only the functionality you need. This helps reduce compile times and binary sizes by only including what your application requires.
+
+### Core Features
+
+- `std`: Standard library support (enabled by default)
+- `crypto-standard`: Cryptographic primitives for Neo N3 (enabled by default)
+
+### Transport Layers
+
+- `http-client`: HTTP client for communicating with Neo N3 nodes via JSON-RPC
+- `websocket`: WebSocket client for real-time updates and event subscription  
+- `rest-client`: RESTful API client for Neo N3 nodes
+
+### Hash Functions
+
+- `ripemd160`: RIPEMD-160 hash function for address generation
+- `sha2`: SHA2 hash functions
+- `digest`: Core digest traits for hash functions
+
+### Blockchain Features
+
+- `transaction`: Transaction creation, signing and broadcasting
+- `wallet`: Wallet management functionality including NEP-6 format
+- `contract`: Smart contract interaction and deployment
+- `ethereum-compat`: Ethereum compatibility layer
+
+### Runtime Dependencies
+
+- `tokio`: Asynchronous runtime for non-blocking operations
 
 ## Installation
 
@@ -171,3 +194,67 @@ The automatic VPN detection feature works across multiple platforms:
 - **Linux**: Examines network interfaces and running processes
 
 When a VPN is detected, you will see a console message informing you that tests are running in offline mode.
+
+## Using Features
+
+To use NeoRust with specific features, add them to your Cargo.toml:
+
+```toml
+[dependencies]
+neo3 = { version = "0.1.3", features = ["http-client", "transaction"] }
+```
+
+### Common Feature Combinations
+
+1. **Basic JSON-RPC client**
+   ```toml
+   neo3 = { version = "0.1.3", features = ["http-client"] }
+   ```
+
+2. **Full wallet and transaction support**
+   ```toml
+   neo3 = { version = "0.1.3", features = ["http-client", "wallet", "transaction"] }
+   ```
+
+3. **Smart contract interaction**
+   ```toml
+   neo3 = { version = "0.1.3", features = ["contract"] }
+   ```
+   
+4. **Real-time blockchain events**
+   ```toml
+   neo3 = { version = "0.1.3", features = ["websocket"] }
+   ```
+
+## Feature Compatibility
+
+Not all features are compatible with each other due to design constraints. Here's a compatibility matrix:
+
+| Feature        | Requires                                 | Notes                                      |
+|----------------|------------------------------------------|-------------------------------------------|
+| `http-client`  | -                                        | Core JSON-RPC client                       |
+| `websocket`    | `tokio`                                  | Real-time event subscriptions              |
+| `transaction`  | `crypto-standard`                        | Transaction creation and signing           |
+| `wallet`       | `crypto-standard`                        | Wallet management                          |
+| `contract`     | `http-client`, `transaction`             | Smart contract interactions                |
+
+## Example Usage
+
+```rust
+use neo::prelude::*;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create an HTTP provider connected to a Neo N3 TestNet node
+    let provider = HttpProvider::new("https://testnet1.neo.org:443")?;
+    
+    // Create an RPC client with the provider
+    let client = RpcClient::new(provider);
+    
+    // Get the current block count
+    let block_count = client.get_block_count().await?;
+    println!("Current block count: {}", block_count);
+    
+    Ok(())
+}
+```

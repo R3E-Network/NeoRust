@@ -90,12 +90,23 @@
 //! }
 //! ```
 
+use primitive_types::H160;
+
+#[cfg(feature = "http-client")]
+pub use crate::neo_clients::rpc::RpcClient;
+#[cfg(feature = "http-client")]
+pub use crate::neo_clients::rpc::connections::JsonRpcProvider;
+
 // Core contract functionality - always available
-pub use contract_error::*;
-pub use contract_management::*;
-pub use iterator::*;
-pub use neo_uri::*;
-pub use traits::*;
+pub use contract_error::ContractError;
+pub use contract_management::ContractManagement;
+pub use iterator::NeoIterator;
+pub use neo_uri::NeoURI;
+pub use traits::smart_contract::SmartContractTrait;
+pub use traits::token::TokenTrait;
+pub use traits::fungible_token::FungibleTokenTrait;
+pub use contract_parameter::ContractParameter;
+pub use contract_manifest::ContractManifest;
 
 // Token standards - conditionally available
 #[cfg(feature = "nep17")]
@@ -132,9 +143,33 @@ pub use name_service::*;
 #[cfg_attr(docsrs, doc(cfg(all(feature = "nep17", feature = "http-client"))))]
 pub use famous::*;
 
+/// A smart contract on the Neo blockchain.
+#[cfg(feature = "http-client")]
+pub struct SmartContract<P: JsonRpcProvider> {
+    /// The client used to interact with the blockchain.
+    client: RpcClient<P>,
+    /// The script hash of the contract.
+    script_hash: H160,
+}
+
+#[cfg(feature = "http-client")]
+impl<P: JsonRpcProvider> SmartContract<P> {
+    /// Creates a new smart contract.
+    pub fn new(client: RpcClient<P>, script_hash: H160) -> Self {
+        Self { client, script_hash }
+    }
+
+    /// Gets the script hash of the contract.
+    pub fn script_hash(&self) -> H160 {
+        self.script_hash
+    }
+}
+
 // Core contract modules - always available
 mod contract_error;
 mod contract_management;
+pub mod contract_parameter;
+pub mod contract_manifest;
 mod iterator;
 mod neo_uri;
 mod traits;

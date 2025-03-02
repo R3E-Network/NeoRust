@@ -1,10 +1,14 @@
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
-use neo::prelude::{
-	deserialize_script_hash, serialize_script_hash, ContractManifest, ContractNef,
-	InvocationResult, StackItem, *,
+use crate::neo_types::contract::{
+	ContractManifest,
+	ContractNef,
+	invocation_result::InvocationResult,
+	ContractIdentifiers
 };
+use crate::neo_types::stack_item::StackItem;
+use crate::neo_types::serde_with_utils::{serialize_h160, deserialize_h160};
 
 #[derive(Clone, Debug, Hash, Serialize, Deserialize, PartialEq)]
 pub struct ContractState {
@@ -44,19 +48,11 @@ impl ContractState {
 
 				v.reverse();
 				let hash = H160::from_slice(&v);
-				Ok(ContractIdentifiers { id: id as i32, hash })
+				Ok(ContractIdentifiers::new(id as u32, hash, String::new()))
 			},
 			_ => Err("Could not deserialize ContractIdentifiers from stack item"),
 		}
 	}
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub struct ContractIdentifiers {
-	pub id: i32,
-	#[serde(deserialize_with = "deserialize_script_hash")]
-	#[serde(serialize_with = "serialize_script_hash")]
-	pub hash: H160,
 }
 
 impl From<InvocationResult> for ContractIdentifiers {

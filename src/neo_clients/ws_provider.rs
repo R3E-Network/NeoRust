@@ -1,30 +1,66 @@
+#[cfg(feature = "websocket")]
 use crate::neo_clients::{JsonRpcProvider, ProviderError};
+
+#[cfg(feature = "websocket")]
 use futures_util::{SinkExt, StreamExt};
+#[cfg(feature = "websocket")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "websocket")]
 use serde_json::{json, Value};
+#[cfg(feature = "websocket")]
 use std::collections::HashMap;
+#[cfg(feature = "websocket")]
+use std::fmt;
+#[cfg(feature = "websocket")]
 use std::sync::{Arc, Mutex};
+#[cfg(feature = "websocket")]
 use tokio::net::TcpStream;
+#[cfg(feature = "websocket")]
 use tokio::sync::mpsc::{self, Receiver, Sender};
+#[cfg(feature = "websocket")]
 use tokio_tungstenite::{
     connect_async, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream,
 };
+#[cfg(feature = "websocket")]
 use url::Url;
+#[cfg(feature = "websocket")]
 use uuid::Uuid;
+#[cfg(feature = "websocket")]
+use async_trait::async_trait;
+#[cfg(feature = "websocket")]
+use std::fmt::Debug;
+#[cfg(feature = "websocket")]
+use serde::de::DeserializeOwned;
 
-/// WebSocket provider for Neo N3 blockchain interactions
-pub struct WsProvider {
+/// WebSocket provider for Neo N3
+#[cfg(feature = "websocket")]
+#[derive(Clone)]
+pub struct WebSocketProvider {
     /// The WebSocket endpoint URL
     url: Url,
     /// Sender for WebSocket messages
-    message_tx: Sender<Message>,
+    message_tx: Arc<Sender<Message>>,
     /// Map of subscription IDs to response channels
     subscriptions: Arc<Mutex<HashMap<String, Sender<Value>>>>,
     /// Connection ID (used for reconnection)
     connection_id: String,
 }
 
+/// Implementation of Debug for WsProvider
+#[cfg(feature = "websocket")]
+impl fmt::Debug for WebSocketProvider {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("WebSocketProvider")
+            .field("url", &self.url.to_string())
+            .field("connection_id", &self.connection_id)
+            .field("subscriptions", &format!("[{} active subscriptions]", 
+                self.subscriptions.lock().unwrap_or_else(|e| e.into_inner()).len()))
+            .finish()
+    }
+}
+
 /// Neo N3 WebSocket subscription
+#[cfg(feature = "websocket")]
 pub struct Subscription<T> {
     /// The subscription ID
     id: String,
@@ -34,6 +70,7 @@ pub struct Subscription<T> {
     _marker: std::marker::PhantomData<T>,
 }
 
+#[cfg(feature = "websocket")]
 impl<T: for<'de> Deserialize<'de>> Subscription<T> {
     /// Create a new subscription
     fn new(id: String, receiver: Receiver<Value>) -> Self {
@@ -60,7 +97,8 @@ impl<T: for<'de> Deserialize<'de>> Subscription<T> {
     }
 }
 
-impl WsProvider {
+#[cfg(feature = "websocket")]
+impl WebSocketProvider {
     /// Create a new WebSocket provider
     pub async fn connect(url: &str) -> Result<Self, ProviderError> {
         let url = Url::parse(url).map_err(|e| ProviderError::ConnectionError(e.to_string()))?;
@@ -83,7 +121,7 @@ impl WsProvider {
         
         Ok(Self {
             url,
-            message_tx,
+            message_tx: Arc::new(message_tx),
             subscriptions,
             connection_id,
         })
@@ -201,12 +239,18 @@ impl WsProvider {
     }
 }
 
-impl JsonRpcProvider for WsProvider {
-    async fn request<T: for<'de> Deserialize<'de>>(
-        &self,
-        method: &str,
-        params: Value,
-    ) -> Result<T, ProviderError> {
+#[cfg(feature = "websocket")]
+#[async_trait]
+impl JsonRpcProvider for WebSocketProvider {
+    type Error = ProviderError;
+    
+    async fn fetch<T, R>(&self, method: &str, params: T) -> Result<R, Self::Error>
+    where
+        T: Debug + Serialize + Send + Sync,
+        R: DeserializeOwned + Send,
+    {
+        // Convert params to serde_json::Value
+        let params_json = serde_json::to_value(params).map_err(|e| ProviderError::SerdeJson(e))?;
         let id = Uuid::new_v4().to_string();
         let (tx, mut rx) = mpsc::channel(1);
         
@@ -220,7 +264,7 @@ impl JsonRpcProvider for WsProvider {
         let request = json!({
             "jsonrpc": "2.0",
             "method": method,
-            "params": params,
+            "params": params_json,
             "id": id.clone()
         });
         
@@ -257,6 +301,7 @@ impl JsonRpcProvider for WsProvider {
 }
 
 /// Handle WebSocket messages in a background task
+#[cfg(feature = "websocket")]
 async fn handle_websocket(
     ws_stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
     mut message_rx: Receiver<Message>,
@@ -327,7 +372,8 @@ async fn handle_websocket(
     log::warn!("WebSocket connection closed");
 }
 
-// For type-safety in the subscription API
+// Import Block, Transaction, and Notification for type safety
+#[cfg(feature = "websocket")]
 use crate::neo_types::{Block, Notification, Transaction};
 
 #[cfg(test)]
@@ -339,14 +385,14 @@ mod tests {
     #[tokio::test]
     async fn test_connect() {
         let url = "wss://testnet1.neo.org:60002/ws";  // Replace with a valid Neo N3 WebSocket endpoint
-        let provider = WsProvider::connect(url).await;
+        let provider = WebSocketProvider::connect(url).await;
         assert!(provider.is_ok());
     }
 
     #[tokio::test]
     async fn test_subscribe_blocks() {
         let url = "wss://testnet1.neo.org:60002/ws";  // Replace with a valid Neo N3 WebSocket endpoint
-        if let Ok(provider) = WsProvider::connect(url).await {
+        if let Ok(provider) = WebSocketProvider::connect(url).await {
             let subscription = provider.subscribe_blocks().await;
             assert!(subscription.is_ok());
             

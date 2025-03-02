@@ -5,6 +5,7 @@ use std::{
 	collections::{HashMap, HashSet},
 	convert::TryInto,
 	fmt,
+	str::FromStr,
 };
 
 use elliptic_curve::sec1::ToEncodedPoint;
@@ -29,6 +30,23 @@ use crate::prelude::{parse_string_h160, HardForks};
 
 #[cfg(feature = "substrate")]
 use serde_substrate as serde;
+
+pub fn serialize_h160<S>(h160: &H160, serializer: S) -> Result<S::Ok, S::Error>
+where
+	S: Serializer,
+{
+	let hex = format!("0x{}", h160.to_hex());
+	serializer.serialize_str(&hex)
+}
+
+pub fn deserialize_h160<'de, D>(deserializer: D) -> Result<H160, D::Error>
+where
+	D: Deserializer<'de>,
+{
+	let s = String::deserialize(deserializer)?;
+	let s = s.trim_start_matches("0x");
+	H160::from_hex(s).map_err(serde::de::Error::custom)
+}
 
 pub fn serialize_h160_without_0x<S>(h160: &H160, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -154,29 +172,24 @@ where
 	Ok(url)
 }
 
-pub fn serialize_url_option<S>(item: &Option<Url>, serializer: S) -> Result<S::Ok, S::Error>
+pub fn serialize_url_option<S>(url: &Option<reqwest::Url>, serializer: S) -> Result<S::Ok, S::Error>
 where
 	S: Serializer,
 {
-	match item {
-		Some(url) => {
-			let url_str = format!("{}", url);
-			serializer.serialize_str(&url_str)
-		},
+	match url {
+		Some(url) => serializer.serialize_str(url.as_str()),
 		None => serializer.serialize_none(),
 	}
 }
 
-pub fn deserialize_url_option<'de, D>(deserializer: D) -> Result<Option<Url>, D::Error>
+pub fn deserialize_url_option<'de, D>(deserializer: D) -> Result<Option<reqwest::Url>, D::Error>
 where
 	D: Deserializer<'de>,
 {
-	let s: Option<String> = Deserialize::deserialize(deserializer)?;
+	let s: Option<String> = Option::deserialize(deserializer)?;
 	match s {
 		Some(s) => {
-			let url = Url::parse(&s).map_err(|e| {
-				serde::de::Error::custom(format!("Failed to parse URL '{}': {}", s, e))
-			})?;
+			let url = reqwest::Url::from_str(&s).map_err(serde::de::Error::custom)?;
 			Ok(Some(url))
 		},
 		None => Ok(None),
@@ -301,20 +314,17 @@ pub fn deserialize_script_hash<'de, D>(deserializer: D) -> Result<ScriptHash, D:
 where
 	D: Deserializer<'de>,
 {
-	let s: String = Deserialize::deserialize(deserializer)?;
-	parse_address(&s).map_err(|e| {
-		serde::de::Error::custom(format!("Failed to parse address from string '{}': {}", s, e))
-	})
+	let s = String::deserialize(deserializer)?;
+	let s = s.trim_start_matches("0x");
+	ScriptHash::from_hex(s).map_err(serde::de::Error::custom)
 }
 
-pub fn serialize_script_hash<S>(item: &ScriptHash, serializer: S) -> Result<S::Ok, S::Error>
+pub fn serialize_script_hash<S>(script_hash: &ScriptHash, serializer: S) -> Result<S::Ok, S::Error>
 where
 	S: Serializer,
 {
-	// let item_str = encode_string_h160(item);
-	let binding = encode_string_h160(item);
-	let item_str = binding.trim_start_matches("0x");
-	serializer.serialize_str(&item_str)
+	let hex = format!("0x{}", script_hash.to_hex());
+	serializer.serialize_str(&hex)
 }
 
 pub fn deserialize_address_or_script_hash<'de, D>(
@@ -323,11 +333,8 @@ pub fn deserialize_address_or_script_hash<'de, D>(
 where
 	D: Deserializer<'de>,
 {
-	let s: String = Deserialize::deserialize(deserializer)?;
-	let addr = parse_address(&s).map_err(|e| {
-		serde::de::Error::custom(format!("Failed to parse address from string '{}': {}", s, e))
-	})?;
-	Ok(AddressOrScriptHash::ScriptHash(addr))
+	let s = String::deserialize(deserializer)?;
+	AddressOrScriptHash::from_str(&s).map_err(serde::de::Error::custom)
 }
 
 pub fn serialize_address_or_script_hash<S>(
@@ -337,8 +344,7 @@ pub fn serialize_address_or_script_hash<S>(
 where
 	S: Serializer,
 {
-	let item_str = encode_string_h160(&item.script_hash());
-	serializer.serialize_str(&item_str)
+	serializer.serialize_str(&item.to_string())
 }
 
 pub fn deserialize_vec_script_hash<'de, D>(deserializer: D) -> Result<Vec<ScriptHash>, D::Error>
@@ -406,16 +412,16 @@ where
 }
 
 pub fn serialize_script_hash_option<S>(
-	item: &Option<ScriptHash>,
+	script_hash: &Option<ScriptHash>,
 	serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
 	S: Serializer,
 {
-	match item {
-		Some(addr) => {
-			let addr_str = encode_string_h160(&addr);
-			serializer.serialize_str(&addr_str)
+	match script_hash {
+		Some(script_hash) => {
+			let hex = format!("0x{}", script_hash.to_hex());
+			serializer.serialize_str(&hex)
 		},
 		None => serializer.serialize_none(),
 	}
@@ -427,16 +433,12 @@ pub fn deserialize_script_hash_option<'de, D>(
 where
 	D: Deserializer<'de>,
 {
-	let s: Option<String> = Deserialize::deserialize(deserializer)?;
+	let s: Option<String> = Option::deserialize(deserializer)?;
 	match s {
 		Some(s) => {
-			let addr = parse_address(&s).map_err(|e| {
-				serde::de::Error::custom(format!(
-					"Failed to parse address from string '{}': {}",
-					s, e
-				))
-			})?;
-			Ok(Some(addr))
+			let s = s.trim_start_matches("0x");
+			let script_hash = ScriptHash::from_hex(s).map_err(serde::de::Error::custom)?;
+			Ok(Some(script_hash))
 		},
 		None => Ok(None),
 	}

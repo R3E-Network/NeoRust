@@ -89,8 +89,8 @@ pub use utils::*;
 mod base58_helper;
 pub mod error;
 mod hash;
-mod key_pair;
-mod keys;
+pub mod key_pair;
+pub mod keys;
 mod wif;
 
 // Advanced crypto modules - only available with crypto-advanced feature

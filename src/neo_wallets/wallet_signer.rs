@@ -3,14 +3,22 @@ use std::fmt;
 use p256::NistP256;
 use primitive_types::H256;
 use signature::hazmat::{PrehashSigner, PrehashVerifier};
+#[cfg(feature = "yubikey")]
 use yubihsm::ecdsa::Signature;
+#[cfg(not(feature = "yubikey"))]
+use p256::ecdsa::Signature; // Use native p256 signature if yubikey not enabled
 
-use neo::prelude::{APITrait, Transaction, WalletError};
+use crate::neo_types::Address;
+use crate::prelude::HashableForVec;
+use crate::prelude::WalletError;
 
-use crate::{
-	neo_types::Address,
-	prelude::{HashableForVec, JsonRpcProvider},
-};
+// Only import Transaction when transaction feature is enabled
+#[cfg(all(feature = "transaction", feature = "http-client"))]
+use crate::prelude::{APITrait, Transaction};
+
+// Only import JsonRpcProvider when http-client feature is enabled
+#[cfg(feature = "http-client")]
+use crate::prelude::JsonRpcProvider;
 
 /// A Neo private-public key pair which can be used for signing messages.
 ///
@@ -45,7 +53,7 @@ use crate::{
 ///
 /// [`p256::NistP256`]: p256::NistP256
 #[derive(Clone)]
-pub struct WalletSigner<D: PrehashSigner<Signature<NistP256>>> {
+pub struct WalletSigner<D: PrehashSigner<Signature>> {
 	/// The WalletSigner's private Key
 	pub(crate) signer: D,
 	/// The wallet's address
@@ -53,7 +61,7 @@ pub struct WalletSigner<D: PrehashSigner<Signature<NistP256>>> {
 	pub(crate) network: Option<u64>,
 }
 
-impl<D: PrehashSigner<Signature<NistP256>>> WalletSigner<D> {
+impl<D: PrehashSigner<Signature>> WalletSigner<D> {
 	/// Creates a new `WalletSigner` instance using an external `Signer` and associated Ethereum address.
 	///
 	/// # Arguments
@@ -69,7 +77,7 @@ impl<D: PrehashSigner<Signature<NistP256>>> WalletSigner<D> {
 	}
 }
 
-impl<D: Sync + Send + PrehashSigner<Signature<NistP256>>> WalletSigner<D> {
+impl<D: Sync + Send + PrehashSigner<Signature>> WalletSigner<D> {
 	/// Signs a given `Transaction`, using the wallet's private key.
 	///
 	/// # Arguments
@@ -79,10 +87,15 @@ impl<D: Sync + Send + PrehashSigner<Signature<NistP256>>> WalletSigner<D> {
 	/// # Returns
 	///
 	/// A `Result` containing the `p256::NistP256` of the transaction, or a `WalletError` on failure.
+	///
+	/// # Note
+	///
+	/// This method is conditional on both transaction and http-client features being enabled.
+	#[cfg(all(feature = "transaction", feature = "http-client"))]
 	pub(crate) async fn sign_transaction<'a, P: JsonRpcProvider + 'static>(
 		&self,
 		tx: &Transaction<'a, P>,
-	) -> Result<Signature<NistP256>, WalletError> {
+	) -> Result<Signature, WalletError> {
 		let mut tx_with_network = tx.clone();
 		if tx_with_network.network().is_none() {
 			// in the case we don't have a network, let's use the signer chain id instead
@@ -94,7 +107,7 @@ impl<D: Sync + Send + PrehashSigner<Signature<NistP256>>> WalletSigner<D> {
 			))
 		})?;
 
-		self.signer.sign_prehash(&hash_data).map_err(|_| WalletError::SignHashError)
+		self.signer.sign_prehash(&hash_data).map_err(|_| WalletError::from("Failed to sign hash"))
 	}
 
 	/// Signs a given hash directly, without performing any additional hashing.
@@ -106,8 +119,8 @@ impl<D: Sync + Send + PrehashSigner<Signature<NistP256>>> WalletSigner<D> {
 	/// # Returns
 	///
 	/// A `Result` containing the `p256::NistP256` of the hash, or a `WalletError` on failure.
-	pub fn sign_hash(&self, hash: H256) -> Result<Signature<NistP256>, WalletError> {
-		self.signer.sign_prehash(hash.as_ref()).map_err(|_| WalletError::SignHashError)
+	pub fn sign_hash(&self, hash: H256) -> Result<Signature, WalletError> {
+		self.signer.sign_prehash(hash.as_ref()).map_err(|_| WalletError::from("Failed to sign hash"))
 	}
 
 	/// Signs a given message, using the wallet's private key.
@@ -120,7 +133,7 @@ impl<D: Sync + Send + PrehashSigner<Signature<NistP256>>> WalletSigner<D> {
 	/// # Returns
 	///
 	/// A `Result` containing the `p256::NistP256` of the message, or a `WalletError` on failure.
-	pub async fn sign_message(&self, message: &[u8]) -> Result<Signature<NistP256>, WalletError> {
+	pub async fn sign_message(&self, message: &[u8]) -> Result<Signature, WalletError> {
 		let hash = message.hash256();
 		self.sign_hash(H256::from_slice(hash.as_slice()))
 	}
@@ -164,7 +177,7 @@ impl<D: Sync + Send + PrehashSigner<Signature<NistP256>>> WalletSigner<D> {
 }
 
 // do not log the signer
-impl<D: PrehashSigner<Signature<NistP256>> + PrehashVerifier<Signature<NistP256>>> fmt::Debug
+impl<D: PrehashSigner<Signature> + PrehashVerifier<Signature>> fmt::Debug
 	for WalletSigner<D>
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -12,18 +12,18 @@ pub use ws::{ConnectionDetails, WsClient as Ws, WsClientError};
 
 pub use self::http_provider::{ClientError as HttpClientError, HttpProvider as Http};
 
-mod http_provider;
+pub mod http_provider;
 #[cfg(all(feature = "ipc", any(unix, windows)))]
 mod ipc;
 // mod quorum;
 // pub use quorum::{JsonRpcClientWrapper, Quorum, QuorumError, QuorumProvider, WeightedProvider};
 
-mod common;
+pub mod common;
 /// archival websocket
 #[cfg(feature = "legacy-ws")]
 pub mod legacy_ws;
 // mod mock;
-mod retry;
-mod rw;
+pub mod retry;
+pub mod rw;
 #[cfg(all(feature = "ws", not(feature = "legacy-ws")))]
 mod ws;

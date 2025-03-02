@@ -1,12 +1,75 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+	borrow::Cow,
+	collections::HashMap,
+	fmt,
+	path::Path,
+	str::FromStr,
+	sync::Arc,
+};
 
-#[cfg(feature = "wallet-standard")]
-use std::{fs::File, io::Write};
-
+use ecdsa::SigningKey;
+use p256::NistP256;
 use primitive_types::H160;
 use serde_derive::{Deserialize, Serialize};
+#[cfg(feature = "tokio")]
+use tokio::fs;
 
-use neo::prelude::*;
+use crate::{
+	neo_crypto::{key_pair::KeyPair, keys::Secp256r1PrivateKey},
+	neo_error::TypeError,
+	neo_types::{Address, ScryptParamsDef},
+	neo_utils::constants,
+	neo_wallets::{
+		account_trait::AccountTrait,
+		wallet_trait::WalletTrait,
+	},
+};
+
+use super::wallet_error::WalletError;
+
+#[cfg(feature = "wallet-standard")]
+use wasm_bindgen::prelude::*;
+
+/// Account type
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Account {
+	/// The account address
+	pub address: String,
+	/// The account label
+	pub label: String,
+	/// Whether this is the default account
+	pub is_default: bool,
+	/// Whether this account is locked
+	pub lock: bool,
+	/// The account key
+	pub key: Option<String>,
+	/// Contract hash
+	pub contract: Option<Contract>,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	/// Extra data associated with this account
+	pub extra: Option<HashMap<String, String>>,
+}
+
+/// Account contract object
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Contract {
+	/// The script
+	pub script: String,
+	/// The account parameters
+	pub parameters: Vec<ContractParameter>,
+	/// Whether this contract is deployed
+	pub deployed: bool,
+}
+
+/// Contract parameter type
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContractParameter {
+	/// The parameter name
+	pub name: Option<String>,
+	/// The parameter type
+	#[serde(rename = "type")]
+	pub param_type: String,
+}
 
 /// Core wallet implementation for Neo N3
 ///
@@ -15,17 +78,15 @@ use neo::prelude::*;
 /// The implementation supports different feature levels through feature flags.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wallet {
+	/// The wallet name
 	pub name: String,
+	/// The wallet version
 	pub version: String,
-	pub scrypt_params: ScryptParamsDef,
-	#[serde(deserialize_with = "deserialize_hash_map_h160_account")]
-	#[serde(serialize_with = "serialize_hash_map_h160_account")]
-	pub accounts: HashMap<H160, Account>,
-	#[serde(deserialize_with = "deserialize_script_hash")]
-	#[serde(serialize_with = "serialize_script_hash")]
-	pub(crate) default_account: H160,
-	/// Additional wallet metadata stored as key-value pairs
-	#[serde(skip_serializing_if = "Option::is_none")]
+	/// The wallet scrypt parameters
+	pub scrypt: ScryptParamsDef,
+	/// The wallet accounts
+	pub accounts: Vec<Account>,
+	/// Additional wallet data
 	pub extra: Option<HashMap<String, String>>,
 }
 
@@ -41,19 +102,15 @@ impl WalletTrait for Wallet {
 	}
 
 	fn scrypt_params(&self) -> &ScryptParamsDef {
-		&self.scrypt_params
+		&self.scrypt
 	}
 
 	fn accounts(&self) -> Vec<Self::Account> {
-		self.accounts
-			.clone()
-			.into_iter()
-			.map(|(_k, v)| v.clone())
-			.collect::<Vec<Self::Account>>()
+		self.accounts.clone()
 	}
 
 	fn default_account(&self) -> &Account {
-		&self.accounts[&self.default_account]
+		self.accounts.iter().find(|a| a.is_default).unwrap()
 	}
 
 	fn set_name(&mut self, name: String) {
@@ -65,24 +122,21 @@ impl WalletTrait for Wallet {
 	}
 
 	fn set_scrypt_params(&mut self, params: ScryptParamsDef) {
-		self.scrypt_params = params;
+		self.scrypt = params;
 	}
 
 	fn set_default_account(&mut self, default_account: H160) {
-		self.default_account = default_account.clone();
-		if let Some(account) = self.accounts.get_mut(&self.default_account) {
+		if let Some(account) = self.accounts.iter_mut().find(|a| a.address == default_account.to_string()) {
 			account.is_default = true;
 		}
 	}
 
 	fn add_account(&mut self, account: Self::Account) {
-		// let weak_self = Arc::new(&self);
-		// account.set_wallet(Some(Arc::downgrade(weak_self)));
-		self.accounts.insert(account.get_script_hash().clone(), account);
+		self.accounts.push(account);
 	}
 
 	fn remove_account(&mut self, hash: &H160) -> Option<Self::Account> {
-		self.accounts.remove(hash)
+		self.accounts.iter().find(|a| a.address == hash.to_string()).cloned()
 	}
 }
 
@@ -98,16 +152,11 @@ impl Wallet {
 		let mut account_with_default = account;
 		account_with_default.is_default = true;
 
-		let mut accounts = HashMap::new();
-		let script_hash = account_with_default.get_script_hash().clone();
-		accounts.insert(script_hash.clone(), account_with_default);
-
 		Ok(Self {
 			name: Self::DEFAULT_WALLET_NAME.to_string(),
 			version: Self::CURRENT_VERSION.to_string(),
-			scrypt_params: ScryptParamsDef::default(),
-			accounts,
-			default_account: script_hash,
+			scrypt: ScryptParamsDef::default(),
+			accounts: vec![account_with_default],
 			extra: None,
 		})
 	}
@@ -117,9 +166,8 @@ impl Wallet {
 		Self {
 			name: Self::DEFAULT_WALLET_NAME.to_string(),
 			version: Self::CURRENT_VERSION.to_string(),
-			scrypt_params: ScryptParamsDef::default(),
-			accounts: HashMap::new(),
-			default_account: H160::zero(),
+			scrypt: ScryptParamsDef::default(),
+			accounts: Vec::new(),
 			extra: None,
 		}
 	}
@@ -128,25 +176,24 @@ impl Wallet {
 
 	/// Gets an account by its script hash
 	pub fn get_account(&self, script_hash: &H160) -> Option<&Account> {
-		self.accounts.get(script_hash)
+		self.accounts.iter().find(|a| a.address == script_hash.to_string())
 	}
 
 	/// Removes an account from the wallet
 	pub fn remove_account(&mut self, script_hash: &H160) -> bool {
-		self.accounts.remove(script_hash).is_some()
+		self.accounts.iter().position(|a| a.address == script_hash.to_string()).map(|i| self.accounts.remove(i)).is_some()
 	}
 
 	/// Gets all accounts in the wallet
 	pub fn get_accounts(&self) -> Vec<&Account> {
-		self.accounts.values().collect()
+		self.accounts.iter().collect()
 	}
 
 	/// Creates a new account in the wallet
 	pub fn create_account(&mut self) -> Result<&Account, WalletError> {
 		let account = Account::create()?;
-		let script_hash = account.get_script_hash().clone();
-		self.accounts.insert(script_hash.clone(), account);
-		Ok(self.accounts.get(&script_hash).unwrap())
+		self.accounts.push(account);
+		Ok(self.accounts.last().unwrap())
 	}
 
 	/// Sets the wallet's network magic number
@@ -166,7 +213,7 @@ impl Wallet {
 				}
 			}
 		}
-		NeoConstants::MAGIC_NUMBER_MAINNET
+		constants::network_magic::MAINNET
 	}
 
 	// NEP-6 Wallet Standard - Only available with wallet-standard feature
@@ -228,16 +275,16 @@ impl Wallet {
 	#[cfg_attr(docsrs, doc(cfg(feature = "wallet-secure")))]
 	pub fn encrypt_accounts(&mut self, password: &str) {
 		if !password.is_empty() {
-			for account in self.accounts.values_mut() {
-				if let Some(private_key) = account.get_private_key() {
+			for account in self.accounts.iter_mut() {
+				if let Some(private_key) = account.key.as_ref() {
 					if let Ok(encrypted_key) = Cryptography::encrypt_private_key(
-						&private_key.to_string(),
+						private_key,
 						password,
-						self.scrypt_params.n,
-						self.scrypt_params.r,
-						self.scrypt_params.p,
+						self.scrypt.n,
+						self.scrypt.r,
+						self.scrypt.p,
 					) {
-						account.update_encrypted_key(encrypted_key);
+						account.key = Some(encrypted_key);
 					}
 				}
 			}
@@ -249,14 +296,14 @@ impl Wallet {
 	#[cfg_attr(docsrs, doc(cfg(feature = "wallet-secure")))]
 	pub fn verify_password(&self, password: &str) -> bool {
 		// Find an account with an encrypted key
-		for account in self.accounts.values() {
-			if let Some(encrypted_key) = account.get_encrypted_key() {
+		for account in self.accounts.iter() {
+			if let Some(encrypted_key) = account.key.as_ref() {
 				return Cryptography::verify_password(
 					encrypted_key,
 					password,
-					self.scrypt_params.n,
-					self.scrypt_params.r,
-					self.scrypt_params.p,
+					self.scrypt.n,
+					self.scrypt.r,
+					self.scrypt.p,
 				);
 			}
 		}
@@ -324,10 +371,9 @@ mod tests {
 	fn test_add_account() {
 		let mut wallet = Wallet::default();
 		let account = Account::create().unwrap();
-		let script_hash = account.get_script_hash().clone();
 		wallet.add_account(account);
 		assert_eq!(wallet.accounts.len(), 1);
-		assert!(wallet.accounts.contains_key(&script_hash));
+		assert!(wallet.accounts.contains(&account));
 	}
 
 	#[cfg(feature = "wallet-secure")]
@@ -338,8 +384,8 @@ mod tests {
 		wallet.encrypt_accounts(password);
 
 		// Check that all accounts are encrypted
-		for account in wallet.accounts.values() {
-			assert!(account.get_encrypted_key().is_some());
+		for account in wallet.accounts.iter() {
+			assert!(account.key.is_some());
 		}
 	}
 

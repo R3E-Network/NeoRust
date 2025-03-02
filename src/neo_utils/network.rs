@@ -1,5 +1,10 @@
-use crate::neo_clients::{JsonRpcClient, HttpProvider, RpcClient};
-use crate::neo_contract::{ContractParameter, SmartContract};
+#[cfg(feature = "http-client")]
+use crate::neo_clients::{http::Http as HttpProvider, rpc::rpc_client::RpcClient};
+#[cfg(feature = "contract")]
+use crate::neo_contract::contract_parameter::ContractParameter;
+#[cfg(feature = "contract")]
+use crate::neo_contract::SmartContract;
+#[cfg(feature = "transaction")]
 use crate::neo_protocol::stack_item::StackItem;
 use crate::neo_types::{Address, ScriptHash};
 use crate::neo_utils::constants;
@@ -66,26 +71,17 @@ impl NeoNetwork {
     }
     
     /// Create a RPC client for this network
+    #[cfg(feature = "http-client")]
     pub fn create_client(&self) -> Result<RpcClient<HttpProvider>, Box<dyn Error>> {
         // Try each endpoint until one works
         let endpoints = self.get_endpoints();
-        let mut last_error = None;
-        
-        for endpoint in endpoints {
-            match HttpProvider::new(*endpoint) {
-                Ok(provider) => {
-                    return Ok(RpcClient::new(provider));
-                },
-                Err(e) => {
-                    last_error = Some(e.to_string());
-                    // Try next endpoint
-                }
-            }
+        if endpoints.is_empty() {
+            return Err("No endpoints available for this network".into());
         }
         
-        // If we got here, all endpoints failed
-        Err(format!("Failed to connect to any {} endpoint. Last error: {}", 
-            self, last_error.unwrap_or_else(|| "Unknown error".to_string())).into())
+        let provider = HttpProvider::new(endpoints[0])
+            .map_err(|e| Box::<dyn Error>::from(format!("Failed to create HTTP provider: {}", e)))?;
+        Ok(RpcClient::new(provider))
     }
 }
 
@@ -99,15 +95,16 @@ impl std::fmt::Display for NeoNetwork {
     }
 }
 
-/// Builder for creating a network-specific client
+#[cfg(feature = "http-client")]
 pub struct NetworkBuilder {
     network: NeoNetwork,
     endpoints: Option<Vec<String>>,
     magic: Option<u32>,
 }
 
+#[cfg(feature = "http-client")]
 impl NetworkBuilder {
-    /// Create a new network builder for the specified network
+    /// Creates a new NetworkBuilder with the specified network
     pub fn new(network: NeoNetwork) -> Self {
         Self {
             network,
@@ -116,72 +113,62 @@ impl NetworkBuilder {
         }
     }
     
-    /// Set custom endpoints for this network
+    /// Sets the RPC endpoints for this network
     pub fn endpoints(mut self, endpoints: Vec<String>) -> Self {
         self.endpoints = Some(endpoints);
         self
     }
     
-    /// Set custom magic number for this network
+    /// Sets the network magic number
     pub fn magic(mut self, magic: u32) -> Self {
         self.magic = Some(magic);
         self
     }
     
-    /// Build a client for this network
+    /// Builds an RPC client for this network
     pub fn build_client(&self) -> Result<RpcClient<HttpProvider>, Box<dyn Error>> {
-        // If custom endpoints provided, try them first
-        if let Some(endpoints) = &self.endpoints {
-            let mut last_error = None;
-            
-            for endpoint in endpoints {
-                match HttpProvider::new(endpoint) {
-                    Ok(provider) => {
-                        return Ok(RpcClient::new(provider));
-                    },
-                    Err(e) => {
-                        last_error = Some(e.to_string());
-                        // Try next endpoint
-                    }
+        let endpoints = match &self.endpoints {
+            Some(eps) => {
+                if eps.is_empty() {
+                    return Err("No endpoints provided".into());
                 }
+                eps.clone()
             }
-            
-            // If all custom endpoints failed, fall back to default endpoints
-            if let Ok(client) = self.network.create_client() {
-                return Ok(client);
+            None => {
+                let default_endpoints = self.network.get_endpoints();
+                if default_endpoints.is_empty() {
+                    return Err("No default endpoints available for this network".into());
+                }
+                default_endpoints.iter().map(|&s| s.to_string()).collect()
             }
-            
-            // If even default endpoints failed, return the last error
-            return Err(format!("Failed to connect to any {} endpoint. Last error: {}", 
-                self.network, last_error.unwrap_or_else(|| "Unknown error".to_string())).into());
-        }
+        };
         
-        // No custom endpoints, use default ones
-        self.network.create_client()
+        let provider = HttpProvider::new(endpoints[0].as_str())
+            .map_err(|e| Box::<dyn Error>::from(format!("Failed to create HTTP provider: {}", e)))?;
+        Ok(RpcClient::new(provider))
     }
     
-    /// Get RPC endpoints for this network
+    /// Gets the endpoints for this network
     pub fn get_endpoints(&self) -> Vec<String> {
-        if let Some(endpoints) = &self.endpoints {
-            endpoints.clone()
-        } else {
+        self.endpoints.clone().unwrap_or_else(|| {
             self.network.get_endpoints().iter().map(|&s| s.to_string()).collect()
-        }
+        })
     }
     
-    /// Get the network magic number
+    /// Gets the magic number for this network
     pub fn get_magic(&self) -> u32 {
         self.magic.unwrap_or_else(|| self.network.get_magic())
     }
 }
 
-/// Helper structure for working with tokens across networks
+#[cfg(all(feature = "http-client", feature = "contract"))]
 pub struct NetworkToken {
     network: NeoNetwork,
     client: RpcClient<HttpProvider>,
     contract_hash: ScriptHash,
 }
 
+#[cfg(all(feature = "http-client", feature = "contract"))]
 impl NetworkToken {
     /// Create a new network token instance
     pub fn new(network: NeoNetwork, contract_name: &str) -> Result<Self, Box<dyn Error>> {
@@ -334,38 +321,38 @@ pub struct TokenInfo {
     pub contract_hash: ScriptHash,
 }
 
-/// Helper function to get a client for a specific network
+/// Gets an RPC client for the specified network
+#[cfg(feature = "http-client")]
 pub fn get_network_client(network: NeoNetwork) -> Result<RpcClient<HttpProvider>, Box<dyn Error>> {
     network.create_client()
 }
 
-/// Helper function to create a client for MainNet
+/// Gets an RPC client for the Neo N3 MainNet
+#[cfg(feature = "http-client")]
 pub fn get_mainnet_client() -> Result<RpcClient<HttpProvider>, Box<dyn Error>> {
-    NeoNetwork::MainNet.create_client()
+    get_network_client(NeoNetwork::MainNet)
 }
 
-/// Helper function to create a client for TestNet
+/// Gets an RPC client for the Neo N3 TestNet
+#[cfg(feature = "http-client")]
 pub fn get_testnet_client() -> Result<RpcClient<HttpProvider>, Box<dyn Error>> {
-    NeoNetwork::TestNet.create_client()
+    get_network_client(NeoNetwork::TestNet)
 }
 
-/// Helper function to get a smart contract instance for a well-known contract
+/// Gets a smart contract interface for the specified network and contract
+#[cfg(all(feature = "http-client", feature = "contract"))]
 pub fn get_network_contract(
     network: NeoNetwork,
     contract_name: &str,
 ) -> Result<SmartContract<RpcClient<HttpProvider>>, Box<dyn Error>> {
-    // Get contract hash for this network
-    let contract_hash_str = network.get_contract_hash(contract_name)
-        .ok_or_else(|| format!("Contract '{}' not found on {}", contract_name, network))?;
+    let client = get_network_client(network)?;
     
-    // Convert to script hash
-    let contract_hash = ScriptHash::from_str(&contract_hash_str)?;
+    let contract_hash = match network.get_contract_hash(contract_name) {
+        Some(hash) => ScriptHash::from_str(&hash)?,
+        None => return Err(format!("Contract {} not found for this network", contract_name).into()),
+    };
     
-    // Create client for this network
-    let client = network.create_client()?;
-    
-    // Create contract instance
-    Ok(SmartContract::new(contract_hash, &client))
+    Ok(SmartContract::new(client, contract_hash))
 }
 
 #[cfg(test)]

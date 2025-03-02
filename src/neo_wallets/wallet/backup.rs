@@ -1,6 +1,10 @@
 use std::{fs::File, io::Write, path::PathBuf};
 
-use neo::prelude::{Wallet, WalletError};
+use crate::neo_wallets::{
+	wallet::wallet::Wallet,
+	wallet::wallet_error::WalletError,
+	wallet::nep6wallet::Nep6Wallet,
+};
 
 /// Provides functionality for backing up and recovering Neo wallets.
 pub struct WalletBackup;
@@ -32,27 +36,34 @@ impl WalletBackup {
 	/// ```
 	pub fn backup(wallet: &Wallet, path: PathBuf) -> Result<(), WalletError> {
 		// Convert wallet to NEP6
+		#[cfg(feature = "wallet-standard")]
 		let nep6 = wallet.to_nep6()?;
+		
+		#[cfg(not(feature = "wallet-standard"))]
+		return Err(WalletError::from("NEP-6 conversion requires wallet-standard feature"));
 
-		// Encode as JSON
-		let json = serde_json::to_string_pretty(&nep6)
-			.map_err(|e| WalletError::AccountState(format!("Serialization error: {}", e)))?;
+		#[cfg(feature = "wallet-standard")]
+		{
+			// Encode as JSON
+			let json = serde_json::to_string_pretty(&nep6)
+				.map_err(|e| WalletError::from(format!("Serialization error: {}", e)))?;
 
-		// Write to file at path
-		let mut file = File::create(path).map_err(|e| WalletError::IoError(e))?;
+			// Write to file at path
+			let mut file = File::create(path).map_err(|e| WalletError::from(format!("IO error: {}", e)))?;
 
-		file.write_all(json.as_bytes()).map_err(|e| WalletError::IoError(e))?;
+			file.write_all(json.as_bytes()).map_err(|e| WalletError::from(format!("IO error: {}", e)))?;
 
-		Ok(())
+			Ok(())
+		}
 	}
 
 	/// Recovers a wallet from a backup file.
 	///
-	/// This method reads a wallet backup file in JSON format and deserializes it into a Wallet.
+	/// This method reads a wallet backup file and deserializes it into a Wallet object.
 	///
 	/// # Arguments
 	///
-	/// * `path` - The file path of the backup
+	/// * `path` - The file path of the backup to recover
 	///
 	/// # Returns
 	///
@@ -69,14 +80,18 @@ impl WalletBackup {
 	/// ```
 	pub fn recover(path: PathBuf) -> Result<Wallet, WalletError> {
 		// Read file content
-		let file_content = std::fs::read_to_string(path).map_err(|e| WalletError::IoError(e))?;
+		let file_content = std::fs::read_to_string(path).map_err(|e| WalletError::from(format!("IO error: {}", e)))?;
 
-		// Parse JSON to Nep6Wallet
-		let nep6_wallet = serde_json::from_str(&file_content)
-			.map_err(|e| WalletError::AccountState(format!("Deserialization error: {}", e)))?;
+		// Parse as NEP6 wallet
+		let nep6_wallet: Nep6Wallet = serde_json::from_str(&file_content)
+			.map_err(|e| WalletError::from(format!("Deserialization error: {}", e)))?;
 
-		// Convert Nep6Wallet to Wallet
-		Wallet::from_nep6(nep6_wallet)
+		// Convert to standard wallet
+		#[cfg(feature = "wallet-standard")]
+		return Wallet::from_nep6(nep6_wallet);
+		
+		#[cfg(not(feature = "wallet-standard"))]
+		return Err(WalletError::from("NEP-6 conversion requires wallet-standard feature"));
 	}
 }
 

@@ -14,7 +14,7 @@ path = "src/lib.rs"
 [dependencies]
 # Essential dependencies
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde_json = { version = "1.0", features = ["raw_value"] }
 primitive-types = { version = "0.13.0", features = ["std", "rustc-hex", "serde"] }
 rustc-hex = "2.1.0"
 byte-slice-cast = "1.2.2"
@@ -34,9 +34,11 @@ hex = "0.4.3"
 thiserror = "1.0.56"
 log = "0.4.20"
 crypto = { version = "0.5.1", optional = true, features = ["digest"] }
+# Use the same version of elliptic-curve and related libraries
 p256 = { version = "0.13.2", optional = true }
 elliptic-curve = { version = "0.13.8", optional = true }
 signature = { version = "2.2.0", optional = true }
+ecdsa = { version = "0.16.9", optional = true }
 rand_core = { version = "0.6.4", optional = true }
 tokio = { version = "1.36.0", features = ["full"], optional = true }
 tokio-tungstenite = { version = "0.21.0", optional = true }
@@ -49,21 +51,101 @@ ripemd = { version = "0.1.3", optional = true }
 hmac = { version = "0.12.1", optional = true }
 lazy_static = "1.4.0"
 
+# Adding missing dependencies
+url = { version = "2.4.1", optional = true }
+async-trait = { version = "0.1.74", optional = true }
+auto_impl = { version = "1.1.0", optional = true }
+pin-project = { version = "1.1.3", optional = true }
+tracing = { version = "0.1.40", optional = true }
+tracing-futures = { version = "0.2.5", optional = true }
+tracing-subscriber = { version = "0.3.18", optional = true }
+jsonwebtoken = { version = "9.2.0", optional = true }
+num_enum = { version = "0.7.1", optional = true }
+once_cell = { version = "1.18.0", optional = true }
+regex = { version = "1.10.2", optional = true }
+wiremock = { version = "0.5.22", optional = true }
+ethereum-types = { version = "0.14.1", optional = true }
+scrypt = { version = "0.11.0", optional = true }
+serde_with = { version = "3.4.0", optional = true }
+futures-timer = { version = "3.0.2", optional = true }
+http = { version = "0.2.9", optional = true }
+aes = { version = "0.8.3", optional = true }
+block-modes = { version = "0.9.1", optional = true }
+wasm-bindgen = { version = "0.2.89", optional = true }
+
+# Add the missing yubihsm dependency for the wallet feature
+[dependencies.yubihsm]
+version = "0.41.0"
+optional = true
+
+# Add serde_derive for the wallet feature
+[dependencies.serde_derive]
+version = "1.0"
+optional = true
+
 [features]
 default = ["std", "crypto-standard"]
 std = ["serde/std", "serde_json/std", "primitive-types/std"]
-crypto-standard = ["crypto", "p256", "elliptic-curve", "signature", "rand_core", "tokio", "reqwest", "digest", "sha2", "ripemd", "hmac"]
-websocket = ["tokio-tungstenite", "futures-util", "uuid", "tokio"]
-rest-client = ["reqwest"]
+
+# Core cryptography support
+crypto-standard = [
+    "crypto", "p256", "elliptic-curve", "signature", "rand_core", "ecdsa",
+    "digest", "sha2", "ripemd", "hmac"
+]
+
+# Individual hashing algorithms
 digest = ["dep:digest"]
 sha2 = ["dep:sha2"]
 ripemd160 = ["dep:ripemd160"]
+
+# Transport layer features
+websocket = [
+    "tokio-tungstenite", "futures-util", "uuid", "tokio", 
+    "reqwest", "url", "tracing", "tracing-futures"
+]
+
+rest-client = ["reqwest", "url", "tokio"]
+
+http-client = [
+    "reqwest", "url", "futures-util", "futures-timer", "regex", 
+    "wiremock", "async-trait", "auto_impl", "pin-project", "tracing", 
+    "tracing-futures", "jsonwebtoken", "http", "once_cell", 
+    "num_enum", "tracing-subscriber", "tokio"
+]
+
+# Runtime dependencies
+tokio = ["dep:tokio"]
+
+# Core blockchain features
+transaction = [
+    "crypto-standard", "scrypt", "serde_with", "futures-util", 
+    "tracing", "num_enum", "serde_derive", "once_cell"
+]
+
+contract = [
+    "crypto-standard", "serde_derive", "transaction"
+]
+
+wallet = [
+    "crypto-standard", "scrypt", "serde_derive", 
+    "aes", "block-modes"
+]
+
+# Add the wallet-standard feature as a higher-level feature
+wallet-standard = [
+    "wallet", "ethereum-types", "wasm-bindgen"
+]
+
+# Add the wallet-hardware feature as a higher-level feature 
+wallet-hardware = ["wallet", "ledger"]
+
+# Add the wallet-secure feature as a higher-level feature
+wallet-secure = ["wallet", "aes", "block-modes"]
+
+# Integration features
+ethereum-compat = ["ethereum-types"]
+ledger = []
 nightly = []
-ledger = [] # Feature for ledger hardware wallet integration
-ethereum-compat = [] # Feature for Ethereum compatibility and Neo X integration
-wallet = [] # Feature for wallet management functions
-transaction = [] # Feature for transaction creation and signing
-http-client = ["reqwest"] # Alias for reqwest to fix feature mismatch
 
 [dev-dependencies]
 hex-literal = "0.4.1"        

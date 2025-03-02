@@ -34,3 +34,10 @@ pub use constants::*;
 
 // Re-export network utilities for convenience
 pub use network::*;
+
+/// Utility function to convert bytes to base64 string with standard config
+#[cfg(feature = "http-client")]
+pub fn to_base64_string(data: &[u8]) -> String {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+    STANDARD.encode(data)
+}

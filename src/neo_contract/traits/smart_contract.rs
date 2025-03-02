@@ -6,6 +6,10 @@ use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
 
 use neo::prelude::*;
+use crate::neo_contract::{ContractParameter, OpCode};
+use crate::neo_error::ContractError;
+use crate::neo_types::contract::invocation_result::InvocationResult;
+use crate::neo_types::{Bytes, StackItem};
 
 #[async_trait]
 pub trait SmartContractTrait<'a>: Send + Sync {

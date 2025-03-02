@@ -208,29 +208,13 @@ impl Default for RetryClientBuilder {
 pub enum RetryClientError {
 	/// Internal provider error
 	#[error(transparent)]
-	ProviderError(ProviderError),
+	ProviderError(crate::neo_clients::errors::ProviderError),
 	/// Timeout while making requests
+	#[error("Timeout error")]
 	TimeoutError,
 	/// (De)Serialization error
 	#[error(transparent)]
 	SerdeJson(serde_json::Error),
-}
-
-impl std::fmt::Display for RetryClientError {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f, "{self:?}")
-	}
-}
-
-impl From<RetryClientError> for ProviderError {
-	fn from(src: RetryClientError) -> Self {
-		match src {
-			RetryClientError::ProviderError(err) => err,
-			// RetryClientError::TimeoutError => ProviderError::JsonRpcClientError(Box::new(src)),
-			RetryClientError::SerdeJson(err) => err.into(),
-			_ => ProviderError::CustomError(src.to_string()),
-		}
-	}
 }
 
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
@@ -327,7 +311,7 @@ where
 				#[cfg(not(target_arch = "wasm32"))]
 				tokio::time::sleep(next_backoff).await;
 			} else {
-				let err: ProviderError = err.into();
+				let err: crate::neo_clients::errors::ProviderError = err.into();
 				if timeout_retries < self.timeout_retries && maybe_connectivity(&err) {
 					timeout_retries += 1;
 					trace!(err = ?err, "retrying due to spurious network");
@@ -446,8 +430,8 @@ fn compute_unit_offset_in_secs(
 
 /// Checks whether the `error` is the result of a connectivity issue, like
 /// `request::Error::TimedOut`
-fn maybe_connectivity(err: &ProviderError) -> bool {
-	if let ProviderError::HTTPError(reqwest_err) = err {
+fn maybe_connectivity(err: &crate::neo_clients::errors::ProviderError) -> bool {
+	if let crate::neo_clients::errors::ProviderError::HTTPError(reqwest_err) = err {
 		if reqwest_err.is_timeout() {
 			return true;
 		}
