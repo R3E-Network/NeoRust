@@ -8,12 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added AWS Nitro TEE support as a feature
+- Added improved feature documentation in README.md and installation guide
 
 ### Changed
+- Reorganized feature system into logical groups (Core, Crypto, Utils, Serde, Optional)
+- Improved conditional compilation with proper feature gates
+- Enhanced feature compatibility documentation
 
 ### Fixed
+- Fixed syntax errors in script_hash.rs
+- Fixed unused imports in various modules
 
 ### Optimized
+- Reduced compile times with more granular feature selection
+- Improved binary size optimization with better feature organization
 
 ## [0.1.3] - 2025-03-01
 
@@ -67,4 +76,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]: https://github.com/R3E-Network/NeoRust/compare/v0.1.2...HEAD
 [0.1.2]: https://github.com/R3E-Network/NeoRust/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/R3E-Network/NeoRust/releases/tag/v0.1.1  
+[0.1.1]: https://github.com/R3E-Network/NeoRust/releases/tag/v0.1.1    
