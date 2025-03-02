@@ -1,8 +1,9 @@
 pub mod error;
 pub mod extensions;
 pub mod config;
+pub mod ledger;
 
-use colored::*;
+use colored::Colorize;
 use dialoguer::{Input, Password};
 use error::{CliError, CliResult};
 use neo3::prelude::*;
@@ -14,73 +15,78 @@ use std::fmt::Display;
 use primitive_types::H160;
 use neo3::crypto::hash::{HashableForSha256, HashableForRipemd160};
 
+/// Print a success message
 pub fn print_success(message: &str) {
     println!("{}", message.green());
 }
 
-pub fn print_info(message: &str) {
-    println!("{}", message.blue());
-}
-
-pub fn print_warning(message: &str) {
-    println!("{}", message.yellow());
-}
-
+/// Print an error message
 pub fn print_error(message: &str) {
     eprintln!("{}", message.red());
 }
 
-pub fn prompt_input<T>(prompt: &str) -> CliResult<T>
-where
-    T: std::str::FromStr + std::clone::Clone + std::fmt::Display,
-    T::Err: std::fmt::Display,
-{
-    Input::new()
+/// Print an informational message
+pub fn print_info(message: &str) {
+    println!("{}", message.blue());
+}
+
+/// Print a warning message
+pub fn print_warning(message: &str) {
+    println!("{}", message.yellow());
+}
+
+/// Prompt for user input
+pub fn prompt_input(prompt: &str) -> Result<String, error::CliError> {
+    print!("{}: ", prompt);
+    io::stdout().flush().map_err(|e| error::CliError::Io(e))?;
+    
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).map_err(|e| error::CliError::Io(e))?;
+    
+    Ok(input.trim().to_string())
+}
+
+/// Prompt for a password (without echoing characters)
+pub fn prompt_password(prompt: &str) -> Result<String, error::CliError> {
+    let password = dialoguer::Password::new()
         .with_prompt(prompt)
         .interact()
-        .map_err(|e| CliError::Input(e.to_string()))
+        .map_err(|e| error::CliError::Input(format!("Failed to read password: {}", e)))?;
+        
+    Ok(password)
 }
 
-pub fn prompt_password(prompt: &str) -> CliResult<String> {
-    Password::new()
-        .with_prompt(prompt)
-        .interact()
-        .map_err(|e| CliError::Input(e.to_string()))
-}
-
-pub fn prompt_yes_no(prompt: &str) -> CliResult<bool> {
-    let input: String = Input::new()
-        .with_prompt(format!("{} (y/n)", prompt))
-        .interact()
-        .map_err(|e| CliError::Input(e.to_string()))?;
+/// Prompt for yes/no input
+pub fn prompt_yes_no(prompt: &str) -> Result<bool, error::CliError> {
+    print!("{} [y/n]: ", prompt);
+    io::stdout().flush().map_err(|e| error::CliError::Io(e))?;
     
-    Ok(input.to_lowercase().starts_with('y'))
-}
-
-/// Calculate the contract hash based on sender, NEF checksum and contract name
-pub fn calculate_contract_hash(sender: &H160, checksum: u32, name_bytes: &[u8]) -> H160 {
-    // Concatenate sender bytes, checksum bytes and name bytes
-    let mut data = Vec::new();
-    data.extend_from_slice(&sender.0);
-    data.extend_from_slice(&checksum.to_le_bytes());
-    data.extend_from_slice(name_bytes);
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).map_err(|e| error::CliError::Io(e))?;
     
-    // Calculate the hash
-    let hash = data.sha256_hash();
-    let hash = hash.ripemd160_hash();
-    
-    H160::from_slice(&hash)
-}
-
-/// Format GAS amount for display (convert from smallest unit to display unit)
-pub fn format_gas(amount: &str) -> String {
-    match amount.parse::<f64>() {
-        Ok(value) => {
-            let gas_value = value / 100_000_000.0; // Convert from fraction to whole GAS
-            format!("{:.8} GAS", gas_value)
-        },
-        Err(_) => amount.to_string(),
+    match input.trim().to_lowercase().as_str() {
+        "y" | "yes" => Ok(true),
+        "n" | "no" => Ok(false),
+        _ => {
+            print_error("Please enter 'y' or 'n'");
+            prompt_yes_no(prompt)
+        }
     }
+}
+
+/// Formats a gas value for display (divides by 10^8)
+pub fn format_gas(gas: i64) -> String {
+    let amount = gas as f64 / 100_000_000.0;
+    format!("{:.8} GAS", amount)
+}
+
+/// Calculate contract hash based on sender, checksum, and name bytes
+pub fn calculate_contract_hash(
+    sender: &primitive_types::H160,
+    checksum: u32,
+    name_bytes: &[u8]
+) -> primitive_types::H160 {
+    extensions::calculate_contract_hash(sender, checksum, name_bytes)
 }
 
 /// Get a human-readable transaction type name

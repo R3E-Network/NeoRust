@@ -9,6 +9,7 @@ pub struct CliConfig {
     pub wallet: WalletConfig,
     pub storage: StorageConfig,
     pub logging: LoggingConfig,
+    pub neofs: NeoFsConfig,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -35,6 +36,12 @@ pub struct LoggingConfig {
     pub file: Option<PathBuf>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NeoFsConfig {
+    pub endpoint: Option<String>,
+    pub timeout_seconds: u64,
+}
+
 impl Default for CliConfig {
     fn default() -> Self {
         Self {
@@ -55,6 +62,10 @@ impl Default for CliConfig {
             logging: LoggingConfig {
                 level: "info".to_string(),
                 file: None,
+            },
+            neofs: NeoFsConfig {
+                endpoint: Some("https://fs.neo.org".to_string()),
+                timeout_seconds: 30,
             },
         }
     }

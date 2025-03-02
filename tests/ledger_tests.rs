@@ -1,6 +1,6 @@
 #[cfg(feature = "ledger")]
 mod tests {
-	use neo3::neo_wallets::HDPath;
+	use neo::neo_wallets::HDPath;
 
 	#[test]
 	fn test_hdpath_to_vec() {

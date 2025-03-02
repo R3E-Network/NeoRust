@@ -43,8 +43,8 @@
 //! ```
 
 // Core codec functionality - always available
-pub use error::*;
 pub use encode::*;
+pub use error::*;
 
 // Binary encoding/decoding - available with binary-format feature or transaction feature
 #[cfg(any(feature = "binary-format", feature = "transaction"))]
@@ -61,8 +61,8 @@ pub use binary_encoder::*;
 pub use json_codec::*;
 
 // Core modules - always available
-mod error;
 mod encode;
+mod error;
 
 // Binary encoding/decoding modules - conditional on binary-format or transaction feature
 #[cfg(any(feature = "binary-format", feature = "transaction"))]

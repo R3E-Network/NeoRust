@@ -551,31 +551,19 @@ mod tests {
 	use rustc_serialize::hex::{FromHex, ToHex};
 
 	use neo::{
-		builder::Signer,
+		builder::{
+			transaction::test::{
+				NeoConstants, GROUP_PUB_KEY1, GROUP_PUB_KEY2, SCRIPT_HASH, SCRIPT_HASH1,
+				SCRIPT_HASH2,
+			},
+			Signer,
+		},
 		prelude::{
 			Account, AccountSigner, AccountTrait, BuilderError, ContractSigner, Encoder,
-			NeoConstants, NeoSerializable, ScriptHash, ScriptHashExtension, Secp256r1PublicKey,
-			SignerTrait, WitnessAction, WitnessCondition, WitnessRule, WitnessScope,
+			NeoSerializable, ScriptHash, ScriptHashExtension, Secp256r1PublicKey, SignerTrait,
+			WitnessAction, WitnessCondition, WitnessRule, WitnessScope,
 		},
 	};
-
-	lazy_static! {
-		pub static ref SCRIPT_HASH: ScriptHash = {
-			Account::from_wif("Kzt94tAAiZSgH7Yt4i25DW6jJFprZFPSqTgLr5dWmWgKDKCjXMfZ")
-				.unwrap()
-				.get_script_hash()
-		};
-		pub static ref SCRIPT_HASH1: H160 = H160::from_script(&"d802a401".from_hex().unwrap());
-		pub static ref SCRIPT_HASH2: H160 = H160::from_script(&"c503b112".from_hex().unwrap());
-		pub static ref GROUP_PUB_KEY1: Secp256r1PublicKey = Secp256r1PublicKey::from_encoded(
-			"0306d3e7f18e6dd477d34ce3cfeca172a877f3c907cc6c2b66c295d1fcc76ff8f7",
-		)
-		.unwrap();
-		pub static ref GROUP_PUB_KEY2: Secp256r1PublicKey = Secp256r1PublicKey::from_encoded(
-			"02958ab88e4cea7ae1848047daeb8883daf5fdf5c1301dbbfe973f0a29fe75de60",
-		)
-		.unwrap();
-	}
 
 	#[test]
 	fn test_create_signer_with_call_by_entry_scope() {

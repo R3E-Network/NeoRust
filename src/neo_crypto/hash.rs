@@ -7,9 +7,9 @@ use sha2::{Sha256, Sha512};
 #[cfg(feature = "crypto-standard")]
 use ripemd::Ripemd160;
 
+use rustc_serialize::hex::FromHex;
 #[cfg(not(feature = "crypto-standard"))]
 use sha2::{Digest, Sha256};
-use rustc_serialize::hex::FromHex;
 
 pub trait HashableForVec {
 	fn hash256(&self) -> Vec<u8>;
@@ -68,9 +68,9 @@ impl HashableForVec for [u8] {
 		{
 			use hmac::{Hmac, Mac};
 			use sha2::Sha512;
-			
-			let mut hmac = Hmac::<Sha512>::new_from_slice(key)
-				.expect("HMAC can take key of any size");
+
+			let mut hmac =
+				Hmac::<Sha512>::new_from_slice(key).expect("HMAC can take key of any size");
 			hmac.update(self);
 			hmac.finalize().into_bytes().to_vec()
 		}

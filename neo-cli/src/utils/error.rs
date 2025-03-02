@@ -32,6 +32,24 @@ pub enum CliError {
     #[error("Builder error: {0}")]
     Builder(String),
     
+    #[error("Storage error: {0}")]
+    Storage(String),
+    
+    #[error("Provider error: {0}")]
+    Provider(String),
+    
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
+    
+    #[error("Contract error: {0}")]
+    Contract(String),
+    
+    #[error("Permission denied: {0}")]
+    PermissionDenied(String),
+    
+    #[error("Not found: {0}")]
+    NotFound(String),
+    
     #[error("Unknown error: {0}")]
     Unknown(String),
     
@@ -42,6 +60,24 @@ pub enum CliError {
 impl From<anyhow::Error> for CliError {
     fn from(err: anyhow::Error) -> Self {
         CliError::Anyhow(err.to_string())
+    }
+}
+
+impl From<std::num::ParseFloatError> for CliError {
+    fn from(err: std::num::ParseFloatError) -> Self {
+        CliError::Input(format!("Invalid number: {}", err))
+    }
+}
+
+impl From<std::num::ParseIntError> for CliError {
+    fn from(err: std::num::ParseIntError) -> Self {
+        CliError::Input(format!("Invalid integer: {}", err))
+    }
+}
+
+impl From<hex::FromHexError> for CliError {
+    fn from(err: hex::FromHexError) -> Self {
+        CliError::Input(format!("Invalid hex string: {}", err))
     }
 }
 

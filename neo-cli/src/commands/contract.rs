@@ -1,13 +1,13 @@
 use clap::{Args, Subcommand};
-use neo3::prelude::*;
+use neo::prelude::*;
 use crate::utils::error::{CliError, CliResult};
 use crate::utils::{print_success, print_error, print_info, prompt_password};
 use std::path::PathBuf;
 use std::fs;
 use std::str::FromStr;
-use neo3::types::{ContractManifest, NefFile, Signer, SignerScope};
-use neo3::transaction::TransactionBuilder;
-use neo3::script::ScriptBuilder;
+use neo::types::{ContractManifest, NefFile, Signer, SignerScope};
+use neo::transaction::TransactionBuilder;
+use neo::script::ScriptBuilder;
 
 #[derive(Args, Debug)]
 pub struct ContractArgs {
@@ -154,8 +154,8 @@ async fn deploy_contract(nef_path: PathBuf, manifest_path: PathBuf, account: Opt
     
     // Get system fee
     let params = vec![
-        neo3::types::ContractParameter::byte_array(nef_bytes),
-        neo3::types::ContractParameter::string(manifest_json)
+        neo::types::contract::ContractParameter::byte_array(nef_bytes),
+        neo::types::contract::ContractParameter::string(manifest_json)
     ];
     
     let invocation_result = rpc_client.invoke_function(
@@ -292,9 +292,9 @@ async fn update_contract(script_hash: String, nef_path: PathBuf, manifest_path: 
     
     // Get system fee
     let params = vec![
-        neo3::types::ContractParameter::h160(contract_hash.clone()),
-        neo3::types::ContractParameter::byte_array(nef_bytes),
-        neo3::types::ContractParameter::string(manifest_json)
+        neo::types::contract::ContractParameter::h160(contract_hash.clone()),
+        neo::types::contract::ContractParameter::byte_array(nef_bytes),
+        neo::types::contract::ContractParameter::string(manifest_json)
     ];
     
     let invocation_result = rpc_client.invoke_function(
@@ -337,9 +337,9 @@ async fn update_contract(script_hash: String, nef_path: PathBuf, manifest_path: 
             H160::from_hex_str("0xfffdc93764dbaddd97c48f252a53ea4643faa3fd").unwrap(),
             "update",
             &[
-                neo3::types::ContractParameter::h160(contract_hash),
-                neo3::types::ContractParameter::byte_array(nef_bytes),
-                neo3::types::ContractParameter::string(manifest_json)
+                neo::types::contract::ContractParameter::h160(contract_hash),
+                neo::types::contract::ContractParameter::byte_array(nef_bytes),
+                neo::types::contract::ContractParameter::string(manifest_json)
             ],
             None
         )
@@ -518,47 +518,46 @@ async fn invoke_contract(script_hash: String, method: String, params: Option<Str
     Ok(())
 }
 
-// Helper to convert JSON to ContractParameter
-fn contract_parameter_from_json(value: serde_json::Value) -> Result<neo3::types::ContractParameter, CliError> {
+/// Convert a JSON value to a ContractParameter
+fn contract_parameter_from_json(value: serde_json::Value) -> Result<neo::types::contract::ContractParameter, CliError> {
     match value {
-        serde_json::Value::Null => Ok(neo3::types::ContractParameter::any()),
-        serde_json::Value::Bool(b) => Ok(neo3::types::ContractParameter::bool(b)),
+        serde_json::Value::Null => Ok(neo::types::contract::ContractParameter::any()),
+        serde_json::Value::Bool(b) => Ok(neo::types::contract::ContractParameter::bool(b)),
         serde_json::Value::Number(n) => {
             if n.is_i64() {
-                Ok(neo3::types::ContractParameter::integer(n.as_i64().unwrap().into()))
-            } else if n.is_f64() {
-                Ok(neo3::types::ContractParameter::string(n.to_string()))
+                Ok(neo::types::contract::ContractParameter::integer(n.as_i64().unwrap().into()))
             } else {
-                Err(CliError::Input("Invalid number type".to_string()))
+                Ok(neo::types::contract::ContractParameter::string(n.to_string()))
             }
         },
         serde_json::Value::String(s) => {
-            // Check if it's a hex string (for ByteArray)
-            if s.starts_with("0x") {
-                let hex_str = &s[2..];
-                match hex::decode(hex_str) {
-                    Ok(bytes) => Ok(neo3::types::ContractParameter::byte_array(bytes)),
-                    Err(_) => Ok(neo3::types::ContractParameter::string(s))
+            if s.starts_with("0x") && s.len() >= 2 {
+                // Try to parse as hex bytes
+                match hex::decode(&s[2..]) {
+                    Ok(bytes) => Ok(neo::types::contract::ContractParameter::byte_array(bytes)),
+                    Err(_) => Ok(neo::types::contract::ContractParameter::string(s))
                 }
-            } else if s.starts_with("@") { // Special format for Hash160
-                let hash_str = &s[1..];
+            } else if s.starts_with("#") && s.len() >= 41 {
+                // Try to parse as script hash (UInt160)
+                let hash_str = s.trim_start_matches("#");
                 match H160::from_str(hash_str) {
-                    Ok(hash) => Ok(neo3::types::ContractParameter::h160(hash)),
-                    Err(_) => Ok(neo3::types::ContractParameter::string(s))
+                    Ok(hash) => Ok(neo::types::contract::ContractParameter::h160(hash)),
+                    Err(_) => Ok(neo::types::contract::ContractParameter::string(s))
                 }
             } else {
-                Ok(neo3::types::ContractParameter::string(s))
+                Ok(neo::types::contract::ContractParameter::string(s))
             }
         },
         serde_json::Value::Array(arr) => {
-            let mut params = Vec::new();
-            for item in arr {
-                params.push(contract_parameter_from_json(item)?);
-            }
-            Ok(neo3::types::ContractParameter::array(params))
+            let params: Result<Vec<neo::types::contract::ContractParameter>, CliError> = arr
+                .into_iter()
+                .map(contract_parameter_from_json)
+                .collect();
+            
+            Ok(neo::types::contract::ContractParameter::array(params?))
         },
         serde_json::Value::Object(_) => {
-            Err(CliError::Input("Object parameters not supported".to_string()))
+            Err(CliError::Input("Complex JSON objects not supported as parameters".to_string()))
         }
     }
 }

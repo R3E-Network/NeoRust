@@ -1,8 +1,8 @@
 use byte_slice_cast::AsByteSlice;
 use hex::FromHexError;
 use primitive_types::H160;
-use rustc_serialize::hex::ToHex as RustcToHex;
 use rustc_hex::{FromHex, ToHex};
+use rustc_serialize::hex::ToHex as RustcToHex;
 
 use crate::neo_types::error::TypeError;
 
@@ -16,37 +16,49 @@ pub use crate::neo_crypto::HashableForVec;
 // Placeholder functions that will be implemented properly later
 #[cfg(not(feature = "crypto-standard"))]
 pub trait HashableForVec {
-    fn hash256(&self) -> Vec<u8>;
-    fn ripemd160(&self) -> Vec<u8>;
-    fn sha256_ripemd160(&self) -> Vec<u8>;
+	fn hash256(&self) -> Vec<u8>;
+	fn ripemd160(&self) -> Vec<u8>;
+	fn sha256_ripemd160(&self) -> Vec<u8>;
 }
 
 #[cfg(not(feature = "crypto-standard"))]
 impl HashableForVec for [u8] {
-    fn hash256(&self) -> Vec<u8> { vec![0; 32] }
-    fn ripemd160(&self) -> Vec<u8> { vec![0; 20] }
-    fn sha256_ripemd160(&self) -> Vec<u8> { vec![0; 20] }
+	fn hash256(&self) -> Vec<u8> {
+		vec![0; 32]
+	}
+	fn ripemd160(&self) -> Vec<u8> {
+		vec![0; 20]
+	}
+	fn sha256_ripemd160(&self) -> Vec<u8> {
+		vec![0; 20]
+	}
 }
 
 #[cfg(not(feature = "crypto-standard"))]
 impl HashableForVec for Vec<u8> {
-    fn hash256(&self) -> Vec<u8> { vec![0; 32] }
-    fn ripemd160(&self) -> Vec<u8> { vec![0; 20] }
-    fn sha256_ripemd160(&self) -> Vec<u8> { vec![0; 20] }
+	fn hash256(&self) -> Vec<u8> {
+		vec![0; 32]
+	}
+	fn ripemd160(&self) -> Vec<u8> {
+		vec![0; 20]
+	}
+	fn sha256_ripemd160(&self) -> Vec<u8> {
+		vec![0; 20]
+	}
 }
 
 // Placeholder for Secp256r1PublicKey
 pub struct Secp256r1PublicKey(pub Vec<u8>);
 
 impl Secp256r1PublicKey {
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, TypeError> {
-        Ok(Self(bytes.to_vec()))
-    }
+	pub fn from_bytes(bytes: &[u8]) -> Result<Self, TypeError> {
+		Ok(Self(bytes.to_vec()))
+	}
 }
 
 // Placeholder for public_key_to_script_hash function
 pub fn public_key_to_script_hash(public_key: &Secp256r1PublicKey) -> H160 {
-    H160::zero()
+	H160::zero()
 }
 
 pub type ScriptHash = H160;
@@ -216,45 +228,53 @@ mod tests {
 
 	// Define test constants directly to avoid circular dependencies
 	pub struct Encoder {
-		data: Vec<u8>
+		data: Vec<u8>,
 	}
-	
+
 	impl Encoder {
-		pub fn new() -> Self { Self { data: Vec::new() } }
-		pub fn to_bytes(&self) -> Vec<u8> { self.data.clone() }
+		pub fn new() -> Self {
+			Self { data: Vec::new() }
+		}
+		pub fn to_bytes(&self) -> Vec<u8> {
+			self.data.clone()
+		}
 		pub fn write_bytes(&mut self, bytes: &[u8]) {
 			self.data.extend_from_slice(bytes);
 		}
 	}
-	
+
 	pub enum InteropService {
-		SystemCryptoCheckSig
+		SystemCryptoCheckSig,
 	}
-	
+
 	impl InteropService {
-		pub fn hash(&self) -> String { "".to_string() }
+		pub fn hash(&self) -> String {
+			"".to_string()
+		}
 	}
-	
+
 	pub trait NeoSerializable {
 		fn encode(&self, encoder: &mut Encoder);
 	}
-	
+
 	// Implement NeoSerializable for H160
 	impl NeoSerializable for H160 {
 		fn encode(&self, encoder: &mut Encoder) {
 			encoder.write_bytes(&self.0);
 		}
 	}
-	
+
 	pub enum OpCode {
 		PushData1,
-		Syscall
+		Syscall,
 	}
-	
+
 	impl OpCode {
-		pub fn to_hex_string(&self) -> String { "".to_string() }
+		pub fn to_hex_string(&self) -> String {
+			"".to_string()
+		}
 	}
-	
+
 	pub struct TestConstants;
 
 	use super::*;
@@ -313,7 +333,7 @@ mod tests {
 		assert_ne!(hash1, hash2);
 		assert_eq!(hash1, hash1);
 	}
-	
+
 	#[test]
 	#[cfg(not(feature = "crypto-standard"))]
 	fn test_equals() {
@@ -337,7 +357,7 @@ mod tests {
 		expected.reverse();
 		assert_eq!(hash.to_le_vec(), expected);
 	}
-	
+
 	#[test]
 	#[cfg(not(feature = "crypto-standard"))]
 	fn test_from_address() {
@@ -400,7 +420,7 @@ mod tests {
 		let address = hash.to_address();
 		assert_eq!(address, "NLnyLtep7jwyq1qhNPkwXbJpurC4jUT8ke".to_string());
 	}
-	
+
 	#[test]
 	#[cfg(not(feature = "crypto-standard"))]
 	fn test_to_address() {

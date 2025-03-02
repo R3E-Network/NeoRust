@@ -1,10 +1,14 @@
 use clap::{Args, Subcommand};
-use neo3::prelude::*;
-use crate::utils::error::{CliError, CliResult};
-use crate::utils::{print_success, print_error, print_info};
+use neo::prelude::*;
+use primitive_types::H160;
 use std::path::PathBuf;
+use std::io::{self, Write};
+use std::fs;
+use std::str::FromStr;
+use crate::utils::error::{CliError, CliResult};
+use crate::commands::wallet::CliState;
+use crate::utils::{print_success, print_error, print_info};
 use crate::utils::extensions::TransactionExtensions;
-use std::io;
 use hex;
 
 #[derive(Args, Debug)]
@@ -257,7 +261,7 @@ async fn show_contract(hash: String, state: &mut crate::commands::wallet::CliSta
     let rpc_client = state.rpc_client.as_ref().unwrap();
     
     // Convert from string to H160
-    let contract_hash = neo3::prelude::H160::from_str(&hash)
+    let contract_hash = neo::prelude::H160::from_str(&hash)
         .map_err(|_| CliError::Input(format!("Invalid contract hash format: {}", hash)))?;
     
     let contract = rpc_client.get_contract_state(contract_hash).await
@@ -295,5 +299,87 @@ async fn show_contract(hash: String, state: &mut crate::commands::wallet::CliSta
     }
     
     print_success("Contract information retrieved successfully");
+    Ok(())
+}
+
+async fn handle_get_block(index_or_hash: String, state: &mut CliState) -> CliResult<()> {
+    let rpc_client = match &state.rpc_client {
+        Some(client) => client,
+        None => return Err(CliError::Network("No RPC client connected".to_string())),
+    };
+
+    // Determine if the input is a block index or hash
+    let block = if index_or_hash.starts_with("0x") {
+        // This is a block hash
+        print_info(&format!("Getting block by hash: {}", index_or_hash));
+        rpc_client.get_block(&index_or_hash, 1).await
+            .map_err(|e| CliError::Rpc(format!("Failed to get block by hash: {}", e)))?
+    } else {
+        // Try to parse as block index
+        match index_or_hash.parse::<u32>() {
+            Ok(index) => {
+                print_info(&format!("Getting block by index: {}", index));
+                rpc_client.get_block_by_index(index, 1).await
+                    .map_err(|e| CliError::Rpc(format!("Failed to get block by index: {}", e)))?
+            },
+            Err(_) => {
+                return Err(CliError::Input(format!("Invalid block index or hash: {}", index_or_hash)));
+            }
+        }
+    };
+
+    // Now that we have the block, print its details
+    println!("Block Hash: {}", block.hash);
+    println!("Block Index: {}", block.index);
+    println!("Block Time: {}", block.time);
+    println!("Block Size: {}", block.size);
+    println!("Transaction Count: {}", block.transactions.len());
+    println!("Merkle Root: {}", block.merkle_root_hash);
+    println!("Previous Block: {}", block.prev_block_hash);
+    println!("Next Consensus: {}", block.next_consensus);
+    
+    // Print transactions if there are any
+    if !block.transactions.is_empty() {
+        println!("\nTransactions:");
+        for (i, tx) in block.transactions.iter().enumerate() {
+            println!("  {}. {}", i + 1, tx.hash);
+        }
+    }
+
+    Ok(())
+}
+
+async fn handle_get_contract(hash: String, state: &mut CliState) -> CliResult<()> {
+    let rpc_client = match &state.rpc_client {
+        Some(client) => client,
+        None => return Err(CliError::Network("No RPC client connected".to_string())),
+    };
+    
+    let contract_hash = H160::from_str(&hash)
+        .map_err(|e| CliError::Input(format!("Invalid contract hash: {}", e)))?;
+    
+    let contract = rpc_client.get_contract_state(&contract_hash)
+        .await
+        .map_err(|e| CliError::Rpc(format!("Failed to retrieve contract: {}", e)))?;
+    
+    println!("Contract Hash: {}", hash);
+    println!("Name: {}", contract.manifest.name);
+    println!("Version: {}", contract.manifest.abi.methods.len());
+    
+    println!("\nMethods:");
+    for method in &contract.manifest.abi.methods {
+        println!("  {}", method.name);
+        println!("    Parameters:");
+        for param in &method.parameters {
+            println!("      {} ({})", param.name, param.type_);
+        }
+        if let Some(return_type) = &method.return_type {
+            println!("    Return Type: {}", return_type);
+        } else {
+            println!("    Return Type: void");
+        }
+        println!();
+    }
+    
     Ok(())
 }

@@ -96,7 +96,10 @@ pub mod evm;
 
 // Bridge module - requires contract and http-client features
 #[cfg(all(feature = "ethereum-compat", feature = "contract", feature = "http-client"))]
-#[cfg_attr(docsrs, doc(cfg(all(feature = "ethereum-compat", feature = "contract", feature = "http-client"))))]
+#[cfg_attr(
+	docsrs,
+	doc(cfg(all(feature = "ethereum-compat", feature = "contract", feature = "http-client")))
+)]
 pub mod bridge;
 
 // Re-export EVM compatibility types
@@ -106,5 +109,8 @@ pub use evm::*;
 
 // Re-export bridge functionality
 #[cfg(all(feature = "ethereum-compat", feature = "contract", feature = "http-client"))]
-#[cfg_attr(docsrs, doc(cfg(all(feature = "ethereum-compat", feature = "contract", feature = "http-client"))))]
+#[cfg_attr(
+	docsrs,
+	doc(cfg(all(feature = "ethereum-compat", feature = "contract", feature = "http-client")))
+)]
 pub use bridge::*;

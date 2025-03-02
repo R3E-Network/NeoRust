@@ -151,7 +151,9 @@ impl Wallet {
 
 	/// Sets the wallet's network magic number
 	pub fn with_network(mut self, network: u32) -> Self {
-		self.extra.get_or_insert_with(HashMap::new).insert("Network".to_string(), network.to_string());
+		self.extra
+			.get_or_insert_with(HashMap::new)
+			.insert("Network".to_string(), network.to_string());
 		self
 	}
 
@@ -189,7 +191,8 @@ impl Wallet {
 	#[cfg(feature = "wallet-standard")]
 	#[cfg_attr(docsrs, doc(cfg(feature = "wallet-standard")))]
 	pub fn save_to_file(&self, path: PathBuf) -> Result<(), WalletError> {
-		let json = serde_json::to_string_pretty(self).map_err(|e| WalletError::SerializationError(e.to_string()))?;
+		let json = serde_json::to_string_pretty(self)
+			.map_err(|e| WalletError::SerializationError(e.to_string()))?;
 
 		let mut file = File::create(path).map_err(|e| WalletError::IoError(e.to_string()))?;
 		file.write_all(json.as_bytes()).map_err(|e| WalletError::IoError(e.to_string()))
@@ -200,12 +203,12 @@ impl Wallet {
 	#[cfg_attr(docsrs, doc(cfg(feature = "wallet-standard")))]
 	pub fn create(path: &PathBuf, password: &str) -> Result<Self, WalletError> {
 		let mut wallet = Self::new()?;
-		
+
 		// Encrypt the wallet accounts if a password is provided
 		if !password.is_empty() {
 			wallet.encrypt_accounts(password);
 		}
-		
+
 		wallet.save_to_file(path.clone())?;
 		Ok(wallet)
 	}
@@ -333,7 +336,7 @@ mod tests {
 		let mut wallet = Wallet::new().unwrap();
 		let password = "password123";
 		wallet.encrypt_accounts(password);
-		
+
 		// Check that all accounts are encrypted
 		for account in wallet.accounts.values() {
 			assert!(account.get_encrypted_key().is_some());
@@ -346,7 +349,7 @@ mod tests {
 		let mut wallet = Wallet::new().unwrap();
 		let password = "password123";
 		wallet.encrypt_accounts(password);
-		
+
 		assert!(wallet.verify_password(password));
 		assert!(!wallet.verify_password("wrong_password"));
 	}

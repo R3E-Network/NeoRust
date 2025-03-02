@@ -82,12 +82,12 @@ use primitive_types::H256;
 use serde_derive::{Deserialize, Serialize};
 
 // Core types - always available
-pub use error::*;
-pub use script_hash::*;
 pub use address::*;
 pub use address_or_scripthash::*;
 pub use bytes::*;
+pub use error::*;
 pub use numeric::*;
+pub use script_hash::*;
 pub use string::*;
 pub use util::*;
 
@@ -158,12 +158,12 @@ mod contract;
 mod nns;
 
 // Core modules - always available
-pub mod error;
-pub mod script_hash;
 pub mod address;
 pub mod address_or_scripthash;
 pub mod bytes;
+pub mod error;
 pub mod numeric;
+pub mod script_hash;
 pub mod string;
 pub mod util;
 

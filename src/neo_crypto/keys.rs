@@ -60,8 +60,8 @@ use std::{
 };
 
 // use zeroize::Zeroize;
-use elliptic_curve::zeroize::Zeroize;
 use crate::neo_crypto::error::CryptoError;
+use elliptic_curve::zeroize::Zeroize;
 use p256::{
 	ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey},
 	elliptic_curve::{
@@ -597,7 +597,7 @@ impl Secp256r1PublicKey {
 	pub fn to_array(&self) -> Vec<u8> {
 		self.get_encoded(true)
 	}
-	
+
 	// Added for test compatibility
 	// This method is only used in tests and will be implemented differently
 }
@@ -609,20 +609,19 @@ mod tests {
 	use rustc_serialize::hex::{FromHex, ToHex};
 
 	use super::{Secp256r1PrivateKey, Secp256r1PublicKey, Secp256r1Signature};
-	use crate::neo_crypto::hash::HashableForVec;
-	use crate::neo_crypto::error::CryptoError;
-	
+	use crate::neo_crypto::{error::CryptoError, hash::HashableForVec};
+
 	// Mock Decoder for tests
 	pub struct Decoder {
 		pub data: Vec<u8>,
 		pub position: usize,
 	}
-	
+
 	impl Decoder {
 		pub fn new(data: &[u8]) -> Self {
 			Self { data: data.to_vec(), position: 0 }
 		}
-		
+
 		pub fn read_bytes(&mut self, len: usize) -> Result<Vec<u8>, &'static str> {
 			if self.position + len > self.data.len() {
 				return Err("Not enough data");
@@ -632,21 +631,24 @@ mod tests {
 			Ok(result)
 		}
 	}
-	
+
 	// Add decode method to Secp256r1PublicKey for tests
 	impl Secp256r1PublicKey {
 		pub fn decode(reader: &mut Decoder) -> Result<Self, crate::neo_crypto::error::CryptoError> {
 			// Implementation for test compatibility
-			let bytes = reader.read_bytes(33).map_err(|_| crate::neo_crypto::error::CryptoError::InvalidPublicKey)?;
-			Self::from_bytes(&bytes).map_err(|_| crate::neo_crypto::error::CryptoError::InvalidPublicKey)
+			let bytes = reader
+				.read_bytes(33)
+				.map_err(|_| crate::neo_crypto::error::CryptoError::InvalidPublicKey)?;
+			Self::from_bytes(&bytes)
+				.map_err(|_| crate::neo_crypto::error::CryptoError::InvalidPublicKey)
 		}
 	}
-	
+
 	// Helper trait for tests
 	trait ToArray32 {
 		fn to_array32(&self) -> Result<[u8; 32], &'static str>;
 	}
-	
+
 	// Implementation for Vec<u8>
 	impl ToArray32 for Vec<u8> {
 		fn to_array32(&self) -> Result<[u8; 32], &'static str> {
@@ -658,7 +660,7 @@ mod tests {
 			Ok(array)
 		}
 	}
-	
+
 	// This will be defined in the test module
 
 	const ENCODED_POINT: &str =

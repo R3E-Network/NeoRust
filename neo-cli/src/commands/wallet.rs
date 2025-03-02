@@ -1,9 +1,10 @@
 use clap::{Args, Subcommand};
-use neo3::prelude::*;
-use neo3::providers::Http;
+use neo::prelude::*;
+use primitive_types::H160;
 use crate::utils::error::{CliError, CliResult};
 use crate::utils::{print_success, print_error, print_info, prompt_password};
 use std::path::PathBuf;
+use std::str::FromStr;
 
 #[derive(Args, Debug)]
 pub struct WalletArgs {
@@ -100,8 +101,9 @@ pub enum WalletCommands {
 
 /// CLI state to track the current wallet and other session information
 pub struct CliState {
-    pub wallet: Option<Wallet>,
-    pub rpc_client: Option<RpcClient<Http>>,
+    pub wallet: Option<neo::neo_wallets::Wallet>,
+    pub rpc_client: Option<neo::neo_clients::RpcClient<neo::neo_clients::Http>>,
+    pub config: crate::config::CliConfig,
 }
 
 impl Default for CliState {
@@ -109,6 +111,7 @@ impl Default for CliState {
         Self {
             wallet: None,
             rpc_client: None,
+            config: crate::config::CliConfig::default(),
         }
     }
 }

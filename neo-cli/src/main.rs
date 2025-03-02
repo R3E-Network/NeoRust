@@ -9,6 +9,7 @@ use crate::commands::network::{NetworkArgs, handle_network_command};
 use crate::commands::contract::{ContractArgs, handle_contract_command};
 use crate::commands::defi::{DefiArgs, handle_defi_command};
 use crate::commands::storage::{StorageArgs, handle_storage_command};
+use crate::commands::neox::{NeoXArgs, handle_neox_command};
 use crate::config::CliConfig;
 use crate::utils::{print_success, print_error};
 use crate::utils::error::CliResult;
@@ -48,6 +49,9 @@ enum Commands {
     /// NeoFS storage commands
     Storage(StorageArgs),
     
+    /// Neo X commands for EVM compatibility layer
+    NeoX(NeoXArgs),
+    
     /// Initialize a new configuration file
     Init {
         /// Path to save the configuration file
@@ -65,7 +69,7 @@ async fn main() -> CliResult<()> {
     let cli = Cli::parse();
     
     // Load configuration
-    let _config = match &cli.config {
+    let config = match &cli.config {
         Some(path) => {
             if !path.exists() {
                 print_error(&format!("Config file not found: {:?}", path));
@@ -82,12 +86,17 @@ async fn main() -> CliResult<()> {
     };
     
     // Initialize CLI state
-    let mut state = CliState::default();
+    let mut state = CliState {
+        wallet: None,
+        rpc_client: None,
+        config: config.clone(),
+    };
     
     // Handle commands
     match cli.command {
         Commands::Wallet(args) => {
-            handle_wallet_command(args, &mut state).await?;
+            let result = handle_wallet_command(args, &mut state).await?;
+            println!("{}", result);
         },
         Commands::Blockchain(args) => {
             handle_blockchain_command(args, &mut state).await?;
@@ -102,7 +111,19 @@ async fn main() -> CliResult<()> {
             handle_defi_command(args, &mut state).await?;
         },
         Commands::Storage(args) => {
-            handle_storage_command(args, &mut state).await?;
+            let output = handle_storage_command(&args, &mut state)?;
+            
+            // Print the output based on its content
+            if let Some(message) = output.message {
+                print_success(&message);
+            }
+            
+            if let Some(table) = output.table {
+                table.printstd();
+            }
+        },
+        Commands::NeoX(args) => {
+            handle_neox_command(args, &mut state).await?;
         },
         Commands::Init { path } => {
             let config_path = path.unwrap_or_else(|| {
@@ -126,4 +147,9 @@ async fn main() -> CliResult<()> {
     }
     
     Ok(())
+}
+
+// Helper function to print command output
+fn print_output<T: std::fmt::Display>(output: T) {
+    println!("{}", output);
 }

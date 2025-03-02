@@ -1,80 +1,74 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Default test flags
-set TEST_COMMAND=cargo test
-set TEST_FLAGS=
-set RUNTIME_FLAGS=
-set FEATURES=ledger,aws,futures
+:: ANSI color codes for Windows 10+
+set "GREEN=[0;32m"
+set "YELLOW=[1;33m"
+set "RED=[0;31m"
+set "CYAN=[0;36m"
+set "NC=[0m"
+
+:: Check if Windows version supports ANSI colors
+ver | find "10." > nul
+if %ERRORLEVEL% NEQ 0 (
+    :: Clear color variables if not supported
+    set "GREEN="
+    set "YELLOW="
+    set "RED="
+    set "CYAN="
+    set "NC="
+)
 
 :: Parse arguments
+set ALL_FEATURES=false
+set ALL_EXAMPLES=false
+set CARGO_ARGS=
+
 :parse_args
-if "%~1"=="" goto prepare_command
+if "%~1"=="" goto :run_tests
 if "%~1"=="--all-features" (
-    set TEST_FLAGS=!TEST_FLAGS! --all-features
-    set FEATURES=
+    set ALL_FEATURES=true
     shift
-    goto parse_args
+    goto :parse_args
 )
-if "%~1"=="--no-default-features" (
-    set TEST_FLAGS=!TEST_FLAGS! --no-default-features
-    set FEATURES=
+if "%~1"=="--all-examples" (
+    set ALL_EXAMPLES=true
     shift
-    goto parse_args
-)
-if "%~1"=="--features" (
-    set FEATURES=%~2
-    shift
-    shift
-    goto parse_args
-)
-if "%~1"=="--nocapture" (
-    set RUNTIME_FLAGS=!RUNTIME_FLAGS! --nocapture
-    shift
-    goto parse_args
-)
-if "%~1"=="--no-fail-fast" (
-    set TEST_FLAGS=!TEST_FLAGS! --no-fail-fast
-    shift
-    goto parse_args
+    goto :parse_args
 )
 if "%~1"=="--help" (
-    call :show_help
+    call :print_usage
     exit /b 0
 )
-echo Unknown option: %~1
-call :show_help
-exit /b 1
+set CARGO_ARGS=%CARGO_ARGS% %1
+shift
+goto :parse_args
 
-:prepare_command
-:: Add features flag if features were specified or using default
-if not "!FEATURES!"=="" (
-    set TEST_FLAGS=!TEST_FLAGS! --features !FEATURES!
+:print_usage
+echo NeoRust Test Script
+echo.
+echo Usage: test.bat [options]
+echo.
+echo Options:
+echo   --all-features      Run tests with all feature combinations
+echo   --all-examples      Run all examples
+echo   --help              Show this help message
+echo.
+echo Any other arguments will be passed directly to cargo test.
+exit /b 0
+
+:run_tests
+:: Run the appropriate scripts based on arguments
+if "%ALL_FEATURES%"=="true" (
+    echo %CYAN%Running tests with all feature combinations...%NC%
+    call scripts\test_all_features.bat
+) else if "%ALL_EXAMPLES%"=="true" (
+    echo %CYAN%Running all examples...%NC%
+    call scripts\run_all_examples.bat
+) else (
+    :: Run standard cargo test with any additional args
+    echo %CYAN%Running standard tests...%NC%
+    cargo test %CARGO_ARGS%
 )
 
-:: Execute test command
-set FINAL_COMMAND=%TEST_COMMAND% %TEST_FLAGS%
-if not "!RUNTIME_FLAGS!"=="" (
-    set FINAL_COMMAND=!FINAL_COMMAND! -- !RUNTIME_FLAGS!
-)
-
-echo Running: !FINAL_COMMAND!
-!FINAL_COMMAND!
-exit /b
-
-:show_help
-echo Usage: .\scripts\test.bat [OPTIONS]
-echo.
-echo Test options:
-echo   --all-features         Test with all features enabled
-echo   --no-default-features  Test with no default features
-echo   --features FEATURES    Test with specific features (comma-separated)
-echo                          Default features if not specified: ledger,aws,futures
-echo   --nocapture            Show test output
-echo   --no-fail-fast         Continue testing even if a test fails
-echo   --help                 Show this help message
-echo.
-echo Examples:
-echo   .\scripts\test.bat --features ledger,aws
-echo   .\scripts\test.bat --all-features --nocapture
-exit /b 
+exit /b %ERRORLEVEL% 

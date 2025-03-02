@@ -118,10 +118,10 @@
 //! ```
 
 // Core wallet types
-pub use wallet::*;
-pub use wallet_trait::*;
-pub use wallet_signer::*;
 pub use error::*;
+pub use wallet::*;
+pub use wallet_signer::*;
+pub use wallet_trait::*;
 
 // BIP-39 support
 #[cfg(feature = "bip39")]
@@ -139,10 +139,10 @@ pub use ledger::*;
 pub use yubi::*;
 
 // Core wallet modules
-mod wallet;
-mod wallet_trait;
-mod wallet_signer;
 mod error;
+mod wallet;
+mod wallet_signer;
+mod wallet_trait;
 
 // BIP-39 support module
 #[cfg(feature = "bip39")]
@@ -167,11 +167,11 @@ pub type YubiWallet = WalletSigner<yubihsm::ecdsa::Signer<yubihsm::ecdsa::NistP2
 // Tests
 #[cfg(test)]
 mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_wallet_creation() {
-        let wallet = Wallet::new().unwrap();
-        assert!(wallet.accounts().is_empty());
-    }
+	use super::*;
+
+	#[test]
+	fn test_wallet_creation() {
+		let wallet = Wallet::new().unwrap();
+		assert!(wallet.accounts().is_empty());
+	}
 }

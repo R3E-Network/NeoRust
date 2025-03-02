@@ -8,44 +8,44 @@ use rustc_serialize::hex::FromHex;
 use serde::{Deserialize, Serialize};
 
 use crate::neo_types::{
-	script_hash::{ScriptHash, ScriptHashExtension, HashableForVec},
 	error::TypeError,
+	script_hash::{HashableForVec, ScriptHash, ScriptHashExtension},
 };
 
 // StringExt trait for hex validation
 pub trait StringExt {
-    fn is_valid_hex(&self) -> bool;
-    fn from_hex(&self) -> Result<Vec<u8>, TypeError>;
+	fn is_valid_hex(&self) -> bool;
+	fn from_hex(&self) -> Result<Vec<u8>, TypeError>;
 }
 
 impl StringExt for String {
-    fn is_valid_hex(&self) -> bool {
-        self.chars().all(|c| c.is_digit(16))
-    }
-    
-    fn from_hex(&self) -> Result<Vec<u8>, TypeError> {
-        let s = if self.starts_with("0x") { &self[2..] } else { self };
-        if s.len() % 2 != 0 {
-            return Err(TypeError::InvalidFormat("Hex string must have even length".to_string()));
-        }
-        
-        let bytes = match s.from_hex() {
-            Ok(bytes) => bytes,
-            Err(_) => return Err(TypeError::InvalidFormat("Invalid hex string".to_string())),
-        };
-        
-        Ok(bytes)
-    }
+	fn is_valid_hex(&self) -> bool {
+		self.chars().all(|c| c.is_digit(16))
+	}
+
+	fn from_hex(&self) -> Result<Vec<u8>, TypeError> {
+		let s = if self.starts_with("0x") { &self[2..] } else { self };
+		if s.len() % 2 != 0 {
+			return Err(TypeError::InvalidFormat("Hex string must have even length".to_string()));
+		}
+
+		let bytes = match s.from_hex() {
+			Ok(bytes) => bytes,
+			Err(_) => return Err(TypeError::InvalidFormat("Invalid hex string".to_string())),
+		};
+
+		Ok(bytes)
+	}
 }
 
 impl StringExt for &str {
-    fn is_valid_hex(&self) -> bool {
-        self.chars().all(|c| c.is_digit(16))
-    }
-    
-    fn from_hex(&self) -> Result<Vec<u8>, TypeError> {
-        self.to_string().from_hex()
-    }
+	fn is_valid_hex(&self) -> bool {
+		self.chars().all(|c| c.is_digit(16))
+	}
+
+	fn from_hex(&self) -> Result<Vec<u8>, TypeError> {
+		self.to_string().from_hex()
+	}
 }
 
 pub type Address = String;

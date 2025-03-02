@@ -1,76 +1,60 @@
 #!/bin/bash
+set -e
 
-# Help message
-show_help() {
-    echo "Usage: ./scripts/test.sh [OPTIONS]"
-    echo ""
-    echo "Test options:"
-    echo "  --all-features         Test with all features enabled"
-    echo "  --no-default-features  Test with no default features"
-    echo "  --features FEATURES    Test with specific features (comma-separated)"
-    echo "                         Default features if not specified: ledger,aws,futures"
-    echo "  --nocapture            Show test output"
-    echo "  --no-fail-fast         Continue testing even if a test fails"
-    echo "  --help                 Show this help message"
-    echo ""
-    echo "Examples:"
-    echo "  ./scripts/test.sh --features ledger,aws"
-    echo "  ./scripts/test.sh --all-features --nocapture"
-}
-
-# Default test flags
-TEST_COMMAND="cargo test"
-TEST_FLAGS=""
-RUNTIME_FLAGS=""
-FEATURES="ledger,aws,futures"  # Default features
+# ANSI color codes
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
 
 # Parse arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
+ALL_FEATURES=false
+ALL_EXAMPLES=false
+CARGO_ARGS=""
+
+print_usage() {
+    echo "NeoRust Test Script"
+    echo ""
+    echo "Usage: $0 [options]"
+    echo ""
+    echo "Options:"
+    echo "  --all-features      Run tests with all feature combinations"
+    echo "  --all-examples      Run all examples"
+    echo "  --help              Show this help message"
+    echo ""
+    echo "Any other arguments will be passed directly to cargo test."
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
         --all-features)
-            TEST_FLAGS="$TEST_FLAGS --all-features"
-            FEATURES=""  # Clear default features when using --all-features
+            ALL_FEATURES=true
             shift
             ;;
-        --no-default-features)
-            TEST_FLAGS="$TEST_FLAGS --no-default-features"
-            FEATURES=""  # Clear default features when using --no-default-features
-            shift
-            ;;
-        --features)
-            FEATURES="$2"
-            shift 2
-            ;;
-        --nocapture)
-            RUNTIME_FLAGS="$RUNTIME_FLAGS --nocapture"
-            shift
-            ;;
-        --no-fail-fast)
-            TEST_FLAGS="$TEST_FLAGS --no-fail-fast"
+        --all-examples)
+            ALL_EXAMPLES=true
             shift
             ;;
         --help)
-            show_help
+            print_usage
             exit 0
             ;;
         *)
-            echo "Unknown option: $1"
-            show_help
-            exit 1
+            CARGO_ARGS="$CARGO_ARGS $1"
+            shift
             ;;
     esac
 done
 
-# Add features flag if features were specified or using default
-if [ -n "$FEATURES" ]; then
-    TEST_FLAGS="$TEST_FLAGS --features $FEATURES"
-fi
-
-# Execute test command
-FINAL_COMMAND="$TEST_COMMAND $TEST_FLAGS"
-if [ -n "$RUNTIME_FLAGS" ]; then
-    FINAL_COMMAND="$FINAL_COMMAND -- $RUNTIME_FLAGS"
-fi
-
-echo "Running: $FINAL_COMMAND"
-$FINAL_COMMAND 
+# Run the appropriate scripts based on arguments
+if [ "$ALL_FEATURES" = true ]; then
+    echo -e "${CYAN}Running tests with all feature combinations...${NC}"
+    ./scripts/test_all_features.sh
+elif [ "$ALL_EXAMPLES" = true ]; then
+    echo -e "${CYAN}Running all examples...${NC}"
+    ./scripts/run_all_examples.sh
+else
+    # Run standard cargo test with any additional args
+    echo -e "${CYAN}Running standard tests...${NC}"
+    cargo test $CARGO_ARGS 

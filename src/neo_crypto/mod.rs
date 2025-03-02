@@ -73,12 +73,12 @@
 //! ```
 
 // Core crypto functionality - available with crypto-standard feature
+pub use base58_helper::*;
 pub use error::*;
 pub use hash::*;
 pub use key_pair::*;
 pub use keys::*;
 pub use wif::*;
-pub use base58_helper::*;
 
 // Additional functionality available with crypto-advanced feature
 #[cfg(feature = "crypto-advanced")]
@@ -86,24 +86,23 @@ pub use base58_helper::*;
 pub use utils::*;
 
 // Core crypto modules - always available with crypto-standard
+mod base58_helper;
 pub mod error;
 mod hash;
 mod key_pair;
 mod keys;
 mod wif;
-mod base58_helper;
 
 // Advanced crypto modules - only available with crypto-advanced feature
 #[cfg(feature = "crypto-advanced")]
 mod utils;
 
-// Specialized crypto implementations based on features
+// Add conditional compilation for SGX crypto module
 #[cfg(feature = "sgx")]
-#[cfg_attr(docsrs, doc(cfg(feature = "sgx")))]
 pub mod sgx_crypto;
 
-#[cfg(all(feature = "crypto-advanced", feature = "wasm"))]
-#[cfg_attr(docsrs, doc(cfg(all(feature = "crypto-advanced", feature = "wasm"))))]
+// Add conditional compilation for Browser crypto module
+#[cfg(feature = "wasm")]
 pub mod browser_crypto;
 
 pub(crate) fn add(left: usize, right: usize) -> usize {

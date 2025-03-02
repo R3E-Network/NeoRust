@@ -3,7 +3,7 @@ use neo::prelude::*;
 use primitive_types::{H160, H256};
 use regex::Regex;
 use serde_json::{json, Value};
-use std::{fs, path::PathBuf, str::FromStr, sync::Arc};
+use std::{collections::HashMap, fs, path::PathBuf, str::FromStr, sync::Arc};
 use tokio::sync::Mutex;
 use url::Url;
 use wiremock::{
@@ -323,5 +323,147 @@ impl MockClient {
 
 	pub fn server(&self) -> &MockServer {
 		&self.server
+	}
+}
+
+/// Completely offline mock client that doesn't use any real network connections
+/// Use this implementation for tests when running with a VPN or without network access
+pub struct OfflineMockClient {
+	/// Map of method name to predefined responses
+	responses: HashMap<String, serde_json::Value>,
+	/// Current response ID
+	id: u64,
+}
+
+impl OfflineMockClient {
+	/// Create a new offline mock client
+	pub fn new() -> Self {
+		Self { responses: HashMap::new(), id: 1 }
+	}
+
+	/// Mock a response for a specific method name ignoring parameters
+	pub fn mock_response_ignore_param(
+		&mut self,
+		method_name: &str,
+		result: serde_json::Value,
+	) -> &mut Self {
+		self.responses.insert(method_name.to_string(), result);
+		self
+	}
+
+	/// Mock a response for a method using a JSON file
+	pub fn mock_response_with_file_ignore_param(
+		&mut self,
+		method_name: &str,
+		response_file: &str,
+	) -> &mut Self {
+		// Load from the test resources directory
+		let path = PathBuf::from("test_resources").join(response_file);
+		let content = fs::read_to_string(&path)
+			.unwrap_or_else(|_| panic!("Failed to read test resource: {:?}", path));
+
+		let result: serde_json::Value = serde_json::from_str(&content)
+			.unwrap_or_else(|_| panic!("Invalid JSON in test resource: {:?}", path));
+
+		self.responses.insert(method_name.to_string(), result);
+		self
+	}
+
+	/// Add common mock responses for Neo RPC calls
+	pub fn mock_default_responses(&mut self) -> &mut Self {
+		// Block count
+		self.mock_response_ignore_param("getblockcount", json!(1000));
+
+		// Version
+		self.mock_response_ignore_param(
+			"getversion",
+			json!({
+				"protocol": {
+					"network": 860833102,
+					"validatorscount": 7,
+					"msperblock": 15000
+				},
+				"tcpport": 10333,
+				"wsport": 10334,
+				"nonce": 1571394188,
+				"useragent": "/NEO:3.0.3/"
+			}),
+		);
+
+		// Mock invocation result
+		self.mock_response_ignore_param(
+			"invokescript",
+			json!({
+				"script": "DAABECcMFDiu8tS4X2XbLccGJGsHKQJ2qE1nFMAfDAR0ZXN0Bm9iamVjdFNldEYMFBfK8A==",
+				"state": "HALT",
+				"gasconsumed": "1007390",
+				"stack": [
+					{
+						"type": "Boolean",
+						"value": true
+					}
+				],
+				"notifications": []
+			}),
+		);
+
+		// Mock network fee
+		self.mock_response_ignore_param(
+			"calculatenetworkfee",
+			json!({
+				"networkfee": "1234567"
+			}),
+		);
+
+		self
+	}
+
+	/// Convert this offline mock to a Neo RPC client
+	pub fn into_client(&self) -> RpcClient<OfflineHttpProvider> {
+		// Create an offline HTTP provider with our mocked responses
+		let provider = OfflineHttpProvider::new(self.responses.clone());
+		RpcClient::new(provider)
+	}
+}
+
+/// Offline implementation of the HttpProvider that doesn't make actual HTTP requests
+pub struct OfflineHttpProvider {
+	responses: HashMap<String, serde_json::Value>,
+	id: std::sync::atomic::AtomicU64,
+}
+
+impl OfflineHttpProvider {
+	pub fn new(responses: HashMap<String, serde_json::Value>) -> Self {
+		Self { responses, id: std::sync::atomic::AtomicU64::new(1) }
+	}
+}
+
+impl JsonRpcProvider for OfflineHttpProvider {
+	async fn request<T: for<'de> serde::Deserialize<'de>>(
+		&self,
+		method: &str,
+		params: serde_json::Value,
+	) -> Result<T, ProviderError> {
+		// Get the mocked response or return an error
+		let result = self.responses.get(method).cloned().unwrap_or_else(|| {
+			json!({
+				"error": {
+					"code": -32601,
+					"message": format!("Method '{}' not found or mocked", method)
+				}
+			})
+		});
+
+		// Build a JSON-RPC response
+		let id = self.id.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+		let response = json!({
+			"jsonrpc": "2.0",
+			"id": id,
+			"result": result,
+		});
+
+		// Try to deserialize the response
+		serde_json::from_value(response["result"].clone())
+			.map_err(|e| ProviderError::JsonRpcError(e.to_string()))
 	}
 }

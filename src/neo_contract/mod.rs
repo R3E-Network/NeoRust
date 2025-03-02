@@ -93,9 +93,9 @@
 // Core contract functionality - always available
 pub use contract_error::*;
 pub use contract_management::*;
-pub use traits::*;
 pub use iterator::*;
 pub use neo_uri::*;
+pub use traits::*;
 
 // Token standards - conditionally available
 #[cfg(feature = "nep17")]
@@ -135,9 +135,9 @@ pub use famous::*;
 // Core contract modules - always available
 mod contract_error;
 mod contract_management;
-mod traits;
 mod iterator;
 mod neo_uri;
+mod traits;
 
 // Token standard modules
 #[cfg(feature = "nep17")]

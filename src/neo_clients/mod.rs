@@ -132,8 +132,10 @@ mod rx;
 mod test_provider {
 	use super::*;
 	use lazy_static::lazy_static;
-	use std::iter::{Cycle, Iter};
-	use std::sync::Mutex;
+	use std::{
+		iter::{Cycle, Iter},
+		sync::Mutex,
+	};
 
 	lazy_static! {
 		pub static ref MAINNET: TestProvider = TestProvider::new(&[], "mainnet");

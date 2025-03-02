@@ -18,7 +18,7 @@
 //! This module supports the following feature flags:
 //!
 //! - **transaction**: Core transaction functionality (always available when using this module)
-//! - **contract-invoke**: Support for contract invocation features 
+//! - **contract-invoke**: Support for contract invocation features
 //! - **contract-deploy**: Support for contract deployment features
 //! - **http-client**: Integration with RPC clients for transaction submission
 //! - **wallet**: Wallet integration for signing transactions
@@ -101,12 +101,16 @@ mod transaction;
 mod utils;
 
 // Contract invocation specific functionality
-#[cfg(feature = "contract-invoke")]
+#[cfg(feature = "transaction")]
 pub mod invoke;
 
 // Contract deployment specific functionality
-#[cfg(feature = "contract-deploy")]
+#[cfg(feature = "transaction")]
 pub mod deploy;
+
+// Test utilities - only available in test context
+#[cfg(test)]
+pub mod test_utils;
 
 // Internal function for testing
 #[doc(hidden)]

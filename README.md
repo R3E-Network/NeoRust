@@ -591,6 +591,12 @@ NeoRust includes convenient scripts for building and testing with different feat
 
 # Run tests and show output
 ./scripts/test.sh --nocapture
+
+# Run tests with ALL feature combinations
+./scripts/test.sh --all-features
+
+# Run ALL examples
+./scripts/test.sh --all-examples
 ```
 
 ### Windows:
@@ -604,7 +610,33 @@ NeoRust includes convenient scripts for building and testing with different feat
 
 # Run tests with default features (std,crypto-standard)
 .\scripts\test.bat
+
+# Run tests with ALL feature combinations
+.\scripts\test.bat --all-features
+
+# Run ALL examples
+.\scripts\test.bat --all-examples
 ```
+
+### Test with Feature Matrix
+
+The `--all-features` option runs tests with multiple feature combinations to ensure compatibility across different configurations:
+
+- Default features only
+- All features enabled
+- Minimal build with just `std`
+- Common feature combinations (wallet, transaction, etc.)
+- Custom crypto configurations
+
+This helps ensure that the codebase works correctly with any feature configuration you might use in your application.
+
+### Running All Examples
+
+The `--all-examples` option compiles and runs all the example projects in the `examples` directory. This is useful for:
+
+- Verifying that all examples work as expected
+- Checking compatibility with the latest code changes
+- Demonstrating usage patterns to new users
 
 For more details on available script options, see the [scripts README](scripts/README.md).
 
@@ -660,3 +692,44 @@ at your option.
 Supported by [R3E Network](https://github.com/R3E-Network) and [GrantShares](https://grantshares.io/app/details/155b825697b61f9f95292c8e466f6891). Additional support is welcome.
 
 The NeoRust team would like to thank everyone who contributed to reaching the milestone of publishing the neo3 crate to crates.io.
+
+## Running Tests with VPN
+
+If you're running tests on a machine with a VPN connection, you may encounter issues with the mock server connections used in tests. This is because VPNs can intercept or redirect network traffic, which affects even local mock servers.
+
+NeoRust now features automatic VPN detection! When a VPN is detected, tests will automatically switch to offline mode without requiring any manual configuration.
+
+You can still manually control this behavior using the environment variable:
+
+```bash
+# Force tests to run in offline mode (no network connections)
+NEORUST_OFFLINE_TESTS=1 cargo test
+
+# Force tests to run in regular mode (with local mock server)
+NEORUST_OFFLINE_TESTS=0 cargo test
+
+# Alternatively, for Windows PowerShell
+$env:NEORUST_OFFLINE_TESTS=1
+cargo test
+
+# Windows Command Prompt
+set NEORUST_OFFLINE_TESTS=1
+cargo test
+```
+
+The offline mode uses in-memory mocks instead of a local HTTP server, which makes tests work reliably with a VPN. This mode is also useful for:
+
+- Environments with restricted network access
+- CI/CD pipelines
+- Offline development environments
+- Improving test speed by avoiding network setup
+
+### VPN Detection Details
+
+The automatic VPN detection feature works across multiple platforms:
+
+- **macOS**: Detects VPN connections by checking network services and routing tables
+- **Windows**: Looks for VPN adapters in network configurations
+- **Linux**: Examines network interfaces and running processes
+
+When a VPN is detected, you will see a console message informing you that tests are running in offline mode.

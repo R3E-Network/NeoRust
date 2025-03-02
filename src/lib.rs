@@ -30,7 +30,7 @@
 //!
 //! ## Feature Flags
 //!
-//! NeoRust uses a flexible feature flag system that allows you to include only the 
+//! NeoRust uses a flexible feature flag system that allows you to include only the
 //! functionality you need, helping to reduce compile times and binary sizes.
 //!
 //! - **std**: Standard library support with basic serialization and utilities
@@ -39,7 +39,7 @@
 //! - **contract**: Smart contract interaction capabilities
 //! - **http-client**: HTTP client for Neo N3 node communication
 //! - **ws-client**: WebSocket client for Neo N3 event subscriptions
-//! 
+//!
 //! See the README.md for a complete list of features and usage examples.
 //!
 //! ## Usage Examples
@@ -310,8 +310,8 @@ extern crate self as neo;
 
 // Core modules - always available
 pub mod neo_error;
-pub mod neo_utils;
 pub mod neo_types;
+pub mod neo_utils;
 
 // Conditional modules based on features
 #[cfg(feature = "crypto-standard")]
@@ -401,13 +401,18 @@ pub use neo_x as x;
 /// Convenient imports for commonly used types and traits.
 pub mod prelude {
 	// Core types and utilities - always available
-	pub use super::neo_error::{NeoError, BuilderError, CodecError, ContractError, ProtocolError, ProviderError, TransactionError, WalletError};
-	pub use super::neo_types::{
-		address::Address,
-		address_or_scripthash::AddressOrScriptHash,
-		script_hash::{ScriptHash, ScriptHashExtension, HashableForVec},
+	pub use super::{
+		neo_error::{
+			BuilderError, CodecError, ContractError, NeoError, ProtocolError, ProviderError,
+			TransactionError, WalletError,
+		},
+		neo_types::{
+			address::Address,
+			address_or_scripthash::AddressOrScriptHash,
+			script_hash::{HashableForVec, ScriptHash, ScriptHashExtension},
+		},
+		neo_utils::error::*,
 	};
-	pub use super::neo_utils::error::*;
 
 	// Conditional imports based on features
 	#[cfg(feature = "transaction")]
@@ -443,9 +448,9 @@ pub mod prelude {
 	// NeoFS exports
 	pub use crate::neo_fs::{
 		client::{NeoFsClient, NeoFsConfig},
-		types::{ContainerId, ObjectId, StoragePolicy, AccessRule},
 		container::{Container, ContainerBuilder},
 		object::{Object, ObjectBuilder},
+		types::{AccessRule, ContainerId, ObjectId, StoragePolicy},
 	};
 }
 
@@ -454,10 +459,10 @@ mod tests {
 	use super::prelude::*;
 	use primitive_types::H160;
 	use std::str::FromStr;
-	
+
 	#[cfg(feature = "tokio/rt")]
 	use tokio;
-	
+
 	#[cfg(feature = "http-client")]
 	use url::Url;
 

@@ -13,7 +13,7 @@
 pub use wallet::*;
 pub use wallet_error::*;
 
-// Standard wallet features - only with wallet-standard feature 
+// Standard wallet features - only with wallet-standard feature
 #[cfg(feature = "wallet-standard")]
 #[cfg_attr(docsrs, doc(cfg(feature = "wallet-standard")))]
 pub use backup::*;

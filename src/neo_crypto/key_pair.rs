@@ -10,13 +10,10 @@ use rand::rngs::OsRng;
 
 use crate::neo_crypto::{
 	error::CryptoError,
-	keys::{Secp256r1PrivateKey, Secp256r1PublicKey, PublicKeyExtension},
+	keys::{PublicKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey},
 };
 
-use crate::neo_types::{
-	ScriptHash, 
-	script_hash::ScriptHashExtension,
-};
+use crate::neo_types::{script_hash::ScriptHashExtension, ScriptHash};
 
 // For test compatibility
 pub struct TestConstants;
@@ -148,7 +145,7 @@ impl KeyPair {
 			let public_key_bytes = self.public_key.get_encoded(true);
 			match ScriptHash::from_public_key(&public_key_bytes) {
 				Ok(hash) => hash,
-				Err(_) => ScriptHash::zero()
+				Err(_) => ScriptHash::zero(),
 			}
 		}
 	}
@@ -177,14 +174,18 @@ mod tests {
 	use rustc_serialize::hex::FromHex;
 
 	use super::KeyPair;
-	use crate::neo_types::{ScriptHash, script_hash::ScriptHashExtension};
-	use crate::neo_crypto::key_pair::TestConstants;
-	
+	use crate::{
+		neo_crypto::key_pair::TestConstants,
+		neo_types::{script_hash::ScriptHashExtension, ScriptHash},
+	};
+
 	// Test constants for compatibility
 	impl TestConstants {
-		pub const DEFAULT_ACCOUNT_PRIVATE_KEY: &'static str = "c7134d6fd8e73d819e82755c64c93788d8db0961929e025a53363c4cc02a6962";
+		pub const DEFAULT_ACCOUNT_PRIVATE_KEY: &'static str =
+			"c7134d6fd8e73d819e82755c64c93788d8db0961929e025a53363c4cc02a6962";
 		pub const DEFAULT_ACCOUNT_ADDRESS: &'static str = "NZs2zXSPuuv9ZF6TDGSWT1RBmE8rfGj7UW";
-		pub const DEFAULT_ACCOUNT_SCRIPT_HASH: &'static str = "5c9c3a4e98da00c4a6c669b400b17e25244db59b";
+		pub const DEFAULT_ACCOUNT_SCRIPT_HASH: &'static str =
+			"5c9c3a4e98da00c4a6c669b400b17e25244db59b";
 	}
 
 	#[test]
