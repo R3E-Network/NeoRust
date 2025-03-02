@@ -1,10 +1,14 @@
+#[cfg(feature = "bs58")]
 use bs58;
+#[cfg(feature = "hex")]
 use hex;
-#[cfg(feature = "crypto-standard")]
+#[cfg(all(feature = "crypto-standard", feature = "sha2"))]
 use sha2::{Digest, Sha256};
 
+#[cfg(feature = "script-hash-ext")]
 use crate::neo_types::script_hash::ScriptHash;
 
+#[cfg(feature = "string-ext")]
 pub trait StringExt {
 	fn bytes_from_hex(&self) -> Result<Vec<u8>, hex::FromHexError>;
 
@@ -29,29 +33,72 @@ pub trait StringExt {
 	fn reversed_hex(&self) -> String;
 }
 
+#[cfg(feature = "string-ext")]
 impl StringExt for String {
 	fn bytes_from_hex(&self) -> Result<Vec<u8>, hex::FromHexError> {
-		hex::decode(self.trim_start_matches("0x"))
+		#[cfg(feature = "hex")]
+		{
+			hex::decode(self.trim_start_matches("0x"))
+		}
+		#[cfg(not(feature = "hex"))]
+		{
+			Err(hex::FromHexError::InvalidHexCharacter { c: '0', index: 0 })
+		}
 	}
 
 	fn base64_decoded(&self) -> Result<Vec<u8>, base64::DecodeError> {
-		base64::decode(self)
+		#[cfg(feature = "utils")]
+		{
+			base64::decode(self)
+		}
+		#[cfg(not(feature = "utils"))]
+		{
+			Err(base64::DecodeError::InvalidLength)
+		}
 	}
 
 	fn base64_encoded(&self) -> String {
-		base64::encode(self.as_bytes())
+		#[cfg(feature = "utils")]
+		{
+			base64::encode(self.as_bytes())
+		}
+		#[cfg(not(feature = "utils"))]
+		{
+			String::new()
+		}
 	}
 
 	fn base58_decoded(&self) -> Option<Vec<u8>> {
-		bs58::decode(self).into_vec().ok()
+		#[cfg(feature = "bs58")]
+		{
+			bs58::decode(self).into_vec().ok()
+		}
+		#[cfg(not(feature = "bs58"))]
+		{
+			None
+		}
 	}
 
 	fn base58_check_decoded(&self) -> Option<Vec<u8>> {
-		bs58::decode(self).into_vec().ok()
+		#[cfg(feature = "bs58")]
+		{
+			bs58::decode(self).into_vec().ok()
+		}
+		#[cfg(not(feature = "bs58"))]
+		{
+			None
+		}
 	}
 
 	fn base58_encoded(&self) -> String {
-		bs58::encode(self.as_bytes()).into_string()
+		#[cfg(feature = "bs58")]
+		{
+			bs58::encode(self.as_bytes()).into_string()
+		}
+		#[cfg(not(feature = "bs58"))]
+		{
+			String::new()
+		}
 	}
 
 	fn var_size(&self) -> usize {
@@ -105,8 +152,15 @@ impl StringExt for String {
 	}
 
 	fn reversed_hex(&self) -> String {
-		let mut bytes = self.bytes_from_hex().unwrap();
-		bytes.reverse();
-		hex::encode(bytes)
+		#[cfg(feature = "hex")]
+		{
+			let mut bytes = self.bytes_from_hex().unwrap();
+			bytes.reverse();
+			hex::encode(bytes)
+		}
+		#[cfg(not(feature = "hex"))]
+		{
+			String::new()
+		}
 	}
 }

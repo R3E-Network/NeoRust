@@ -1,32 +1,32 @@
-use primitive_types::H160;
+use std::collections::HashMap;
+
+#[cfg(feature = "getset-macros")]
+use getset::{Getters, Setters};
+#[cfg(feature = "serde-support")]
 use serde::{Deserialize, Serialize};
 
-use getset::{CopyGetters, Getters, MutGetters, Setters};
-use neo::prelude::{ContractManifest, ContractNef, *};
-use crate::neo_types::serde_with_utils::{serialize_h160, deserialize_h160};
+use crate::neo_types::contract::ContractState;
 
-#[derive(Serialize, Deserialize, Getters, Setters, Default, Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "getset-macros", derive(Getters, Setters))]
+#[cfg_attr(feature = "serde-support", derive(Serialize, Deserialize))]
 pub struct NativeContractState {
-	pub id: i32,
-	pub nef: ContractNef,
-	#[serde(serialize_with = "serialize_h160")]
-	#[serde(deserialize_with = "deserialize_h160")]
-	#[getset(get = "pub")]
-	hash: H160,
-	#[getset(get = "pub")]
-	manifest: ContractManifest,
-	// #[serde(rename = "updatehistory")]
-	// pub update_history: Vec<i32>,
+    #[cfg_attr(feature = "getset-macros", get = "pub")]
+    contract_state: ContractState,
+    #[cfg_attr(feature = "getset-macros", get = "pub")]
+    service_name: String,
 }
 
 impl NativeContractState {
-	pub fn new(
-		id: i32,
-		hash: H160,
-		nef: ContractNef,
-		manifest: ContractManifest,
-		// update_history: Vec<i32>,
-	) -> Self {
-		Self { id, nef, hash, manifest }
-	}
+    pub fn new(contract_state: ContractState, service_name: String) -> Self {
+        Self { contract_state, service_name }
+    }
+
+    pub fn get_contract_state(&self) -> &ContractState {
+        &self.contract_state
+    }
+
+    pub fn get_service_name(&self) -> &String {
+        &self.service_name
+    }
 }

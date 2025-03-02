@@ -5,9 +5,10 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use neo::prelude::{ContractParameter, ContractParameterType};
-
-use crate::prelude::{deserialize_wildcard, serialize_wildcard, ContractParameter2, TypeError};
+use crate::neo_types::contract::{ContractParameter, ContractParameterType, ContractParameter2};
+#[cfg(any(feature = "serde", feature = "contract"))]
+use crate::neo_types::serde_with_utils::{deserialize_wildcard, serialize_wildcard};
+use crate::neo_types::TypeError;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ContractManifest {
