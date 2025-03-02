@@ -1,114 +1,134 @@
-// This module demonstrates the flexibility in handling blockchain addresses and script hashes, leveraging Rust's type system
-// and trait implementations to provide a seamless interface for converting and working with these two fundamental types.
+//! This module demonstrates the flexibility in handling blockchain addresses and script hashes, leveraging Rust's type system
+//! and trait implementations to provide a seamless interface for converting and working with these two fundamental types.
 
-use std::hash::{Hash, Hasher};
+use std::{
+    fmt,
+    hash::{Hash, Hasher}
+};
 
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
-use crate::neo_types::{address::Address, script_hash::ScriptHashExtension, Bytes};
+use crate::neo_types::{
+    address::Address,
+    Bytes,
+};
+
+#[cfg(feature = "utils")]
+use crate::neo_types::script_hash_extension::ScriptHashExtension;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-/// An enum that can represent either a blockchain `Address` or a `ScriptHash`,
-/// offering flexibility for APIs that can work with either.
+/// An enum that can represent either a blockchain  or a ,
+/// providing a flexible way to handle both types in APIs and functions.
 pub enum AddressOrScriptHash {
-	/// An address type
-	Address(Address),
-	/// A bytes type
-	ScriptHash(H160),
+    /// A blockchain address (e.g., "NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj")
+    Address(Address),
+    /// A script hash (e.g., 0x5c9c71c55f8bc396714770c232cee8f2a6f2930f)
+    ScriptHash(H160),
 }
 
 impl Hash for AddressOrScriptHash {
-	/// Implements the `Hash` trait to allow `AddressOrScriptHash`
-	/// instances to be used as keys in hash maps or elements in hash sets.
-	///
-	/// # Examples
-	///
-	/// ```
-	/// use std::collections::HashSet;
-	/// use NeoRust::prelude::AddressOrScriptHash;
-	/// let mut set = HashSet::new();
-	/// set.insert(AddressOrScriptHash::Address("myAddress".into()));
-	/// ```
-	fn hash<H: Hasher>(&self, state: &mut H) {
-		match self {
-			AddressOrScriptHash::Address(a) => a.hash(state),
-			AddressOrScriptHash::ScriptHash(s) => s.hash(state),
-		}
-	}
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            AddressOrScriptHash::Address(a) => a.hash(state),
+            AddressOrScriptHash::ScriptHash(s) => s.hash(state),
+        }
+    }
+}
+
+impl fmt::Display for AddressOrScriptHash {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AddressOrScriptHash::Address(a) => write!(f, "{}", a),
+            AddressOrScriptHash::ScriptHash(s) => write!(f, "{:x}", s),
+        }
+    }
 }
 
 impl Default for AddressOrScriptHash {
-	fn default() -> Self {
-		AddressOrScriptHash::Address(Default::default())
-	}
+    fn default() -> Self {
+        Self::ScriptHash(H160::zero())
+    }
 }
 
 impl From<Address> for AddressOrScriptHash {
-	/// Allows creating an `AddressOrScriptHash` directly from an `Address`.
-	///
-	/// # Examples
-	///
-	/// ```
-	/// use NeoRust::prelude::AddressOrScriptHash;
-	/// let from_address = AddressOrScriptHash::from("myAddress".into());
-	/// assert!(matches!(from_address, AddressOrScriptHash::Address(_)));
-	/// ```
-	fn from(s: Address) -> Self {
-		Self::Address(s)
-	}
+    fn from(address: Address) -> Self {
+        Self::Address(address)
+    }
 }
 
+impl From<H160> for AddressOrScriptHash {
+    fn from(script_hash: H160) -> Self {
+        Self::ScriptHash(script_hash)
+    }
+}
+
+impl From<&str> for AddressOrScriptHash {
+    fn from(s: &str) -> Self {
+        if s.starts_with("0x") {
+            // It's a script hash
+            if let Ok(bytes) = hex::decode(&s[2..]) {
+                // Create H160 directly from the bytes
+                let script_hash = H160::from_slice(&bytes);
+                return Self::ScriptHash(script_hash);
+            }
+            // If we can't parse it as a script hash, treat it as an address
+            Self::Address(s.to_string())
+        } else {
+            // It's an address
+            Self::Address(s.to_string())
+        }
+    }
+}
+
+// We don't implement From<String> because it conflicts with From<Address>
+// since Address is a type alias for String
+
 impl From<Bytes> for AddressOrScriptHash {
-	/// Allows creating an `AddressOrScriptHash` from a `Bytes` array, automatically converting it into a `ScriptHash`.
-	///
-	/// # Examples
-	///
-	/// ```
-	/// use NeoRust::prelude::{AddressOrScriptHash, Bytes};
-	/// let bytes: Bytes = vec![0xdeu8, 0xadu8, 0xbeu8, 0xefu8];
-	/// let from_bytes = AddressOrScriptHash::from(bytes);
-	/// assert!(matches!(from_bytes, AddressOrScriptHash::ScriptHash(_)));
-	/// ```
-	fn from(s: Bytes) -> Self {
-		Self::ScriptHash(H160::from_slice(&s))
-	}
+    fn from(bytes: Bytes) -> Self {
+        Self::ScriptHash(H160::from_slice(&bytes))
+    }
+}
+
+impl From<Vec<u8>> for AddressOrScriptHash {
+    fn from(bytes: Vec<u8>) -> Self {
+        Self::ScriptHash(H160::from_slice(&bytes))
+    }
+}
+
+impl From<&[u8]> for AddressOrScriptHash {
+    fn from(bytes: &[u8]) -> Self {
+        Self::ScriptHash(H160::from_slice(bytes))
+    }
 }
 
 impl AddressOrScriptHash {
-	/// Retrieves the `Address` representation. If the instance is a `ScriptHash`, converts it to an `Address`.
-	///
-	/// # Examples
-	///
-	/// ```
-	/// use primitive_types::H160;
-	/// use NeoRust::prelude::AddressOrScriptHash;
-	/// let script_hash = AddressOrScriptHash::ScriptHash(H160::repeat_byte(0x01));
-	/// let address = script_hash.address();
-	/// assert_eq!(address, "convertedAddressFromScriptHash");
-	/// ```
-	pub fn address(&self) -> Address {
-		match self {
-			AddressOrScriptHash::Address(a) => a.clone(),
-			AddressOrScriptHash::ScriptHash(s) => s.to_address(),
-		}
-	}
+    /// Convert to an address
+    pub fn to_address(&self) -> Address {
+        match self {
+            #[cfg(feature = "utils")]
+            AddressOrScriptHash::ScriptHash(s) => s.to_address(),
+            #[cfg(not(feature = "utils"))]
+            AddressOrScriptHash::ScriptHash(_) => "Address conversion not available".to_string(),
+            AddressOrScriptHash::Address(a) => a.clone(),
+        }
+    }
 
-	/// Retrieves the `ScriptHash` representation. If the instance is an `Address`, converts it to a `ScriptHash`.
-	///
-	/// # Examples
-	///
-	/// ```
-	/// use primitive_types::H160;
-	/// use NeoRust::prelude::AddressOrScriptHash;
-	/// let address = AddressOrScriptHash::Address("myAddress".into());
-	/// let script_hash = address.script_hash();
-	/// assert_eq!(script_hash, H160::repeat_byte(0x02)); // Assuming `to_address` converts an address into a specific script hash
-	/// ```
-	pub fn script_hash(&self) -> H160 {
-		match self {
-			AddressOrScriptHash::Address(a) => H160::from_address(&a).unwrap(), //a.address_to_script_hash().unwrap(),
-			AddressOrScriptHash::ScriptHash(s) => s.clone(),
-		}
-	}
+    /// Convert to a script hash
+    pub fn to_script_hash(&self) -> H160 {
+        match self {
+            AddressOrScriptHash::Address(a) => {
+                #[cfg(feature = "utils")]
+                {
+                    // Use the fully qualified path to call the trait method
+                    <H160 as ScriptHashExtension>::from_address(a).unwrap_or_default()
+                }
+                #[cfg(not(feature = "utils"))]
+                {
+                    H160::zero()
+                }
+            }
+            AddressOrScriptHash::ScriptHash(s) => *s,
+        }
+    }
 }

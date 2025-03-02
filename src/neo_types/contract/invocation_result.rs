@@ -12,9 +12,24 @@ use serde::{
 use strum;
 use strum_macros::{AsRefStr, Display, EnumString};
 
-use neo::prelude::{deserialize_script_hash, serialize_script_hash, ContractParameter, StackItem};
+use crate::neo_types::{
+    contract::ContractParameter,
+    serde_with_utils::{deserialize_script_hash, serialize_script_hash}
+};
 
-use crate::prelude::TypeError;
+#[cfg(feature = "contract")]
+use crate::neo_types::stack_item::StackItem;
+
+#[cfg(not(feature = "contract"))]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
+pub struct StackItem {
+    #[serde(default)]
+    pub typ: String,
+    #[serde(default)]
+    pub value: String,
+}
+
+use crate::neo_types::TypeError;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct InvocationResult {

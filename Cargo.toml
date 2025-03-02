@@ -2,150 +2,78 @@
 name = "neo3"
 version = "0.1.3"
 edition = "2021"
-description = "The Neo Rust SDK for interacting with the Neo N3 blockchain"
-repository = "https://github.com/RustForNeo/neo-sdk"
+authors = ["Neo Global Development Seattle <contact@ngdenterprise.com>"]
 license = "MIT"
 readme = "README.md"
-
-[lib]
-name = "neo"
-path = "src/lib.rs"
+repository = "https://github.com/R3E-Network/NeoRust"
+homepage = "https://github.com/R3E-Network/NeoRust"
+description = """
+Rust SDK for Neo N3 blockchain
+"""
+keywords = ["neo", "blockchain", "sdk", "crypto"]
+categories = ["cryptography", "api-bindings"]
 
 [dependencies]
-# Essential dependencies
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0", features = ["raw_value"] }
-primitive-types = { version = "0.13.0", features = ["std", "rustc-hex", "serde"] }
-rustc-hex = "2.1.0"
-byte-slice-cast = "1.2.2"
-rustc-serialize = "0.3.24"
-bs58 = "0.5.0"
-base64 = "0.21.5"
-sha2 = { version = "0.10.8", optional = true }
-num-bigint = "0.4.4"
-num-traits = "0.2.17"
-rand = "0.8.5"
-chrono = "0.4.31"
-derive_more = "0.99.17"
-strum = "0.26.1"
-strum_macros = "0.26.1"
-getset = "0.1.2"
+# Core dependencies
+primitive-types = { version = "0.13.0", default-features = false, features = ["std", "serde"] }
 hex = "0.4.3"
-thiserror = "1.0.56"
-log = "0.4.20"
-crypto = { version = "0.5.1", optional = true, features = ["digest"] }
-# Use the same version of elliptic-curve and related libraries
-p256 = { version = "0.13.2", optional = true }
-elliptic-curve = { version = "0.13.8", optional = true }
-signature = { version = "2.2.0", optional = true }
-ecdsa = { version = "0.16.9", optional = true }
-rand_core = { version = "0.6.4", optional = true }
-tokio = { version = "1.36.0", features = ["full"], optional = true }
-tokio-tungstenite = { version = "0.21.0", optional = true }
-futures-util = { version = "0.3.30", optional = true }
-uuid = { version = "1.6.1", features = ["v4"], optional = true }
-reqwest = { version = "0.11.24", optional = true, default-features = false, features = ["json"] }
-digest = { version = "0.10.7", optional = true }
-ripemd160 = { version = "0.10.0", optional = true }
+serde = { version = "1.0", features = ["derive"] }
+
+# Optional dependencies with features
+bs58 = { version = "0.5.0", optional = true }
+base64 = { version = "0.21.0", optional = true }
+rustc-hex = { version = "2.1.0", optional = true }
+rustc-serialize = { version = "0.3.24", optional = true }
+byte-slice-cast = { version = "1.2.2", optional = true }
+rand = { version = "0.8.5", optional = true }
+thiserror = { version = "1.0.56", optional = true }
+chrono = { version = "0.4.34", optional = true }
+serde_json = { version = "1.0", features = ["raw_value"], optional = true }
+
+# Crypto dependencies
+sha2 = { version = "0.10.8", optional = true }
 ripemd = { version = "0.1.3", optional = true }
+digest = { version = "0.10.7", optional = true }
 hmac = { version = "0.12.1", optional = true }
-lazy_static = "1.4.0"
+p256 = { version = "0.13.2", features = ["ecdsa"], optional = true }
+elliptic-curve = { version = "0.13.8", optional = true }
+rand_core = { version = "0.6.4", optional = true }
+signature = { version = "2.2.0", optional = true }
 
-# Adding missing dependencies
-url = { version = "2.4.1", optional = true }
-async-trait = { version = "0.1.74", optional = true }
-auto_impl = { version = "1.1.0", optional = true }
-pin-project = { version = "1.1.3", optional = true }
-tracing = { version = "0.1.40", optional = true }
-tracing-futures = { version = "0.2.5", optional = true }
-tracing-subscriber = { version = "0.3.18", optional = true }
-jsonwebtoken = { version = "9.2.0", optional = true }
-num_enum = { version = "0.7.1", optional = true }
-once_cell = { version = "1.18.0", optional = true }
-regex = { version = "1.10.2", optional = true }
-wiremock = { version = "0.5.22", optional = true }
-ethereum-types = { version = "0.14.1", optional = true }
-scrypt = { version = "0.11.0", optional = true }
-serde_with = { version = "3.4.0", optional = true }
-futures-timer = { version = "3.0.2", optional = true }
-http = { version = "0.2.9", optional = true }
-aes = { version = "0.8.3", optional = true }
-block-modes = { version = "0.9.1", optional = true }
-wasm-bindgen = { version = "0.2.89", optional = true }
-
-# Add the missing yubihsm dependency for the wallet feature
-[dependencies.yubihsm]
-version = "0.41.0"
-optional = true
-
-# Add serde_derive for the wallet feature
-[dependencies.serde_derive]
-version = "1.0"
-optional = true
+# Optional dependencies
+num_enum = { version = "0.7.2", optional = true }
+strum = { version = "0.26.1", optional = true }
+strum_macros = { version = "0.26.1", optional = true }
+getset = { version = "0.1.2", optional = true }
+tokio = { version = "1.36.0", features = ["full"], optional = true }
 
 [features]
-default = ["std", "crypto-standard"]
-std = ["serde/std", "serde_json/std", "primitive-types/std"]
+default = ["std", "thiserror", "crypto-standard", "utils", "serde-support"]
+std = []
 
-# Core cryptography support
+# Core feature groups
 crypto-standard = [
-    "crypto", "p256", "elliptic-curve", "signature", "rand_core", "ecdsa",
-    "digest", "sha2", "ripemd", "hmac"
+    "sha2", "ripemd", "digest", "rand", "hmac", 
+    "p256", "elliptic-curve", "rand_core", "signature",
+    "bs58", "dep:rustc-serialize"  # Using dep:rustc-serialize
 ]
+utils = ["base64", "bs58", "rustc-hex", "dep:rustc-serialize", "byte-slice-cast"]
+serde-support = ["serde_json", "chrono"]
 
-# Individual hashing algorithms
-digest = ["dep:digest"]
-sha2 = ["dep:sha2"]
-ripemd160 = ["dep:ripemd160"]
-
-# Transport layer features
-websocket = [
-    "tokio-tungstenite", "futures-util", "uuid", "tokio", 
-    "reqwest", "url", "tracing", "tracing-futures"
-]
-
-rest-client = ["reqwest", "url", "tokio"]
-
-http-client = [
-    "reqwest", "url", "futures-util", "futures-timer", "regex", 
-    "wiremock", "async-trait", "auto_impl", "pin-project", "tracing", 
-    "tracing-futures", "jsonwebtoken", "http", "once_cell", 
-    "num_enum", "tracing-subscriber", "tokio"
-]
-
-# Runtime dependencies
-tokio = ["dep:tokio"]
-
-# Core blockchain features
-transaction = [
-    "crypto-standard", "scrypt", "serde_with", "futures-util", 
-    "tracing", "num_enum", "serde_derive", "once_cell"
-]
-
-contract = [
-    "crypto-standard", "serde_derive", "transaction"
-]
-
-wallet = [
-    "crypto-standard", "scrypt", "serde_derive", 
-    "aes", "block-modes"
-]
-
-# Add the wallet-standard feature as a higher-level feature
-wallet-standard = [
-    "wallet", "ethereum-types", "wasm-bindgen"
-]
-
-# Add the wallet-hardware feature as a higher-level feature 
-wallet-hardware = ["wallet", "ledger"]
-
-# Add the wallet-secure feature as a higher-level feature
-wallet-secure = ["wallet", "aes", "block-modes"]
-
-# Integration features
-ethereum-compat = ["ethereum-types"]
+# Optional features
+contract = ["num_enum", "strum", "strum_macros"]
 ledger = []
 nightly = []
+tokio-support = ["tokio"]
+transaction = []
+
+# Compatibility features
+hashable-for-vec = ["crypto-standard"]
+string-ext = []
+getset-macros = ["getset"]
+
+# AWS Nitro TEE support
+aws-nitro-tee = []
 
 [dev-dependencies]
-hex-literal = "0.4.1"        
+hex-literal = "0.4.1"

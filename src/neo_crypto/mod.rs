@@ -1,121 +1,29 @@
-//! # Neo Crypto
+//! Neo Crypto - Cryptographic primitives for the Neo blockchain
 //!
-//! Cryptographic utilities for the Neo N3 blockchain.
-//!
-//! ## Overview
-//!
-//! The neo_crypto module provides cryptographic primitives and utilities for working with
-//! the Neo N3 blockchain. It includes:
-//!
-//! - Key pair generation and management
-//! - Cryptographic signing and verification
-//! - Hashing functions (SHA256, RIPEMD160, etc.)
-//! - Base58 encoding and decoding
-//! - WIF (Wallet Import Format) utilities
-//! - Secure random number generation
-//!
-//! This module forms the cryptographic foundation for wallet management, transaction signing,
-//! and secure communication within the Neo N3 ecosystem.
-//!
-//! ## Feature Flags
-//!
-//! The crypto module has different feature levels:
-//!
-//! - **crypto-standard**: Basic cryptographic functions (default)
-//! - **crypto-advanced**: Enhanced cryptography with additional algorithms
-//!
-//! ## Examples
-//!
-//! ### Creating a key pair
-//!
-//! ```rust
-//! use neo::prelude::*;
-//!
-//! // Generate a new random key pair
-//! let key_pair = KeyPair::new_random().unwrap();
-//! println!("Public key: {}", key_pair.public_key());
-//! println!("Private key: {}", key_pair.private_key());
-//!
-//! // Create a key pair from a private key
-//! let private_key = PrivateKey::from_slice(&[/* 32 bytes */]).unwrap();
-//! let key_pair = KeyPair::from_private_key(&private_key).unwrap();
-//! ```
-//!
-//! ### Signing and verifying messages
-//!
-//! ```rust
-//! use neo::prelude::*;
-//!
-//! // Generate a key pair
-//! let key_pair = KeyPair::new_random().unwrap();
-//!
-//! // Sign a message
-//! let message = b"Hello, Neo!";
-//! let signature = key_pair.sign(message).unwrap();
-//!
-//! // Verify the signature
-//! let is_valid = key_pair.verify(message, &signature).unwrap();
-//! assert!(is_valid);
-//! ```
-//!
-//! ### Working with WIF format
-//!
-//! ```rust
-//! use neo::prelude::*;
-//!
-//! // Convert a private key to WIF format
-//! let private_key = PrivateKey::from_slice(&[/* 32 bytes */]).unwrap();
-//! let wif = private_key_to_wif(&private_key).unwrap();
-//!
-//! // Convert WIF back to a private key
-//! let recovered_key = wif_to_private_key(&wif).unwrap();
-//! assert_eq!(private_key, recovered_key);
-//! ```
+//! This module contains the cryptographic primitives used in the Neo blockchain.
 
-// Core crypto functionality - available with crypto-standard feature
-pub use base58_helper::*;
-pub use error::*;
-pub use hash::*;
-pub use key_pair::*;
-pub use keys::*;
-pub use wif::*;
-
-// Additional functionality available with crypto-advanced feature
-#[cfg(feature = "crypto-advanced")]
-#[cfg_attr(docsrs, doc(cfg(feature = "crypto-advanced")))]
-pub use utils::*;
-
-// Core crypto modules - always available with crypto-standard
-mod base58_helper;
+// Conditional modules
+#[cfg(feature = "crypto-standard")]
 pub mod error;
-mod hash;
-pub mod key_pair;
+
+#[cfg(feature = "crypto-standard")]
+pub mod hash;
+
+#[cfg(feature = "crypto-standard")]
 pub mod keys;
-mod wif;
 
-// Advanced crypto modules - only available with crypto-advanced feature
-#[cfg(feature = "crypto-advanced")]
-mod utils;
+#[cfg(feature = "crypto-standard")]
+pub mod key_pair;
 
-// Add conditional compilation for SGX crypto module
-#[cfg(feature = "sgx")]
-pub mod sgx_crypto;
+// Re-exports
+#[cfg(feature = "crypto-standard")]
+pub use error::CryptoError;
 
-// Add conditional compilation for Browser crypto module
-#[cfg(feature = "wasm")]
-pub mod browser_crypto;
+#[cfg(feature = "crypto-standard")]
+pub use hash::*;
 
-pub(crate) fn add(left: usize, right: usize) -> usize {
-	left + right
-}
+#[cfg(feature = "crypto-standard")]
+pub use keys::*;
 
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn it_works() {
-		let result = add(2, 2);
-		assert_eq!(result, 4);
-	}
-}
+#[cfg(feature = "crypto-standard")]
+pub use key_pair::*;
