@@ -10,7 +10,7 @@ use neo::neo_fs::{
 #[test]
 fn test_neofs_client_creation() {
 	// Create a NeoFS config
-	let endpoint = "http://localhost:8080";
+	let endpoint = "https://rest.fs.neo.org";
 
 	// Using default constructor and then updating endpoint
 	let mut config = NeoFsConfig::default();

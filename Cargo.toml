@@ -39,6 +39,9 @@ elliptic-curve = { version = "0.13.8", optional = true }
 signature = { version = "2.2.0", optional = true }
 rand_core = { version = "0.6.4", optional = true }
 tokio = { version = "1.36.0", features = ["full"], optional = true }
+tokio-tungstenite = { version = "0.21.0", optional = true }
+futures-util = { version = "0.3.30", optional = true }
+uuid = { version = "1.6.1", features = ["v4"], optional = true }
 reqwest = { version = "0.11.24", optional = true, default-features = false, features = ["json"] }
 digest = { version = "0.10.7", optional = true }
 ripemd160 = { version = "0.10.0", optional = true }
@@ -50,6 +53,8 @@ lazy_static = "1.4.0"
 default = ["std", "crypto-standard"]
 std = ["serde/std", "serde_json/std", "primitive-types/std"]
 crypto-standard = ["crypto", "p256", "elliptic-curve", "signature", "rand_core", "tokio", "reqwest", "digest", "sha2", "ripemd", "hmac"]
+websocket = ["tokio-tungstenite", "futures-util", "uuid", "tokio"]
+rest-client = ["reqwest"]
 digest = ["dep:digest"]
 sha2 = ["dep:sha2"]
 ripemd160 = ["dep:ripemd160"]
@@ -58,6 +63,7 @@ ledger = [] # Feature for ledger hardware wallet integration
 ethereum-compat = [] # Feature for Ethereum compatibility and Neo X integration
 wallet = [] # Feature for wallet management functions
 transaction = [] # Feature for transaction creation and signing
+http-client = ["reqwest"] # Alias for reqwest to fix feature mismatch
 
 [dev-dependencies]
 hex-literal = "0.4.1"        

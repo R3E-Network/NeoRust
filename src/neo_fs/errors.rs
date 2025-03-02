@@ -24,6 +24,14 @@ pub enum NeoFsError {
 	ApiError(ResponseStatus, String),
 	/// Serialization or deserialization error
 	SerializationError(String),
+	/// Required feature is disabled
+	FeatureDisabled(String),
+	/// Response error with details
+	ResponseError(String),
+	/// Request failed with error details
+	RequestFailed(String),
+	/// Deserialization error with details
+	DeserializationError(String),
 }
 
 impl fmt::Display for NeoFsError {
@@ -39,6 +47,10 @@ impl fmt::Display for NeoFsError {
 			Self::NotFound(msg) => write!(f, "Not found: {}", msg),
 			Self::ApiError(status, msg) => write!(f, "API error (status {:?}): {}", status, msg),
 			Self::SerializationError(msg) => write!(f, "Serialization error: {}", msg),
+			Self::FeatureDisabled(msg) => write!(f, "Feature disabled: {}", msg),
+			Self::ResponseError(msg) => write!(f, "Response error: {}", msg),
+			Self::RequestFailed(msg) => write!(f, "Request failed: {}", msg),
+			Self::DeserializationError(msg) => write!(f, "Deserialization error: {}", msg),
 		}
 	}
 }

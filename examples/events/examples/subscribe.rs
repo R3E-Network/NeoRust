@@ -1,30 +1,48 @@
+use neo3::prelude::*;
+use neo3::neo_utils::network::NeoNetwork;
 use std::sync::Arc;
 
-use ethers::prelude::*;
-use eyre::Result;
-use serde::{Deserialize, Serialize};
-
-const WSS_URL: &str = "wss://mainnet.infura.io/ws/v3/c60b0bb42f8a4c6481ecd229eddaca27";
-
-#[derive(Clone, Debug, Serialize, Deserialize, EthEvent)]
-pub struct Transfer {
-    #[ethevent(indexed)]
-    pub from: Address,
-    #[ethevent(indexed)]
-    pub to: Address,
-    pub tokens: U256,
-}
-
-/// This example shows how to subscribe to events using the Ws transport for a specific event
+/// This example demonstrates how to subscribe to and handle events from Neo N3 blockchain.
+/// It shows how to set up a notification subscription for transaction and block events.
 #[tokio::main]
-async fn main() -> Result<()> {
-    let provider = Provider::<Ws>::connect(WSS_URL).await?;
-    let provider = Arc::new(provider);
-    let event = Transfer::new::<_, Provider<Ws>>(Filter::new(), Arc::clone(&provider));
-    let mut transfers = event.subscribe().await?.take(5);
-    while let Some(log) = transfers.next().await {
-        println!("Transfer: {:?}", log);
-    }
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("Neo N3 Event Subscription Example");
+    println!("================================");
 
+    // Connect to Neo N3 TestNet
+    println!("\nConnecting to Neo N3 TestNet...");
+    let network = NeoNetwork::TestNet;
+    let client = network.create_client()?;
+    let arc_client = Arc::new(client);
+    
+    // Subscribe to new blocks
+    println!("\nSubscribing to new blocks...");
+    // Note: In production code, you would need a websocket-enabled endpoint
+    // This is just a demonstration of the API pattern
+    
+    // In an actual implementation with websocket support:
+    // let ws_provider = WebSocketProvider::connect("wss://testnet.neoline.io:10331").await?;
+    // let mut block_stream = ws_provider.subscribe_blocks().await?;
+    // while let Some(block) = block_stream.next().await {
+    //     println!("New block: {}", block.hash);
+    // }
+    
+    // As an alternative, for demonstration purposes, we'll poll for new blocks
+    let current_block = arc_client.get_block_count().await?;
+    println!("Current block number: {}", current_block);
+    
+    println!("\nPolling for new blocks (simulating subscription)...");
+    for _ in 0..5 {
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        let new_block = arc_client.get_block_count().await?;
+        if new_block > current_block {
+            println!("New block detected: {}", new_block);
+        } else {
+            println!("No new block yet, still at: {}", new_block);
+        }
+    }
+    
+    println!("\nNote: For real-time event notifications, you'd need a WebSocket connection to a Neo N3 node that supports notifications.");
+    
     Ok(())
 }

@@ -1,0 +1,13 @@
+[package]
+name = "neo3-websocket-examples"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+neo3 = { path = "../..", features = ["websocket", "crypto-standard"] }
+tokio = { version = "1.36.0", features = ["full"] }
+futures-util = "0.3.30"
+
+[[example]]
+name = "block_subscription"
+path = "examples/block_subscription.rs" 

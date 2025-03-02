@@ -2,23 +2,46 @@
 
 [Introduction](README.md)
 
-# User Guide
-- [Getting Started](guides/getting-started.md)
-- [Installation](guides/installation.md)
+# Getting Started
+- [Installation](installation.md)
+- [Quick Start](quickstart.md)
+- [First Application](first-application.md)
 
-# Tutorials
-- [Wallet Management](tutorials/wallet-management.md)
-- [Smart Contracts](tutorials/smart-contracts.md)
-- [Transactions](tutorials/transactions.md)
-- [NEP-17 Tokens](tutorials/nep17-tokens.md)
-- [Neo Name Service](tutorials/nns.md)
-- [Neo X Integration](tutorials/neo-x.md)
-- [SGX Support](tutorials/sgx.md)
+# Core Concepts
+- [Wallet Management](wallet.md)
+- [Transactions](transactions.md)
+- [Smart Contracts](smart-contracts.md)
+- [Neo Networks](networks.md)
+- [RPC Clients](rpc-clients.md)
 
-# API Reference
-- [API Overview](reference/api-overview.md)
-- [Configuration](reference/configuration.md)
-- [Error Handling](reference/error-handling.md)
+# Advanced Topics
+- [Transaction Building](transaction-building.md)
+- [Contract Invocation](contract-invocation.md)
+- [WebSocket Support](websocket.md)
+- [RESTful API](rest_api.md)
+- [Custom Serialization](custom-serialization.md)
+- [Cryptography](cryptography.md)
+- [Offline Signing](offline-signing.md)
+- [NeoFS Integration](neofs.md)
+
+# SDK Reference
+- [API Reference](api-reference.md)
+- [Error Handling](error-handling.md)
+- [Feature Flags](feature-flags.md)
+- [Type System](type-system.md)
 
 # Examples
-- [Example Code](examples/README.md)
+- [Command Line Tools](examples/cli.md)
+- [Web Applications](examples/web.md)
+- [Token Explorer](examples/token-explorer.md)
+- [Block Explorer](examples/block-explorer.md)
+
+# Development
+- [Contributing](contributing.md)
+- [Testing](testing.md)
+- [Documentation](documentation.md)
+
+# Additional Resources
+- [Neo Nodes](resources/nodes.md)
+- [Contract Templates](resources/contract-templates.md)
+- [Community Links](resources/community.md)

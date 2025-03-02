@@ -1,45 +1,75 @@
-use ethers::{
-    core::types::{Address, Filter, H160, H256, U256},
-    providers::{Http, Middleware, Provider},
-};
-use eyre::Result;
+use neo3::prelude::*;
+use neo3::neo_utils::network::NeoNetwork;
+use primitive_types::H256;
+use std::str::FromStr;
 
-const HTTP_URL: &str = "https://rpc.flashbots.net";
-const V3FACTORY_ADDRESS: &str = "0x1F98431c8aD98523631AE4a59f267346ea31F984";
-const DAI_ADDRESS: &str = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
-const USDC_ADDRESS: &str = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-const USDT_ADDRESS: &str = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-
-/// This example demonstrates filtering and parsing event logs by fetching all Uniswap V3 pools
-/// where both tokens are in the set [USDC, USDT, DAI].
-///
-/// V3 factory reference: https://github.com/Uniswap/v3-core/blob/main/contracts/interfaces/IUniswapV3Factory.sol
+/// This example demonstrates how to filter and retrieve application logs from transactions
+/// on the Neo N3 blockchain. It shows how to query transaction notifications and filter by contract.
 #[tokio::main]
-async fn main() -> Result<()> {
-    let provider = Provider::<Http>::try_from(HTTP_URL)?;
-    let client = Arc::new(provider);
-    let token_topics = [
-        H256::from(USDC_ADDRESS.parse::<H160>()?),
-        H256::from(USDT_ADDRESS.parse::<H160>()?),
-        H256::from(DAI_ADDRESS.parse::<H160>()?),
-    ];
-    let filter = Filter::new()
-        .address(V3FACTORY_ADDRESS.parse::<Address>()?)
-        .event("PoolCreated(address,address,uint24,int24,address)")
-        .topic1(token_topics.to_vec())
-        .topic2(token_topics.to_vec())
-        .from_block(0);
-    let logs = client.get_logs(&filter).await?;
-    println!("{} pools found!", logs.iter().len());
-    for log in logs.iter() {
-        let token0 = Address::from(log.topics[1]);
-        let token1 = Address::from(log.topics[2]);
-        let fee_tier = U256::from_big_endian(&log.topics[3].as_bytes()[29..32]);
-        let tick_spacing = U256::from_big_endian(&log.data[29..32]);
-        let pool = Address::from(&log.data[44..64].try_into()?);
-        println!(
-            "pool = {pool}, token0 = {token0}, token1 = {token1}, fee = {fee_tier}, spacing = {tick_spacing}"
-        );
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("Neo N3 Application Log Filtering Example");
+    println!("======================================");
+
+    // Connect to Neo N3 TestNet
+    println!("\nConnecting to Neo N3 TestNet...");
+    let client = NeoNetwork::TestNet.create_client()?;
+    
+    // Get recent blocks
+    let current_height = client.get_block_count().await?;
+    println!("Current block height: {}", current_height);
+    
+    // Let's get a block with some transactions
+    let block = client.get_block_by_index(current_height - 1, true).await?;
+    
+    println!("\nFound block {} with {} transactions", block.hash, block.transactions.len());
+    
+    // Filter for transactions with application logs
+    let mut notification_count = 0;
+    
+    for tx_hash in block.transactions.iter() {
+        println!("\nChecking transaction: {}", tx_hash);
+        
+        // Get application logs for this transaction
+        match client.get_application_log(H256::from_str(&tx_hash.to_string())?).await {
+            Ok(app_log) => {
+                println!("  Transaction executed with state: {}", app_log.execution.state);
+                println!("  Gas consumed: {}", app_log.execution.gas_consumed);
+                
+                // Print notifications
+                if !app_log.execution.notifications.is_empty() {
+                    println!("  Notifications:");
+                    for (i, notification) in app_log.execution.notifications.iter().enumerate() {
+                        notification_count += 1;
+                        println!("    {}: Contract: {}", i+1, notification.contract);
+                        println!("       Event Name: {}", notification.event_name);
+                        println!("       State Items: {}", notification.state.len());
+                        
+                        // Print state items (first few)
+                        if !notification.state.is_empty() {
+                            println!("       First state item: {:?}", notification.state[0]);
+                            if notification.state.len() > 1 {
+                                println!("       Second state item: {:?}", notification.state[1]);
+                            }
+                        }
+                    }
+                } else {
+                    println!("  No notifications found");
+                }
+            },
+            Err(e) => {
+                println!("  Failed to get application log: {}", e);
+            }
+        }
     }
+    
+    println!("\nTotal notifications found: {}", notification_count);
+    
+    // How to filter for specific contract notifications (example only)
+    println!("\nTo filter for specific contract notifications:");
+    println!("1. Get transaction logs");
+    println!("2. Filter by contract address");
+    println!("3. Filter by event name");
+    println!("4. Process the state array with the event parameters");
+    
     Ok(())
 }

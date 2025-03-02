@@ -1,0 +1,13 @@
+[package]
+name = "neo3-rest-api-examples"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+neo3 = { path = "../..", features = ["rest-client", "crypto-standard"] }
+tokio = { version = "1.36.0", features = ["full"] }
+reqwest = { version = "0.11.24", features = ["json"] }
+
+[[example]]
+name = "token_balances"
+path = "examples/token_balances.rs"

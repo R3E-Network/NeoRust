@@ -169,3 +169,17 @@ mod test_provider {
 		}
 	}
 }
+
+pub mod http;
+pub mod json_rpc;
+pub mod mock_client;
+pub mod http_provider;
+pub mod ws_provider;
+pub mod rest_client;
+
+pub use http::*;
+pub use json_rpc::*;
+pub use mock_client::*;
+pub use http_provider::*;
+pub use ws_provider::*;
+pub use rest_client::*;
