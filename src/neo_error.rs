@@ -18,6 +18,18 @@ pub enum NeoError {
     /// Other error
     #[error("Other error: {0}")]
     OtherError(String),
+    
+    /// Invalid address
+    #[error("Invalid address")]
+    InvalidAddress,
+    
+    /// Invalid private key
+    #[error("Invalid private key")]
+    InvalidPrivateKey,
+    
+    /// Account not found
+    #[error("Account not found")]
+    AccountNotFound,
 }
 
 /// Neo Error (without thiserror)
@@ -29,6 +41,15 @@ pub enum NeoError {
 
     /// Other error
     OtherError(String),
+    
+    /// Invalid address
+    InvalidAddress,
+    
+    /// Invalid private key
+    InvalidPrivateKey,
+    
+    /// Account not found
+    AccountNotFound,
 }
 
 #[cfg(not(feature = "thiserror"))]
@@ -37,6 +58,9 @@ impl fmt::Display for NeoError {
         match self {
             NeoError::ClientError(s) => write!(f, "Client error: {}", s),
             NeoError::OtherError(s) => write!(f, "Other error: {}", s),
+            NeoError::InvalidAddress => write!(f, "Invalid address"),
+            NeoError::InvalidPrivateKey => write!(f, "Invalid private key"),
+            NeoError::AccountNotFound => write!(f, "Account not found"),
         }
     }
 }
@@ -227,6 +251,9 @@ impl From<NeoError> for crate::neo_crypto::error::CryptoError {
         match err {
             NeoError::ClientError(err) => crate::neo_crypto::error::CryptoError::ProviderError(err),
             NeoError::OtherError(err) => crate::neo_crypto::error::CryptoError::TransactionError(err),
+            NeoError::InvalidAddress => crate::neo_crypto::error::CryptoError::InvalidFormat("Invalid address".to_string()),
+            NeoError::InvalidPrivateKey => crate::neo_crypto::error::CryptoError::InvalidPrivateKey("Invalid private key".to_string()),
+            NeoError::AccountNotFound => crate::neo_crypto::error::CryptoError::TransactionError("Account not found".to_string()),
         }
     }
 }

@@ -29,6 +29,7 @@ rand = { version = "0.8.5", optional = true }
 thiserror = { version = "1.0.56", optional = true }
 chrono = { version = "0.4.34", optional = true }
 serde_json = { version = "1.0", features = ["raw_value"], optional = true }
+serde_with = { version = "3.6.1", optional = true }
 
 # Crypto dependencies
 sha2 = { version = "0.10.8", optional = true }
@@ -48,32 +49,39 @@ getset = { version = "0.1.2", optional = true }
 tokio = { version = "1.36.0", features = ["full"], optional = true }
 
 [features]
-default = ["std", "thiserror", "crypto-standard", "utils", "serde-support"]
+default = ["std", "crypto-standard", "utils", "serde-support", "contract", "neo-fs", "neo-utils", "tokio-support", "transaction", "wallet"]
 std = []
 
 # Core feature groups
 crypto-standard = [
     "sha2", "ripemd", "digest", "rand", "hmac", 
     "p256", "elliptic-curve", "rand_core", "signature",
-    "bs58", "dep:rustc-serialize"  # Using dep:rustc-serialize
+    "bs58", "dep:rustc-serialize"
 ]
 utils = ["base64", "bs58", "rustc-hex", "dep:rustc-serialize", "byte-slice-cast"]
-serde-support = ["serde_json", "chrono"]
+serde-support = ["serde_json", "chrono", "serde_with"]
 
 # Optional features
-contract = ["num_enum", "strum", "strum_macros"]
-ledger = []
+contract = ["num_enum", "strum", "strum_macros", "crypto-standard", "serde-support"]
+ledger = ["crypto-standard"]
 nightly = []
 tokio-support = ["tokio"]
-transaction = []
+transaction = ["crypto-standard", "contract"]
+neo-fs = ["crypto-standard", "contract", "utils", "transaction"]
+neo-utils = ["utils", "crypto-standard"]
+wallet = ["crypto-standard", "transaction", "tokio-support"]
 
 # Compatibility features
 hashable-for-vec = ["crypto-standard"]
-string-ext = []
+string-ext = ["utils"]
 getset-macros = ["getset"]
 
 # AWS Nitro TEE support
-aws-nitro-tee = []
+aws-nitro-tee = ["crypto-standard", "utils"]
+
+# Example-specific features
+examples = ["neo-fs", "neo-utils", "transaction", "tokio-support", "contract", "wallet"]
 
 [dev-dependencies]
 hex-literal = "0.4.1"
+tokio = { version = "1.36.0", features = ["full"] }         

@@ -139,6 +139,25 @@ NeoRust uses feature flags to control which components are included:
 - `std`: Standard library support
 - `ethereum-compat`: Neo X / Ethereum compatibility
 - `ledger`: Hardware wallet support
+- `aws-nitro-tee`: AWS Nitro Trusted Execution Environment support
+
+### AWS Nitro TEE Support
+
+NeoRust includes support for AWS Nitro Trusted Execution Environment (TEE) for secure key management and transaction signing. This feature provides:
+
+- Secure key generation and storage in AWS Nitro enclaves
+- Hardware-backed cryptographic operations
+- Enhanced security for private keys
+- Integration with AWS KMS for key management
+
+To use this feature, add it to your dependencies:
+
+```toml
+[dependencies]
+neo3 = { version = "0.1.3", features = ["aws-nitro-tee"] }
+```
+
+See the [AWS Nitro TEE example](examples/aws_nitro/basic_usage.rs) for basic usage.
 
 ## License
 

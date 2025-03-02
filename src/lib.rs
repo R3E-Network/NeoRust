@@ -10,6 +10,21 @@ pub mod neo_error;
 #[cfg(feature = "crypto-standard")]
 pub mod neo_crypto;
 
+#[cfg(feature = "aws-nitro-tee")]
+pub mod neo_aws_nitro;
+
+#[cfg(feature = "neo-fs")]
+pub mod neo_fs;
+
+#[cfg(feature = "neo-utils")]
+pub mod neo_utils;
+
+#[cfg(feature = "tokio-support")]
+pub mod neo_provider;
+
+#[cfg(feature = "wallet")]
+pub mod neo_wallet;
+
 // Version information
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -26,4 +41,19 @@ pub mod prelude {
     
     #[cfg(feature = "crypto-standard")]
     pub use crate::neo_crypto::*;
+    
+    #[cfg(feature = "aws-nitro-tee")]
+    pub use crate::neo_aws_nitro::*;
+    
+    #[cfg(feature = "neo-fs")]
+    pub use crate::neo_fs::*;
+    
+    #[cfg(feature = "neo-utils")]
+    pub use crate::neo_utils::*;
+    
+    #[cfg(feature = "tokio-support")]
+    pub use crate::neo_provider::*;
+    
+    #[cfg(feature = "wallet")]
+    pub use crate::neo_wallet::*;
 }

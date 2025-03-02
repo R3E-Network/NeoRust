@@ -1,5 +1,8 @@
-use neo::prelude::*;
-use neo::neo_utils::{constants, network::{NeoNetwork, NetworkToken}};
+use neo3::neo_types::contract::ContractParameter;
+use neo3::neo_types::address::Address;
+use neo3::prelude::*;
+use neo3::neo_utils::{network::{NeoNetwork, NetworkToken}};
+use neo3::neo_types::address::AddressExtension;
 use std::env;
 use std::error::Error;
 use std::str::FromStr;
@@ -66,8 +69,8 @@ fn print_help() {
 
 fn parse_network(network_str: &str) -> Result<NeoNetwork, Box<dyn Error>> {
     match network_str.to_lowercase().as_str() {
-        "mainnet" => Ok(NeoNetwork::MainNet),
-        "testnet" => Ok(NeoNetwork::TestNet),
+        "mainnet" => Ok(NeoNetwork::main_net()),
+        "testnet" => Ok(NeoNetwork::test_net()),
         _ => Err(format!("Unknown network: {}", network_str).into()),
     }
 }
@@ -80,36 +83,32 @@ async fn check_token_balance(network: NeoNetwork, address: &str) -> Result<(), B
     
     // Parse address
     let address_obj = Address::from_str(address)?;
-    let script_hash = address_obj.script_hash();
+    let script_hash = address_obj.to_script_hash()?;
     
     // Try common tokens
     println!("\nCommon Tokens:");
     println!("-------------");
     
-    check_single_token_balance(network, "neo", address).await?;
-    check_single_token_balance(network, "gas", address).await?;
+    check_single_token_balance(&network, "neo", address).await?;
+    check_single_token_balance(&network, "gas", address).await?;
     
     // Try network-specific tokens
-    match network {
-        NeoNetwork::MainNet => {
-            println!("\nMainNet Tokens:");
-            println!("--------------");
-            check_single_token_balance(network, "flm", address).await?;
-        },
-        NeoNetwork::TestNet => {
-            println!("\nTestNet Tokens:");
-            println!("--------------");
-            check_single_token_balance(network, "cneo", address).await?;
-            check_single_token_balance(network, "cgas", address).await?;
-        },
-        _ => {}
+    if network.name == "MainNet" {
+        println!("\nMainNet Tokens:");
+        println!("--------------");
+        check_single_token_balance(&network, "flm", address).await?;
+    } else if network.name == "TestNet" {
+        println!("\nTestNet Tokens:");
+        println!("--------------");
+        check_single_token_balance(&network, "cneo", address).await?;
+        check_single_token_balance(&network, "cgas", address).await?;
     }
     
     // Get all NEP-17 balances
     println!("\nAll NEP-17 Balances:");
     println!("------------------");
     
-    match client.get_nep17_balances(&script_hash).await {
+    match client.get_nep17_balances(&script_hash.to_string()).await {
         Ok(balances) => {
             if balances.balances.is_empty() {
                 println!("No NEP-17 token balances found.");
@@ -129,12 +128,12 @@ async fn check_token_balance(network: NeoNetwork, address: &str) -> Result<(), B
 }
 
 async fn check_single_token_balance(
-    network: NeoNetwork, 
+    network: &NeoNetwork, 
     token_name: &str, 
     address: &str
 ) -> Result<(), Box<dyn Error>> {
     // Try to create the token
-    match NetworkToken::new(network, token_name) {
+    match NetworkToken::new(network.clone(), token_name) {
         Ok(token) => {
             match token.token_info().await {
                 Ok(info) => {
@@ -170,23 +169,19 @@ async fn list_available_tokens(network: NeoNetwork) -> Result<(), Box<dyn Error>
     println!("  GAS: {}", network.get_contract_hash("gas").unwrap_or_default());
     
     // Network-specific tokens
-    match network {
-        NeoNetwork::MainNet => {
-            println!("\nMainNet Tokens:");
-            println!("--------------");
-            println!("  FLM: {}", network.get_contract_hash("flm").unwrap_or_default());
-            println!("  Neo Name Service: {}", network.get_contract_hash("neo_ns").unwrap_or_default());
-            println!("  NeoFS: {}", network.get_contract_hash("neofs").unwrap_or_default());
-        },
-        NeoNetwork::TestNet => {
-            println!("\nTestNet Tokens:");
-            println!("--------------");
-            println!("  cNEO: {}", network.get_contract_hash("cneo").unwrap_or_default());
-            println!("  cGAS: {}", network.get_contract_hash("cgas").unwrap_or_default());
-            println!("  Neo Name Service: {}", network.get_contract_hash("neo_ns").unwrap_or_default());
-            println!("  NeoFS: {}", network.get_contract_hash("neofs").unwrap_or_default());
-        },
-        _ => {},
+    if network.name == "MainNet" {
+        println!("\nMainNet Tokens:");
+        println!("--------------");
+        println!("  FLM: {}", network.get_contract_hash("flm").unwrap_or_default());
+        println!("  Neo Name Service: {}", network.get_contract_hash("neo_ns").unwrap_or_default());
+        println!("  NeoFS: {}", network.get_contract_hash("neofs").unwrap_or_default());
+    } else if network.name == "TestNet" {
+        println!("\nTestNet Tokens:");
+        println!("--------------");
+        println!("  cNEO: {}", network.get_contract_hash("cneo").unwrap_or_default());
+        println!("  cGAS: {}", network.get_contract_hash("cgas").unwrap_or_default());
+        println!("  Neo Name Service: {}", network.get_contract_hash("neo_ns").unwrap_or_default());
+        println!("  NeoFS: {}", network.get_contract_hash("neofs").unwrap_or_default());
     }
     
     Ok(())
@@ -211,7 +206,7 @@ async fn transfer_token(
     println!("  Amount: {}", amount);
     
     // Get token info
-    let token = NetworkToken::new(network, token_name)?;
+    let token = NetworkToken::new(network.clone(), token_name)?;
     let info = token.token_info().await?;
     println!("  Token: {} ({})", info.name, info.symbol);
     
@@ -223,12 +218,12 @@ async fn transfer_token(
     
     // Create recipient address hash
     let to_address_obj = Address::from_str(to_address)?;
-    let to_script_hash = to_address_obj.script_hash();
+    let to_script_hash = to_address_obj.to_script_hash()?;
     
     // Create parameters for transfer
     let params = vec![
-        ContractParameter::hash160(&account.script_hash()), // from
-        ContractParameter::hash160(&to_script_hash),        // to
+        ContractParameter::h160(&account.to_script_hash()?), // from
+        ContractParameter::h160(&to_script_hash),        // to
         ContractParameter::integer(raw_amount),            // amount
         ContractParameter::any(),                          // data
     ];
@@ -268,17 +263,13 @@ async fn transfer_token(
     println!("Transaction sent! Hash: {}", response.hash);
     println!("\nYou can check the transaction status on a Neo explorer:");
     
-    match network {
-        NeoNetwork::MainNet => {
-            println!("https://explorer.onegate.space/transactionInfo/{}", response.hash);
-            println!("https://neo3.neotube.io/transaction/{}", response.hash);
-        },
-        NeoNetwork::TestNet => {
-            println!("https://testnet.explorer.onegate.space/transactionInfo/{}", response.hash);
-            println!("https://testnet.neo3.neotube.io/transaction/{}", response.hash);
-        },
-        _ => {},
+    if network.name == "MainNet" {
+        println!("https://explorer.onegate.space/transactionInfo/{}", response.hash);
+        println!("https://neo3.neotube.io/transaction/{}", response.hash);
+    } else if network.name == "TestNet" {
+        println!("https://testnet.explorer.onegate.space/transactionInfo/{}", response.hash);
+        println!("https://testnet.neo3.neotube.io/transaction/{}", response.hash);
     }
     
     Ok(())
-} 
+}                        
