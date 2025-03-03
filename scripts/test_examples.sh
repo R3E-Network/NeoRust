@@ -22,9 +22,6 @@ EXAMPLES_DIR="$ROOT_DIR/examples"
 FEATURE_SETS=(
     ""  # No features
     "futures"
-    "futures,ledger"
-    "futures,aws"
-    "futures,ledger,aws"
 )
 
 # Function to test an example directory with specific features

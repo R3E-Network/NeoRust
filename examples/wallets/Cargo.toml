@@ -1,6 +1,3 @@
-cargo-features = ["edition2024"]
-
-
 [features]
 default = []
 futures = ["neo3/futures"]
@@ -12,8 +9,7 @@ sgx_deps = ["neo3/sgx_deps", "sgx"]
 name = "examples-wallets"
 version = "0.0.0"
 publish = false
-edition = "2024"
-rust-version = "1.74"
+edition = "2021"
 authors = ["R3E Network <contact@r3e.network>"]
 
 [dev-dependencies]
