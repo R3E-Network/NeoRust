@@ -1,4 +1,4 @@
-//! # Neo Builder Module (v0.1.7)
+//! # Neo Builder Module (v0.1.8)
 //!
 //! Advanced tooling for constructing Neo N3 transactions and smart contract scripts.
 //!

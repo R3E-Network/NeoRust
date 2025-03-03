@@ -569,6 +569,9 @@ dependencies = [
  "anstyle",
  "clap_lex",
  "strsim",
+ "terminal_size",
+ "unicase",
+ "unicode-width 0.1.14",
 ]
 
 [[package]]
@@ -1384,6 +1387,114 @@ dependencies = [
 ]
 
 [[package]]
+name = "examples-big-numbers"
+version = "0.0.0"
+dependencies = [
+ "eyre",
+ "neo3",
+ "primitive-types 0.12.2",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "examples-contracts"
+version = "0.0.0"
+dependencies = [
+ "eyre",
+ "neo3",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "examples-events"
+version = "0.0.0"
+dependencies = [
+ "eyre",
+ "neo3",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "examples-middleware"
+version = "0.0.0"
+dependencies = [
+ "async-trait",
+ "eyre",
+ "neo3",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "examples-providers"
+version = "0.0.0"
+dependencies = [
+ "async-trait",
+ "eyre",
+ "neo3",
+ "primitive-types 0.12.2",
+ "reqwest 0.11.27",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "url",
+]
+
+[[package]]
+name = "examples-queries"
+version = "0.0.0"
+dependencies = [
+ "eyre",
+ "neo3",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "examples-subscriptions"
+version = "0.0.0"
+dependencies = [
+ "eyre",
+ "neo3",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "examples-transactions"
+version = "0.0.0"
+dependencies = [
+ "eyre",
+ "neo3",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "examples-wallets"
+version = "0.0.0"
+dependencies = [
+ "eyre",
+ "neo3",
+ "serde",
+ "serde_json",
+ "tokio",
+ "yubihsm",
+]
+
+[[package]]
 name = "eyre"
 version = "0.6.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1726,15 +1837,6 @@ name = "hashbrown"
 version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
-
-[[package]]
-name = "hashbrown_tstd"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c57e7f2e84e024aff147279232fa17a5940ebcb7a6c9e6343a8f13adad3125c"
-dependencies = [
- "autocfg",
-]
 
 [[package]]
 name = "heck"
@@ -2375,10 +2477,11 @@ dependencies = [
 
 [[package]]
 name = "neo-cli"
-version = "0.1.0"
+version = "0.1.8"
 dependencies = [
  "anyhow",
  "assert_cmd",
+ "async-trait",
  "base64 0.21.7",
  "chrono",
  "clap",
@@ -2414,7 +2517,7 @@ dependencies = [
 
 [[package]]
 name = "neo3"
-version = "0.1.1"
+version = "0.1.8"
 dependencies = [
  "aes",
  "async-stream",
@@ -2500,10 +2603,6 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_with",
- "sgx_tcrypto",
- "sgx_tstd",
- "sgx_types",
- "sgx_urts",
  "sha2 0.10.8",
  "sha3",
  "signature",
@@ -2526,6 +2625,96 @@ dependencies = [
  "walkdir",
  "wiremock",
  "yubihsm",
+]
+
+[[package]]
+name = "neo_contracts_examples"
+version = "0.1.0"
+dependencies = [
+ "eyre",
+ "neo3",
+ "tokio",
+]
+
+[[package]]
+name = "neo_famous_contracts"
+version = "0.1.0"
+dependencies = [
+ "neo3",
+ "primitive-types 0.12.2",
+ "tokio",
+]
+
+[[package]]
+name = "neo_fs_examples"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "neo3",
+ "tokio",
+]
+
+[[package]]
+name = "neo_nep17_tokens_examples"
+version = "0.1.0"
+dependencies = [
+ "eyre",
+ "neo3",
+ "tokio",
+]
+
+[[package]]
+name = "neo_nns_examples"
+version = "0.1.0"
+dependencies = [
+ "eyre",
+ "neo3",
+ "tokio",
+]
+
+[[package]]
+name = "neo_nodes_examples"
+version = "0.1.0"
+dependencies = [
+ "eyre",
+ "neo3",
+ "tokio",
+]
+
+[[package]]
+name = "neo_smart_contracts_examples"
+version = "0.1.0"
+dependencies = [
+ "eyre",
+ "neo3",
+ "tokio",
+]
+
+[[package]]
+name = "neo_transactions_examples"
+version = "0.1.0"
+dependencies = [
+ "eyre",
+ "neo3",
+ "tokio",
+]
+
+[[package]]
+name = "neo_wallets_examples"
+version = "0.1.0"
+dependencies = [
+ "eyre",
+ "neo3",
+ "tokio",
+]
+
+[[package]]
+name = "neo_x"
+version = "0.1.0"
+dependencies = [
+ "neo3",
+ "primitive-types 0.12.2",
+ "tokio",
 ]
 
 [[package]]
@@ -3343,6 +3532,7 @@ checksum = "c7d6d2a27d57148378eb5e111173f4276ad26340ecc5c49a4a2152167a2d6a37"
 dependencies = [
  "base64 0.22.1",
  "bytes",
+ "futures-channel",
  "futures-core",
  "futures-util",
  "http 1.1.0",
@@ -3932,115 +4122,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sgx_alloc"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84804a804cb6af05d4cc88c922100c8a118c23a8dd358a058b792b754a0defba"
-
-[[package]]
-name = "sgx_backtrace_sys"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d130c6906fd90640248619b9f30b9978e551d9848dbadd45d5dded534f77fcf8"
-dependencies = [
- "cc",
- "sgx_build_helper",
- "sgx_libc",
-]
-
-[[package]]
-name = "sgx_build_helper"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2554e308f6aacd9198eac74d99fe72dd079c83e2e6de4e1af475bfe352ddb0df"
-
-[[package]]
-name = "sgx_demangle"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df2a91c68258d157180f995639dc4f57414447709fbd0acf53ca1afb5fd9c410"
-
-[[package]]
-name = "sgx_libc"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fee2c4cbe19e311ed879fa44471208cc0dc63ea7eb84cc65c65d3c0e5909242f"
-dependencies = [
- "sgx_types",
-]
-
-[[package]]
-name = "sgx_tcrypto"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fab75120c28a11c13f4e9879c6ab9ef1203ba91a59de1d2fbf42b854d10b3bae"
-dependencies = [
- "sgx_types",
-]
-
-[[package]]
-name = "sgx_tprotected_fs"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "639522f180dad519af8ea5e5cc1cffdc84f585030acadb313ad333e27701300d"
-dependencies = [
- "sgx_trts",
- "sgx_types",
-]
-
-[[package]]
-name = "sgx_trts"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63e3a84fb7cc0151f9c0d83c57dce4a29a9a619b8259e2473cca6b4aba0a94bc"
-dependencies = [
- "sgx_libc",
- "sgx_types",
-]
-
-[[package]]
-name = "sgx_tstd"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5770678ad6b38d4ed7bf01be8e5f450ba60f3e54a3622d9c1a0f8626a744d871"
-dependencies = [
- "hashbrown_tstd",
- "sgx_alloc",
- "sgx_backtrace_sys",
- "sgx_demangle",
- "sgx_libc",
- "sgx_tprotected_fs",
- "sgx_trts",
- "sgx_types",
- "sgx_unwind",
-]
-
-[[package]]
-name = "sgx_types"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df329127455d6a2964782739218468878770a6dc54cb037b6c9c8846fe09d362"
-
-[[package]]
-name = "sgx_unwind"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "879db0855ab3c42027670722fc6d9d3d8cc7dc0aa674d0509e585951f6d3b203"
-dependencies = [
- "sgx_build_helper",
-]
-
-[[package]]
-name = "sgx_urts"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a660e4b8f9cd8f740fecb220672afd3b4b43d048d4293ed80c2dadef5e46788"
-dependencies = [
- "libc",
- "sgx_types",
-]
-
-[[package]]
 name = "sha2"
 version = "0.9.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4331,6 +4412,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06794f8f6c5c898b3275aebefa6b8a1cb24cd2c6c79397ab15774837a0bc5755"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "terminal_size"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21bebf2b7c9e0a515f6e0f8c51dc0f8e4696391e6f1ff30379559f8365fb0df7"
+dependencies = [
+ "rustix",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

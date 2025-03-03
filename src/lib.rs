@@ -2,7 +2,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 //! ![Neo Logo](https://neo.org/images/neo-logo/NEO-logo.svg)
-//! # NeoRust SDK v0.1.7
+//! # NeoRust SDK v0.1.8
 //!
 //! A comprehensive Rust library for building applications on the Neo N3 blockchain ecosystem.
 //!
@@ -27,13 +27,13 @@
 //!
 //! ```toml
 //! [dependencies]
-//! neo3 = { version = "0.1.7", features = ["futures", "ledger"] }
+//! neo3 = { version = "0.1.8", features = ["futures", "ledger"] }
 //! ```
 //!
 //! You can disable default features with:
 //!
 //! ```toml
-//! neo3 = { version = "0.1.7", default-features = false, features = ["futures"] }
+//! neo3 = { version = "0.1.8", default-features = false, features = ["futures"] }
 //! ```
 //!
 //! ## Overview

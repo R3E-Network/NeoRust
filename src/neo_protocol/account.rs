@@ -1,4 +1,4 @@
-//! # Neo Account Module (v0.1.7)
+//! # Neo Account Module (v0.1.8)
 //! 
 //! The Account module provides functionality for managing Neo accounts, including
 //! key management, signature operations, and interaction with the Neo blockchain.

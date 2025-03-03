@@ -5,6 +5,13 @@ All notable changes to NeoRust will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2024-03-04
+
+### Changed
+- Bumped version number for release
+- Updated all documentation and references to use v0.1.8
+- Improved code stability and documentation clarity
+
 ## [0.1.7] - 2024-03-03
 
 ### Removed

@@ -1,4 +1,4 @@
-/// # Neo SDK Prelude (v0.1.7)
+/// # Neo SDK Prelude (v0.1.8)
 /// 
 /// Convenient imports for commonly used types and traits to make working with Neo more ergonomic.
 /// 
