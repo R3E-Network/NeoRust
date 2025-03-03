@@ -1,4 +1,4 @@
-//! # Neo Types (v0.1.6)
+//! # Neo Types (v0.1.7)
 //!
 //! Core data types for the Neo N3 blockchain.
 //!

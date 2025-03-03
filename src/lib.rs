@@ -1,9 +1,40 @@
 #![allow(warnings)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 //! ![Neo Logo](https://neo.org/images/neo-logo/NEO-logo.svg)
-//! # NeoRust SDK v0.1.6
+//! # NeoRust SDK v0.1.7
 //!
 //! A comprehensive Rust library for building applications on the Neo N3 blockchain ecosystem.
+//!
+//! [![Crates.io](https://img.shields.io/crates/v/neo3.svg)](https://crates.io/crates/neo3)
+//! [![Documentation](https://docs.rs/neo3/badge.svg)](https://docs.rs/neo3)
+//!
+//! ## Features
+//!
+//! This crate provides several feature flags to customize functionality:
+//!
+//! - **futures**: Enables async/futures support for asynchronous blockchain operations. This is recommended
+//!   for most applications that need to interact with the Neo blockchain without blocking.
+//!
+//! - **ledger**: Enables hardware wallet support via Ledger devices. When enabled, you can use Ledger
+//!   hardware wallets for transaction signing and key management. This feature provides an additional
+//!   security layer by keeping private keys on dedicated hardware.
+//!
+//! - **aws**: Enables AWS KMS integration for cloud-based key management. This feature allows you to
+//!   store and use keys securely in AWS Key Management Service rather than managing them locally.
+//!
+//! To enable specific features in your project, modify your `Cargo.toml` as follows:
+//!
+//! ```toml
+//! [dependencies]
+//! neo3 = { version = "0.1.7", features = ["futures", "ledger"] }
+//! ```
+//!
+//! You can disable default features with:
+//!
+//! ```toml
+//! neo3 = { version = "0.1.7", default-features = false, features = ["futures"] }
+//! ```
 //!
 //! ## Overview
 //!
@@ -609,3 +640,20 @@ pub mod extensions {
 		}
 	}
 }
+
+// Explicitly mark external dependencies with cfg_attr for docs.rs
+#[cfg(feature = "futures")]
+#[cfg_attr(docsrs, doc(cfg(feature = "futures")))]
+pub use futures;
+
+#[cfg(feature = "ledger")]
+#[cfg_attr(docsrs, doc(cfg(feature = "ledger")))]
+pub use coins_ledger;
+
+#[cfg(feature = "aws")]
+#[cfg_attr(docsrs, doc(cfg(feature = "aws")))]
+pub use rusoto_core;
+
+#[cfg(feature = "aws")]
+#[cfg_attr(docsrs, doc(cfg(feature = "aws")))]
+pub use rusoto_kms;
