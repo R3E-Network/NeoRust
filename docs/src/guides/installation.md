@@ -1,39 +1,47 @@
 # Installation Guide
 
-This guide provides detailed instructions for installing and configuring the NeoRust SDK.
+## Prerequisites
 
-## Requirements
+- Rust and Cargo (stable or nightly)
+- Optional: Ledger hardware device (for ledger features)
+- Optional: AWS account (for AWS KMS features)
 
-- Rust 1.70.0 or later
-- Cargo package manager
-- Optional: Intel SGX SDK (for SGX features)
+## Installation
 
-## Standard Installation
-
-Add the NeoRust SDK to your Cargo.toml:
+Add NeoRust to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust" }
+neo3 = "0.1.7"
 ```
 
-## Feature Flags
+Note: The crate is published as `neo3` but is imported as `neo` in code:
 
-NeoRust supports various feature flags to enable specific functionality:
+```rust
+use neo::prelude::*;
+```
+
+## Features
+
+NeoRust provides several features to customize functionality:
+
+- `futures`: Enables async/futures support (recommended)
+- `ledger`: Enables hardware wallet support via Ledger devices
+- `aws`: Enables AWS KMS integration
+
+Example of enabling specific features:
 
 ```toml
 [dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "aws"] }
+neo3 = { version = "0.1.7", features = ["futures", "ledger"] }
 ```
 
-Available features:
-- `ledger`: Support for Ledger hardware wallets
-- `aws`: AWS integration
-- `sgx`: Intel SGX support (requires additional setup)
+You can disable default features with:
 
-## SGX Support
-
-To use the SGX features, you need to install the Intel SGX SDK. See the [SGX Setup Guide](../tutorials/sgx.md) for detailed instructions.
+```toml
+[dependencies]
+neo3 = { version = "0.1.7", default-features = false, features = ["futures"] }
+```
 
 ## Verifying Installation
 

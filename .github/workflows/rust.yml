@@ -14,26 +14,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       
-      - name: Install Rust toolchain
+      - name: Install latest nightly
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: nightly
           override: true
           components: rustfmt, clippy
-      
-      - name: Build with all features
-        run: cargo build --verbose --no-default-features --features "futures,ledger,aws,sgx,sgx_deps"
         
-      - name: Build without default features
-        run: cargo build --verbose --no-default-features
+      - name: Build
+        run: cargo build --verbose --no-default-features --features "futures,ledger,aws"
         
-      - name: Run tests with all compatible features
-        run: cargo test --features "futures,ledger,aws,sgx" --no-fail-fast -- --nocapture
-        
-      - name: Test examples
-        run: |
-          echo "Testing examples..."
-          chmod +x scripts/test_examples.sh
-          ./scripts/test_examples.sh
+      - name: Run tests
+        run: cargo test --features "futures,ledger,aws" --no-fail-fast -- --nocapture

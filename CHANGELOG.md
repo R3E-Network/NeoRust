@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.7] - 2024-03-03
 
+### Removed
+- Completely removed all SGX-related content from the entire codebase
+- Deleted SGX examples directory
+- Removed all SGX references from documentation
+- Removed SGX references from build and test scripts
+- Deleted Makefile.sgx
+
 ### Fixed
 - Documentation issues with crates.io and docs.rs
 - Fixed feature gating for documentation generation
 - Added proper feature attributes for conditional compilation
-- Removed all remaining references to SGX in the examples
 
 ### Changed
 - Improved documentation of available features

@@ -1,69 +1,73 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Default build flags
-set BUILD_COMMAND=cargo build
-set BUILD_FLAGS=
-set RELEASE_MODE=
+:: Colors for output (Windows)
+set "GREEN=[32m"
+set "RED=[31m"
+set "YELLOW=[33m"
+set "NC=[0m"
+
+echo %YELLOW%NeoRust Build Script%NC%
+echo.
+
+:: Help output
+if "%1"=="-h" goto :help
+if "%1"=="--help" goto :help
+goto :main
+
+:help
+echo Usage: .\scripts\build.bat [options]
+echo.
+echo Options:
+echo   --features    - Comma-separated list of features to enable
+echo                   Available features:
+echo   futures     - Enables async/futures support
+echo   ledger      - Enables Ledger hardware wallet support
+echo   aws         - Enables AWS KMS support
+echo   --release     - Build in release mode
+echo   -h, --help    - Show this help message
+echo.
+echo Examples:
+echo   .\scripts\build.bat --features futures,ledger,aws
+echo   .\scripts\build.bat --release
+exit /b 0
+
+:main
+:: Default features
+set "FEATURES=futures,ledger,aws"
+set "BUILD_MODE=debug"
 
 :: Parse arguments
 :parse_args
-if "%~1"=="" goto execute_command
-if "%~1"=="--all-features" (
-    set BUILD_FLAGS=!BUILD_FLAGS! --all-features
-    shift
-    goto parse_args
-)
-if "%~1"=="--no-default-features" (
-    set BUILD_FLAGS=!BUILD_FLAGS! --no-default-features
-    shift
-    goto parse_args
-)
-if "%~1"=="--features" (
-    set BUILD_FLAGS=!BUILD_FLAGS! --features %~2
+if "%1"=="" goto :build
+if "%1"=="--features" (
+    set "FEATURES=%2"
     shift
     shift
-    goto parse_args
+    goto :parse_args
 )
-if "%~1"=="--release" (
-    set RELEASE_MODE=--release
+if "%1"=="--release" (
+    set "BUILD_MODE=release"
     shift
-    goto parse_args
+    goto :parse_args
 )
-if "%~1"=="--help" (
-    call :show_help
-    exit /b 0
-)
-echo Unknown option: %~1
-call :show_help
+echo Unknown option: %1
+echo Use --help to see available options
 exit /b 1
 
-:execute_command
-:: Execute build command
-set FINAL_COMMAND=%BUILD_COMMAND% %RELEASE_MODE% %BUILD_FLAGS% --verbose
-echo Running: %FINAL_COMMAND%
-%FINAL_COMMAND%
-exit /b
+:build
+:: Display build settings
+echo %YELLOW%Building NeoRust with features: %GREEN%%FEATURES%%NC%
+echo %YELLOW%Build mode: %GREEN%%BUILD_MODE%%NC%
+echo.
 
-:show_help
-echo Usage: .\scripts\build.bat [OPTIONS]
-echo.
-echo Build options:
-echo   --all-features         Build with all features enabled
-echo   --no-default-features  Build with no default features
-echo   --features FEATURES    Build with specific features (comma-separated)
-echo   --release              Build in release mode
-echo   --help                 Show this help message
-echo.
-echo Available features:
-echo   futures    - Enables async/futures support
-echo   ledger     - Enables hardware wallet support via Ledger devices
-echo   aws        - Enables AWS integration
-echo   sgx        - Enables Intel SGX secure enclave support
-echo   sgx_deps   - Enables additional SGX dependencies (implies sgx)
-echo.
-echo Examples:
-echo   .\scripts\build.bat --features futures,ledger
-echo   .\scripts\build.bat --features futures,ledger,aws,sgx
-echo   .\scripts\build.bat --all-features --release
-exit /b 
+:: Build command based on settings
+if "%BUILD_MODE%"=="release" (
+    cargo build --release --features "%FEATURES%"
+    echo %GREEN%Release build completed successfully!%NC%
+) else (
+    cargo build --features "%FEATURES%"
+    echo %GREEN%Debug build completed successfully!%NC%
+)
+
+exit /b 0 

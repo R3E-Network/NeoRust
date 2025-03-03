@@ -47,7 +47,6 @@ members = [
     "examples/neo_transactions",
     "examples/transactions",
     "examples/neo_smart_contracts",
-    "examples/sgx",
     "examples/wallets",
     "examples/neo_fs",
     "examples/events",
@@ -203,12 +202,6 @@ async-stream = "0.3.5"
 
 bip39 = { version = "2.1.0", features = ["rand"] }
 
-# The following dependencies were used for SGX and are now commented out
-# as they are no longer part of the codebase
-# sgx_types = { version = "=1.1.1", optional = true, default-features = false }
-# sgx_urts = { version = "=1.1.1", optional = true, default-features = false }
-# sgx_tstd = { version = "=1.1.1", optional = true, default-features = false }
-# sgx_tcrypto = { version = "=1.1.1", optional = true, default-features = false }
 
 [dev-dependencies]
 mockall = "0.13.0"

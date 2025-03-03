@@ -32,7 +32,7 @@ if [[ "$1" == "-h" || "$1" == "--help" ]]; then
 fi
 
 # Default features (if none specified)
-FEATURES="futures,ledger,aws"  # Default features (removed sgx)
+FEATURES="futures,ledger,aws"  # Default features
 
 # Parse arguments
 CARGO_ARGS=()
