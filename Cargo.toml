@@ -38,7 +38,29 @@ all-features = true
 resolver = "2"
 
 [workspace]
-members = ["neo-cli"]
+members = [
+    "neo-cli",
+    "examples/neo_contracts",
+    "examples/subscriptions",
+    "examples/neo_transactions",
+    "examples/transactions",
+    "examples/neo_smart_contracts",
+    "examples/sgx",
+    "examples/wallets",
+    "examples/neo_fs",
+    "examples/events",
+    "examples/big-numbers",
+    "examples/neo_x",
+    "examples/neo_nodes",
+    "examples/neo_nns",
+    "examples/middleware",
+    "examples/contracts",
+    "examples/providers",
+    "examples/neo_famous_contracts",
+    "examples/neo_nep17_tokens",
+    "examples/queries",
+    "examples/neo_wallets"
+]
 
 [dependencies]
 tokio = { version = "1.32", features = ["full"] }

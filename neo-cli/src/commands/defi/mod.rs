@@ -10,6 +10,10 @@
 //  - NeoCompound: Yield farming operations - Placeholder implementation
 //  - GrandShare: Funding platform - Placeholder implementation
 //
+// Feature Requirements:
+//  - The `futures` feature is required for all async operations in this module
+//  - `ledger` feature provides optional hardware wallet support
+//
 // NOTE: Most implementations are currently placeholders that demonstrate the intended 
 // functionality but do not yet execute actual blockchain transactions.
 

@@ -8,13 +8,21 @@ show_help() {
     echo "  --all-features         Test with all features enabled"
     echo "  --no-default-features  Test with no default features"
     echo "  --features FEATURES    Test with specific features (comma-separated)"
-    echo "                         Default features if not specified: ledger,aws,futures"
+    echo "                         Default features if not specified: futures,ledger,aws,sgx"
     echo "  --nocapture            Show test output"
     echo "  --no-fail-fast         Continue testing even if a test fails"
     echo "  --help                 Show this help message"
     echo ""
+    echo "Available features:"
+    echo "  futures    - Enables async/futures support"
+    echo "  ledger     - Enables hardware wallet support via Ledger devices"
+    echo "  aws        - Enables AWS integration"
+    echo "  sgx        - Enables Intel SGX secure enclave support"
+    echo "  sgx_deps   - Enables additional SGX dependencies (implies sgx)"
+    echo ""
     echo "Examples:"
-    echo "  ./scripts/test.sh --features ledger,aws"
+    echo "  ./scripts/test.sh --features futures,ledger"
+    echo "  ./scripts/test.sh --features futures,ledger,aws,sgx"
     echo "  ./scripts/test.sh --all-features --nocapture"
 }
 
@@ -22,7 +30,7 @@ show_help() {
 TEST_COMMAND="cargo test"
 TEST_FLAGS=""
 RUNTIME_FLAGS=""
-FEATURES="ledger,aws,futures"  # Default features
+FEATURES="futures,ledger,aws,sgx"  # Default features
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do

@@ -67,7 +67,7 @@ Add neo3 to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-neo3 = "0.1.4"
+neo3 = "0.1.5"
 ```
 
 Note: The crate is published as `neo3` but is imported as `neo` in code:
@@ -76,12 +76,34 @@ Note: The crate is published as `neo3` but is imported as `neo` in code:
 use neo::prelude::*;
 ```
 
-
 For the latest development version, you can use the Git repository:
 
 ```toml
 [dependencies]
 neo3 = { git = "https://github.com/R3E-Network/NeoRust.git" }
+```
+
+### Feature Flags
+
+NeoRust supports several feature flags to customize functionality:
+
+```toml
+[dependencies]
+neo3 = { version = "0.1.5", features = ["futures", "ledger", "sgx"] }
+```
+
+Available features:
+
+- **futures**: Enables async/futures support
+- **ledger**: Enables hardware wallet support via Ledger devices
+- **aws**: Enables AWS integration
+- **sgx**: Enables Intel SGX secure enclave support
+- **sgx_deps**: Enables additional SGX dependencies (implies sgx)
+- **default**: Default features (minimal setup)
+
+You can disable default features with:
+```toml
+neo3 = { version = "0.1.5", default-features = false, features = ["futures"] }
 ```
 
 ### Documentation

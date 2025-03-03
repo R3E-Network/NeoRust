@@ -1,5 +1,13 @@
 cargo-features = ["edition2024"]
 
+
+[features]
+default = []
+futures = ["neo3/futures"]
+ledger = ["neo3/ledger"]
+aws = ["neo3/aws"]
+sgx = ["neo3/sgx"]
+sgx_deps = ["neo3/sgx_deps", "sgx"]
 [package]
 name = "examples-big-numbers"
 version = "0.0.0"
@@ -10,7 +18,7 @@ authors = ["R3E Network <contact@r3e.network>"]
 
 
 [dev-dependencies]
-neo3 = { path = "../../" }
+neo3 = { path = "../../", package = "neo3", features = [] }
 tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = "1.0.68"

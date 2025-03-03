@@ -5,8 +5,16 @@ name = "neo_x"
 version = "0.1.0"
 edition = "2024"
 
+
+[features]
+default = []
+futures = ["neo3/futures"]
+ledger = ["neo3/ledger"]
+aws = ["neo3/aws"]
+sgx = ["neo3/sgx"]
+sgx_deps = ["neo3/sgx_deps", "sgx"]
 [dependencies]
-neo3 = { path = "../../" }
+neo3 = { path = "../../", package = "neo3", features = [] }
 tokio = { version = "1.0", features = ["full"] }
 primitive-types = "0.12.1"
 

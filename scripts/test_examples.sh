@@ -18,12 +18,31 @@ echo
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EXAMPLES_DIR="$ROOT_DIR/examples"
 
-# Function to test an example directory
+# Define feature combinations to test
+FEATURE_SETS=(
+    ""  # No features
+    "futures"
+    "futures,ledger"
+    "futures,aws"
+    "futures,sgx"
+    "futures,ledger,aws"
+    "futures,ledger,aws,sgx"
+)
+
+# Function to test an example directory with specific features
 test_example_dir() {
     local dir=$1
+    local features=$2
     local dir_name=$(basename "$dir")
     
-    echo -e "${YELLOW}Testing $dir_name examples...${NC}"
+    local feature_text=""
+    if [ -n "$features" ]; then
+        feature_text=" with features: $features"
+    else
+        feature_text=" with no features"
+    fi
+    
+    echo -e "${YELLOW}Testing $dir_name examples$feature_text...${NC}"
     
     # Check if the directory has a Cargo.toml file
     if [ ! -f "$dir/Cargo.toml" ]; then
@@ -34,13 +53,24 @@ test_example_dir() {
     # Navigate to the example directory
     cd "$dir"
     
-    # Try to build the examples
-    if cargo build --quiet; then
-        echo -e "${GREEN}✓ $dir_name examples built successfully${NC}"
-        return 0
+    # Try to build the examples with the specified features
+    if [ -n "$features" ]; then
+        if cargo build --quiet --no-default-features --features "$features"; then
+            echo -e "${GREEN}✓ $dir_name examples built successfully$feature_text${NC}"
+            return 0
+        else
+            echo -e "${RED}✗ Failed to build $dir_name examples$feature_text${NC}"
+            return 1
+        fi
     else
-        echo -e "${RED}✗ Failed to build $dir_name examples${NC}"
-        return 1
+        # Build with no features
+        if cargo build --quiet --no-default-features; then
+            echo -e "${GREEN}✓ $dir_name examples built successfully$feature_text${NC}"
+            return 0
+        else
+            echo -e "${RED}✗ Failed to build $dir_name examples$feature_text${NC}"
+            return 1
+        fi
     fi
 }
 
@@ -52,12 +82,17 @@ find "$EXAMPLES_DIR" -maxdepth 1 -mindepth 1 -type d | while read -r dir; do
         continue
     fi
     
-    # Test the example directory
-    if ! test_example_dir "$dir"; then
-        echo -e "${RED}Failed to build examples in $(basename "$dir")${NC}"
-    fi
+    # Test the example directory with different feature combinations
+    for features in "${FEATURE_SETS[@]}"; do
+        if ! test_example_dir "$dir" "$features"; then
+            echo -e "${RED}Failed to build examples in $(basename "$dir") with features: $features${NC}"
+        fi
+        echo
+    done
     
+    echo -e "${GREEN}Testing completed for $(basename "$dir")!${NC}"
+    echo -e "${YELLOW}---------------------------------------${NC}"
     echo
 done
 
-echo -e "${GREEN}Example testing completed!${NC}" 
+echo -e "${GREEN}All example testing completed!${NC}" 

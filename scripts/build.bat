@@ -55,7 +55,15 @@ echo   --features FEATURES    Build with specific features (comma-separated)
 echo   --release              Build in release mode
 echo   --help                 Show this help message
 echo.
+echo Available features:
+echo   futures    - Enables async/futures support
+echo   ledger     - Enables hardware wallet support via Ledger devices
+echo   aws        - Enables AWS integration
+echo   sgx        - Enables Intel SGX secure enclave support
+echo   sgx_deps   - Enables additional SGX dependencies (implies sgx)
+echo.
 echo Examples:
-echo   .\scripts\build.bat --features ledger,aws,futures
+echo   .\scripts\build.bat --features futures,ledger
+echo   .\scripts\build.bat --features futures,ledger,aws,sgx
 echo   .\scripts\build.bat --all-features --release
 exit /b 

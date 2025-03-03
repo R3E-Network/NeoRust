@@ -11,12 +11,27 @@ echo.
 set "ROOT_DIR=%~dp0.."
 set "EXAMPLES_DIR=%ROOT_DIR%\examples"
 
-:: Function to test an example directory
+:: Define feature combinations to test
+set "FEATURE_SETS="
+set "FEATURE_SETS=!FEATURE_SETS! """
+set "FEATURE_SETS=!FEATURE_SETS! "futures""
+set "FEATURE_SETS=!FEATURE_SETS! "futures,ledger""
+set "FEATURE_SETS=!FEATURE_SETS! "futures,aws""
+set "FEATURE_SETS=!FEATURE_SETS! "futures,sgx""
+set "FEATURE_SETS=!FEATURE_SETS! "futures,ledger,aws""
+set "FEATURE_SETS=!FEATURE_SETS! "futures,ledger,aws,sgx""
+
+:: Function to test an example directory with specific features
 :test_example_dir
     set "dir=%~1"
+    set "features=%~2"
     for %%F in ("%dir%") do set "dir_name=%%~nxF"
     
-    echo Testing %dir_name% examples...
+    if "%features%"=="" (
+        echo Testing %dir_name% examples with no features...
+    ) else (
+        echo Testing %dir_name% examples with features: %features%...
+    )
     
     :: Check if the directory has a Cargo.toml file
     if not exist "%dir%\Cargo.toml" (
@@ -27,14 +42,29 @@ set "EXAMPLES_DIR=%ROOT_DIR%\examples"
     :: Navigate to the example directory
     pushd "%dir%"
     
-    :: Try to build the examples
-    cargo build --quiet
+    :: Try to build the examples with the specified features
+    if "%features%"=="" (
+        :: Build with no features
+        cargo build --quiet --no-default-features
+    ) else (
+        :: Build with the specified features
+        cargo build --quiet --no-default-features --features %features%
+    )
+    
     if !errorlevel! equ 0 (
-        echo ✓ %dir_name% examples built successfully
+        if "%features%"=="" (
+            echo ✓ %dir_name% examples built successfully with no features
+        ) else (
+            echo ✓ %dir_name% examples built successfully with features: %features%
+        )
         popd
         exit /b 0
     ) else (
-        echo ✗ Failed to build %dir_name% examples
+        if "%features%"=="" (
+            echo ✗ Failed to build %dir_name% examples with no features
+        ) else (
+            echo ✗ Failed to build %dir_name% examples with features: %features%
+        )
         popd
         exit /b 1
     )
@@ -45,15 +75,17 @@ for /d %%D in ("%EXAMPLES_DIR%\*") do (
     if not exist "%%D\Cargo.toml" (
         echo Skipping %%~nxD - no Cargo.toml file
     ) else (
-        :: Test the example directory
-        call :test_example_dir "%%D"
-        if !errorlevel! neq 0 (
-            echo Failed to build examples in %%~nxD
+        :: Test the example directory with different feature combinations
+        for %%F in (%FEATURE_SETS%) do (
+            call :test_example_dir "%%D" %%F
+            echo.
         )
+        
+        echo Testing completed for %%~nxD!
+        echo ---------------------------------------
+        echo.
     )
-    
-    echo.
 )
 
-echo Example testing completed!
+echo All example testing completed!
 endlocal 
