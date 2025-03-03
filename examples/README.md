@@ -24,7 +24,6 @@ Each subdirectory contains examples for a specific category of functionality:
 - **contracts**: Contract examples
 - **events**: Event examples
 - **middleware**: Middleware examples
-- **sgx**: Secure enclave examples
 
 ## Running the Examples
 
@@ -71,7 +70,6 @@ cargo run --example wallet_management --features ledger
 - **contracts**: Contract examples
 - **events**: Event examples
 - **middleware**: Middleware examples
-- **sgx**: Secure enclave examples
 
 ## Contributing
 

@@ -27,7 +27,6 @@ NeoRust is a comprehensive Rust SDK for interacting with the Neo N3 blockchain. 
 - **Neo Name Service (NNS)**: Resolve and manage domain names on the Neo blockchain
 - **Cryptographic Operations**: Secure key management and cryptographic functions
 - **NeoFS Support**: Interact with the NeoFS distributed storage system
-- **SGX Integration**: Support for Intel SGX secure enclaves
 - **Modular Architecture**: Well-organized codebase with clear separation of concerns
 - **Famous Neo N3 Contracts**: Direct support for popular Neo N3 contracts like Flamingo Finance, NeoburgerNeo, GrandShare, and NeoCompound
 - **Neo X Support**: EVM compatibility layer and bridge functionality for Neo X, an EVM-compatible chain maintained by Neo
@@ -89,7 +88,7 @@ NeoRust supports several feature flags to customize functionality:
 
 ```toml
 [dependencies]
-neo3 = { version = "0.1.5", features = ["futures", "ledger", "sgx"] }
+neo3 = { version = "0.1.5", features = ["futures", "ledger", "aws"] }
 ```
 
 Available features:
@@ -97,8 +96,6 @@ Available features:
 - **futures**: Enables async/futures support
 - **ledger**: Enables hardware wallet support via Ledger devices
 - **aws**: Enables AWS integration
-- **sgx**: Enables Intel SGX secure enclave support
-- **sgx_deps**: Enables additional SGX dependencies (implies sgx)
 - **default**: Default features (minimal setup)
 
 You can disable default features with:
@@ -503,7 +500,6 @@ NeoRust provides several optional features that can be enabled in your `Cargo.to
 - **ledger**: Support for hardware wallets via Ledger devices
 - **aws**: AWS KMS integration for key management 
 - **futures**: Support for asynchronous Futures
-- **sgx**: Intel SGX support for secure enclaves (requires additional setup)
 
 Example of enabling multiple features:
 

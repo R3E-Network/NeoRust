@@ -1,66 +1,70 @@
 #!/bin/bash
 
-# Help message
-show_help() {
-    echo "Usage: ./scripts/build.sh [OPTIONS]"
-    echo ""
-    echo "Build options:"
-    echo "  --all-features         Build with all features enabled"
-    echo "  --no-default-features  Build with no default features"
-    echo "  --features FEATURES    Build with specific features (comma-separated)"
-    echo "  --release              Build in release mode"
-    echo "  --help                 Show this help message"
-    echo ""
-    echo "Available features:"
-    echo "  futures    - Enables async/futures support"
-    echo "  ledger     - Enables hardware wallet support via Ledger devices"
-    echo "  aws        - Enables AWS integration"
-    echo "  sgx        - Enables Intel SGX secure enclave support"
-    echo "  sgx_deps   - Enables additional SGX dependencies (implies sgx)"
-    echo ""
-    echo "Examples:"
-    echo "  ./scripts/build.sh --features futures,ledger"
-    echo "  ./scripts/build.sh --features futures,ledger,aws,sgx"
-    echo "  ./scripts/build.sh --all-features --release"
-}
+# Script to build NeoRust with various feature combinations
 
-# Default build flags
-BUILD_COMMAND="cargo build"
-BUILD_FLAGS=""
-RELEASE_MODE=""
+set -e  # Exit on first error
+
+# Colors for output
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+echo -e "${YELLOW}NeoRust Build Script${NC}"
+echo
+
+# Help output
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+  echo "Usage: ./scripts/build.sh [options]"
+  echo
+  echo "Options:"
+  echo "  --features    - Comma-separated list of features to enable"
+  echo "                  Available features:"
+  echo "  futures     - Enables async/futures support"
+  echo "  ledger      - Enables Ledger hardware wallet support"
+  echo "  aws         - Enables AWS KMS support"
+  echo "  --release     - Build in release mode"
+  echo "  -h, --help    - Show this help message"
+  echo
+  echo "Examples:"
+  echo "  ./scripts/build.sh --features futures,ledger,aws"
+  echo "  ./scripts/build.sh --release"
+  exit 0
+fi
+
+# Default features
+FEATURES="futures,ledger,aws"
+BUILD_MODE="debug"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
-    case $1 in
-        --all-features)
-            BUILD_FLAGS="$BUILD_FLAGS --all-features"
-            shift
-            ;;
-        --no-default-features)
-            BUILD_FLAGS="$BUILD_FLAGS --no-default-features"
-            shift
-            ;;
-        --features)
-            BUILD_FLAGS="$BUILD_FLAGS --features $2"
-            shift 2
-            ;;
-        --release)
-            RELEASE_MODE="--release"
-            shift
-            ;;
-        --help)
-            show_help
-            exit 0
-            ;;
-        *)
-            echo "Unknown option: $1"
-            show_help
-            exit 1
-            ;;
-    esac
+  case $1 in
+    --features)
+      FEATURES="$2"
+      shift 2
+      ;;
+    --release)
+      BUILD_MODE="release"
+      shift
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Use --help to see available options"
+      exit 1
+      ;;
+  esac
 done
 
-# Execute build command
-FINAL_COMMAND="$BUILD_COMMAND $RELEASE_MODE $BUILD_FLAGS --verbose"
-echo "Running: $FINAL_COMMAND"
-$FINAL_COMMAND 
+# Display build settings
+echo -e "${YELLOW}Building NeoRust with features: ${GREEN}$FEATURES${NC}"
+echo -e "${YELLOW}Build mode: ${GREEN}$BUILD_MODE${NC}"
+echo
+
+# Build command based on settings
+if [ "$BUILD_MODE" = "release" ]; then
+  cargo build --release --features "$FEATURES"
+  echo -e "${GREEN}Release build completed successfully!${NC}"
+else
+  cargo build --features "$FEATURES"
+  echo -e "${GREEN}Debug build completed successfully!${NC}"
+fi 

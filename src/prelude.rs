@@ -87,8 +87,6 @@ pub use crate::{
 
 // === Extension modules ===
 // These are full modules that provide specialized functionality
-#[cfg(feature = "sgx")]
-pub use crate::neo_sgx;  // SGX secure enclave support
 pub use crate::neo_fs;   // NeoFS distributed storage
 
 // Re-export ValueExtension

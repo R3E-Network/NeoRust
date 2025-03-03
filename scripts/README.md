@@ -96,7 +96,4 @@ Based on the project's needs, the following feature combinations are recommended
 
 1. `ledger,aws,futures` - Default set for running most tests
 2. `--all-features` - For comprehensive testing (note: requires all dependencies)
-3. `--no-default-features` - Minimal feature set
-
-Note: The `sgx` feature has commented out dependencies in Cargo.toml. To use the SGX feature,
-you'll need to uncomment and install the appropriate SGX SDK dependencies. 
+3. `--no-default-features` - Minimal feature set 

@@ -78,19 +78,7 @@ neo-cli defi transfer <TOKEN> <TO> <AMOUNT> [--data <DATA>]
 The DeFi module works with the following Neo SDK features:
 - `futures` - Required for all DeFi operations (enables async/await support)
 - `ledger` - Optional, enables hardware wallet support for signing transactions
-- `sgx` - Optional, enables secure enclave support for enhanced key security
 - `aws` - Optional, enables AWS integration for cloud deployments
-
-### SGX Support
-When built with the `sgx` feature, the DeFi module can leverage Intel SGX secure enclaves for enhanced security:
-- Private keys can be stored and operations performed within the secure enclave
-- Transactions can be signed without exposing private keys to the main application memory
-- Supports confidential DeFi operations for enterprise use cases
-
-To use SGX features, ensure you have:
-1. Compatible Intel hardware with SGX support
-2. SGX driver and SDK installed
-3. Built the CLI with `--features sgx` or `--features sgx_deps`
 
 ## Contributing
 

@@ -23,11 +23,10 @@
 //! - [**neo_error**](neo_error): Unified error handling
 //! - [**neo_fs**](neo_fs): NeoFS distributed storage system integration
 //! - [**neo_protocol**](neo_protocol): Core blockchain protocol implementations
-//! - [**neo_sgx**](neo_sgx): Intel SGX secure enclave integration
-//! - [**neo_types**](neo_types): Fundamental blockchain data types
-//! - [**neo_utils**](neo_utils): Utility functions and helpers
-//! - [**neo_wallets**](neo_wallets): Wallet management and key security
-//! - [**neo_x**](neo_x): Neo X EVM-compatible chain support
+//! - [**neo_types**](neo_types): Core data types and primitives for Neo N3
+//! - [**neo_utils**](neo_utils): General utility functions
+//! - [**neo_wallets**](neo_wallets): Wallet management for Neo N3
+//! - [**neo_x**](neo_x): Neo X EVM compatibility layer
 //!
 //! ## Quick Start
 //!
@@ -417,8 +416,6 @@ pub mod neo_contract;
 pub mod neo_protocol;
 pub mod neo_wallets;
 pub mod neo_x;
-#[cfg(feature = "sgx")]
-pub mod neo_sgx;
 pub mod neo_fs;
 
 // Re-exports for convenience
