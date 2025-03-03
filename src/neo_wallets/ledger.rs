@@ -177,7 +177,7 @@ impl<T: LedgerAsync> LedgerWallet<T> {
 	pub async fn sign_transaction<'a, P: JsonRpcProvider + 'static>(
 		&self,
 		tx: &Transaction<'a, P>,
-	) -> Result<Signature, WalletError> {
+	) -> Result<k256::ecdsa::Signature, WalletError> {
 		let path = self.derivation_path.to_vec();
 
 		// Get the transaction hash
@@ -211,14 +211,14 @@ impl<T: LedgerAsync> LedgerWallet<T> {
 		// Create a Signature from r and s
 		let r_bytes: [u8; 32] = r.into();
 		let s_bytes: [u8; 32] = s.into();
-		let signature = Signature::from_scalars(r_bytes, s_bytes)
+		let signature = k256::ecdsa::Signature::from_scalars(r_bytes, s_bytes)
 			.map_err(|e| WalletError::LedgerError(format!("Failed to create signature: {}", e)))?;
 
 		Ok(signature)
 	}
 
 	/// Signs a message using the Ledger device.
-	pub async fn sign_message(&self, message: &[u8]) -> Result<Signature, WalletError> {
+	pub async fn sign_message(&self, message: &[u8]) -> Result<k256::ecdsa::Signature, WalletError> {
 		let path = self.derivation_path.to_vec();
 
 		// Hash the message using SHA-256
@@ -253,7 +253,7 @@ impl<T: LedgerAsync> LedgerWallet<T> {
 		// Create a Signature from r and s
 		let r_bytes: [u8; 32] = r.into();
 		let s_bytes: [u8; 32] = s.into();
-		let signature = Signature::from_scalars(r_bytes, s_bytes)
+		let signature = k256::ecdsa::Signature::from_scalars(r_bytes, s_bytes)
 			.map_err(|e| WalletError::LedgerError(format!("Failed to create signature: {}", e)))?;
 
 		Ok(signature)

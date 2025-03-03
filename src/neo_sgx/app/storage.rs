@@ -1,3 +1,4 @@
+#[cfg(feature = "sgx_deps")]
 use sgx_types::*;
 use std::{
 	fs::{self, File},
@@ -5,6 +6,84 @@ use std::{
 	path::Path,
 	slice,
 };
+
+/// Storage functionality for the untrusted app
+pub struct SgxStorage {
+	#[cfg(not(feature = "sgx_deps"))]
+	_private: (),
+}
+
+#[cfg(feature = "sgx_deps")]
+impl SgxStorage {
+	/// Creates a new SgxStorage instance
+	///
+	/// # Returns
+	///
+	/// A new SgxStorage instance
+	pub fn new() -> Self {
+		Self {}
+	}
+
+	/// Saves data to a file
+	///
+	/// # Arguments
+	///
+	/// * `path` - Path to save the data to
+	/// * `data` - Data to save
+	///
+	/// # Returns
+	///
+	/// `true` if successful, `false` otherwise
+	pub fn save_data(&self, path: &Path, data: &[u8]) -> bool {
+		if let Ok(mut file) = File::create(path) {
+			if let Ok(_) = file.write_all(data) {
+				return true;
+			}
+		}
+		false
+	}
+
+	/// Loads data from a file
+	///
+	/// # Arguments
+	///
+	/// * `path` - Path to load the data from
+	///
+	/// # Returns
+	///
+	/// The loaded data, or None if an error occurred
+	pub fn load_data(&self, path: &Path) -> Option<Vec<u8>> {
+		if let Ok(mut file) = File::open(path) {
+			let mut data = Vec::new();
+			if let Ok(_) = file.read_to_end(&mut data) {
+				return Some(data);
+			}
+		}
+		None
+	}
+}
+
+#[cfg(not(feature = "sgx_deps"))]
+impl SgxStorage {
+	/// Creates a new SgxStorage instance
+	///
+	/// # Returns
+	///
+	/// A new SgxStorage instance
+	pub fn new() -> Self {
+		Self { _private: () }
+	}
+
+	/// Placeholder for saving data to a file
+	pub fn save_data(&self, _path: &Path, _data: &[u8]) -> bool {
+		unimplemented!("SGX dependencies not available")
+	}
+
+	/// Placeholder for loading data from a file
+	pub fn load_data(&self, _path: &Path) -> Option<Vec<u8>> {
+		unimplemented!("SGX dependencies not available")
+	}
+}
 
 /// Reads a file from the untrusted app
 ///

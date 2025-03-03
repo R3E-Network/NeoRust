@@ -5,7 +5,7 @@ setlocal enabledelayedexpansion
 set TEST_COMMAND=cargo test
 set TEST_FLAGS=
 set RUNTIME_FLAGS=
-set FEATURES=futures,ledger,aws,sgx
+set FEATURES=futures,ledger,aws
 
 :: Parse arguments
 :parse_args
@@ -69,7 +69,7 @@ echo Test options:
 echo   --all-features         Test with all features enabled
 echo   --no-default-features  Test with no default features
 echo   --features FEATURES    Test with specific features (comma-separated)
-echo                          Default features if not specified: futures,ledger,aws,sgx
+echo                          Default features if not specified: futures,ledger,aws
 echo   --nocapture            Show test output
 echo   --no-fail-fast         Continue testing even if a test fails
 echo   --help                 Show this help message
@@ -78,11 +78,11 @@ echo Available features:
 echo   futures    - Enables async/futures support
 echo   ledger     - Enables hardware wallet support via Ledger devices
 echo   aws        - Enables AWS integration
-echo   sgx        - Enables Intel SGX secure enclave support
+echo   sgx        - Enables Intel SGX secure enclave support (not included by default)
 echo   sgx_deps   - Enables additional SGX dependencies (implies sgx)
 echo.
 echo Examples:
 echo   .\scripts\test.bat --features futures,ledger
-echo   .\scripts\test.bat --features futures,ledger,aws,sgx
+echo   .\scripts\test.bat --features futures,ledger,aws
 echo   .\scripts\test.bat --all-features --nocapture
 exit /b 

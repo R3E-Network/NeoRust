@@ -17,9 +17,7 @@ set "FEATURE_SETS=!FEATURE_SETS! """
 set "FEATURE_SETS=!FEATURE_SETS! "futures""
 set "FEATURE_SETS=!FEATURE_SETS! "futures,ledger""
 set "FEATURE_SETS=!FEATURE_SETS! "futures,aws""
-set "FEATURE_SETS=!FEATURE_SETS! "futures,sgx""
 set "FEATURE_SETS=!FEATURE_SETS! "futures,ledger,aws""
-set "FEATURE_SETS=!FEATURE_SETS! "futures,ledger,aws,sgx""
 
 :: Function to test an example directory with specific features
 :test_example_dir
@@ -27,10 +25,23 @@ set "FEATURE_SETS=!FEATURE_SETS! "futures,ledger,aws,sgx""
     set "features=%~2"
     for %%F in ("%dir%") do set "dir_name=%%~nxF"
     
+    :: Skip sgx directory as it requires additional dependencies
+    if "%dir_name%"=="sgx" (
+        echo Skipping %dir_name% examples (requires SGX dependencies)
+        exit /b 0
+    )
+    
     if "%features%"=="" (
         echo Testing %dir_name% examples with no features...
     ) else (
         echo Testing %dir_name% examples with features: %features%...
+    )
+    
+    :: Skip if features contain sgx
+    echo "%features%" | findstr /C:"sgx" > nul
+    if not errorlevel 1 (
+        echo Skipping %dir_name% with SGX features
+        exit /b 0
     )
     
     :: Check if the directory has a Cargo.toml file

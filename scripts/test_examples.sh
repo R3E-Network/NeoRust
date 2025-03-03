@@ -24,9 +24,7 @@ FEATURE_SETS=(
     "futures"
     "futures,ledger"
     "futures,aws"
-    "futures,sgx"
     "futures,ledger,aws"
-    "futures,ledger,aws,sgx"
 )
 
 # Function to test an example directory with specific features
@@ -35,11 +33,23 @@ test_example_dir() {
     local features=$2
     local dir_name=$(basename "$dir")
     
+    # Skip sgx directory as it requires additional dependencies
+    if [ "$dir_name" = "sgx" ]; then
+        echo -e "${YELLOW}Skipping $dir_name examples (requires SGX dependencies)${NC}"
+        return 0
+    fi
+    
     local feature_text=""
     if [ -n "$features" ]; then
         feature_text=" with features: $features"
     else
         feature_text=" with no features"
+    fi
+    
+    # Skip if features contain sgx
+    if [[ "$features" == *"sgx"* ]]; then
+        echo -e "${YELLOW}Skipping $dir_name with SGX features${NC}"
+        return 0
     fi
     
     echo -e "${YELLOW}Testing $dir_name examples$feature_text...${NC}"

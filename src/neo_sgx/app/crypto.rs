@@ -1,12 +1,17 @@
+#[cfg(feature = "sgx_deps")]
 use sgx_types::*;
 #[cfg(feature = "sgx_deps")]
 use sgx_urts::SgxEnclave;
 
 /// Wrapper for cryptographic operations in the untrusted app
 pub struct SgxCrypto {
+	#[cfg(feature = "sgx_deps")]
 	enclave: SgxEnclave,
+	#[cfg(not(feature = "sgx_deps"))]
+	_private: (),
 }
 
+#[cfg(feature = "sgx_deps")]
 extern "C" {
 	fn ecall_generate_keypair(
 		eid: sgx_enclave_id_t,
@@ -35,6 +40,7 @@ extern "C" {
 	) -> sgx_status_t;
 }
 
+#[cfg(feature = "sgx_deps")]
 impl SgxCrypto {
 	/// Creates a new SgxCrypto instance
 	///
@@ -160,5 +166,41 @@ impl SgxCrypto {
 		}
 
 		Ok(result != 0)
+	}
+}
+
+#[cfg(not(feature = "sgx_deps"))]
+impl SgxCrypto {
+	/// Creates a new SgxCrypto instance
+	///
+	/// # Returns
+	///
+	/// A new SgxCrypto instance
+	pub fn new(_enclave: ()) -> Self {
+		Self { _private: () }
+	}
+
+	/// Placeholder for generating a keypair
+	pub fn generate_keypair(&self) -> Result<([u8; 32], [u8; 64]), ()> {
+		unimplemented!("SGX dependencies not available")
+	}
+
+	/// Placeholder for signing a message
+	pub fn sign_message(
+		&self,
+		_private_key: &[u8; 32],
+		_message: &[u8],
+	) -> Result<[u8; 65], ()> {
+		unimplemented!("SGX dependencies not available")
+	}
+
+	/// Placeholder for verifying a signature
+	pub fn verify_signature(
+		&self,
+		_public_key: &[u8; 64],
+		_message: &[u8],
+		_signature: &[u8; 65],
+	) -> Result<bool, ()> {
+		unimplemented!("SGX dependencies not available")
 	}
 }

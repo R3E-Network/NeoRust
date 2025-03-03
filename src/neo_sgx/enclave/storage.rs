@@ -1,4 +1,7 @@
+#[cfg(feature = "sgx_deps")]
 use sgx_types::*;
+#[cfg(feature = "sgx_deps")]
+use sgx_tstd::*;
 
 extern "C" {
 	fn ocall_read_file(
