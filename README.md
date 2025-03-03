@@ -1,4 +1,4 @@
-# NeoRust v0.1.4
+# NeoRust v0.1.5
 
 <div align="center">
   <p>
