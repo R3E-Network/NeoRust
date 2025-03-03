@@ -42,59 +42,138 @@
 //!
 //! ## Examples
 //!
-//! ### Interacting with the NEO token contract
+//! ### Working with Standard Contracts
 //!
-//! ```rust
-//! use neo::prelude::*;
+//! ```no_run
+//! use neo_rust::prelude::*;
+//! use neo_rust::neo_contract::{NeoToken, GasToken, PolicyContract};
+//! use neo_rust::neo_protocol::account::Account;
 //! use std::str::FromStr;
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     // Create a provider and client
-//!     let provider = HttpProvider::new("https://testnet1.neo.org:443");
+//! 
+//! async fn contract_examples() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Set up a client connection
+//!     let provider = HttpProvider::new("https://testnet1.neo.org:443")?;
 //!     let client = RpcClient::new(provider);
 //!     
-//!     // Create a NEO token contract instance
-//!     let neo_token = NeoToken::new(client);
+//!     // Create accounts for testing
+//!     let sender = Account::create()?;
+//!     let recipient = Account::from_address("NUVPACTpQvd2HHmBgFjJJRWwVXJiR3uAEh")?;
 //!     
-//!     // Get the NEO token symbol
+//!     // 1. Working with the NEO token contract
+//!     let neo_token = NeoToken::new(&client);
+//!     
+//!     // Get token information
 //!     let symbol = neo_token.symbol().await?;
-//!     println!("Token symbol: {}", symbol);
+//!     let decimals = neo_token.decimals().await?;
+//!     let total_supply = neo_token.total_supply().await?;
 //!     
-//!     // Get the balance of an account
-//!     let account = ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf")?;
-//!     let balance = neo_token.balance_of(&account).await?;
-//!     println!("Account balance: {} NEO", balance);
+//!     println!("NEO Token: Symbol={}, Decimals={}, Total Supply={}", 
+//!              symbol, decimals, total_supply);
+//!     
+//!     // Check account balance
+//!     let balance = neo_token.balance_of(&sender.get_script_hash()).await?;
+//!     println!("NEO Balance: {}", balance);
+//!     
+//!     // Get voting data
+//!     let candidates = neo_token.get_all_candidates().await?;
+//!     println!("Current NEO committee candidates: {}", candidates.len());
+//!     
+//!     // 2. Working with the GAS token contract
+//!     let gas_token = GasToken::new(&client);
+//!     
+//!     // Transfer GAS (requires sender to have GAS)
+//!     if gas_token.balance_of(&sender.get_script_hash()).await? > 0 {
+//!         let tx_hash = gas_token.transfer(
+//!             &sender,
+//!             &recipient.get_script_hash(),
+//!             1_00000000, // 1 GAS
+//!             None,       // No data
+//!         ).await?;
+//!         
+//!         println!("GAS transfer transaction: {}", tx_hash);
+//!     }
+//!     
+//!     // 3. Working with the Policy contract
+//!     let policy = PolicyContract::new(&client);
+//!     
+//!     // Get network policies
+//!     let exec_fee_factor = policy.get_exec_fee_factor().await?;
+//!     let storage_price = policy.get_storage_price().await?;
+//!     
+//!     println!("Network Policies:");
+//!     println!("  Execution Fee Factor: {}", exec_fee_factor);
+//!     println!("  Storage Price: {}", storage_price);
+//!     
+//!     // 4. Working with a custom NEP-17 token
+//!     let token_hash = ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf")?;
+//!     let custom_token = FungibleTokenContract::new(token_hash, &client);
+//!     
+//!     let custom_symbol = custom_token.symbol().await?;
+//!     let custom_balance = custom_token.balance_of(&sender.get_script_hash()).await?;
+//!     
+//!     println!("{} Balance: {}", custom_symbol, custom_balance);
+//!     
+//!     // 5. Using the Neo Name Service
+//!     let nns = NameService::new(&client);
+//!     
+//!     // Resolve a domain name to a script hash
+//!     let domain = "example.neo";
+//!     if let Ok(resolved_address) = nns.resolve(domain).await {
+//!         println!("Domain {} resolves to: {}", domain, resolved_address);
+//!     } else {
+//!         println!("Domain {} is not registered", domain);
+//!     }
 //!     
 //!     Ok(())
 //! }
 //! ```
 //!
-//! ### Interacting with a custom NEP-17 token
+//! ### Deploying a Smart Contract
 //!
-//! ```rust
-//! use neo::prelude::*;
-//! use std::str::FromStr;
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     // Create a provider and client
-//!     let provider = HttpProvider::new("https://testnet1.neo.org:443");
+//! ```no_run
+//! use neo_rust::prelude::*;
+//! use neo_rust::neo_contract::{ContractManagement, ContractState};
+//! use neo_rust::neo_protocol::account::Account;
+//! use neo_rust::neo_types::{ContractManifest, NefFile};
+//! use std::fs;
+//! 
+//! async fn deploy_contract_example() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Set up a client connection
+//!     let provider = HttpProvider::new("https://testnet1.neo.org:443")?;
 //!     let client = RpcClient::new(provider);
 //!     
-//!     // Create a script hash for the token contract
-//!     let token_hash = ScriptHash::from_str("0x1578103c13e39df15d0d29826d957e85d770d8c9")?;
+//!     // Create or load an account with GAS for deployment
+//!     let account = Account::from_wif("KwVEKk78X65fDrJ3VgqHLcpPpbQVfJLjXrkFUCozHQBJ5nT2xwP8")?;
 //!     
-//!     // Create a NEP-17 token contract instance
-//!     let token = FungibleTokenContract::new(client, token_hash);
+//!     // Load contract files (NEF and manifest)
+//!     let nef_bytes = fs::read("path/to/contract.nef")?;
+//!     let manifest_json = fs::read_to_string("path/to/contract.manifest.json")?;
 //!     
-//!     // Get token information
-//!     let symbol = token.symbol().await?;
-//!     let decimals = token.decimals().await?;
-//!     let total_supply = token.total_supply().await?;
+//!     // Parse contract files
+//!     let nef = NefFile::from_bytes(&nef_bytes)?;
+//!     let manifest = ContractManifest::from_json(&manifest_json)?;
 //!     
-//!     println!("Token: {} (Decimals: {})", symbol, decimals);
-//!     println!("Total Supply: {}", total_supply);
+//!     // Create contract management instance
+//!     let contract_mgmt = ContractManagement::new(&client);
+//!     
+//!     // Deploy the contract
+//!     println!("Deploying contract...");
+//!     let result = contract_mgmt.deploy(
+//!         &nef,
+//!         &manifest,
+//!         None, // No deployment data
+//!         &account,
+//!     ).await?;
+//!     
+//!     // Get the contract hash
+//!     let contract_hash = result.script_hash;
+//!     println!("Contract deployed successfully!");
+//!     println!("Contract hash: {}", contract_hash);
+//!     
+//!     // Get detailed contract information
+//!     let contract_state: ContractState = contract_mgmt.get_contract(&contract_hash).await?;
+//!     println!("Contract ID: {}", contract_state.id);
+//!     println!("Contract update counter: {}", contract_state.update_counter);
 //!     
 //!     Ok(())
 //! }

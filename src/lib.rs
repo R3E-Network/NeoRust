@@ -44,29 +44,105 @@
 //! Import all essential types and traits using the `prelude`:
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo_rust::prelude::*;
 //! ```
 //!
-//! ## Getting Started with NeoRust
+//! ## Complete Example
 //!
-//! ### Connect to a Neo N3 Node
+//! Here's a comprehensive example showcasing common operations with the NeoRust SDK:
 //!
-//! ```rust
-//! use neo::prelude::*;
-//!
-//! async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//!    // Connect to a Neo N3 TestNet node
-//!    let provider = neo_providers::JsonRpcClient::new("https://testnet1.neo.coz.io:443");
-//!    
-//!    // Get basic blockchain information
-//!    let block_count = provider.get_block_count().await?;
-//!    println!("Current block height: {}", block_count);
-//!    
-//!    // Get the latest block
-//!    let latest_block = provider.get_block_by_index(block_count - 1, 1).await?;
-//!    println!("Latest block hash: {}", latest_block.hash);
-//!    
-//!    Ok(())
+//! ```no_run
+//! use neo_rust::prelude::*;
+//! use neo_rust::neo_protocol::account::Account;
+//! use neo_rust::neo_contract::{NeoToken, GasToken};
+//! use neo_rust::neo_builder::{TransactionBuilder, ScriptBuilder};
+//! use std::str::FromStr;
+//! 
+//! async fn neo_example() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Connect to Neo TestNet
+//!     let provider = HttpProvider::new("https://testnet1.neo.org:443")?;
+//!     let client = RpcClient::new(provider);
+//!     
+//!     // Get basic blockchain information
+//!     let block_height = client.get_block_count().await?;
+//!     let best_block_hash = client.get_best_block_hash().await?;
+//!     println!("Connected to Neo TestNet at height: {}", block_height);
+//!     
+//!     // Create a new wallet account
+//!     let account = Account::create()?;
+//!     println!("New account created:");
+//!     println!("  Address:     {}", account.get_address());
+//!     println!("  Script Hash: {}", account.get_script_hash());
+//!     
+//!     // Connect to system token contracts
+//!     let neo_token = NeoToken::new(&client);
+//!     let gas_token = GasToken::new(&client);
+//!     
+//!     // Query token information
+//!     let neo_symbol = neo_token.symbol().await?;
+//!     let neo_total_supply = neo_token.total_supply().await?;
+//!     let gas_symbol = gas_token.symbol().await?;
+//!     let gas_decimals = gas_token.decimals().await?;
+//!     
+//!     println!("{} token supply: {}", neo_symbol, neo_total_supply);
+//!     println!("{} token decimals: {}", gas_symbol, gas_decimals);
+//!     
+//!     // Query account balances
+//!     // Note: A newly created account will have zero balance 
+//!     // until it receives tokens from somewhere
+//!     let test_address = "NUVPACTpQvd2HHmBgFjJJRWwVXJiR3uAEh";
+//!     let test_account = Account::from_address(test_address)?;
+//!     let script_hash = test_account.get_script_hash();
+//!     
+//!     let neo_balance = neo_token.balance_of(&script_hash).await?;
+//!     let gas_balance = gas_token.balance_of(&script_hash).await?;
+//!     
+//!     println!("Account {} balances:", test_address);
+//!     println!("  {}: {}", neo_symbol, neo_balance);
+//!     println!("  {}: {} (÷ 10^{})", gas_symbol, gas_balance, gas_decimals);
+//!     
+//!     // Build a transaction to transfer GAS
+//!     // (would require the account to have GAS for this to work)
+//!     let recipient = ScriptHash::from_str("d2a4cff31913016155e38e474a2c06d08be276cf")?;
+//!     let amount = 1_0000_0000; // 1 GAS (with 8 decimals)
+//!     
+//!     // Create the transfer script
+//!     let script = ScriptBuilder::build_contract_call(
+//!         &gas_token.script_hash(),
+//!         "transfer",
+//!         &[
+//!             ContractParameter::hash160(&script_hash),
+//!             ContractParameter::hash160(&recipient),
+//!             ContractParameter::integer(amount),
+//!             ContractParameter::any(None),
+//!         ],
+//!     )?;
+//!     
+//!     // Build transaction
+//!     let transaction = TransactionBuilder::new()
+//!         .version(0)
+//!         .nonce(rand::random::<u32>())
+//!         .valid_until_block(block_height + 100)
+//!         .script(script)
+//!         .add_signer(Signer::called_by_entry(script_hash.clone()))
+//!         .build();
+//!     
+//!     println!("Transaction built successfully:");
+//!     println!("  Size: {} bytes", transaction.get_size());
+//!     println!("  Hash: {}", transaction.hash());
+//!     
+//!     // Note: Signing and sending requires the account to have a private key
+//!     // and sufficient GAS for fees. This part is for illustration only.
+//!     /*
+//!     // Sign transaction (requires account with private key)
+//!     let signed_tx = transaction.sign(&client, &test_account).await?;
+//!     
+//!     // Send transaction to network
+//!     let tx_id = client.send_raw_transaction(&signed_tx).await?;
+//!     println!("Transaction sent: {}", tx_id);
+//!     */
+//!     
+//!     Ok(())
 //! }
 //! ```
 //!

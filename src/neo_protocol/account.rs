@@ -16,22 +16,59 @@
 //! ## Example
 //! 
 //! ```rust
+//! use neo_rust::prelude::*;
 //! use neo_rust::neo_protocol::{Account, AccountTrait};
+//! use neo_rust::neo_crypto::keys::{Secp256r1PrivateKey, Secp256r1PublicKey};
+//! use std::str::FromStr;
 //! 
-//! // Create a new account from WIF
-//! let wif = "KwVEKk78X65fDrJ3VgqHLcpPpbQVfJLjXrkFUCozHQBJ5nT2xwP8";
-//! let account = Account::from_wif(wif).expect("Failed to create account");
-//! 
-//! // Get the address
-//! let address = account.get_address();
-//! println!("Account address: {}", address);
-//! 
-//! // Check if this is a multi-signature account
-//! if account.is_multi_sig() {
-//!     println!("This is a multi-signature account");
-//!     let threshold = account.get_signing_threshold().unwrap();
-//!     let participants = account.get_nr_of_participants().unwrap();
-//!     println!("Required signatures: {} of {}", threshold, participants);
+//! // Create a new random account
+//! fn create_account_example() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Generate a completely new random account
+//!     let account = Account::create()?;
+//!     
+//!     // Print the new account details
+//!     println!("Address: {}", account.get_address());
+//!     println!("Script Hash: {}", account.get_script_hash());
+//!     
+//!     // Create an account from an existing WIF (Wallet Import Format)
+//!     let wif = "KwVEKk78X65fDrJ3VgqHLcpPpbQVfJLjXrkFUCozHQBJ5nT2xwP8";
+//!     let account_from_wif = Account::from_wif(wif)?;
+//!     println!("Imported account address: {}", account_from_wif.get_address());
+//!     
+//!     // Create an account from a public key (watch-only)
+//!     let public_key_hex = "02f9ec1fd0a98796cf75b586772a4ddd41a0af07a1dbdf86a7238f74fb72503575";
+//!     let public_key = Secp256r1PublicKey::from_hex(public_key_hex)?;
+//!     let watch_only_account = Account::from_public_key(&public_key)?;
+//!     println!("Watch-only account address: {}", watch_only_account.get_address());
+//!     
+//!     // Create a multi-signature account (2 of 3)
+//!     let pub_key1 = Secp256r1PublicKey::from_hex(
+//!         "02f9ec1fd0a98796cf75b586772a4ddd41a0af07a1dbdf86a7238f74fb72503575")?;
+//!     let pub_key2 = Secp256r1PublicKey::from_hex(
+//!         "03c6aa6e12638b36e88adc1ccdceac4db9929575c3e03576c617c49cce7114a050")?;
+//!     let pub_key3 = Secp256r1PublicKey::from_hex(
+//!         "03b209fd4f53a7170ea4444e0cb0a6bb6a53c2bd016926989cf85f9b0fba17a70c")?;
+//!     
+//!     let mut pub_keys = vec![pub_key1, pub_key2, pub_key3];
+//!     let multi_sig_account = Account::multi_sig_from_public_keys(&mut pub_keys, 2)?;
+//!     
+//!     if multi_sig_account.is_multi_sig() {
+//!         println!("Created multi-signature account:");
+//!         println!("  Address: {}", multi_sig_account.get_address());
+//!         println!("  Signing threshold: {}", multi_sig_account.get_signing_threshold()?);
+//!         println!("  Number of participants: {}", multi_sig_account.get_nr_of_participants()?);
+//!     }
+//!     
+//!     // Encrypt and decrypt private keys
+//!     let mut account_to_encrypt = Account::create()?;
+//!     account_to_encrypt.encrypt_private_key("my-secure-password")?;
+//!     println!("Encrypted private key: {:?}", account_to_encrypt.encrypted_private_key());
+//!     
+//!     // Decrypt the private key for signing operations
+//!     account_to_encrypt.decrypt_private_key("my-secure-password")?;
+//!     println!("Account unlocked and ready for signing");
+//!     
+//!     Ok(())
 //! }
 //! ```
 

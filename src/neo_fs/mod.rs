@@ -29,21 +29,64 @@
 //! ## Example
 //!
 //! ```no_run
-//! use neo_rust::neo_fs::{NeoFSClient, NeoFSConfig, NeoFSService};
+//! use neo_rust::prelude::*;
+//! use neo_rust::neo_fs::{NeoFSClient, NeoFSConfig};
 //! use neo_rust::neo_fs::container::{Container, ContainerId};
 //! use neo_rust::neo_fs::object::{Object, ObjectId};
+//! use neo_rust::neo_protocol::account::Account;
+//! use std::path::Path;
 //!
 //! async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//!     // Create a NeoFS client with default configuration
-//!     let client = NeoFSClient::new(NeoFSConfig::default()).await?;
+//!     // Create an account from a WIF for authentication
+//!     let account = Account::from_wif("KwVEKk78X65fDrJ3VgqHLcpPpbQVfJLjXrkFUCozHQBJ5nT2xwP8")?;
+//!     
+//!     // Configure NeoFS client
+//!     let config = NeoFSConfig {
+//!         endpoint: "grpc+tls://st01.testnet.fs.neo.org:8082".to_string(),
+//!         auth: Some(neo_rust::neo_fs::NeoFSAuth {
+//!             wallet_address: account.get_address(),
+//!             private_key: account.key_pair().as_ref().map(|kp| kp.private_key().to_string()),
+//!         }),
+//!         timeout_sec: 30,
+//!         insecure: false,
+//!     };
+//!     
+//!     // Initialize the NeoFS client
+//!     let client = NeoFSClient::new(config).await?;
 //!     
 //!     // List available containers
 //!     let containers = client.list_containers().await?;
+//!     println!("Found {} containers", containers.len());
 //!     
-//!     // Process container IDs
-//!     for container_id in containers {
-//!         println!("Found container: {}", container_id);
-//!     }
+//!     // Create a new container with basic attributes
+//!     let mut new_container = Container::new();
+//!     new_container.set_name("my-documents");
+//!     new_container.set_basic_acl(true, false); // Public read, private write
+//!     
+//!     // Create the container in NeoFS
+//!     let container_id = client.create_container(&new_container).await?;
+//!     println!("Created container with ID: {}", container_id);
+//!     
+//!     // Upload a file to the container
+//!     let file_path = Path::new("./example.txt");
+//!     let file_data = std::fs::read(file_path)?;
+//!     
+//!     let mut object = Object::new();
+//!     object.set_file_name("example.txt");
+//!     object.set_data(file_data);
+//!     
+//!     let object_id = client.put_object(&container_id, &object).await?;
+//!     println!("Uploaded object with ID: {}", object_id);
+//!     
+//!     // Download the object
+//!     let retrieved_object = client.get_object(&container_id, &object_id).await?;
+//!     println!("Downloaded object: {} ({} bytes)", 
+//!              retrieved_object.file_name(), 
+//!              retrieved_object.data().len());
+//!     
+//!     // Clean up - delete the object and container
+//!     client.delete_object(&container_id, &object_id).await?;
+//!     client.delete_container(&container_id).await?;
 //!     
 //!     Ok(())
 //! }
