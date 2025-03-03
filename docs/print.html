@@ -249,35 +249,37 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <li>See <a href="guides/../examples/README.html">Examples</a> for more code samples</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="installation-guide"><a class="header" href="#installation-guide">Installation Guide</a></h1>
-<p>This guide provides detailed instructions for installing and configuring the NeoRust SDK.</p>
-<h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
+<h2 id="prerequisites-1"><a class="header" href="#prerequisites-1">Prerequisites</a></h2>
 <ul>
-<li>Rust 1.70.0 or later</li>
-<li>Cargo package manager</li>
-<li>Optional: Intel SGX SDK (for SGX features)</li>
+<li>Rust and Cargo (stable or nightly)</li>
+<li>Optional: Ledger hardware device (for ledger features)</li>
+<li>Optional: AWS account (for AWS KMS features)</li>
 </ul>
-<h2 id="standard-installation"><a class="header" href="#standard-installation">Standard Installation</a></h2>
-<p>Add the NeoRust SDK to your Cargo.toml:</p>
+<h2 id="installation-1"><a class="header" href="#installation-1">Installation</a></h2>
+<p>Add NeoRust to your <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-neo3 = "0.1.3"
+neo3 = "0.1.7"
 </code></pre>
-<h2 id="feature-flags"><a class="header" href="#feature-flags">Feature Flags</a></h2>
-<p>NeoRust supports various feature flags to enable specific functionality:</p>
-<pre><code class="language-toml">[dependencies]
-neo3 = { version = "0.1.3", features = ["ledger", "crypto-standard"] }
-</code></pre>
-<p>Available features:</p>
+<p>Note: The crate is published as <code>neo3</code> but is imported as <code>neo</code> in code:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use neo::prelude::*;
+<span class="boring">}</span></code></pre></pre>
+<h2 id="features-1"><a class="header" href="#features-1">Features</a></h2>
+<p>NeoRust provides several features to customize functionality:</p>
 <ul>
-<li><code>std</code>: Standard library support with basic serialization (enabled by default)</li>
-<li><code>crypto-standard</code>: Cryptographic functionality including hash functions, key pair operations, and signature verification (enabled by default)</li>
-<li><code>ledger</code>: Support for Ledger hardware wallets</li>
-<li><code>nightly</code>: Support for nightly Rust features (used for documentation)</li>
-<li><code>ripemd160</code>: RIPEMD-160 hash function support</li>
-<li><code>sha2</code>: SHA-2 hash function support</li>
-<li><code>digest</code>: Cryptographic digest algorithms</li>
+<li><code>futures</code>: Enables async/futures support (recommended)</li>
+<li><code>ledger</code>: Enables hardware wallet support via Ledger devices</li>
+<li><code>aws</code>: Enables AWS KMS integration</li>
 </ul>
-<h2 id="sgx-support"><a class="header" href="#sgx-support">SGX Support</a></h2>
-<p>To use the SGX features, you need to install the Intel SGX SDK. See the <a href="guides/../tutorials/sgx.html">SGX Setup Guide</a> for detailed instructions.</p>
+<p>Example of enabling specific features:</p>
+<pre><code class="language-toml">[dependencies]
+neo3 = { version = "0.1.7", features = ["futures", "ledger"] }
+</code></pre>
+<p>You can disable default features with:</p>
+<pre><code class="language-toml">[dependencies]
+neo3 = { version = "0.1.7", default-features = false, features = ["futures"] }
+</code></pre>
 <h2 id="verifying-installation"><a class="header" href="#verifying-installation">Verifying Installation</a></h2>
 <p>To verify that the SDK is installed correctly, create a simple test program:</p>
 <pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
@@ -1852,296 +1854,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <li><strong>Error Handling</strong>: Implement proper error handling for both Neo N3 and Neo X operations.</li>
 <li><strong>Monitoring</strong>: Set up monitoring for bridge events to track the status of cross-chain transfers.</li>
 </ol>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="sgx-support-1"><a class="header" href="#sgx-support-1">SGX Support</a></h1>
-<p>This tutorial covers using the Intel SGX (Software Guard Extensions) features of the NeoRust SDK for secure blockchain operations.</p>
-<h2 id="understanding-intel-sgx"><a class="header" href="#understanding-intel-sgx">Understanding Intel SGX</a></h2>
-<p>Intel SGX is a set of security-related instruction codes built into modern Intel CPUs. It allows user-level code to allocate private regions of memory, called enclaves, which are protected from processes running at higher privilege levels. Key benefits include:</p>
-<ul>
-<li><strong>Hardware-Level Security</strong>: Protection of sensitive data and code from the operating system, hypervisor, BIOS, and other privileged software</li>
-<li><strong>Secure Computation</strong>: Ability to perform computations on sensitive data within the enclave</li>
-<li><strong>Remote Attestation</strong>: Verification that code is running in a genuine SGX enclave</li>
-<li><strong>Sealing</strong>: Secure storage of sensitive data for later use within an enclave</li>
-</ul>
-<h2 id="prerequisites-1"><a class="header" href="#prerequisites-1">Prerequisites</a></h2>
-<p>Before using the SGX features of NeoRust, you need:</p>
-<ol>
-<li>
-<p><strong>Intel SGX-compatible hardware</strong></p>
-<ul>
-<li>CPU with SGX support (check with <code>cpuid</code> or Intel's processor list)</li>
-<li>SGX enabled in BIOS/UEFI</li>
-</ul>
-</li>
-<li>
-<p><strong>Intel SGX Software Stack</strong></p>
-<ul>
-<li>Intel SGX Driver</li>
-<li>Intel SGX SDK v2.12</li>
-<li>Intel SGX PSW (Platform Software)</li>
-</ul>
-</li>
-<li>
-<p><strong>Rust Toolchain</strong></p>
-<ul>
-<li>Rust nightly-2022-10-22 (required by the Apache Teaclave SGX SDK)</li>
-<li>Install with: <code>rustup install nightly-2022-10-22</code></li>
-<li>Set as default for this project: <code>rustup override set nightly-2022-10-22</code></li>
-</ul>
-</li>
-</ol>
-<p>For detailed installation instructions, see the <a href="https://github.com/R3E-Network/NeoRust/blob/master/SGX_SETUP.md">SGX Setup Guide</a>.</p>
-<h2 id="enabling-sgx-support-in-neorust"><a class="header" href="#enabling-sgx-support-in-neorust">Enabling SGX Support in NeoRust</a></h2>
-<p>To enable SGX support in your project, add the <code>sgx</code> feature to your Cargo.toml:</p>
-<pre><code class="language-toml">[dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust", features = ["sgx"] }
-</code></pre>
-<p>You also need to uncomment the SGX dependencies in the NeoRust Cargo.toml:</p>
-<pre><code class="language-toml"># SGX dependencies
-sgx_types = { version = "=1.1.1", optional = true }
-sgx_urts = { version = "=1.1.1", optional = true }
-sgx_tstd = { version = "=1.1.1", optional = true }
-sgx_tcrypto = { version = "=1.1.1", optional = true }
-
-[features]
-sgx = ["sgx-deps"]
-sgx-deps = [
-    "sgx_types",
-    "sgx_urts",
-    "sgx_tstd",
-    "sgx_tcrypto"
-]
-</code></pre>
-<h2 id="building-the-sgx-components"><a class="header" href="#building-the-sgx-components">Building the SGX Components</a></h2>
-<p>Use the provided Makefile for SGX to build the enclave components:</p>
-<pre><code class="language-bash">make -f Makefile.sgx
-</code></pre>
-<p>This will build both the trusted enclave components and the untrusted application components.</p>
-<h2 id="creating-an-sgx-enclave-manager"><a class="header" href="#creating-an-sgx-enclave-manager">Creating an SGX Enclave Manager</a></h2>
-<p>The first step in using SGX features is to create an enclave manager:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    // Path to the enclave shared object
-    let enclave_path = "path/to/enclave.so";
-    
-    // Initialize the SGX enclave
-    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
-    println!("SGX enclave initialized successfully!");
-    
-    Ok(())
-}</code></pre></pre>
-<h2 id="secure-wallet-management-with-sgx"><a class="header" href="#secure-wallet-management-with-sgx">Secure Wallet Management with SGX</a></h2>
-<p>One of the primary use cases for SGX in blockchain applications is secure wallet management:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-use std::path::Path;
-
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    // Path to the enclave shared object
-    let enclave_path = "path/to/enclave.so";
-    
-    // Initialize the SGX enclave
-    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
-    
-    // Create a wallet with a password
-    let password = "my-secure-password";
-    let wallet = enclave_manager.create_wallet(password)?;
-    
-    // Get the wallet's public key
-    let public_key = wallet.get_public_key();
-    println!("Wallet public key: {:?}", public_key);
-    
-    // The private key never leaves the enclave
-    
-    Ok(())
-}</code></pre></pre>
-<h2 id="signing-transactions-securely"><a class="header" href="#signing-transactions-securely">Signing Transactions Securely</a></h2>
-<p>With SGX, you can sign transactions without exposing private keys:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-use std::path::Path;
-
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    // Path to the enclave shared object
-    let enclave_path = "path/to/enclave.so";
-    
-    // Initialize the SGX enclave
-    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
-    
-    // Create a wallet with a password
-    let password = "my-secure-password";
-    let wallet = enclave_manager.create_wallet(password)?;
-    
-    // Connect to a Neo N3 TestNet node
-    let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
-    
-    // Create a transaction
-    let transaction = TransactionBuilder::new()
-        .version(0)
-        .nonce(rand::random::&lt;u32&gt;())
-        .valid_until_block(provider.get_block_count().await? + 100)
-        .script(
-            ScriptBuilder::new()
-                .contract_call(
-                    "d2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?,
-                    "transfer",
-                    &amp;[
-                        ContractParameter::hash160(wallet.get_address().script_hash()),
-                        ContractParameter::hash160("NZNos2WqTbu5oCgyfss9kUJgBXJqhuYAaj".parse::&lt;Address&gt;()?),
-                        ContractParameter::integer(1_00000000), // 1 GAS
-                        ContractParameter::any(None),
-                    ],
-                )
-                .to_array()
-        )
-        .build();
-    
-    // Sign the transaction securely within the enclave
-    let signed_tx = wallet.sign_transaction(&amp;transaction)?;
-    
-    // Send the transaction
-    let txid = provider.send_raw_transaction(&amp;signed_tx).await?;
-    println!("Transaction sent with ID: {}", txid);
-    
-    Ok(())
-}</code></pre></pre>
-<h2 id="secure-rpc-client"><a class="header" href="#secure-rpc-client">Secure RPC Client</a></h2>
-<p>The SGX module also provides a secure RPC client for blockchain interactions:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    // Path to the enclave shared object
-    let enclave_path = "path/to/enclave.so";
-    
-    // Initialize the SGX enclave
-    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
-    
-    // Create a secure RPC client
-    let rpc_url = "https://testnet1.neo.coz.io:443";
-    let rpc_client = enclave_manager.create_rpc_client(rpc_url)?;
-    
-    // Use the secure RPC client
-    let block_count = rpc_client.get_block_count().await?;
-    println!("Current block height: {}", block_count);
-    
-    // The RPC client encrypts sensitive data and performs secure validation
-    // of responses within the enclave
-    
-    Ok(())
-}</code></pre></pre>
-<h2 id="secure-storage"><a class="header" href="#secure-storage">Secure Storage</a></h2>
-<p>The SGX module provides secure storage for sensitive data:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    // Path to the enclave shared object
-    let enclave_path = "path/to/enclave.so";
-    
-    // Initialize the SGX enclave
-    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
-    
-    // Create a secure storage instance
-    let storage = enclave_manager.create_storage()?;
-    
-    // Store sensitive data
-    let key = "api_key";
-    let value = "my-secret-api-key";
-    storage.set(key, value)?;
-    
-    // Retrieve sensitive data
-    let retrieved_value = storage.get(key)?;
-    println!("Retrieved value: {}", retrieved_value);
-    
-    // The data is encrypted and stored securely
-    
-    Ok(())
-}</code></pre></pre>
-<h2 id="remote-attestation"><a class="header" href="#remote-attestation">Remote Attestation</a></h2>
-<p>Remote attestation allows you to verify that your code is running in a genuine SGX enclave:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    // Path to the enclave shared object
-    let enclave_path = "path/to/enclave.so";
-    
-    // Initialize the SGX enclave
-    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
-    
-    // Generate a remote attestation quote
-    let quote = enclave_manager.generate_attestation_quote()?;
-    
-    // Send the quote to a remote verifier
-    // (implementation depends on your attestation service)
-    let attestation_service_url = "https://attestation.example.com";
-    let verification_result = verify_quote_with_service(attestation_service_url, &amp;quote).await?;
-    
-    if verification_result.is_valid {
-        println!("Remote attestation successful!");
-        // Proceed with secure operations
-    } else {
-        println!("Remote attestation failed!");
-        // Handle the failure
-    }
-    
-    Ok(())
-}
-
-async fn verify_quote_with_service(url: &amp;str, quote: &amp;[u8]) -&gt; Result&lt;VerificationResult, Box&lt;dyn std::error::Error&gt;&gt; {
-    // Implementation of quote verification with a remote attestation service
-    // This is just a placeholder
-    Ok(VerificationResult { is_valid: true })
-}
-
-struct VerificationResult {
-    is_valid: bool,
-}</code></pre></pre>
-<h2 id="simulation-mode"><a class="header" href="#simulation-mode">Simulation Mode</a></h2>
-<p>If you don't have SGX hardware, you can still develop and test using simulation mode:</p>
-<pre><code class="language-bash">export SGX_MODE=SIM
-make -f Makefile.sgx
-</code></pre>
-<p>In your code, you can check if you're running in simulation mode:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    // Path to the enclave shared object
-    let enclave_path = "path/to/enclave.so";
-    
-    // Initialize the SGX enclave
-    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
-    
-    if enclave_manager.is_simulation_mode() {
-        println!("Running in simulation mode. Security guarantees are not provided.");
-    } else {
-        println!("Running in hardware mode with full SGX protection.");
-    }
-    
-    Ok(())
-}</code></pre></pre>
-<h2 id="best-practices-6"><a class="header" href="#best-practices-6">Best Practices</a></h2>
-<ol>
-<li><strong>Minimize Enclave Code</strong>: Keep the enclave code small to reduce the attack surface.</li>
-<li><strong>Validate Inputs</strong>: Always validate inputs before passing them to the enclave.</li>
-<li><strong>Secure Key Management</strong>: Never extract private keys from the enclave.</li>
-<li><strong>Use Remote Attestation</strong>: Verify the integrity of the enclave in production environments.</li>
-<li><strong>Regular Updates</strong>: Keep the SGX SDK and drivers updated to address security vulnerabilities.</li>
-<li><strong>Error Handling</strong>: Implement proper error handling for enclave operations.</li>
-<li><strong>Testing</strong>: Test your SGX code in both simulation and hardware modes.</li>
-</ol>
-<h2 id="security-considerations"><a class="header" href="#security-considerations">Security Considerations</a></h2>
-<p>When using SGX for blockchain applications:</p>
-<ol>
-<li><strong>Side-Channel Attacks</strong>: Be aware that SGX is not immune to all side-channel attacks.</li>
-<li><strong>Enclave Interface</strong>: The interface between the untrusted application and the enclave is a potential attack vector.</li>
-<li><strong>Data Sealing</strong>: Use data sealing to protect sensitive data at rest.</li>
-<li><strong>Memory Limitations</strong>: SGX enclaves have memory limitations; design your application accordingly.</li>
-<li><strong>Attestation</strong>: Use remote attestation in production to verify enclave integrity.</li>
-</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="sgx-support"><a class="header" href="#sgx-support">SGX Support</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="api-overview"><a class="header" href="#api-overview">API Overview</a></h1>
 <p>This reference provides an overview of the NeoRust SDK API, including the main modules and their functionality.</p>
 <h2 id="core-modules"><a class="header" href="#core-modules">Core Modules</a></h2>
@@ -2340,7 +2053,7 @@ let signed_tx = wallet.sign_transaction(&amp;transaction)?;
 </span>use neo::prelude::*;
 <span class="boring">}</span></code></pre></pre>
 <p>This imports all the essential types and functions you need for most operations with the NeoRust SDK.</p>
-<h2 id="feature-flags-1"><a class="header" href="#feature-flags-1">Feature Flags</a></h2>
+<h2 id="feature-flags"><a class="header" href="#feature-flags">Feature Flags</a></h2>
 <p>The NeoRust SDK supports various feature flags to enable specific functionality:</p>
 <ul>
 <li><code>ledger</code>: Support for Ledger hardware wallets</li>
@@ -2567,7 +2280,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <tr><td><code>SGX_AESM_ADDR</code></td><td>Address of the AESM service</td><td><code>127.0.0.1:2222</code></td></tr>
 </tbody></table>
 </div>
-<h2 id="best-practices-7"><a class="header" href="#best-practices-7">Best Practices</a></h2>
+<h2 id="best-practices-6"><a class="header" href="#best-practices-6">Best Practices</a></h2>
 <ol>
 <li><strong>Environment-Specific Configuration</strong>: Use different configurations for development, testing, and production environments.</li>
 <li><strong>Secure Credential Management</strong>: Never hardcode private keys or passwords in your code.</li>
@@ -3006,50 +2719,6 @@ fn main() {
     
     // Now errors will be logged with more detail
 }</code></pre></pre>
-<h2 id="sgx-error-handling"><a class="header" href="#sgx-error-handling">SGX Error Handling</a></h2>
-<p>If you're using the SGX features, there are additional error types for SGX-specific operations:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub enum SgxError {
-    // Enclave errors
-    EnclaveError(sgx_types::sgx_status_t),
-    
-    // Attestation errors
-    AttestationError,
-    
-    // Sealing errors
-    SealingError,
-    
-    // Other errors
-    Other(String),
-}
-<span class="boring">}</span></code></pre></pre>
-<p>Handling SGX errors:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    // Path to the enclave shared object
-    let enclave_path = "path/to/enclave.so";
-    
-    // Initialize the SGX enclave
-    match SgxEnclaveManager::new(enclave_path) {
-        Ok(enclave_manager) =&gt; {
-            println!("SGX enclave initialized successfully!");
-            
-            // Use the enclave manager
-        },
-        Err(NeoError::SgxError(SgxError::EnclaveError(status))) =&gt; {
-            println!("SGX enclave initialization failed with status: {:?}", status);
-        },
-        Err(e) =&gt; {
-            println!("Error: {}", e);
-            return Err(e.into());
-        }
-    }
-    
-    Ok(())
-}</code></pre></pre>
 <h2 id="neo-x-error-handling"><a class="header" href="#neo-x-error-handling">Neo X Error Handling</a></h2>
 <p>If you're using the Neo X features, there are additional error types for Neo X-specific operations:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -3098,7 +2767,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     
     Ok(())
 }</code></pre></pre>
-<h2 id="best-practices-8"><a class="header" href="#best-practices-8">Best Practices</a></h2>
+<h2 id="best-practices-7"><a class="header" href="#best-practices-7">Best Practices</a></h2>
 <ol>
 <li><strong>Use the <code>?</code> Operator</strong>: Use the <code>?</code> operator for concise error propagation.</li>
 <li><strong>Match on Specific Errors</strong>: Match on specific error types when you need to handle them differently.</li>

@@ -592,50 +592,6 @@ fn main() {
     
     // Now errors will be logged with more detail
 }</code></pre></pre>
-<h2 id="sgx-error-handling"><a class="header" href="#sgx-error-handling">SGX Error Handling</a></h2>
-<p>If you're using the SGX features, there are additional error types for SGX-specific operations:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub enum SgxError {
-    // Enclave errors
-    EnclaveError(sgx_types::sgx_status_t),
-    
-    // Attestation errors
-    AttestationError,
-    
-    // Sealing errors
-    SealingError,
-    
-    // Other errors
-    Other(String),
-}
-<span class="boring">}</span></code></pre></pre>
-<p>Handling SGX errors:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    // Path to the enclave shared object
-    let enclave_path = "path/to/enclave.so";
-    
-    // Initialize the SGX enclave
-    match SgxEnclaveManager::new(enclave_path) {
-        Ok(enclave_manager) =&gt; {
-            println!("SGX enclave initialized successfully!");
-            
-            // Use the enclave manager
-        },
-        Err(NeoError::SgxError(SgxError::EnclaveError(status))) =&gt; {
-            println!("SGX enclave initialization failed with status: {:?}", status);
-        },
-        Err(e) =&gt; {
-            println!("Error: {}", e);
-            return Err(e.into());
-        }
-    }
-    
-    Ok(())
-}</code></pre></pre>
 <h2 id="neo-x-error-handling"><a class="header" href="#neo-x-error-handling">Neo X Error Handling</a></h2>
 <p>If you're using the Neo X features, there are additional error types for Neo X-specific operations:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
