@@ -258,7 +258,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <h2 id="installation-1"><a class="header" href="#installation-1">Installation</a></h2>
 <p>Add NeoRust to your <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-neo3 = "0.1.7"
+neo3 = "0.1.8"
 </code></pre>
 <p>Note: The crate is published as <code>neo3</code> but is imported as <code>neo</code> in code:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -274,11 +274,11 @@ neo3 = "0.1.7"
 </ul>
 <p>Example of enabling specific features:</p>
 <pre><code class="language-toml">[dependencies]
-neo3 = { version = "0.1.7", features = ["futures", "ledger"] }
+neo3 = { version = "0.1.8", features = ["futures", "ledger"] }
 </code></pre>
 <p>You can disable default features with:</p>
 <pre><code class="language-toml">[dependencies]
-neo3 = { version = "0.1.7", default-features = false, features = ["futures"] }
+neo3 = { version = "0.1.8", default-features = false, features = ["futures"] }
 </code></pre>
 <h2 id="verifying-installation"><a class="header" href="#verifying-installation">Verifying Installation</a></h2>
 <p>To verify that the SDK is installed correctly, create a simple test program:</p>
