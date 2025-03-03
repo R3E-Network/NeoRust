@@ -417,6 +417,7 @@ pub mod neo_contract;
 pub mod neo_protocol;
 pub mod neo_wallets;
 pub mod neo_x;
+#[cfg(feature = "sgx")]
 pub mod neo_sgx;
 pub mod neo_fs;
 

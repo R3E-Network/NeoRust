@@ -3,6 +3,7 @@ use sgx_types::*;
 #[cfg(feature = "sgx_deps")]
 use sgx_tstd::*;
 
+#[cfg(feature = "sgx_deps")]
 extern "C" {
 	fn ocall_send_request(
 		ret_val: *mut sgx_status_t,
