@@ -1,17 +1,36 @@
-//! # Neo Builder
+//! # Neo Builder Module (v0.1.4)
 //!
-//! Tools for building Neo N3 transactions and scripts.
+//! Advanced tooling for constructing Neo N3 transactions and smart contract scripts.
 //!
 //! ## Overview
 //!
-//! The neo_builder module provides utilities for:
+//! The neo_builder module provides a comprehensive set of utilities for constructing
+//! and manipulating Neo N3 transactions and scripts. It offers a flexible API for
+//! building various types of transactions, from simple transfers to complex
+//! multi-signature contract invocations.
 //!
-//! - Creating and building transactions
-//! - Constructing scripts for smart contract invocation
-//! - Managing transaction signers and witnesses
-//! - Calculating network fees
-//! - Handling transaction attributes
-//! - Building verification scripts
+//! ## Key Components
+//!
+//! ### Transaction Building
+//!
+//! - **Transaction Builder**: Fluent API for creating and configuring transactions
+//! - **Fee Calculation**: Automatic network and system fee calculation
+//! - **Signer Management**: Support for multiple transaction signers with different scopes
+//! - **Witness Configuration**: Tools for creating and managing transaction witnesses
+//! - **Attribute Handling**: Support for transaction attributes
+//!
+//! ### Script Construction
+//!
+//! - **Script Builder**: Create VM scripts for contract invocation
+//! - **Opcode Support**: Full support for Neo VM opcodes
+//! - **Parameter Handling**: Type-safe handling of contract parameters
+//! - **Verification Scripts**: Utilities for building signature verification scripts
+//!
+//! ### Advanced Features
+//!
+//! - **Multi-signature Support**: Create and work with multi-signature accounts
+//! - **Helper Methods**: Convenience methods for common operations
+//! - **Serialization**: Serialization utilities for network transmission
 //!
 //! ## Examples
 //!

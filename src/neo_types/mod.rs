@@ -1,4 +1,4 @@
-//! # Neo Types
+//! # Neo Types (v0.1.4)
 //!
 //! Core data types for the Neo N3 blockchain.
 //!
@@ -48,17 +48,25 @@
 //! let string_param = ContractParameter::string("Hello, Neo!");
 //! let integer_param = ContractParameter::integer(42);
 //! let bool_param = ContractParameter::bool(true);
+//! 
+//! // Create a parameter array for a contract invocation
+//! let params = vec![string_param, integer_param, bool_param];
+//! ```
 //!
-//! // Create a hash160 parameter from a script hash
-//! let script_hash = ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap();
-//! let hash_param = ContractParameter::hash160(&script_hash);
+//! ### Working with stack items
 //!
-//! // Create an array parameter
-//! let array_param = ContractParameter::array(vec![
-//!     ContractParameter::integer(1),
-//!     ContractParameter::integer(2),
-//!     ContractParameter::integer(3),
-//! ]);
+//! ```rust
+//! use neo::prelude::*;
+//! use serde_json::json;
+//!
+//! // Create stack items of various types
+//! let int_item = StackItem::integer(123);
+//! let bool_item = StackItem::bool(true);
+//! let bytes_item = StackItem::byte_string(b"Neo");
+//! 
+//! // Convert between stack items and JSON values
+//! let json_value = int_item.to_json_value();
+//! assert_eq!(json_value, json!(123));
 //! ```
 
 use base64::{engine::general_purpose, Engine};

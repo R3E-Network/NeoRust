@@ -11,13 +11,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # NeoFS Module
+//! # Neo File Storage (NeoFS) Module (v0.1.4)
 //!
 //! NeoFS is a decentralized distributed object storage network integrated with
-//! the Neo Blockchain.
+//! the Neo Blockchain. It provides a robust platform for storing, retrieving,
+//! and managing digital assets with blockchain-level security.
 //!
-//! This module provides Rust bindings to interact with NeoFS services, including
-//! container management, object operations, and access control.
+//! ## Overview
+//!
+//! This module provides Rust bindings to interact with NeoFS services, including:
+//!
+//! - **Container Management**: Create, retrieve, list, and delete NeoFS containers
+//! - **Object Operations**: Upload, download, and manage objects in containers
+//! - **Access Control**: Manage permissions and generate access tokens
+//! - **Extended Features**: Support for multipart uploads and specialized storage operations
+//!
+//! ## Example
+//!
+//! ```no_run
+//! use neo_rust::neo_fs::{NeoFSClient, NeoFSConfig, NeoFSService};
+//! use neo_rust::neo_fs::container::{Container, ContainerId};
+//! use neo_rust::neo_fs::object::{Object, ObjectId};
+//!
+//! async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Create a NeoFS client with default configuration
+//!     let client = NeoFSClient::new(NeoFSConfig::default()).await?;
+//!     
+//!     // List available containers
+//!     let containers = client.list_containers().await?;
+//!     
+//!     // Process container IDs
+//!     for container_id in containers {
+//!         println!("Found container: {}", container_id);
+//!     }
+//!     
+//!     Ok(())
+//! }
+//! ```
 
 pub mod acl;
 pub mod client;

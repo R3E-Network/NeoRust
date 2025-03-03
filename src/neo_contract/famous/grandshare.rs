@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use neo::prelude::*;
 use crate::builder::{AccountSigner, TransactionBuilder};
-use crate::contract::{ContractError, SmartContractTrait};
+use crate::neo_contract::{ContractError, SmartContractTrait};
 use crate::neo_clients::{APITrait, JsonRpcProvider, RpcClient};
 use crate::neo_protocol::Account;
 

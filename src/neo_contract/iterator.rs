@@ -1,7 +1,7 @@
 use std::{fmt, sync::Arc};
 
 use neo::prelude::*;
-use crate::contract::ContractError;
+use crate::neo_contract::ContractError;
 use crate::neo_clients::{APITrait, JsonRpcProvider, RpcClient};
 
 pub struct NeoIterator<'a, T, P: JsonRpcProvider> {

@@ -4,7 +4,7 @@ use getset::{Getters, Setters};
 use primitive_types::H160;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use crate::contract::{SmartContractTrait, TokenTrait};
+use crate::neo_contract::{SmartContractTrait, TokenTrait};
 use crate::neo_clients::{JsonRpcProvider, RpcClient};
 use crate::neo_contract::{
 	ContractError, FungibleTokenContract, GasToken, NeoToken

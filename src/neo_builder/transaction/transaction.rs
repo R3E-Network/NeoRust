@@ -9,9 +9,6 @@ use serde_with::__private__::DeError;
 use tracing::info;
 
 use crate::{neo_clients::JsonRpcProvider, Bytes};
-use neo::{
-	types::ContractParameterType::H256,
-};
 use crate::builder::{init_logger, Signer, TransactionAttribute, TransactionError, Witness};
 use crate::codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
 use crate::config::NeoConstants;

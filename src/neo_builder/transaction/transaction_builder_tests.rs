@@ -1,12 +1,11 @@
 #[cfg(test)]
 mod tests {
-	use crate::{neo_builder::GAS_TOKEN_HASH, neo_clients::MockClient, neo_protocol::{NeoProtocol, NeoVersion}, neo_types::ScriptHashExtension, types::NeoVMStateType, ContractParameter, InvocationResult};
+	use crate::{neo_builder::GAS_TOKEN_HASH, neo_clients::MockClient, neo_protocol::{NeoProtocol, NeoVersion}, neo_types::ScriptHashExtension, ContractParameter, InvocationResult};
 	use lazy_static::lazy_static;
 	use log::info;
 	use neo::{
 		builder::VerificationScript,
 		config::{NeoConfig, NEOCONFIG},
-		types::VMState,
 	};
 	use num_bigint::BigInt;
 	use primitive_types::{H160, H256};

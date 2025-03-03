@@ -1,24 +1,43 @@
 #![allow(warnings)]
 
-//! # NeoRust
+//! # NeoRust SDK v0.1.4
 //!
-//! A comprehensive Rust library for interacting with the Neo N3 blockchain.
+//! A comprehensive Rust library for building applications on the Neo N3 blockchain ecosystem.
 //!
 //! ## Overview
 //!
-//! NeoRust is a complete SDK for building applications on the Neo N3 blockchain. It provides
-//! a type-safe, intuitive interface for all Neo N3 features, including:
+//! NeoRust is a complete SDK designed to make Neo N3 blockchain development in Rust
+//! intuitive, type-safe, and productive. The library provides full support for all
+//! Neo N3 features and follows Rust best practices for reliability and performance.
 //!
-//! - RPC client for interacting with Neo nodes
-//! - Transaction construction and signing
-//! - Smart contract interaction (invocation and deployment)
-//! - Wallet management (creation, import, export)
-//! - Asset management (NEP-17 tokens)
-//! - Cryptographic operations (keys, signatures)
-//! - Script building for contract calls
-//! - Event monitoring and notifications
-//! - Network fee calculation
-//! - Neo Name Service (NNS) support
+//! ## Key Features
+//!
+//! - **Complete Blockchain Coverage**: Full support for all Neo N3 features
+//! - **Developer Experience**: Intuitive, type-safe APIs with comprehensive documentation
+//! - **Modular Architecture**: Well-organized components with clear separation of concerns
+//! - **Performance-Optimized**: Efficient implementations with minimal dependencies
+//! - **Security-Focused**: Secure by default with audited cryptographic operations
+//! - **Cross-Platform**: Works on desktop, server, and WebAssembly environments
+//! - **Async-First**: Built for the asynchronous Rust ecosystem
+//!
+//! ## Core Modules
+//!
+//! NeoRust is organized into specialized modules, each handling specific aspects of Neo N3:
+//!
+//! - [**neo_builder**](neo_builder): Transaction construction and script building
+//! - [**neo_clients**](neo_clients): Neo node interaction and RPC client implementations
+//! - [**neo_codec**](neo_codec): Serialization and deserialization of Neo data structures
+//! - [**neo_config**](neo_config): Configuration for networks and client settings
+//! - [**neo_contract**](neo_contract): Smart contract interaction and token standards
+//! - [**neo_crypto**](neo_crypto): Cryptographic primitives and operations
+//! - [**neo_error**](neo_error): Unified error handling
+//! - [**neo_fs**](neo_fs): NeoFS distributed storage system integration
+//! - [**neo_protocol**](neo_protocol): Core blockchain protocol implementations
+//! - [**neo_sgx**](neo_sgx): Intel SGX secure enclave integration
+//! - [**neo_types**](neo_types): Fundamental blockchain data types
+//! - [**neo_utils**](neo_utils): Utility functions and helpers
+//! - [**neo_wallets**](neo_wallets): Wallet management and key security
+//! - [**neo_x**](neo_x): Neo X EVM-compatible chain support
 //!
 //! ## Quick Start
 //!
@@ -26,6 +45,29 @@
 //!
 //! ```rust
 //! use neo::prelude::*;
+//! ```
+//!
+//! ## Getting Started with NeoRust
+//!
+//! ### Connect to a Neo N3 Node
+//!
+//! ```rust
+//! use neo::prelude::*;
+//!
+//! async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//!    // Connect to a Neo N3 TestNet node
+//!    let provider = neo_providers::JsonRpcClient::new("https://testnet1.neo.coz.io:443");
+//!    
+//!    // Get basic blockchain information
+//!    let block_count = provider.get_block_count().await?;
+//!    println!("Current block height: {}", block_count);
+//!    
+//!    // Get the latest block
+//!    let latest_block = provider.get_block_by_index(block_count - 1, 1).await?;
+//!    println!("Latest block hash: {}", latest_block.hash);
+//!    
+//!    Ok(())
+//! }
 //! ```
 //!
 //! ## Feature Flags
@@ -58,6 +100,8 @@
 //! 
 //! * `ethereum-compat` - Ethereum compatibility layer
 //! * `ledger` - Ledger hardware wallet support
+//! * `neofs` - NeoFS distributed storage support
+//! * `sgx` - Secure enclave integration
 //! 
 //! ### Hash Features
 //! 
@@ -393,17 +437,14 @@ pub use neo_codec as codec;
 #[doc(inline)]
 pub use neo_config as config;
 #[doc(inline)]
-pub use neo_contract as contract;
-#[doc(inline)]
 pub use neo_crypto as crypto;
 #[doc(inline)]
 pub use neo_protocol as protocol;
 #[doc(inline)]
-pub use neo_types as types;
-#[doc(inline)]
 pub use neo_wallets as wallets;
 #[doc(inline)]
 pub use neo_x as x;
+// No need to re-export specialized modules as they're already public with their full names
 
 // Re-export common types directly in lib.rs for easy access
 pub use crate::neo_types::{
@@ -461,41 +502,14 @@ pub use crate::neo_types::contract::{
 pub use crate::neo_types::serde_value::ValueExtension;
 
 /// Convenient imports for commonly used types and traits.
-pub mod prelude {
-	pub use crate::neo_error::NeoError;
-	
-	// Core types
-	pub use crate::neo_types::{
-		Address, AddressOrScriptHash, Bytes, ContractParameter, ContractParameterType, ScriptHash, 
-		ScriptHashExtension, Base64Encode, StringExt, VMState, OpCode, StackItem, 
-		InvocationResult, NefFile, ContractManifest, ContractState, NNSName,
-		NameOrAddress, ToBase58, 
-		ValueExtension,
-	};
-	
-	// Additional core types that will always be available
-	pub use serde_json::Value as ParameterValue;
-	pub use primitive_types::{H160, H256, U256};
-	pub use url::Url;
-	
-	// Serialization helpers
-	pub use crate::neo_types::{
-		deserialize_h160, serialize_h160, 
-		deserialize_h256, serialize_h256,
-		deserialize_vec_h256, serialize_vec_h256,
-		deserialize_vec_u256, serialize_vec_u256,
-		deserialize_script_hash, serialize_script_hash,
-		deserialize_wildcard, serialize_wildcard,
-		deserialize_u256, serialize_u256,
-		deserialize_u64, serialize_u64,
-	};
-	
-	// Additional modules
-	pub use crate::{
-		builder, codec, config, crypto, protocol, providers, wallets, 
-		x, neo_sgx, neo_fs,
-	};
-}
+/// 
+/// This prelude module provides a single import to access the most commonly used 
+/// components of the NeoRust SDK. Import it with:
+/// 
+/// ```rust
+/// use neo::prelude::*;
+/// ```
+pub mod prelude;
 
 #[cfg(all(test))]
 mod tests {

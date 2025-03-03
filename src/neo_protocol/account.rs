@@ -1,3 +1,40 @@
+//! # Neo Account Module (v0.1.4)
+//! 
+//! The Account module provides functionality for managing Neo accounts, including
+//! key management, signature operations, and interaction with the Neo blockchain.
+//! 
+//! ## Overview
+//! 
+//! This module implements account-related operations for the Neo blockchain, including:
+//! 
+//! - **Account Creation**: Generate accounts from private keys, WIFs, or public keys
+//! - **Key Management**: Encrypt/decrypt private keys, manage key pairs
+//! - **Multi-signature Support**: Create and manage multi-signature accounts
+//! - **Blockchain Integration**: Query balances and account state
+//! - **Wallet Integration**: Connect accounts to wallet infrastructure
+//! 
+//! ## Example
+//! 
+//! ```rust
+//! use neo_rust::neo_protocol::{Account, AccountTrait};
+//! 
+//! // Create a new account from WIF
+//! let wif = "KwVEKk78X65fDrJ3VgqHLcpPpbQVfJLjXrkFUCozHQBJ5nT2xwP8";
+//! let account = Account::from_wif(wif).expect("Failed to create account");
+//! 
+//! // Get the address
+//! let address = account.get_address();
+//! println!("Account address: {}", address);
+//! 
+//! // Check if this is a multi-signature account
+//! if account.is_multi_sig() {
+//!     println!("This is a multi-signature account");
+//!     let threshold = account.get_signing_threshold().unwrap();
+//!     let participants = account.get_nr_of_participants().unwrap();
+//!     println!("Required signatures: {} of {}", threshold, participants);
+//! }
+//! ```
+
 use std::{
 	collections::HashMap,
 	fmt::Debug,

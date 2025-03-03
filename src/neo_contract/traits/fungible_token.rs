@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use primitive_types::H160;
-use crate::contract::{ContractError, FungibleTokenContract, TokenTrait};
+use crate::neo_contract::{ContractError, FungibleTokenContract, TokenTrait};
 use crate::neo_clients::JsonRpcProvider;
 use crate::neo_protocol::{Account, AccountTrait};
 use crate::neo_wallets::Wallet;

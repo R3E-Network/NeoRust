@@ -1,24 +1,44 @@
 #![feature(const_trait_impl)]
 
-//! # Neo Contract
+//! # Neo Contract Module (v0.1.4)
 //!
-//! Interfaces for interacting with Neo N3 smart contracts.
+//! Comprehensive interfaces for interacting with Neo N3 smart contracts and tokens.
 //!
 //! ## Overview
 //!
-//! The neo_contract module provides a comprehensive set of interfaces for interacting with
-//! various types of smart contracts on the Neo N3 blockchain. It includes:
+//! The neo_contract module provides a robust set of interfaces for interacting with
+//! various types of smart contracts on the Neo N3 blockchain. This module abstracts
+//! away the complexity of contract calls and state management, providing easy-to-use
+//! APIs for developers.
 //!
-//! - Standard Neo N3 contracts (NEO, GAS, Policy, RoleManagement)
-//! - NEP-17 fungible token contracts
-//! - NEP-11 non-fungible token (NFT) contracts
-//! - Neo Name Service (NNS) contracts
-//! - Famous Neo N3 contracts (Flamingo, NeoburgerNeo, GrandShare, NeoCompound)
-//! - Contract management utilities
-//! - Smart contract traits and interfaces
+//! ## Key Features
 //!
-//! This module makes it easy to interact with both system contracts and custom contracts
-//! on the Neo N3 blockchain.
+//! - **System Contracts**: Built-in interfaces for Neo N3 system contracts:
+//!   - NEO Token contract
+//!   - GAS Token contract
+//!   - Policy contract
+//!   - RoleManagement contract
+//!   - ContractManagement contract
+//!
+//! - **Token Standards**:
+//!   - NEP-17 fungible token standard (similar to Ethereum's ERC-20)
+//!   - NEP-11 non-fungible token standard (similar to Ethereum's ERC-721)
+//!
+//! - **Advanced Contract Interactions**:
+//!   - Neo Name Service (NNS) domain resolution
+//!   - Neo URI parsing and validation
+//!   - Contract iterator support for handling large result sets
+//!
+//! - **Famous Contract Integrations**:
+//!   - Flamingo Finance DeFi ecosystem
+//!   - NeoburgerNeo (bNEO) staking contract
+//!   - GrandShare voting and proposals
+//!   - NeoCompound yield aggregator
+//!
+//! - **Developer Tools**:
+//!   - Contract deployment helpers
+//!   - ABI and manifest handling utilities
+//!   - Contract invocation result parsing
 //!
 //! ## Examples
 //!

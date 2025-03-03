@@ -1,4 +1,4 @@
-# NeoRust
+# NeoRust v0.1.4
 
 <div align="center">
   <p>
@@ -26,9 +26,40 @@ NeoRust is a comprehensive Rust SDK for interacting with the Neo N3 blockchain. 
 - **NEP-17 Token Support**: Interact with NEP-17 compatible tokens
 - **Neo Name Service (NNS)**: Resolve and manage domain names on the Neo blockchain
 - **Cryptographic Operations**: Secure key management and cryptographic functions
+- **NeoFS Support**: Interact with the NeoFS distributed storage system
+- **SGX Integration**: Support for Intel SGX secure enclaves
 - **Modular Architecture**: Well-organized codebase with clear separation of concerns
 - **Famous Neo N3 Contracts**: Direct support for popular Neo N3 contracts like Flamingo Finance, NeoburgerNeo, GrandShare, and NeoCompound
 - **Neo X Support**: EVM compatibility layer and bridge functionality for Neo X, an EVM-compatible chain maintained by Neo
+
+## Quick Start
+
+Import all essential types and traits using the `prelude`:
+
+```rust
+use neo::prelude::*;
+```
+
+### Connect to a Neo N3 Node
+
+```rust
+use neo::prelude::*;
+
+async fn example() -> Result<(), Box<dyn std::error::Error>> {
+   // Connect to a Neo N3 TestNet node
+   let provider = neo_providers::JsonRpcClient::new("https://testnet1.neo.coz.io:443");
+   
+   // Get basic blockchain information
+   let block_count = provider.get_block_count().await?;
+   println!("Current block height: {}", block_count);
+   
+   // Get the latest block
+   let latest_block = provider.get_block_by_index(block_count - 1, 1).await?;
+   println!("Latest block hash: {}", latest_block.hash);
+   
+   Ok(())
+}
+```
 
 ## Installation
 
@@ -61,30 +92,6 @@ Comprehensive documentation is available at:
 - **Online Documentation**: [https://r3e-network.github.io/NeoRust/](https://r3e-network.github.io/NeoRust/)
 - **PDF Documentation**: [https://r3e-network.github.io/NeoRust/pdf/neorust-sdk-documentation.pdf](https://r3e-network.github.io/NeoRust/pdf/neorust-sdk-documentation.pdf)
 - **Crate Page**: [https://crates.io/crates/neo3](https://crates.io/crates/neo3)
-
-## Quick Start
-
-```rust
-use neo::prelude::*;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Connect to Neo N3 TestNet
-    let provider = HttpProvider::new("https://testnet1.neo.org:443")?;
-    let client = RpcClient::new(provider);
-    
-    // Get blockchain information
-    let block_count = client.get_block_count().await?;
-    println!("Current block height: {}", block_count);
-    
-    // Create a new wallet
-    let wallet = Wallet::new();
-    println!("New wallet created with address: {}", 
-             wallet.default_account().address_or_scripthash().address());
-    
-    Ok(())
-}
-```
 
 ## Usage Examples
 

@@ -6,7 +6,7 @@ use futures::FutureExt;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use crate::builder::TransactionBuilder;
-use crate::contract::{ContractError, NeoIterator, NonFungibleTokenTrait, SmartContractTrait, TokenTrait};
+use crate::neo_contract::{ContractError, NeoIterator, NonFungibleTokenTrait, SmartContractTrait, TokenTrait};
 use crate::neo_clients::{APITrait, JsonRpcProvider, RpcClient};
 use crate::{AddressOrScriptHash, ContractParameter, NNSName, ScriptHash, StackItem};
 use crate::serialize_script_hash_option;

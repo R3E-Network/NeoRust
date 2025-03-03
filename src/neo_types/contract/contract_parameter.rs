@@ -21,10 +21,10 @@ use serde::{
 use serde_json::Value;
 use sha3::Digest;
 use strum_macros::{Display, EnumString};
-use crate::contract::Role;
 use crate::{Base64Encode, ContractParameterType, NNSName, NefFile, ValueExtension};
 use crate::codec::NeoSerializable;
 use crate::crypto::Secp256r1PublicKey;
+use crate::neo_contract::Role;
 
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Clone)]
 pub struct ContractParameter2 {

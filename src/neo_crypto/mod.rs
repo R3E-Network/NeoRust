@@ -1,4 +1,4 @@
-//! # Neo Crypto
+//! # Neo Crypto (v0.1.4)
 //!
 //! Cryptographic utilities for the Neo N3 blockchain.
 //!
@@ -13,6 +13,7 @@
 //! - Base58 encoding and decoding
 //! - WIF (Wallet Import Format) utilities
 //! - Secure random number generation
+//! - Encryption and decryption utilities
 //!
 //! This module forms the cryptographic foundation for wallet management, transaction signing,
 //! and secure communication within the Neo N3 ecosystem.
@@ -34,7 +35,7 @@
 //! let key_pair = KeyPair::from_private_key(&private_key).unwrap();
 //! ```
 //!
-//! ### Signing and verifying messages
+//! ### Signing and verifying data
 //!
 //! ```rust
 //! use neo::prelude::*;
@@ -42,12 +43,14 @@
 //! // Generate a key pair
 //! let key_pair = KeyPair::new_random().unwrap();
 //!
-//! // Sign a message
-//! let message = b"Hello, Neo!";
-//! let signature = key_pair.sign(message).unwrap();
+//! // Data to sign
+//! let data = b"Hello, Neo!";
+//!
+//! // Sign the data
+//! let signature = key_pair.sign(data).unwrap();
 //!
 //! // Verify the signature
-//! let is_valid = key_pair.verify(message, &signature).unwrap();
+//! let is_valid = key_pair.verify_signature(data, &signature).unwrap();
 //! assert!(is_valid);
 //! ```
 //!
@@ -55,14 +58,15 @@
 //!
 //! ```rust
 //! use neo::prelude::*;
+//! use std::str::FromStr;
 //!
-//! // Convert a private key to WIF format
-//! let private_key = PrivateKey::from_slice(&[/* 32 bytes */]).unwrap();
-//! let wif = private_key_to_wif(&private_key).unwrap();
+//! // Import a private key from WIF format
+//! let wif = "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn";
+//! let key_pair = KeyPair::from_wif(wif).unwrap();
 //!
-//! // Convert WIF back to a private key
-//! let recovered_key = wif_to_private_key(&wif).unwrap();
-//! assert_eq!(private_key, recovered_key);
+//! // Export a private key to WIF format
+//! let exported_wif = key_pair.export_wif();
+//! assert_eq!(wif, exported_wif);
 //! ```
 
 pub use base58_helper::*;
