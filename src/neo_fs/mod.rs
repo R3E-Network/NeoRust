@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # Neo File Storage (NeoFS) Module (v0.1.4)
+//! # Neo File Storage (NeoFS) Module (v0.1.5)
 //!
 //! NeoFS is a decentralized distributed object storage network integrated with
 //! the Neo Blockchain. It provides a robust platform for storing, retrieving,

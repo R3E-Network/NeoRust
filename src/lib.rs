@@ -1,6 +1,6 @@
 #![allow(warnings)]
 
-//! # NeoRust SDK v0.1.4
+//! # NeoRust SDK v0.1.5
 //!
 //! A comprehensive Rust library for building applications on the Neo N3 blockchain ecosystem.
 //!

@@ -68,7 +68,7 @@ neo-cli defi transfer <TOKEN> <TO> <AMOUNT> [--data <DATA>]
 
 - Connection to a Neo N3 RPC node
 - Properly configured wallet
-- Neo SDK v0.1.4 or later
+- Neo SDK v0.1.5 or later
 
 ## Contributing
 

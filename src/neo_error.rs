@@ -1,4 +1,4 @@
-//! # Neo Error Types (v0.1.4)
+//! # Neo Error Types (v0.1.5)
 //!
 //! This module provides a unified error handling system for the NeoRust SDK.
 //!
