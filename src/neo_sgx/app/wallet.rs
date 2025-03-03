@@ -10,6 +10,8 @@ pub struct SgxWallet {
 	enclave: SgxEnclave,
 	#[cfg(feature = "sgx_deps")]
 	wallet_id: sgx_enclave_id_t,
+	#[cfg(feature = "sgx_deps")]
+	public_key: [u8; 64],
 	#[cfg(not(feature = "sgx_deps"))]
 	_private: (),
 }
@@ -79,7 +81,10 @@ impl SgxWallet {
 			return Err(retval);
 		}
 
-		Ok(Self { enclave, wallet_id })
+		// Initialize with zeroed public key - this would be fetched from the enclave in a real implementation
+		let public_key = [0u8; 64];
+
+		Ok(Self { enclave, wallet_id, public_key })
 	}
 
 	/// Opens an existing SGX wallet
@@ -120,7 +125,10 @@ impl SgxWallet {
 			return Err(retval);
 		}
 
-		Ok(Self { enclave, wallet_id })
+		// Initialize with zeroed public key - this would be fetched from the enclave in a real implementation
+		let public_key = [0u8; 64];
+
+		Ok(Self { enclave, wallet_id, public_key })
 	}
 
 	/// Signs a transaction
@@ -167,6 +175,7 @@ impl SgxWallet {
 	/// # Returns
 	///
 	/// The public key
+	#[cfg(feature = "sgx_deps")]
 	pub fn get_public_key(&self) -> &[u8; 64] {
 		&self.public_key
 	}

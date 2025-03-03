@@ -5,6 +5,7 @@ use sgx_types::*;
 use std::{
 	ffi::{CStr, CString},
 	slice,
+	io::Read,
 };
 
 /// Network-related functionality for SGX operations
@@ -45,23 +46,11 @@ impl SgxNetwork {
 	// Placeholder implementations for the non-SGX version
 }
 
-#[cfg(feature = "sgx_deps")]
-/// Sends a network request from the untrusted app
-///
-/// # Arguments
-///
-/// * `eid` - Enclave ID
-/// * `ret_val` - Return value
-/// * `method` - HTTP method (GET, POST, PUT, DELETE)
-/// * `url` - Request URL
-/// * `body` - Request body
-/// * `response` - Buffer to store the response
-/// * `response_len` - Length of the response buffer
-/// * `response_len_out` - Actual length of the response
-///
 /// # Returns
 ///
 /// SGX status
+#[cfg(feature = "sgx_deps")]
+#[no_mangle]
 pub unsafe fn send_request(
 	eid: sgx_enclave_id_t,
 	ret_val: *mut sgx_status_t,

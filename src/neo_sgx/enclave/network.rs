@@ -31,12 +31,12 @@ impl EnclaveNetwork {
 		Self {}
 	}
 
-	/// Sends a network request from within the enclave
+	/// Sends a request to a URL
 	///
 	/// # Arguments
 	///
 	/// * `url` - The URL to send the request to
-	/// * `method` - The HTTP method to use (e.g., "GET", "POST")
+	/// * `method` - The HTTP method to use
 	/// * `body` - The request body
 	///
 	/// # Returns
@@ -49,15 +49,19 @@ impl EnclaveNetwork {
 
 		// Call the untrusted function
 		let mut retval = sgx_status_t::SGX_SUCCESS;
+		let url_bytes = url.as_bytes();
+		let method_bytes = method.as_bytes();
+		let body_bytes = body.as_bytes();
+        
 		let status = unsafe {
 			ocall_send_request(
 				&mut retval,
-				url.as_ptr(),
-				url.len(),
-				method.as_ptr(),
-				method.len(),
-				body.as_ptr(),
-				body.len(),
+				url_bytes.as_ptr(),
+				url_bytes.len(),
+				method_bytes.as_ptr(),
+				method_bytes.len(),
+				body_bytes.as_ptr(),
+				body_bytes.len(),
 				response_buf.as_mut_ptr(),
 				&mut response_len,
 			)
@@ -93,7 +97,17 @@ impl EnclaveNetwork {
 		Self {}
 	}
 
-	/// Placeholder for send_request
+	/// Sends a request to a URL (non-SGX implementation)
+	///
+	/// # Arguments
+	///
+	/// * `url` - The URL to send the request to
+	/// * `method` - The HTTP method to use
+	/// * `body` - The request body
+	///
+	/// # Returns
+	///
+	/// The response as a string
 	pub fn send_request(&self, _url: &str, _method: &str, _body: &str) -> Result<String, ()> {
 		unimplemented!("SGX dependencies not available")
 	}

@@ -97,6 +97,7 @@ impl SgxStorage {
 /// # Returns
 ///
 /// SGX status code
+#[cfg(feature = "sgx_deps")]
 #[no_mangle]
 pub extern "C" fn ocall_read_file(
 	ret_val: *mut sgx_status_t,
@@ -164,6 +165,7 @@ pub extern "C" fn ocall_read_file(
 /// # Returns
 ///
 /// SGX status code
+#[cfg(feature = "sgx_deps")]
 #[no_mangle]
 pub extern "C" fn ocall_write_file(
 	ret_val: *mut sgx_status_t,
@@ -221,6 +223,7 @@ pub extern "C" fn ocall_write_file(
 /// # Returns
 ///
 /// SGX status code
+#[cfg(feature = "sgx_deps")]
 #[no_mangle]
 pub extern "C" fn ocall_log(message: *const u8, message_len: usize) -> sgx_status_t {
 	// Convert raw pointer to Rust string
