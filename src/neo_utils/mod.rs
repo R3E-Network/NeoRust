@@ -1,4 +1,4 @@
-//! # Neo Utilities (v0.1.5)
+//! # Neo Utilities (v0.1.6)
 //!
 //! Utility functions and types for the NeoRust SDK.
 //!

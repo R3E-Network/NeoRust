@@ -1,6 +1,7 @@
 #![allow(warnings)]
 
-//! # NeoRust SDK v0.1.5
+//! ![Neo Logo](https://neo.org/images/neo-logo/NEO-logo.svg)
+//! # NeoRust SDK v0.1.6
 //!
 //! A comprehensive Rust library for building applications on the Neo N3 blockchain ecosystem.
 //!
