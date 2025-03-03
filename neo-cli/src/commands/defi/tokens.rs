@@ -1,6 +1,10 @@
-// DeFi token operations for Neo CLI
+// Token operations for Neo CLI
 //
-// This module contains functions for handling token operations in the Neo CLI.
+// This module provides commands for interacting with NEP-17 tokens on the Neo N3 blockchain.
+// It supports token information retrieval, balance checking, and token transfers.
+// 
+// NOTE: This is currently an early implementation with some functional limitations.
+// Token operations require connection to a Neo N3 RPC node and a properly configured wallet.
 
 use crate::errors::CliError;
 use crate::commands::wallet::CliState;
@@ -24,7 +28,6 @@ use super::utils::{
     NetworkType
 };
 use std::str::FromStr;
-use std::path::PathBuf;
 use colored::*;
 use primitive_types::H160;
 use num_traits::ToPrimitive;
@@ -33,15 +36,35 @@ use serde_json;
 use neo3::builder::{CallFlags, ScriptBuilder, Signer};
 
 /// Get token information
+///
+/// Retrieves detailed information about a NEP-17 token including name,
+/// symbol, decimals, and total supply.
+///
+/// This function attempts to resolve token symbols to their script hashes and
+/// queries the blockchain for token information. There are currently some type
+/// compatibility issues being addressed between the wallet and neo3 libraries.
+///
+/// # Arguments
+/// * `contract` - Token contract address or symbol
+/// * `state` - CLI state containing wallet and RPC client
+///
+/// # Returns
+/// * `Result<(), CliError>` - Success or error
 pub async fn handle_token_info(
     contract: &str,
     state: &mut CliState
 ) -> Result<(), CliError> {
-    // Get RPC client
-    let rpc_client = state.get_rpc_client()?;
+    // Ensure we have an RPC client
+    let rpc_client = match &state.rpc_client {
+        Some(client) => client,
+        None => return Err(CliError::NoRpcClient),
+    };
     
-    // Determine network type
-    let network_type = network_type_from_state(state);
+    // Get network type from state
+    let network_type = state.network_type.as_ref().map_or_else(
+        || NetworkType::MainNet, // Default to MainNet if not specified
+        |network| NetworkType::from_network_string(network)
+    );
     
     // Resolve token address
     let token_hash = resolve_token_to_scripthash_with_network(

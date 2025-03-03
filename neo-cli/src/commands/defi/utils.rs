@@ -3,53 +3,80 @@
 // This module contains utility functions for DeFi operations
 
 use crate::errors::CliError;
-use crate::commands::wallet::{CliState, Network};
+use crate::commands::wallet::CliState;
 use std::path::PathBuf;
 use std::str::FromStr;
 use neo3::prelude::*;
-use neo3::neo_clients::{HttpProvider, RpcClient};
+use neo3::neo_clients::{HttpProvider, RpcClient, ProviderError};
 use num_traits::cast::ToPrimitive;
 use primitive_types::H160;
 use neo3::neo_types::AddressExtension;
 use neo3::neo_wallets::Wallet;
 use neo3::providers::APITrait;
 
-/// Network types supported by the CLI
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Network type enum for CLI operations
+/// 
+/// This represents the different Neo N3 networks that can be used with the CLI
 pub enum NetworkType {
-    N3Mainnet,
-    N3Testnet,
-    NeoX,
+    MainNet,
+    TestNet,
+    PrivateNet,
 }
 
 impl NetworkType {
-    /// Get the network type from a magic number
+    /// Convert a network string to NetworkType
+    /// 
+    /// # Arguments
+    /// * `network` - Network name string ("MainNet", "TestNet", etc.)
+    pub fn from_network(network: &str) -> Self {
+        match network.to_lowercase().as_str() {
+            "mainnet" => NetworkType::MainNet,
+            "testnet" => NetworkType::TestNet,
+            _ => NetworkType::PrivateNet,
+        }
+    }
+}
+
+/// Network type for CLI operations compatible with wallet module
+/// 
+/// This provides compatibility with the network types used in the wallet module
+pub enum NetworkTypeCli {
+    MainNet,  // Updated to match the Network enum in wallet module
+    TestNet,  // Updated to match the Network enum in wallet module
+    NeoX,
+}
+
+impl NetworkTypeCli {
+    /// Create a NetworkTypeCli from a magic number
+    /// 
+    /// # Arguments
+    /// * `magic` - The network magic number
     pub fn from_magic(magic: u32) -> Self {
         match magic {
-            // Neo N3 Mainnet magic number
-            860833102 => NetworkType::N3Mainnet,
-            // Neo N3 Testnet magic number
-            894710606 => NetworkType::N3Testnet,
-            // Placeholder for NeoX
-            _ => NetworkType::NeoX,
+            769 => NetworkTypeCli::MainNet,
+            894 => NetworkTypeCli::TestNet,
+            _ => NetworkTypeCli::NeoX,
+        }
+    }
+
+    /// Convert from wallet Network enum to NetworkTypeCli
+    /// 
+    /// # Arguments
+    /// * `network` - Network enum from wallet module
+    pub fn from_network_string(network: &String) -> Self {
+        match network.to_lowercase().as_str() {
+            "mainnet" => NetworkTypeCli::MainNet,
+            "testnet" => NetworkTypeCli::TestNet,
+            _ => NetworkTypeCli::NeoX,
         }
     }
     
-    /// Convert Neo3 Network enum to our NetworkType
-    pub fn from_network(network: Network) -> Self {
-        match network {
-            Network::Mainnet => NetworkType::N3Mainnet,
-            Network::Testnet => NetworkType::N3Testnet,
-            _ => NetworkType::NeoX, // All other networks treated as NeoX for now
-        }
-    }
-    
-    /// Convert to Neo3 Network enum
-    pub fn to_network(&self) -> Network {
+    /// Convert this NetworkTypeCli to wallet Network enum string
+    pub fn to_network_string(&self) -> String {
         match self {
-            NetworkType::N3Mainnet => Network::Mainnet,
-            NetworkType::N3Testnet => Network::Testnet,
-            NetworkType::NeoX => Network::Mainnet, // Placeholder until Neo X is officially supported
+            NetworkTypeCli::MainNet => "MainNet".to_string(),
+            NetworkTypeCli::TestNet => "TestNet".to_string(),
+            NetworkTypeCli::NeoX => "NeoX".to_string(),
         }
     }
 }
@@ -98,12 +125,12 @@ pub fn prepare_state_from_existing(existing_state: &CliState) -> CliState {
 }
 
 /// Get token hash for a token symbol based on network type
-pub fn get_token_address_for_network(token_symbol: &str, network_type: NetworkType) -> Option<ScriptHash> {
+pub fn get_token_address_for_network(token_symbol: &str, network_type: NetworkTypeCli) -> Option<ScriptHash> {
     // Uppercase the token symbol for consistent matching
     let token_symbol = token_symbol.to_uppercase();
     
     match network_type {
-        NetworkType::N3Mainnet => {
+        NetworkTypeCli::MainNet => {
             // Token addresses for Neo N3 Mainnet
             match token_symbol.as_str() {
                 "NEO" => ScriptHash::from_str("ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").ok(),
@@ -112,7 +139,7 @@ pub fn get_token_address_for_network(token_symbol: &str, network_type: NetworkTy
                 _ => None,
             }
         },
-        NetworkType::N3Testnet => {
+        NetworkTypeCli::TestNet => {
             // Token addresses for Neo N3 Testnet
             match token_symbol.as_str() {
                 "NEO" => ScriptHash::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").ok(),
@@ -120,7 +147,7 @@ pub fn get_token_address_for_network(token_symbol: &str, network_type: NetworkTy
                 _ => None,
             }
         },
-        NetworkType::NeoX => {
+        NetworkTypeCli::NeoX => {
             // Placeholder for NeoX token addresses
             // Will be updated when available
             None
@@ -129,7 +156,7 @@ pub fn get_token_address_for_network(token_symbol: &str, network_type: NetworkTy
 }
 
 /// Parse amount string to raw integer value based on token decimals
-pub async fn parse_amount(amount: &str, token_hash: &ScriptHash, rpc_client: &RpcClient<HttpProvider>, network_type: NetworkType) -> Result<i64, CliError> {
+pub async fn parse_amount(amount: &str, token_hash: &ScriptHash, rpc_client: &RpcClient<HttpProvider>, network_type: NetworkTypeCli) -> Result<i64, CliError> {
     // Try to parse as a simple float first
     let amount_float = f64::from_str(amount)
         .map_err(|_| CliError::InvalidArgument(
@@ -148,10 +175,10 @@ pub async fn parse_amount(amount: &str, token_hash: &ScriptHash, rpc_client: &Rp
 }
 
 /// Get decimals for a token
-pub async fn get_token_decimals(token_hash: &ScriptHash, rpc_client: &RpcClient<HttpProvider>, network_type: NetworkType) -> Result<u8, CliError> {
+pub async fn get_token_decimals(token_hash: &ScriptHash, rpc_client: &RpcClient<HttpProvider>, network_type: NetworkTypeCli) -> Result<u8, CliError> {
     // Check for well-known tokens first
     match network_type {
-        NetworkType::N3Mainnet | NetworkType::N3Testnet => {
+        NetworkTypeCli::MainNet | NetworkTypeCli::TestNet => {
             // Try to convert token_hash to string for comparison
             let token_hash_str = token_hash.to_string();
             
@@ -164,7 +191,7 @@ pub async fn get_token_decimals(token_hash: &ScriptHash, rpc_client: &RpcClient<
                 return Ok(8); // GAS has 8 decimals
             }
         },
-        NetworkType::NeoX => {
+        NetworkTypeCli::NeoX => {
             // Will be updated when NeoX info is available
         }
     }
@@ -212,7 +239,7 @@ pub fn format_token_amount(raw_amount: i64, decimals: u8) -> String {
 pub async fn resolve_token_to_scripthash_with_network(
     token: &str, 
     _rpc_client: &RpcClient<HttpProvider>, 
-    network_type: NetworkType
+    network_type: NetworkTypeCli
 ) -> Result<ScriptHash, CliError> {
     // Check if the input is a valid script hash
     if let Ok(script_hash) = ScriptHash::from_str(token) {
@@ -247,8 +274,16 @@ pub async fn resolve_token_to_scripthash_with_network(
 pub async fn resolve_token_hash(
     token: &str,
     rpc_client: &RpcClient<HttpProvider>,
-    network_type: NetworkType
+    network_type: NetworkTypeCli
 ) -> Result<String, CliError> {
     let script_hash = resolve_token_to_scripthash_with_network(token, rpc_client, network_type).await?;
     Ok(script_hash.to_string())
+}
+
+/// Helper function to load a wallet from state
+pub fn load_wallet_from_state(state: &mut CliState) -> Result<&mut crate::commands::wallet::Wallet, CliError> {
+    if state.wallet.is_none() {
+        return Err(CliError::NoWallet);
+    }
+    Ok(state.wallet.as_mut().unwrap())
 }

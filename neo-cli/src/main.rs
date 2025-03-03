@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 use commands::{
 	neofs::{handle_neofs_command, NeoFSArgs},
 	network::{handle_network_command, CliState, NetworkArgs},
+	defi::{handle_defi_command, DefiArgs},
 };
 use errors::CliError;
 use std::path::PathBuf;
@@ -53,6 +54,9 @@ enum Commands {
 
 	/// NeoFS commands for file storage on the Neo blockchain
 	NeoFS(NeoFSArgs),
+	
+	/// DeFi commands for interacting with Neo DeFi protocols
+	DeFi(DefiArgs),
 }
 
 /// Initialize a new configuration file
@@ -109,5 +113,6 @@ async fn main() -> Result<(), CliError> {
 			Ok(())
 		},
 		Commands::NeoFS(args) => handle_neofs_command(args, &mut state).await,
+		Commands::DeFi(args) => handle_defi_command(args, &mut state).await,
 	}
 }
