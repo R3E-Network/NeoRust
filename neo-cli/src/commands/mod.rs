@@ -1,5 +1,6 @@
-pub mod wallet;
-pub mod blockchain;
 pub mod network;
-pub mod contract;
-pub mod defi;
+pub use network::NetworkArgs;
+pub mod fs;
+pub use fs::FSArgs;
+pub mod neofs;
+pub use neofs::NeoFSArgs;

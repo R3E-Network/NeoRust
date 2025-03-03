@@ -66,6 +66,7 @@ pub use log::*;
 use primitive_types::H256;
 use serde_derive::{Deserialize, Serialize};
 
+// Re-export everything from these modules
 pub use address::*;
 pub use address_or_scripthash::*;
 pub use block::*;
@@ -77,7 +78,8 @@ pub use numeric::*;
 pub use op_code::*;
 pub use path_or_string::*;
 pub use plugin_type::*;
-pub use script_hash::*;
+pub mod script_hash;
+pub use script_hash::{ScriptHash, ScriptHashExtension};
 pub use serde_value::*;
 pub use serde_with_utils::*;
 pub use stack_item::*;
@@ -88,21 +90,21 @@ pub use url_session::*;
 pub use util::*;
 pub use vm_state::*;
 
-mod contract;
-mod nns;
+// Make modules public for direct access
+pub mod contract;
+pub mod nns;
+pub mod error;
+pub mod serde_value;
+pub mod serde_with_utils;
 
 mod address;
 mod address_or_scripthash;
 mod block;
 mod bytes;
-mod error;
 mod numeric;
 mod op_code;
 mod path_or_string;
 mod plugin_type;
-mod script_hash;
-mod serde_value;
-mod serde_with_utils;
 mod stack_item;
 mod string;
 mod syncing;
@@ -251,3 +253,25 @@ mod tests {
 		assert_eq!(decoded_hex, expected);
 	}
 }
+
+// Re-export serialization functions from serde_with_utils
+pub use serde_with_utils::{
+	deserialize_h160, serialize_h160,
+	deserialize_h256, serialize_h256,
+	deserialize_vec_h256, serialize_vec_h256,
+	deserialize_vec_u256, serialize_vec_u256,
+	deserialize_script_hash, serialize_script_hash,
+	deserialize_wildcard, serialize_wildcard,
+	deserialize_u256, serialize_u256,
+	deserialize_u64, serialize_u64,
+};
+
+// Re-export ValueExtension trait
+pub use serde_value::ValueExtension;
+
+// Re-export address types
+pub use address::NameOrAddress;
+
+// Other re-exports
+pub use vm_state::VMState;
+pub use string::StringExt;

@@ -1,122 +1,113 @@
 use clap::{Parser, Subcommand};
-// use neo3::prelude::*;
+use commands::{
+	neofs::{handle_neofs_command, NeoFSArgs},
+	network::{handle_network_command, CliState, NetworkArgs},
+};
+use errors::CliError;
 use std::path::PathBuf;
 use tokio;
-
-use crate::commands::wallet::{WalletArgs, CliState, handle_wallet_command};
-use crate::commands::blockchain::{BlockchainArgs, handle_blockchain_command};
-use crate::commands::network::{NetworkArgs, handle_network_command};
-use crate::commands::contract::{ContractArgs, handle_contract_command};
-use crate::commands::defi::{DefiArgs, handle_defi_command};
-use crate::config::CliConfig;
-use crate::utils::{print_success, print_error};
-use crate::utils::error::CliResult;
+use utils::{
+	config::{get_config_path, save_config, Config},
+	print_success,
+};
 
 mod commands;
 mod config;
+mod errors;
 mod utils;
 
-#[derive(Parser)]
-#[command(author = "R3E Network", version, about = "Neo Blockchain CLI", long_about = None)]
-struct Cli {
-    /// Path to config file
-    #[arg(short, long)]
-    config: Option<PathBuf>,
+/// Neo CLI is a command-line application for interacting with the Neo blockchain
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+pub struct Cli {
+	/// Path to config file
+	#[arg(short, long)]
+	config: Option<PathBuf>,
 
-    #[command(subcommand)]
-    command: Commands,
+	#[command(subcommand)]
+	command: Commands,
 }
 
-#[derive(Subcommand)]
+/// Available commands
+#[derive(Subcommand, Debug)]
 enum Commands {
-    /// Wallet management commands
-    Wallet(WalletArgs),
-    
-    /// Blockchain commands
-    Blockchain(BlockchainArgs),
-    
-    /// Network commands
-    Network(NetworkArgs),
-    
-    /// Contract commands
-    Contract(ContractArgs),
-    
-    /// DeFi platform interactions
-    Defi(DefiArgs),
-    
-    /// Initialize a new configuration file
-    Init {
-        /// Path to save the configuration file
-        #[arg(short, long)]
-        path: Option<PathBuf>,
-    },
+	/// Initialize a new configuration file
+	Init {
+		/// Path to save the configuration file
+		#[arg(short, long)]
+		path: Option<PathBuf>,
+	},
+
+	/// Network commands
+	Network(NetworkArgs),
+
+	/// File storage commands
+	Files {
+		/// NeoFS endpoint URL
+		#[arg(short, long)]
+		endpoint: Option<String>,
+	},
+
+	/// Basic storage command
+	Storage,
+
+	/// NeoFS commands for file storage on the Neo blockchain
+	NeoFS(NeoFSArgs),
+}
+
+/// Initialize a new configuration file
+async fn handle_init_command(path: Option<PathBuf>) -> Result<(), CliError> {
+	// Create default config
+	let config = Config::default();
+
+	if let Some(custom_path) = path {
+		// Create parent directories if they don't exist
+		if let Some(parent) = custom_path.parent() {
+			std::fs::create_dir_all(parent).map_err(|e| CliError::FileSystem(e.to_string()))?;
+		}
+
+		// Save config to custom path
+		let config_str = serde_json::to_string_pretty(&config)
+			.map_err(|e| CliError::Config(format!("Failed to serialize config: {}", e)))?;
+		std::fs::write(&custom_path, config_str).map_err(|e| CliError::Io(e))?;
+
+		print_success(&format!("Configuration file initialized at {}", custom_path.display()));
+	} else {
+		// Save to default location
+		save_config(&config)?;
+		let config_path = get_config_path()?;
+		print_success(&format!("Configuration file initialized at {}", config_path.display()));
+	}
+
+	Ok(())
 }
 
 #[tokio::main]
-async fn main() -> CliResult<()> {
-    // Initialize logger
-    env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
-    
-    // Parse command line arguments
-    let cli = Cli::parse();
-    
-    // Load configuration
-    let _config = match &cli.config {
-        Some(path) => {
-            if !path.exists() {
-                print_error(&format!("Config file not found: {:?}", path));
-                return Err(utils::error::CliError::Config(format!("Config file not found: {:?}", path)));
-            }
-            
-            let config_str = std::fs::read_to_string(path)
-                .map_err(|e| utils::error::CliError::Io(e))?;
-            
-            serde_json::from_str(&config_str)
-                .map_err(|e| utils::error::CliError::Config(format!("Failed to parse config file: {}", e)))?
-        },
-        None => CliConfig::load()?,
-    };
-    
-    // Initialize CLI state
-    let mut state = CliState::default();
-    
-    // Handle commands
-    match cli.command {
-        Commands::Wallet(args) => {
-            handle_wallet_command(args, &mut state).await?;
-        },
-        Commands::Blockchain(args) => {
-            handle_blockchain_command(args, &mut state).await?;
-        },
-        Commands::Network(args) => {
-            handle_network_command(args, &mut state).await?;
-        },
-        Commands::Contract(args) => {
-            handle_contract_command(args, &mut state).await?;
-        },
-        Commands::Defi(args) => {
-            handle_defi_command(args, &mut state).await?;
-        },
-        Commands::Init { path } => {
-            let config_path = path.unwrap_or_else(|| {
-                dirs::config_dir()
-                    .unwrap_or_else(|| PathBuf::from("."))
-                    .join("neo-cli/config.json")
-            });
-            
-            let config = CliConfig::default();
-            let config_str = serde_json::to_string_pretty(&config)
-                .map_err(|e| utils::error::CliError::Config(format!("Failed to serialize config: {}", e)))?;
-            
-            std::fs::create_dir_all(config_path.parent().unwrap())
-                .map_err(|e| utils::error::CliError::Io(e))?;
-            
-            std::fs::write(&config_path, config_str)
-                .map_err(|e| utils::error::CliError::Io(e))?;
-            
-            print_success(&format!("Configuration initialized at: {:?}", config_path));
-        },
-    }
-    
-    Ok(())
+async fn main() -> Result<(), CliError> {
+	// Initialize logger
+	env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
+
+	// Parse command line arguments
+	let cli = Cli::parse();
+
+	// Initialize CLI state
+	let mut state = CliState::default();
+
+	// Handle commands
+	match cli.command {
+		Commands::Init { path } => {
+			handle_init_command(path).await?;
+			Ok(())
+		},
+		Commands::Network(args) => handle_network_command(args, &mut state).await,
+		Commands::Files { endpoint } => {
+			println!("Files command selected with endpoint: {:?}", endpoint);
+			Ok(())
+		},
+		Commands::Storage => {
+			println!("Storage command selected");
+			Ok(())
+		},
+		Commands::NeoFS(args) => handle_neofs_command(args, &mut state).await,
+	}
 }

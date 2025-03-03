@@ -82,11 +82,11 @@ pub use api_trait::*;
 pub use errors::ProviderError;
 pub use ext::*;
 pub use mock_client::MockClient;
-use neo::prelude::NeoConstants;
 pub use rpc::*;
 #[allow(deprecated)]
 pub use test_provider::{MAINNET, TESTNET};
 pub use utils::*;
+use crate::config::NeoConstants;
 
 mod api_trait;
 /// Errors

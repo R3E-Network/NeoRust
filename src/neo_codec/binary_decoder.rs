@@ -21,8 +21,8 @@ use getset::{Getters, Setters};
 use num_bigint::{BigInt, Sign};
 use serde::Deserialize;
 use serde_derive::Serialize;
-
-use neo::prelude::{CodecError, NeoSerializable, OpCode};
+use crate::codec::{CodecError, NeoSerializable};
+use crate::OpCode;
 
 /// A binary decoder that can read various types of data from a byte slice.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize, Getters, Setters)]
@@ -314,8 +314,7 @@ impl<'a> Decoder<'a> {
 #[cfg(test)]
 mod tests {
 	use num_bigint::BigInt;
-
-	use neo::prelude::Decoder;
+	use crate::codec::Decoder;
 
 	#[test]
 	fn test_read_push_data_bytes() {

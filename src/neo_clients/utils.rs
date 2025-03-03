@@ -5,13 +5,11 @@ use futures_util::{stream, FutureExt, StreamExt};
 use primitive_types::{H160, U256};
 use regex::Regex;
 use wiremock::{Match, Request};
-
-use neo::prelude::{
-	private_key_to_public_key, HashableForVec, ProviderError, ScriptBuilder, ScriptHash,
-	ScriptHashExtension, Secp256r1PrivateKey, Secp256r1PublicKey, DEFAULT_ADDRESS_VERSION,
-};
-
-use crate::prelude::VerificationScript;
+use crate::builder::VerificationScript;
+use crate::crypto::{private_key_to_public_key, HashableForVec, Secp256r1PrivateKey, Secp256r1PublicKey};
+use crate::neo_clients::ProviderError;
+use crate::{ScriptHash, ScriptHashExtension};
+use crate::config::DEFAULT_ADDRESS_VERSION;
 
 /// A simple gas escalation policy
 pub type EscalationPolicy = Box<dyn Fn(U256, usize) -> U256 + Send + Sync>;

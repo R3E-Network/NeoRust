@@ -2,7 +2,15 @@ use async_trait::async_trait;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
-use neo::prelude::*;
+use crate::neo_clients::{JsonRpcProvider, RpcClient};
+use crate::neo_contract::{
+	ContractError,
+	traits::{TokenTrait, SmartContractTrait, FungibleTokenTrait}
+};
+use crate::neo_types::{
+	NNSName, ScriptHash,
+	serde_with_utils::{deserialize_script_hash, serialize_script_hash}
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GasToken<'a, P: JsonRpcProvider> {

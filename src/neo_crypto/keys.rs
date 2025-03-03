@@ -61,7 +61,6 @@ use std::{
 
 // use zeroize::Zeroize;
 use elliptic_curve::zeroize::Zeroize;
-use neo::prelude::{CryptoError, Decoder, Encoder, NeoConstants, NeoSerializable};
 use p256::{
 	ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey},
 	elliptic_curve::{
@@ -75,6 +74,9 @@ use rand_core::OsRng;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use signature::{hazmat::PrehashSigner, SignerMut, Verifier};
+use crate::codec::{Decoder, Encoder, NeoSerializable};
+use crate::config::NeoConstants;
+use crate::crypto::CryptoError;
 
 #[cfg_attr(feature = "substrate", serde(crate = "serde_substrate"))]
 #[derive(Debug, Clone)]
@@ -622,11 +624,9 @@ mod tests {
 	use hex_literal::hex;
 	use p256::EncodedPoint;
 	use rustc_serialize::hex::{FromHex, ToHex};
-
-	use neo::prelude::{
-		Decoder, HashableForVec, NeoSerializable, Secp256r1PrivateKey, Secp256r1PublicKey,
-		Secp256r1Signature, ToArray32,
-	};
+	
+	use crate::codec::{Decoder, NeoSerializable};
+	use crate::crypto::{HashableForVec, Secp256r1PrivateKey, Secp256r1PublicKey, Secp256r1Signature, ToArray32};
 
 	const ENCODED_POINT: &str =
 		"03b4af8d061b6b320cce6c63bc4ec7894dce107bfc5f5ef5c68a93b4ad1e136816";

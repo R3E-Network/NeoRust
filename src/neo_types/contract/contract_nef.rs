@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
-
-use crate::prelude::TypeError;
-use neo::prelude::ContractMethodToken;
+use crate::{ContractMethodToken, TypeError};
 
 #[derive(Serialize, Deserialize, Default, Hash, Clone, Debug, PartialEq)]
 #[serde_as]

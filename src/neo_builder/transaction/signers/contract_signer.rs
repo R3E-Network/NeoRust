@@ -2,13 +2,17 @@ use getset::{Getters, Setters};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
-
-use neo::prelude::{
-	deserialize_script_hash, deserialize_vec_public_key, deserialize_vec_script_hash,
-	serialize_script_hash, serialize_vec_public_key, serialize_vec_script_hash, BuilderError,
-	ContractParameter, Decoder, Encoder, NeoConstants, NeoSerializable, Secp256r1PublicKey,
-	SignerTrait, SignerType, TransactionError, VarSizeTrait, WitnessRule, WitnessScope,
-};
+use crate::builder::{BuilderError, SignerTrait, SignerType, TransactionError, WitnessRule, WitnessScope};
+use crate::codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
+use crate::config::NeoConstants;
+use crate::ContractParameter;
+use crate::crypto::Secp256r1PublicKey;
+use crate::serialize_script_hash;
+use crate::serialize_vec_script_hash;
+use crate::neo_types::serialize_vec_public_key;
+use crate::deserialize_script_hash;
+use crate::deserialize_vec_script_hash;
+use crate::neo_types::deserialize_vec_public_key;
 
 /// Represents a contract signer in the NEO blockchain.
 ///

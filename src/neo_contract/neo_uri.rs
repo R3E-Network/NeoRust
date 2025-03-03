@@ -4,8 +4,20 @@ use getset::{Getters, Setters};
 use primitive_types::H160;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-
-use neo::prelude::*;
+use crate::contract::{SmartContractTrait, TokenTrait};
+use crate::neo_clients::{JsonRpcProvider, RpcClient};
+use crate::neo_contract::{
+	ContractError, FungibleTokenContract, GasToken, NeoToken
+};
+use crate::neo_types::{
+	ScriptHash, ScriptHashExtension, ContractParameter,
+	serde_with_utils::{deserialize_url_option, serialize_url_option, 
+					  deserialize_script_hash_option, serialize_script_hash_option}
+};
+use crate::neo_builder::{
+	TransactionBuilder, AccountSigner, ScriptBuilder
+};
+use crate::neo_protocol::Account;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Getters, Setters)]
 pub struct NeoURI<'a, P: JsonRpcProvider> {

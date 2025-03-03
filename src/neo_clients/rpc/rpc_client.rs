@@ -24,12 +24,15 @@ use tracing::{debug, trace};
 use tracing_futures::Instrument;
 use url::{Host, ParseError, Url};
 
-use neo::prelude::*;
+// Replace the generic import with specific imports
+use crate::neo_builder::{CallFlags, InteropService, ScriptBuilder, TransactionBuilder, TransactionSigner};
+use crate::neo_clients::{APITrait, Http, HttpProvider, HttpRateLimitRetryPolicy, JsonRpcProvider, ProviderError, RetryClient, RwClient};
 
-use crate::{
-	neo_clients::rpc::rpc_client::sealed::Sealed, neo_types::ScriptHashExtension,
-	prelude::Base64Encode,
-};
+use crate::{neo_clients::rpc::rpc_client::sealed::Sealed, neo_types::ScriptHashExtension, prelude::Base64Encode, Address, ContractManifest, ContractParameter, ContractState, InvocationResult, NativeContractState, NefFile, StackItem, ValueExtension};
+use crate::builder::{Signer, Transaction, TransactionSendToken};
+use crate::codec::NeoSerializable;
+use crate::config::NEOCONFIG;
+use crate::neo_protocol::*;
 
 /// Node Clients
 #[derive(Copy, Clone)]
@@ -1312,7 +1315,7 @@ impl RpcClient<RetryClient<Http>> {
 }
 
 mod sealed {
-	use neo::prelude::{Http, RpcClient};
+	use crate::neo_clients::{Http, RpcClient};
 
 	/// private trait to ensure extension trait is not implement outside of this crate
 	pub trait Sealed {}
@@ -1460,28 +1463,13 @@ mod tests {
 		Mock, MockServer, ResponseTemplate,
 	};
 
-	use neo::prelude::{
-		HttpProvider, NeoWitness, ProviderError, RTransaction, ScriptHashExtension,
-		Secp256r1PublicKey, Signer, SignerTrait, TestConstants, Transaction, TransactionSendToken,
-		TransactionSigner, Witness, WitnessAction, WitnessCondition, WitnessRule, WitnessScope,
-	};
-
-	use crate::{
-		builder::{AccountSigner as AccountSignerType, Signer::AccountSigner},
-		neo_clients::api_trait::APITrait,
-		neo_types::{Base64Encode, Diagnostics, InvokedContract, StorageChange, ToBase64},
-		prelude::{
-			AddressEntry, ConflictsAttribute, ContractABI, ContractManifest, ContractMethod,
-			ContractNef, ContractParameter2, ContractParameterType, ContractPermission,
-			ContractState, HighPriorityAttribute, InvocationResult, MockClient,
-			NativeContractState, NeoVMStateType, Nep11Balance, Nep11Token, Nep11Transfer,
-			Nep17Balance, Nep17Transfer, NodePluginType, NotValidBeforeAttribute, OracleResponse,
-			OracleResponseAttribute, OracleResponseCode, RTransactionSigner, StackItem,
-			StateResult, States, SubmitBlock, TransactionAttributeEnum, TypeError, VMState,
-			Validator,
-		},
-		providers::RpcClient,
-	};
+	use crate::{builder::{AccountSigner as AccountSignerType, Signer::AccountSigner}, neo_clients::api_trait::APITrait, neo_types::{Base64Encode, Diagnostics, InvokedContract, StorageChange, ToBase64}, providers::RpcClient, ContractManifest, ContractNef, ContractParameterType, ContractState, InvocationResult, NeoVMStateType, ScriptHashExtension, StackItem, TypeError, VMState};
+	use crate::builder::{OracleResponseCode, SignerTrait, TransactionSendToken, WitnessAction, WitnessCondition, WitnessRule, WitnessScope};
+	use crate::config::TestConstants;
+	use crate::crypto::Secp256r1PublicKey;
+	use crate::neo_clients::{HttpProvider, MockClient, ProviderError};
+	use crate::neo_protocol::{AddressEntry, ConflictsAttribute, HighPriorityAttribute, NeoWitness, Nep11Balance, Nep11Token, Nep11Transfer, Nep17Balance, Nep17Transfer, NotValidBeforeAttribute, OracleResponse, OracleResponseAttribute, RTransaction, RTransactionSigner, StateResult, States, TransactionAttributeEnum, Validator};
+	use crate::neo_types::{ContractABI, ContractMethod, ContractParameter2, ContractPermission, NodePluginType};
 
 	async fn setup_mock_server() -> MockServer {
 		MockServer::start().await

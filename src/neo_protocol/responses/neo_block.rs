@@ -1,11 +1,11 @@
 use primitive_types::H256;
 use serde::{Deserialize, Serialize};
 use std::num::ParseIntError;
-
-use crate::prelude::RTransaction;
-use neo::prelude::{
-	deserialize_h256, deserialize_h256_option, serialize_h256, serialize_h256_option, NeoWitness,
-};
+use crate::neo_protocol::{NeoWitness, RTransaction};
+use crate::serialize_h256;
+use crate::deserialize_h256;
+use crate::serialize_h256_option;
+use crate::deserialize_h256_option;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NeoBlock {

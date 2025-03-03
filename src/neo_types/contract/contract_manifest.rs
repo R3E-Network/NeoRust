@@ -6,8 +6,9 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use neo::prelude::{ContractParameter, ContractParameterType};
-
-use crate::prelude::{deserialize_wildcard, serialize_wildcard, ContractParameter2, TypeError};
+use crate::neo_types::ContractParameter2;
+use crate::prelude::{deserialize_wildcard, serialize_wildcard};
+use crate::TypeError;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ContractManifest {

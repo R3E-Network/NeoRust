@@ -28,6 +28,77 @@
 //! use neo::prelude::*;
 //! ```
 //!
+//! ## Feature Flags
+//!
+//! NeoRust is designed with a flexible feature system that allows you to include only the 
+//! functionality you need. This reduces compile times and binary sizes. The features 
+//! are grouped as follows:
+//! 
+//! ### Core Features (Default)
+//! 
+//! * `std` - Standard library support
+//! * `crypto-standard` - Cryptographic primitives for Neo N3
+//! 
+//! ### Transport Layer Features
+//! 
+//! * `http-client` - HTTP JSON-RPC client for Neo N3 nodes
+//! * `websocket` - WebSocket client for real-time blockchain events
+//! * `rest-client` - RESTful API client for Neo N3 nodes
+//! 
+//! ### Blockchain Features
+//! 
+//! * `transaction` - Support for creating and signing transactions
+//! * `wallet` - Core wallet management functionality
+//! * `wallet-standard` - Enhanced wallet features with standard formats
+//! * `wallet-hardware` - Hardware wallet support
+//! * `wallet-secure` - Advanced security features for wallets
+//! * `contract` - Smart contract interaction tools
+//! 
+//! ### Integration Features
+//! 
+//! * `ethereum-compat` - Ethereum compatibility layer
+//! * `ledger` - Ledger hardware wallet support
+//! 
+//! ### Hash Features
+//! 
+//! * `ripemd160` - RIPEMD-160 hash function
+//! * `sha2` - SHA2 hash functions
+//! * `digest` - Core digest traits
+//! 
+//! ### Example Usage
+//! 
+//! Basic JSON-RPC client:
+//! ```toml
+//! neo3 = { version = "0.1.3", features = ["http-client"] }
+//! ```
+//! 
+//! Full wallet and transaction support:
+//! ```toml
+//! neo3 = { version = "0.1.3", features = ["http-client", "wallet", "transaction"] }
+//! ```
+//! 
+//! Hardware wallet support:
+//! ```toml
+//! neo3 = { version = "0.1.3", features = ["wallet-hardware"] }
+//! ```
+//! 
+//! ## Feature Dependencies
+//! 
+//! Features have been designed to minimize circular dependencies:
+//! 
+//! - `contract` requires `transaction`
+//! - `wallet-standard` builds on `wallet`
+//! - `wallet-hardware` builds on `wallet`
+//! - All wallet features require `crypto-standard`
+//! - `transaction` requires `crypto-standard`
+//!
+//! The `wallet` and `transaction` features are now independent, but together they provide 
+//! additional functionality like wallet-signed transactions. See the WALLET_FEATURES.md
+//! document for detailed information about the wallet feature hierarchy and how to avoid
+//! circular dependencies.
+//!
+//! See the README.md for a complete list of features and usage examples.
+//!
 //! ## Usage Examples
 //!
 //! ### Connecting to a Neo N3 node
@@ -285,7 +356,8 @@
 
 #![warn(missing_debug_implementations, missing_docs, rust_2018_idioms, unreachable_pub)]
 #![deny(rustdoc::broken_intra_doc_links)]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+// Only enable doc_cfg feature on nightly builds or when explicitly building docs
+#![cfg_attr(all(feature = "nightly", docsrs), feature(doc_cfg))]
 #![doc(test(no_crate_inject, attr(deny(rust_2018_idioms), allow(dead_code, unused_variables))))]
 
 // For macro expansions only, not public API.
@@ -293,6 +365,25 @@
 #[allow(unused_extern_crates)]
 extern crate self as neo;
 
+// Core modules - always available
+pub mod neo_error;
+pub mod neo_types;
+pub mod neo_utils;
+
+// All modules unconditionally available
+pub mod neo_crypto;
+pub mod neo_builder;
+pub mod neo_clients;
+pub mod neo_codec;
+pub mod neo_config;
+pub mod neo_contract;
+pub mod neo_protocol;
+pub mod neo_wallets;
+pub mod neo_x;
+pub mod neo_sgx;
+pub mod neo_fs;
+
+// Re-exports for convenience
 #[doc(inline)]
 pub use neo_builder as builder;
 #[doc(inline)]
@@ -314,47 +405,115 @@ pub use neo_wallets as wallets;
 #[doc(inline)]
 pub use neo_x as x;
 
-pub mod neo_builder;
-pub mod neo_clients;
-pub mod neo_codec;
-pub mod neo_config;
-pub mod neo_contract;
-pub mod neo_crypto;
-pub mod neo_error;
-pub mod neo_protocol;
-pub mod neo_types;
-pub mod neo_utils;
-pub mod neo_wallets;
-pub mod neo_x;
+// Re-export common types directly in lib.rs for easy access
+pub use crate::neo_types::{
+	Address, AddressOrScriptHash, Bytes, 
+	ContractParameter, ContractParameterType, OpCode, OperandSize,
+	ScriptHash, ScriptHashExtension, StackItem,
+	// Serialization/deserialization helpers
+	serialize_script_hash, deserialize_script_hash,
+	serialize_url_option, deserialize_url_option,
+	serialize_script_hash_option, deserialize_script_hash_option,
+	serialize_address_or_script_hash, deserialize_address_or_script_hash,
+	serialize_h256, deserialize_h256,
+	serialize_h256_option, deserialize_h256_option,
+	serialize_hash_map_h160_account, deserialize_hash_map_h160_account,
+	vec_to_array32,
+	var_size,
+	// Additional types
+	Base64Encode, StringExt, VMState, TypeError,
+	// Contract types
+	ContractManifest, ContractState, ContractIdentifiers, 
+	InvocationResult, NefFile,
+	// NNS types
+	NNSName,
+	// Additional types
+	ScryptParamsDef, ParameterValue,
+};
 
-#[cfg(feature = "sgx")]
-pub mod neo_sgx;
+// Add direct re-exports for commonly used serde utils  
+pub use crate::neo_types::serde_with_utils::{
+	deserialize_boolean_expression, serialize_boolean_expression,
+	deserialize_bytes, serialize_bytes,
+	deserialize_h160, serialize_h160,
+	deserialize_hashmap_address_u256, serialize_hashmap_address_u256,
+	deserialize_hashmap_u256_hashset_h256, serialize_hashmap_u256_hashset_h256,
+	deserialize_hashmap_u256_hashset_u256, serialize_hashmap_u256_hashset_u256,
+	deserialize_hashmap_u256_vec_u256, serialize_hashmap_u256_vec_u256,
+	deserialize_hashset_u256, serialize_hashset_u256,
+	deserialize_private_key, serialize_private_key,
+	deserialize_public_key, serialize_public_key,
+	deserialize_public_key_option, serialize_public_key_option,
+	deserialize_scopes, serialize_scopes,
+	deserialize_vec_script_hash, serialize_vec_script_hash,
+	deserialize_vec_script_hash_option, serialize_vec_script_hash_option,
+	deserialize_map, serialize_map,
+	deserialize_wildcard, serialize_wildcard,
+	deserialize_hardforks,
+};
+
+// Re-export additional contract types
+pub use crate::neo_types::contract::{
+	ContractMethodToken, ContractNef, NeoVMStateType, NativeContractState
+};
+
+// Re-export value extension trait
+pub use crate::neo_types::serde_value::ValueExtension;
 
 /// Convenient imports for commonly used types and traits.
 pub mod prelude {
-	pub use super::{
-		builder::*, codec::*, config::*, contract::*, crypto::*, neo_error::*, protocol::*,
-		providers::*, types::*, wallets::*, x::*,
+	pub use crate::neo_error::NeoError;
+	
+	// Core types
+	pub use crate::neo_types::{
+		Address, AddressOrScriptHash, Bytes, ContractParameter, ContractParameterType, ScriptHash, 
+		ScriptHashExtension, Base64Encode, StringExt, VMState, OpCode, StackItem, 
+		InvocationResult, NefFile, ContractManifest, ContractState, NNSName,
+		NameOrAddress, ToBase58, 
+		ValueExtension,
 	};
-
-	#[cfg(feature = "sgx")]
-	pub use super::neo_sgx::*;
-
-	pub use super::neo_utils::error::*;
+	
+	// Additional core types that will always be available
+	pub use serde_json::Value as ParameterValue;
+	pub use primitive_types::{H160, H256, U256};
+	pub use url::Url;
+	
+	// Serialization helpers
+	pub use crate::neo_types::{
+		deserialize_h160, serialize_h160, 
+		deserialize_h256, serialize_h256,
+		deserialize_vec_h256, serialize_vec_h256,
+		deserialize_vec_u256, serialize_vec_u256,
+		deserialize_script_hash, serialize_script_hash,
+		deserialize_wildcard, serialize_wildcard,
+		deserialize_u256, serialize_u256,
+		deserialize_u64, serialize_u64,
+	};
+	
+	// Additional modules
+	pub use crate::{
+		builder, codec, config, crypto, protocol, providers, wallets, 
+		x, neo_sgx, neo_fs,
+	};
 }
 
-#[cfg(test)]
+#[cfg(all(test))]
 mod tests {
 	use super::prelude::*;
 	use primitive_types::H160;
 	use std::str::FromStr;
-	use tokio;
-	use url::Url;
 
+	use tokio;
+
+	use url::Url;
+	use crate::builder::{AccountSigner, ScriptBuilder, TransactionBuilder};
+	use crate::neo_clients::{APITrait, HttpProvider, RpcClient};
+	use crate::neo_protocol::{Account, AccountTrait};
+
+	#[cfg(all(test))]
 	#[tokio::test]
 	#[ignore] // Ignoring this test as it requires a live Neo N3 node and real tokens
 	async fn test_create_and_send_transaction() -> Result<(), Box<dyn std::error::Error>> {
-		init_logger();
 		// Initialize the JSON-RPC provider - using TestNet for safer testing
 		let http_provider = HttpProvider::new("https://testnet1.neo.org:443")?;
 		let rpc_client = RpcClient::new(http_provider);
@@ -401,22 +560,108 @@ mod tests {
 		println!("System fee: {} GAS", signed_tx.sys_fee as f64 / 100_000_000.0);
 		println!("Network fee: {} GAS", signed_tx.net_fee as f64 / 100_000_000.0);
 
-		// In a real scenario, we would send the transaction and wait for confirmation:
-		/*
-		// Send the transaction
-		let raw_tx = signed_tx.send_tx().await?;
-		println!("Transaction sent: {}", raw_tx.hash);
-
-		// Wait for the transaction to be confirmed
-		println!("Waiting for confirmation...");
-		signed_tx.track_tx(10).await?;
-		println!("Transaction confirmed!");
-
-		// Get the application log
-		let app_log = signed_tx.get_application_log(&rpc_client).await?;
-		println!("Application log: {:?}", app_log);
-		*/
-
 		Ok(())
+	}
+}
+
+// Adding trait implementations for serde JSON serialization
+// These extensions will be used by the http-client feature
+pub mod extensions {
+	use serde_json::{Result as JsonResult, Value};
+	
+	pub trait ToValue {
+		fn to_value(&self) -> Value;
+	}
+	
+	impl ToValue for String {
+		fn to_value(&self) -> Value {
+			serde_json::Value::String(self.clone())
+		}
+	}
+	
+	impl ToValue for &str {
+		fn to_value(&self) -> Value {
+			serde_json::Value::String((*self).to_string())
+		}
+	}
+	
+	impl ToValue for u32 {
+		fn to_value(&self) -> Value {
+			serde_json::Value::Number(serde_json::Number::from(*self))
+		}
+	}
+	
+	impl ToValue for i32 {
+		fn to_value(&self) -> Value {
+			serde_json::Value::Number(serde_json::Number::from(*self))
+		}
+	}
+	
+	impl ToValue for bool {
+		fn to_value(&self) -> Value {
+			serde_json::Value::Bool(*self)
+		}
+	}
+
+	#[cfg(feature = "http-client")]
+	impl ToValue for primitive_types::H160 {
+		fn to_value(&self) -> Value {
+			serde_json::Value::String(format!("0x{}", hex::encode(self.0)))
+		}
+	}
+
+	#[cfg(feature = "http-client")]
+	impl ToValue for primitive_types::H256 {
+		fn to_value(&self) -> Value {
+			serde_json::Value::String(format!("0x{}", hex::encode(self.0)))
+		}
+	}
+
+	#[cfg(feature = "http-client")]
+	impl ToValue for i64 {
+		fn to_value(&self) -> Value {
+			serde_json::Value::Number(serde_json::Number::from(*self))
+		}
+	}
+
+	#[cfg(feature = "http-client")]
+	impl ToValue for u64 {
+		fn to_value(&self) -> Value {
+			serde_json::Value::Number(serde_json::Number::from(*self))
+		}
+	}
+
+	#[cfg(feature = "http-client")]
+	impl<T: ToValue> ToValue for Vec<T> {
+		fn to_value(&self) -> Value {
+			let values: Vec<Value> = self.iter().map(|item| item.to_value()).collect();
+			serde_json::Value::Array(values)
+		}
+	}
+
+	#[cfg(feature = "http-client")]
+	impl<T: ToValue> ToValue for &[T] {
+		fn to_value(&self) -> Value {
+			let values: Vec<Value> = self.iter().map(|item| item.to_value()).collect();
+			serde_json::Value::Array(values)
+		}
+	}
+
+	#[cfg(feature = "http-client")]
+	impl<T: ToValue> ToValue for Option<T> {
+		fn to_value(&self) -> Value {
+			match self {
+				Some(value) => value.to_value(),
+				None => serde_json::Value::Null,
+			}
+		}
+	}
+
+	// Convert from std::io::Error to ProviderError
+	#[cfg(feature = "http-client")]
+	impl From<std::io::Error> for crate::neo_clients::errors::ProviderError {
+		fn from(error: std::io::Error) -> Self {
+			Self::CustomError(error.to_string())
+		}
 	}
 }

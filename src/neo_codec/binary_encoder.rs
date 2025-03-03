@@ -16,10 +16,7 @@ use std::hash::Hasher;
 /// ```
 use serde::Serialize;
 use serde_derive::Deserialize;
-
-use neo::prelude::NeoSerializable;
-
-use crate::prelude::CodecError;
+use crate::codec::{CodecError, NeoSerializable};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Encoder {
@@ -152,7 +149,7 @@ impl Hasher for Encoder {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::Encoder;
+	use crate::codec::Encoder;
 
 	#[test]
 	fn test_write_u32() {

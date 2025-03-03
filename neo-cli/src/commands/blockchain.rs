@@ -1,11 +1,18 @@
 use clap::{Args, Subcommand};
 use neo3::prelude::*;
-use crate::utils::error::{CliError, CliResult};
-use crate::utils::{print_success, print_error, print_info};
+use primitive_types::H160;
+use primitive_types::H256;
+use neo3::neo_types::Address;
+use crate::errors::CliError;
+use crate::commands::wallet::CliState;
+use crate::utils::{print_success, print_error, print_info, ensure_account_loaded, format_json, prompt_yes_no};
 use std::path::PathBuf;
-use crate::utils::extensions::TransactionExtensions;
+use std::str::FromStr;
 use std::io;
+use std::io::Write;
 use hex;
+use neo3::neo_clients::APITrait;
+use neo3::neo_protocol::NeoBlock;
 
 #[derive(Args, Debug)]
 pub struct BlockchainArgs {
@@ -54,7 +61,7 @@ pub enum BlockchainCommands {
 
 /// CLI state is defined in wallet.rs
 
-pub async fn handle_blockchain_command(args: BlockchainArgs, state: &mut crate::commands::wallet::CliState) -> CliResult<()> {
+pub async fn handle_blockchain_command(args: BlockchainArgs, state: &mut crate::commands::wallet::CliState) -> Result<(), CliError> {
     match args.command {
         BlockchainCommands::Export { path, start, end } => export_blockchain(path, start, end, state).await,
         BlockchainCommands::ShowBlock { identifier } => show_block(identifier, state).await,
@@ -63,7 +70,7 @@ pub async fn handle_blockchain_command(args: BlockchainArgs, state: &mut crate::
     }
 }
 
-async fn export_blockchain(path: PathBuf, start: u32, end: Option<u32>, state: &mut crate::commands::wallet::CliState) -> CliResult<()> {
+async fn export_blockchain(path: PathBuf, start: u32, end: Option<u32>, state: &mut crate::commands::wallet::CliState) -> Result<(), CliError> {
     if state.rpc_client.is_none() {
         print_error("No RPC client is connected. Please connect to a node first.");
         return Err(CliError::Network("No RPC client is connected".to_string()));
@@ -91,7 +98,7 @@ async fn export_blockchain(path: PathBuf, start: u32, end: Option<u32>, state: &
     
     for i in start..=end_block {
         print!("\rExporting block {} of {}...", i, end_block);
-        io::stdout().flush().map_err(|e| CliError::IO(e.to_string()))?;
+        io::stdout().flush().map_err(|e| CliError::Io(e.to_string()))?;
         
         let block = match rpc_client.get_block_by_index(i, true).await {
             Ok(block) => block,
@@ -122,36 +129,49 @@ async fn export_blockchain(path: PathBuf, start: u32, end: Option<u32>, state: &
     Ok(())
 }
 
-async fn show_block(identifier: String, state: &mut crate::commands::wallet::CliState) -> CliResult<()> {
+async fn show_block(identifier: String, state: &mut crate::commands::wallet::CliState) -> Result<(), CliError> {
     if state.rpc_client.is_none() {
         print_error("No RPC client is connected. Please connect to a node first.");
         return Err(CliError::Network("No RPC client is connected".to_string()));
     }
     
-    print_info(&format!("Fetching block information for: {}", identifier));
+    print_info(&format!("Fetching block: {}", identifier));
     
     let rpc_client = state.rpc_client.as_ref().unwrap();
     
-    // Determine if identifier is a hash or an index
     if identifier.starts_with("0x") || (identifier.len() == 64 && identifier.chars().all(|c| c.is_ascii_hexdigit())) {
         // Identifier is a hash
         match rpc_client.get_block_by_hash(&identifier).await {
-            Ok(block) => block,
+            Ok(block) => show_block_by_hash(block),
             Err(e) => {
                 print_error(&format!("Failed to get block by hash: {}", e));
                 return Err(CliError::Network(format!("Failed to get block by hash: {}", e)));
             }
         }
     } else {
-        // Treat as block index
+        // Try to parse as a block index (integer)
         let index = identifier.parse::<u32>().map_err(|_| {
             CliError::Input(format!("Invalid block identifier. Must be a block hash or block index: {}", identifier))
         })?;
         
-        match rpc_client.get_block_by_index(index, true).await {
-            Ok(block) => block,
-            Err(e) => return Err(CliError::RPC(format!("Failed to get block by index: {}", e))),
-        }
+        show_block_by_index(index, state).await
+    }
+}
+
+async fn show_block_by_index(index: u32, state: &mut crate::commands::wallet::CliState) -> Result<(), CliError> {
+    if state.rpc_client.is_none() {
+        print_error("No RPC client is connected. Please connect to a node first.");
+        return Err(CliError::Network("No RPC client is connected".to_string()));
+    }
+    
+    print_info(&format!("Fetching block at index: {}", index));
+    
+    let rpc_client = state.rpc_client.as_ref().unwrap();
+    
+    // Get block by index
+    let block = match rpc_client.get_block_by_index(index, true).await {
+        Ok(block) => block,
+        Err(e) => return Err(CliError::RPC(format!("Failed to get block by index: {}", e))),
     };
     
     // Display block information
@@ -159,16 +179,18 @@ async fn show_block(identifier: String, state: &mut crate::commands::wallet::Cli
     println!("Block Index: {}", block.index);
     println!("Block Time: {}", block.time);
     println!("Block Size: {}", block.size);
-    println!("Transaction Count: {}", block.transactions.len());
+    println!("Transaction Count: {}", block.transactions.as_ref().map_or(0, |tx| tx.len()));
     println!("Merkle Root: {}", block.merkle_root_hash);
     println!("Previous Block: {}", block.prev_block_hash);
     println!("Next Consensus: {}", block.next_consensus);
     
     // Show transactions if there are any
-    if !block.transactions.is_empty() {
-        println!("\nTransactions:");
-        for (i, tx) in block.transactions.iter().enumerate() {
-            println!("  {}. Hash: {}", i + 1, tx);
+    if let Some(transactions) = &block.transactions {
+        if !transactions.is_empty() {
+            println!("\nTransactions:");
+            for (i, tx) in transactions.iter().enumerate() {
+                println!("  {}. Hash: {}", i + 1, tx.hash);
+            }
         }
     }
     
@@ -176,7 +198,32 @@ async fn show_block(identifier: String, state: &mut crate::commands::wallet::Cli
     Ok(())
 }
 
-async fn show_transaction(hash: String, state: &mut crate::commands::wallet::CliState) -> CliResult<()> {
+fn show_block_by_hash(block: NeoBlock) -> Result<(), CliError> {
+    // Display block information
+    println!("Block Hash: {}", block.hash);
+    println!("Block Index: {}", block.index);
+    println!("Block Time: {}", block.time);
+    println!("Block Size: {}", block.size);
+    println!("Transaction Count: {}", block.transactions.as_ref().map_or(0, |tx| tx.len()));
+    println!("Merkle Root: {}", block.merkle_root_hash);
+    println!("Previous Block: {}", block.prev_block_hash);
+    println!("Next Consensus: {}", block.next_consensus);
+    
+    // Show transactions if there are any
+    if let Some(transactions) = &block.transactions {
+        if !transactions.is_empty() {
+            println!("\nTransactions:");
+            for (i, tx) in transactions.iter().enumerate() {
+                println!("  {}. Hash: {}", i + 1, tx.hash);
+            }
+        }
+    }
+    
+    print_success("Block information retrieved successfully");
+    Ok(())
+}
+
+async fn show_transaction(hash: String, state: &mut crate::commands::wallet::CliState) -> Result<(), CliError> {
     if state.rpc_client.is_none() {
         print_error("No RPC client is connected. Please connect to a node first.");
         return Err(CliError::Network("No RPC client is connected".to_string()));
@@ -246,7 +293,7 @@ async fn show_transaction(hash: String, state: &mut crate::commands::wallet::Cli
     Ok(())
 }
 
-async fn show_contract(hash: String, state: &mut crate::commands::wallet::CliState) -> CliResult<()> {
+async fn show_contract(hash: String, state: &mut crate::commands::wallet::CliState) -> Result<(), CliError> {
     if state.rpc_client.is_none() {
         print_error("No RPC client is connected. Please connect to a node first.");
         return Err(CliError::Network("No RPC client is connected".to_string()));
@@ -257,7 +304,7 @@ async fn show_contract(hash: String, state: &mut crate::commands::wallet::CliSta
     let rpc_client = state.rpc_client.as_ref().unwrap();
     
     // Convert from string to H160
-    let contract_hash = neo3::prelude::H160::from_str(&hash)
+    let contract_hash = H160::from_str(&hash)
         .map_err(|_| CliError::Input(format!("Invalid contract hash format: {}", hash)))?;
     
     let contract = rpc_client.get_contract_state(contract_hash).await

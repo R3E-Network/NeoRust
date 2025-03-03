@@ -1,7 +1,5 @@
 //! Error handling utilities for the Neo N3 SDK.
 
-use crate::prelude::NeoError;
-
 /// Converts an Option to a Result with a custom error message.
 ///
 /// # Examples

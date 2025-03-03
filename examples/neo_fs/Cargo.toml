@@ -1,0 +1,20 @@
+[package]
+name = "neo_fs_examples"
+version = "0.1.0"
+edition = "2021"
+authors = ["R3E Network <contact@r3e.network>"]
+license = "MIT OR Apache-2.0"
+publish = false
+
+[dependencies]
+neo3 = { path = "../.." }
+tokio = { version = "1.32", features = ["full"] }
+anyhow = "1.0.75"
+
+[[example]]
+name = "neo_fs_basic_usage"
+path = "basic_usage.rs"
+
+[[example]]
+name = "neo_fs_multipart_upload"
+path = "multipart_upload.rs"

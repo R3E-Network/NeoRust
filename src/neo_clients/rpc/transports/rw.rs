@@ -5,8 +5,7 @@ use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt::Display;
 use thiserror::Error;
-
-use neo::prelude::{JsonRpcProvider, ProviderError};
+use crate::neo_clients::{JsonRpcProvider, ProviderError};
 
 /// A client containing two clients.
 ///

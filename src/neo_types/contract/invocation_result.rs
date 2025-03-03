@@ -13,8 +13,7 @@ use strum;
 use strum_macros::{AsRefStr, Display, EnumString};
 
 use neo::prelude::{deserialize_script_hash, serialize_script_hash, ContractParameter, StackItem};
-
-use crate::prelude::TypeError;
+use crate::TypeError;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct InvocationResult {

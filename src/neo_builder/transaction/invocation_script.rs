@@ -2,12 +2,10 @@ use std::hash::Hash;
 
 use getset::{Getters, Setters};
 use serde_derive::{Deserialize, Serialize};
-
-use neo::prelude::{
-	var_size, BuilderError, Decoder, Encoder, KeyPair, NeoSerializable, OpCode, ScriptBuilder,
-	Secp256r1Signature,
-};
-
+use crate::builder::{BuilderError, ScriptBuilder};
+use crate::codec::{Decoder, Encoder, NeoSerializable};
+use crate::crypto::{KeyPair, Secp256r1Signature};
+use crate::{var_size, OpCode};
 // #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
 // #[getset(get_copy, set)]
 // #[derive(educe::Educe)]

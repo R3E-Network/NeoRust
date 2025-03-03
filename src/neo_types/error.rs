@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use neo::prelude::CodecError;
+use crate::neo_codec::CodecError;
 
 #[derive(Error, Debug, PartialEq, Eq, Hash, Clone)]
 pub enum TypeError {

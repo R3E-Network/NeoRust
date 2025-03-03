@@ -8,15 +8,11 @@
 
 use rand::rngs::OsRng;
 
-use neo::prelude::{
-	private_key_from_wif, wif_from_private_key, CryptoError, PublicKeyExtension,
-	Secp256r1PrivateKey, Secp256r1PublicKey,
-};
-
 use crate::{
 	neo_types::{ScriptHash, ScriptHashExtension},
-	prelude::VerificationScript,
 };
+use crate::builder::VerificationScript;
+use crate::crypto::{private_key_from_wif, wif_from_private_key, CryptoError, PublicKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey};
 
 /// Represents an Elliptic Curve Key Pair containing both a private and a public key.
 #[derive(Debug, Clone)]
@@ -145,8 +141,9 @@ impl PartialEq for KeyPair {
 #[cfg(test)]
 mod tests {
 	use rustc_serialize::hex::FromHex;
-
-	use neo::prelude::{KeyPair, ScriptHash, ScriptHashExtension, TestConstants};
+	use crate::config::TestConstants;
+	use crate::crypto::KeyPair;
+	use crate::{ScriptHash, ScriptHashExtension};
 
 	#[test]
 	fn test_public_key_wif() {

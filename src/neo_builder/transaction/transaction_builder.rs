@@ -52,8 +52,44 @@ use getset::{CopyGetters, Getters, MutGetters, Setters};
 use once_cell::sync::Lazy;
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
+use crate::builder::SignerTrait;
+// Import from neo_types
+use crate::neo_types::{
+	ScriptHashExtension, ScriptHash, Bytes, ContractParameter, NameOrAddress,
+	InvocationResult
+};
 
-use neo::{neo_types::ScriptHashExtension, prelude::*};
+// Import transaction types from neo_builder
+use crate::neo_builder::{
+	transaction::{
+		Signer, TransactionAttribute, Witness, WitnessScope, SignerType, 
+		VerificationScript, Transaction, TransactionError
+	},
+	BuilderError
+};
+
+// Import other modules
+use crate::neo_config::{NeoConstants, NEOCONFIG};
+use crate::neo_protocol::{AccountTrait, NeoNetworkFee};
+use crate::neo_clients::{APITrait, JsonRpcProvider, RpcClient};
+use crate::neo_crypto::Secp256r1PublicKey;
+use crate::neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
+use crate::neo_crypto::HashableForVec;
+
+// Helper functions
+use crate::neo_clients::public_key_to_script_hash;
+
+// Import Account from neo_protocol
+use crate::neo_protocol::Account;
+
+// Special module for initialization - conditionally include
+#[cfg(feature = "init")]
+use crate::prelude::init_logger;
+// Define a local replacement for when init feature is not enabled
+#[cfg(not(feature = "init"))]
+fn init_logger() {
+	// No-op when feature is not enabled
+}
 
 #[derive(Getters, Setters, MutGetters, CopyGetters, Default)]
 pub struct TransactionBuilder<'a, P: JsonRpcProvider + 'static> {
@@ -677,9 +713,12 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 		}
 
 		// Get the signing threshold
-		let signing_threshold = account.get_signing_threshold().map_err(|e| {
+		let threshold_value = account.get_signing_threshold().map_err(|e| {
 			TransactionError::IllegalState(format!("Failed to get signing threshold: {}", e))
-		})? as u8;
+		})?;
+		let signing_threshold = u8::try_from(threshold_value).map_err(|_| {
+			TransactionError::IllegalState("Signing threshold value out of range for u8".to_string())
+		})?;
 
 		// Create and return the VerificationScript with the pub_keys and signing threshold
 		// This method returns a VerificationScript directly, not a Result

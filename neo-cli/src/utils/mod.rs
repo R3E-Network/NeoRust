@@ -1,100 +1,49 @@
+pub mod config;
 pub mod error;
 pub mod extensions;
-pub mod config;
+pub mod neofs;
 
+use crate::errors::CliError;
 use colored::*;
 use dialoguer::{Input, Password};
-use error::{CliError, CliResult};
-use neo3::prelude::*;
-use std::error::Error;
-use std::io::{self, Write};
-use std::fs::File;
-use std::path::Path;
-use std::fmt::Display;
-use primitive_types::H160;
-use neo3::crypto::hash::{HashableForSha256, HashableForRipemd160};
 
 pub fn print_success(message: &str) {
-    println!("{}", message.green());
+	println!("{}", message.green());
 }
 
 pub fn print_info(message: &str) {
-    println!("{}", message.blue());
+	println!("{}", message.blue());
 }
 
 pub fn print_warning(message: &str) {
-    println!("{}", message.yellow());
+	println!("{}", message.yellow());
 }
 
 pub fn print_error(message: &str) {
-    eprintln!("{}", message.red());
+	eprintln!("{}", message.red());
 }
 
-pub fn prompt_input<T>(prompt: &str) -> CliResult<T>
+pub fn prompt_input<T>(prompt: &str) -> Result<T, CliError>
 where
-    T: std::str::FromStr + std::clone::Clone + std::fmt::Display,
-    T::Err: std::fmt::Display,
+	T: std::str::FromStr + std::clone::Clone + std::fmt::Display,
+	T::Err: std::fmt::Display,
 {
-    Input::new()
-        .with_prompt(prompt)
-        .interact()
-        .map_err(|e| CliError::Input(e.to_string()))
+	Input::new()
+		.with_prompt(prompt)
+		.interact()
+		.map_err(|e| CliError::Input(e.to_string()))
 }
 
-pub fn prompt_password(prompt: &str) -> CliResult<String> {
-    Password::new()
-        .with_prompt(prompt)
-        .interact()
-        .map_err(|e| CliError::Input(e.to_string()))
+pub fn prompt_password(prompt: &str) -> Result<String, CliError> {
+	Password::new()
+		.with_prompt(prompt)
+		.interact()
+		.map_err(|e| CliError::Input(e.to_string()))
 }
 
-pub fn prompt_yes_no(prompt: &str) -> CliResult<bool> {
-    let input: String = Input::new()
-        .with_prompt(format!("{} (y/n)", prompt))
-        .interact()
-        .map_err(|e| CliError::Input(e.to_string()))?;
-    
-    Ok(input.to_lowercase().starts_with('y'))
-}
+pub fn prompt_yes_no(prompt: &str) -> Result<bool, CliError> {
+	let input = prompt_input::<String>(&format!("{} (y/n)", prompt))?;
+	let input = input.to_lowercase();
 
-/// Calculate the contract hash based on sender, NEF checksum and contract name
-pub fn calculate_contract_hash(sender: &H160, checksum: u32, name_bytes: &[u8]) -> H160 {
-    // Concatenate sender bytes, checksum bytes and name bytes
-    let mut data = Vec::new();
-    data.extend_from_slice(&sender.0);
-    data.extend_from_slice(&checksum.to_le_bytes());
-    data.extend_from_slice(name_bytes);
-    
-    // Calculate the hash
-    let hash = data.sha256_hash();
-    let hash = hash.ripemd160_hash();
-    
-    H160::from_slice(&hash)
-}
-
-/// Format GAS amount for display (convert from smallest unit to display unit)
-pub fn format_gas(amount: &str) -> String {
-    match amount.parse::<f64>() {
-        Ok(value) => {
-            let gas_value = value / 100_000_000.0; // Convert from fraction to whole GAS
-            format!("{:.8} GAS", gas_value)
-        },
-        Err(_) => amount.to_string(),
-    }
-}
-
-/// Get a human-readable transaction type name
-pub fn get_tx_type_name(tx_type: u8) -> String {
-    match tx_type {
-        0x00 => "Miner".to_string(),
-        0x01 => "Issue".to_string(),
-        0x02 => "Claim".to_string(),
-        0x03 => "Enrollment".to_string(),
-        0x04 => "Register".to_string(),
-        0x05 => "Contract".to_string(),
-        0x06 => "State".to_string(),
-        0x07 => "Publish".to_string(),
-        0x08 => "Invocation".to_string(),
-        _ => format!("Unknown ({})", tx_type),
-    }
+	Ok(input == "y" || input == "yes")
 }

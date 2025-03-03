@@ -1,5 +1,5 @@
-use crate::prelude::deserialize_hardforks;
 use serde::{Deserialize, Serialize};
+use crate::deserialize_hardforks;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NeoVersion {

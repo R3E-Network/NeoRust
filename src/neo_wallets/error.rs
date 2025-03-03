@@ -1,7 +1,9 @@
 use hex::FromHexError;
 use thiserror::Error;
-
-use neo::prelude::{BuilderError, CryptoError, TypeError, WalletError};
+use crate::builder::BuilderError;
+use crate::crypto::CryptoError;
+use crate::neo_wallets::WalletError;
+use crate::TypeError;
 
 /// Represents errors that can occur within the signing process.
 ///

@@ -8,7 +8,7 @@ use lazy_static::lazy_static;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString};
 
-use neo::prelude::HashableForVec;
+use crate::neo_crypto::HashableForVec;
 
 lazy_static! {
 	static ref INTEROP_SERVICE_HASHES: Arc<Mutex<HashMap<String, String>>> =

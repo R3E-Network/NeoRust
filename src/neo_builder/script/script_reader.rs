@@ -1,7 +1,8 @@
 use rustc_serialize::hex::ToHex;
 use tokio::io::AsyncReadExt;
-
-use neo::prelude::{BuilderError, Bytes, Decoder, InteropService, OpCode, OperandSize};
+use crate::builder::{BuilderError, InteropService};
+use crate::{Bytes, OpCode, OperandSize};
+use crate::codec::Decoder;
 
 /// A utility struct for reading and interpreting Neo smart contract scripts.
 pub struct ScriptReader;

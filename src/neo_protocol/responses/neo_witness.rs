@@ -1,10 +1,6 @@
-use crate::prelude::{Base64Encode, BuilderError, Decoder, Encoder, NeoSerializable, Witness};
-use rustc_serialize::{
-	base64,
-	base64::ToBase64,
-	hex::{FromHex, ToHex},
-};
 use serde::{Deserialize, Serialize};
+use crate::Base64Encode;
+use crate::builder::Witness;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
 pub struct NeoWitness {

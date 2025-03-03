@@ -2,11 +2,11 @@ use std::collections::HashMap;
 
 use getset::{Getters, Setters};
 use serde::{Deserialize, Serialize};
-
-use neo::prelude::{
-	Account, Address, AddressOrScriptHash, Base64Encode, ContractParameterType, NEP6Contract,
-	NEP6Parameter, NeoSerializable, StringExt, VerificationScript, WalletError,
-};
+use crate::{Address, AddressOrScriptHash, Base64Encode, ContractParameterType, StringExt};
+use crate::builder::VerificationScript;
+use crate::codec::NeoSerializable;
+use crate::neo_protocol::Account;
+use crate::neo_wallets::{NEP6Contract, NEP6Parameter, WalletError};
 
 /// Represents an account in the NEP-6 format.
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, Setters)]
@@ -237,12 +237,13 @@ impl PartialEq for NEP6Account {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::{
-		Account, AccountTrait, ContractParameterType, NEP6Account, PrivateKeyExtension,
-		ProviderError, Secp256r1PrivateKey, Secp256r1PublicKey, TestConstants,
-	};
-
+	use crate::config::TestConstants;
+	use crate::ContractParameterType;
+	use crate::crypto::{PrivateKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey};
+	use crate::neo_clients::ProviderError;
+	use crate::neo_protocol::{Account, AccountTrait};
 	use crate::neo_types::Base64Encode;
+	use crate::neo_wallets::NEP6Account;
 
 	#[test]
 	fn test_decrypt_with_standard_scrypt_params() {

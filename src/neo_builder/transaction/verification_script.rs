@@ -7,11 +7,11 @@ use p256::pkcs8::der::Encode;
 use primitive_types::H160;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Serialize};
-
-use neo::prelude::{
-	var_size, BuilderError, Bytes, Decoder, Encoder, HashableForVec, InteropService, NeoConstants,
-	NeoSerializable, OpCode, ScriptBuilder, Secp256r1PublicKey, Secp256r1Signature,
-};
+use crate::builder::{BuilderError, InteropService, ScriptBuilder};
+use crate::{var_size, Bytes, OpCode};
+use crate::codec::{Decoder, Encoder, NeoSerializable};
+use crate::config::NeoConstants;
+use crate::crypto::{HashableForVec, Secp256r1PublicKey, Secp256r1Signature};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
 pub struct VerificationScript {

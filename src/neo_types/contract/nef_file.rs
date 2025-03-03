@@ -4,10 +4,12 @@ use primitive_types::H160;
 use tokio::io::AsyncReadExt;
 
 use neo::prelude::{
-	Bytes, CodecError, ContractParameter, Decoder, Encoder, HashableForVec, NeoSerializable,
-	StackItem, TypeError,
+	Bytes, ContractParameter,
+	StackItem,
 };
-
+use crate::codec::{CodecError, Decoder, Encoder, NeoSerializable};
+use crate::crypto::HashableForVec;
+use crate::TypeError;
 /*
 ┌───────────────────────────────────────────────────────────────────────┐
 │                    NEO Executable Format 3 (NEF3)                     │

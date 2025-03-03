@@ -1,10 +1,5 @@
 use thiserror::Error;
 
-use neo::prelude::{
-	CodecError, ContractError, CryptoError, Nep2Error, ProtocolError, ProviderError, SignError,
-	TransactionError, TypeError, WalletError,
-};
-
 #[derive(Error, Debug)]
 pub enum NeoError {
 	#[error("Illegal argument: {0}")]
@@ -97,7 +92,14 @@ impl From<&str> for NeoError {
 	}
 }
 
-use neo::prelude::BuilderError;
+use crate::builder::{BuilderError, TransactionError};
+use crate::codec::CodecError;
+use crate::contract::ContractError;
+use crate::crypto::{CryptoError, Nep2Error, SignError};
+use crate::neo_clients::ProviderError;
+use crate::neo_protocol::ProtocolError;
+use crate::neo_wallets::WalletError;
+use crate::TypeError;
 
 impl From<BuilderError> for NeoError {
 	fn from(err: BuilderError) -> Self {

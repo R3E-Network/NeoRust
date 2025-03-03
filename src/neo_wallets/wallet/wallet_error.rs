@@ -1,7 +1,8 @@
 use p256::ecdsa;
 use thiserror::Error;
-
-use neo::prelude::{BuilderError, CryptoError, ProviderError, TransactionError};
+use crate::builder::{BuilderError, TransactionError};
+use crate::crypto::CryptoError;
+use crate::neo_clients::ProviderError;
 
 /// Errors that may occur within wallet operations.
 ///

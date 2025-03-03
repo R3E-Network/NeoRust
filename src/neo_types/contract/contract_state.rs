@@ -2,9 +2,10 @@ use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
 use neo::prelude::{
-	deserialize_script_hash, serialize_script_hash, ContractManifest, ContractNef,
+	deserialize_script_hash, serialize_script_hash, ContractManifest,
 	InvocationResult, StackItem, *,
 };
+use crate::ContractNef;
 
 #[derive(Clone, Debug, Hash, Serialize, Deserialize, PartialEq)]
 pub struct ContractState {

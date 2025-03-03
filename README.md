@@ -36,7 +36,7 @@ Add neo3 to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-neo3 = "0.1.0"
+neo3 = "0.1.4"
 ```
 
 Note: The crate is published as `neo3` but is imported as `neo` in code:
@@ -45,12 +45,6 @@ Note: The crate is published as `neo3` but is imported as `neo` in code:
 use neo::prelude::*;
 ```
 
-You can also specify features if needed:
-
-```toml
-[dependencies]
-neo3 = { version = "0.1.1", features = ["ledger", "aws", "futures"] }
-```
 
 For the latest development version, you can use the Git repository:
 
@@ -486,7 +480,7 @@ Example of enabling multiple features:
 
 ```toml
 [dependencies]
-neo3 = { version = "0.1.0", features = ["ledger", "aws", "futures"] }
+neo3 = "0.1.4"
 ```
 
 ## Build and Test Scripts
@@ -559,7 +553,7 @@ Contributions are welcome! Here's how you can contribute to the NeoRust SDK:
 
 ## Package Status
 
-NeoRust is now available on [crates.io](https://crates.io/crates/neo3) as the `neo3` crate. The latest version is `0.1.1`.
+NeoRust is now available on [crates.io](https://crates.io/crates/neo3) as the `neo3` crate. The latest version is `0.1.4`.
 
 This means you can now easily add it to your Rust projects without having to reference the GitHub repository directly.
 

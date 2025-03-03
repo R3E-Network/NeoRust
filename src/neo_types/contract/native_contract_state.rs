@@ -2,7 +2,8 @@ use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
 use getset::{CopyGetters, Getters, MutGetters, Setters};
-use neo::prelude::{ContractManifest, ContractNef, *};
+use neo::prelude::{ContractManifest, *};
+use crate::ContractNef;
 
 #[derive(Serialize, Deserialize, Getters, Setters, Default, Debug, Clone)]
 pub struct NativeContractState {

@@ -3,10 +3,10 @@ use hex::FromHexError;
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
 
-use neo::prelude::{
-	public_key_to_script_hash, HashableForVec, Secp256r1PublicKey, TypeError,
-	DEFAULT_ADDRESS_VERSION,
-};
+use crate::neo_clients::public_key_to_script_hash;
+use crate::neo_crypto::{HashableForVec, Secp256r1PublicKey};
+use crate::neo_config::DEFAULT_ADDRESS_VERSION;
+use crate::neo_types::TypeError;
 
 pub type ScriptHash = H160;
 
@@ -170,7 +170,11 @@ mod tests {
 
 	use rustc_serialize::hex::{FromHex, ToHex};
 
-	use neo::prelude::{Encoder, InteropService, NeoSerializable, OpCode, TestConstants};
+	use crate::neo_codec::Encoder;
+	use crate::neo_builder::InteropService;
+	use crate::neo_codec::NeoSerializable;
+	use crate::neo_types::op_code::OpCode;
+	use crate::neo_config::TestConstants;
 
 	use super::*;
 

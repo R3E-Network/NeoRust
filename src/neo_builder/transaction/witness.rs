@@ -1,9 +1,8 @@
 use serde::{Deserialize, Serialize};
-
-use neo::prelude::{
-	BuilderError, Bytes, ContractParameter, Decoder, Encoder, InvocationScript, KeyPair,
-	NeoSerializable, ScriptBuilder, Secp256r1PublicKey, Secp256r1Signature, VerificationScript,
-};
+use crate::builder::{BuilderError, InvocationScript, ScriptBuilder, VerificationScript};
+use crate::{Bytes, ContractParameter};
+use crate::codec::{Decoder, Encoder, NeoSerializable};
+use crate::crypto::{KeyPair, Secp256r1PublicKey, Secp256r1Signature};
 
 #[derive(Hash, Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Witness {

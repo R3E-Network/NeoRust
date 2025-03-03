@@ -7,9 +7,8 @@
 
 use primitive_types::{H160, H256, U256};
 
-use neo::prelude::TypeError;
-
 use crate::prelude::ScriptHash;
+use crate::TypeError;
 
 /// Parses a string into a `u64`, supporting both decimal and hexadecimal (prefixed with "0x") formats.
 ///

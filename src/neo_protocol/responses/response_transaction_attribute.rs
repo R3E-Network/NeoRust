@@ -1,9 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::Value;
-
-use crate::prelude::OracleResponseCode;
 use primitive_types::H256;
-use std::fmt;
+use crate::builder::OracleResponseCode;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]

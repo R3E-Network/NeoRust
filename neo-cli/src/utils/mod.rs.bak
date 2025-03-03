@@ -1,0 +1,206 @@
+pub mod extensions;
+pub mod config;
+pub mod error;
+
+use colored::*;
+use dialoguer::{Input, Password};
+use crate::errors::CliError;
+use neo3::prelude::*;
+use std::error::Error;
+use std::io::{self, Write};
+use std::fs::File;
+use std::path::Path;
+use std::fmt::Display;
+use sha2::{Sha256, Digest};
+use ripemd::{Ripemd160};
+use primitive_types::H160;
+use crate::commands::wallet::Account;
+
+pub fn print_success(message: &str) {
+    println!("{}", message.green());
+}
+
+pub fn print_info(message: &str) {
+    println!("{}", message.blue());
+}
+
+pub fn print_warning(message: &str) {
+    println!("{}", message.yellow());
+}
+
+pub fn print_error(message: &str) {
+    eprintln!("{}", message.red());
+}
+
+pub fn prompt_input<T>(prompt: &str) -> Result<T, CliError>
+where
+    T: std::str::FromStr + std::clone::Clone + std::fmt::Display,
+    T::Err: std::fmt::Display,
+{
+    Input::new()
+        .with_prompt(prompt)
+        .interact()
+        .map_err(|e| CliError::Input(e.to_string()))
+}
+
+pub fn prompt_password(prompt: &str) -> Result<String, CliError> {
+    Password::new()
+        .with_prompt(prompt)
+        .interact()
+        .map_err(|e| CliError::Input(e.to_string()))
+}
+
+pub fn prompt_yes_no(prompt: &str) -> Result<bool, CliError> {
+    let input = prompt_input::<String>(&format!("{} (y/n)", prompt))?;
+    let input = input.to_lowercase();
+    
+    Ok(input == "y" || input == "yes")
+}
+
+/// Get sha256 hash of data
+pub fn sha256(data: &[u8]) -> Vec<u8> {
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    hasher.finalize().to_vec()
+}
+
+/// Get ripemd160 hash of data
+pub fn ripemd160(data: &[u8]) -> Vec<u8> {
+    let mut hasher = Ripemd160::new();
+    hasher.update(data);
+    hasher.finalize().to_vec()
+}
+
+/// Hash256 is sha256(sha256(data))
+pub fn hash256(data: &[u8]) -> Vec<u8> {
+    let hash = sha256(data);
+    sha256(&hash)
+}
+
+/// Hash160 is ripemd160(sha256(data))
+pub fn hash160(data: &[u8]) -> Vec<u8> {
+    let hash = sha256(data);
+    ripemd160(&hash)
+}
+
+/// Calculate the contract hash based on sender, NEF checksum and contract name
+pub fn calculate_contract_hash(sender: &H160, checksum: u32, name_bytes: &[u8]) -> H160 {
+    // Concatenate sender bytes, checksum bytes and name bytes
+    let mut data = Vec::new();
+    data.extend_from_slice(&sender.0);
+    data.extend_from_slice(&checksum.to_le_bytes());
+    data.extend_from_slice(name_bytes);
+    
+    // Calculate the hash
+    let hash = hash160(&data);
+    
+    H160::from_slice(&hash)
+}
+
+/// Format GAS amount for display (convert from smallest unit to display unit)
+pub fn format_gas(amount: &str) -> String {
+    match amount.parse::<f64>() {
+        Ok(value) => {
+            let gas_value = value / 100_000_000.0; // Convert from fraction to whole GAS
+            format!("{:.8} GAS", gas_value)
+        },
+        Err(_) => amount.to_string(),
+    }
+}
+
+/// Get a human-readable transaction type name
+pub fn get_tx_type_name(tx_type: u8) -> String {
+    match tx_type {
+        0x00 => "Miner".to_string(),
+        0x01 => "Issue".to_string(),
+        0x02 => "Claim".to_string(),
+        0x03 => "Enrollment".to_string(),
+        0x04 => "Register".to_string(),
+        0x05 => "Contract".to_string(),
+        0x06 => "State".to_string(),
+        0x07 => "Publish".to_string(),
+        0x08 => "Invocation".to_string(),
+        _ => format!("Unknown ({})", tx_type),
+    }
+}
+
+/// Format JSON string for display
+pub fn format_json(json: String) -> String {
+    json
+}
+
+/// Read content from a file
+pub fn read_from_file(path: &Path) -> Result<String, CliError> {
+    std::fs::read_to_string(path)
+        .map_err(|e| CliError::Io(e))
+}
+
+/// Write content to a file
+pub fn write_to_file(path: &Path, content: &str) -> Result<(), CliError> {
+    std::fs::write(path, content)
+        .map_err(|e| CliError::Io(e))
+}
+
+/// Ensure an account is loaded before proceeding with operations
+pub async fn ensure_account_loaded(
+    state: &mut crate::commands::wallet::CliState,
+    wallet_path: Option<std::path::PathBuf>,
+    password: Option<String>
+) -> Result<Account, CliError> {
+    // Check if we already have a wallet with an account
+    if let Some(wallet) = &state.wallet {
+        // Get the default account (if available)
+        let account = wallet.default_account().clone();
+        
+        // Return the account
+        return Ok(account);
+    }
+    
+    if let Some(wallet_path) = wallet_path {
+        // Load wallet from file
+        let wallet_path_str = wallet_path.to_string_lossy();
+        let _wallet_json = std::fs::read_to_string(wallet_path_str.as_ref())
+            .map_err(|e| CliError::Wallet(format!("Failed to read wallet file: {}", e)))?;
+        
+        // Get password if not provided
+        let password = match password {
+            Some(pwd) => pwd,
+            None => prompt_password("Enter password for wallet")?,
+        };
+        
+        // Parse JSON and convert to Wallet
+        let wallet = neo3::neo_wallets::Wallet::open_wallet(&wallet_path.to_path_buf(), &password)
+            .map_err(|e| CliError::Wallet(format!("Failed to load wallet: {}", e)))?;
+        
+        // Get default account or prompt user to select one
+        let account = if wallet.accounts.len() == 1 {
+            // For single account, get it directly
+            let (_hash, account) = wallet.accounts.iter().next().unwrap();
+            account.clone()
+        } else if wallet.accounts.is_empty() {
+            return Err(CliError::Wallet("Wallet contains no accounts".to_string()));
+        } else {
+            // Multiple accounts, let user choose
+            println!("Available accounts:");
+            for (i, (_hash, account)) in wallet.accounts.iter().enumerate() {
+                println!("  {}. {}", i + 1, account.get_address());
+            }
+            
+            let selection = prompt_input::<usize>("Select account (number)")?;
+            if selection < 1 || selection > wallet.accounts.len() {
+                return Err(CliError::Input("Invalid account selection".to_string()));
+            }
+            
+            // Get the selected account
+            let (_hash, account) = wallet.accounts.iter().nth(selection - 1).unwrap();
+            account.clone()
+        };
+        
+        // Set as current wallet
+        state.wallet = Some(wallet);
+        
+        Ok(account)
+    } else {
+        Err(CliError::Wallet("No wallet loaded. Please provide a wallet path.".to_string()))
+    }
+}

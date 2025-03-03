@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
-
-use neo::prelude::{NEP6Account, ScryptParamsDef};
+use crate::neo_wallets::NEP6Account;
+use crate::ScryptParamsDef;
 
 /// Represents a NEP-6 wallet.
 #[derive(Serialize, Deserialize, Clone, Getters, CopyGetters)]
@@ -65,7 +65,9 @@ impl Nep6Wallet {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::{ContractParameterType, Nep6Wallet, ScryptParamsDef};
+	use neo::prelude::{ContractParameterType};
+	use crate::neo_wallets::Nep6Wallet;
+	use crate::ScryptParamsDef;
 
 	#[test]
 	fn test_read_wallet() {

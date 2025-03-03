@@ -8,18 +8,17 @@ use serde_json::Value;
 use serde_with::__private__::DeError;
 use tracing::info;
 
-use crate::{
-	neo_clients::JsonRpcProvider,
-	prelude::{init_logger, HttpProvider, NeoConstants, RawTransaction},
-};
+use crate::{neo_clients::JsonRpcProvider, Bytes};
 use neo::{
-	prelude::{
-		APITrait, ApplicationLog, Bytes, Decoder, Encoder, HashableForVec, NameOrAddress,
-		NeoSerializable, RpcClient, Signer, TransactionAttribute, TransactionError, VarSizeTrait,
-		Witness,
-	},
 	types::ContractParameterType::H256,
 };
+use crate::builder::{init_logger, Signer, TransactionAttribute, TransactionError, Witness};
+use crate::codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
+use crate::config::NeoConstants;
+use crate::crypto::HashableForVec;
+use crate::neo_clients::{APITrait, HttpProvider, RpcClient};
+use crate::neo_protocol::{ApplicationLog, RawTransaction};
+use crate::neo_types::NameOrAddress;
 
 /// A Neo N3 blockchain transaction.
 ///

@@ -46,11 +46,11 @@
 use aes::cipher::{block_padding::NoPadding, BlockDecryptMut, BlockEncryptMut, KeyInit};
 use rustc_serialize::hex::FromHex;
 use scrypt::{scrypt, Params};
-
-use neo::prelude::{
-	base58check_decode, base58check_encode, public_key_to_address, vec_to_array32, HashableForVec,
-	KeyPair, NeoConstants, ProviderError, Secp256r1PublicKey, ToBase58,
-};
+use crate::config::NeoConstants;
+use crate::crypto::{base58check_decode, base58check_encode, HashableForVec, KeyPair, Secp256r1PublicKey};
+use crate::neo_clients::public_key_to_address;
+use crate::providers::ProviderError;
+use crate::vec_to_array32;
 
 type Aes256EcbEnc = ecb::Encryptor<aes::Aes256>;
 type Aes256EcbDec = ecb::Decryptor<aes::Aes256>;
@@ -226,8 +226,7 @@ fn address_hash_from_pubkey(pubkey: &[u8]) -> [u8; 4] {
 
 #[cfg(test)]
 mod tests {
-	use neo::prelude::TestConstants;
-
+	use crate::config::TestConstants;
 	use super::*;
 
 	#[test]

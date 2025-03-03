@@ -9,20 +9,9 @@ use primitive_types::{H256, U256};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use serde_with::__private__::DeError;
-
-use crate::{
-	neo_clients::JsonRpcProvider,
-	prelude::{NeoConstants, RawTransaction, TypeError},
-};
-use neo::{
-	prelude::{
-		APITrait, ApplicationLog, Bytes, Decoder, Encoder, HashableForVec, NameOrAddress,
-		NeoSerializable, NeoWitness, RpcClient, Signer, TransactionAttribute, TransactionError,
-		TransactionSigner, VMState, VarSizeTrait, Witness,
-	},
-	// types::ContractParameterType::H256,
-};
-
+use neo::VMState;
+use crate::{neo_clients::JsonRpcProvider, TypeError};
+use crate::neo_protocol::NeoWitness;
 use super::{RTransactionSigner, TransactionAttributeEnum};
 
 #[derive(Serialize, Deserialize, Getters, Setters, MutGetters, CopyGetters, Debug, Clone)]

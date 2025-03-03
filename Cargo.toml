@@ -1,10 +1,10 @@
 [package]
 name = "neo3"
-version = "0.1.1"
+version = "0.1.4"
 edition = "2021"
 authors = ["R3E Network <contact@r3e.network>"]
 license = "MIT OR Apache-2.0"
-description = "A comprehensive Rust SDK for interacting with the Neo N3 blockchain"
+description = "Rust SDK for Neo N3"
 documentation = "https://docs.rs/neo3"
 repository = "https://github.com/R3E-Network/NeoRust"
 homepage = "https://github.com/R3E-Network/NeoRust"
@@ -38,7 +38,7 @@ all-features = true
 resolver = "2"
 
 [workspace]
-members = []
+members = ["neo-cli"]
 
 [dependencies]
 tokio = { version = "1.32", features = ["full"] }
@@ -128,7 +128,7 @@ primitive-types = "0.13.0"
 rust-crypto = "0.2"
 lazy_static = "1.4.0"
 num-traits = "0.2.16"
-chrono = "0.4.31"
+chrono = { version = "0.4.31", features = ["serde"] }
 strum = "0.26.3"
 strum_macros = "0.26.4"
 num_enum =   "0.7.0"

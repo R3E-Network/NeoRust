@@ -3,13 +3,15 @@ use std::{
 	fmt,
 	hash::{Hash, Hasher},
 };
-
+use crate::serialize_map;
+use crate::deserialize_map;
 use getset::Getters;
 use primitive_types::{H160, H256};
 use rustc_serialize::{
 	base64::FromBase64,
 	hex::{FromHex, ToHex},
 };
+use crate::neo_types::script_hash::ScriptHashExtension;
 use serde::{
 	de,
 	de::{MapAccess, Visitor},
@@ -19,11 +21,10 @@ use serde::{
 use serde_json::Value;
 use sha3::Digest;
 use strum_macros::{Display, EnumString};
-
-use neo::prelude::{
-	deserialize_map, serialize_map, Base64Encode, ContractParameterType, NNSName, NefFile,
-	NeoSerializable, Role, ScriptHashExtension, Secp256r1PublicKey, ValueExtension,
-};
+use crate::contract::Role;
+use crate::{Base64Encode, ContractParameterType, NNSName, NefFile, ValueExtension};
+use crate::codec::NeoSerializable;
+use crate::crypto::Secp256r1PublicKey;
 
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Clone)]
 pub struct ContractParameter2 {
@@ -776,8 +777,10 @@ mod tests {
 	use rustc_serialize::hex::FromHex;
 
 	use neo::prelude::{
-		ContractParameter, ContractParameterMap, ContractParameterType, Secp256r1PublicKey,
+		ContractParameter, ContractParameterType,
 	};
+	use crate::crypto::Secp256r1PublicKey;
+	use crate::neo_types::ContractParameterMap;
 
 	#[test]
 	fn test_string_from_string() {

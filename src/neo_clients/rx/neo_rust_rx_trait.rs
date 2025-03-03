@@ -1,6 +1,6 @@
-use crate::prelude::{NeoBlock, Transaction};
 use futures::stream::Stream;
 use std::{error::Error, pin::Pin};
+use crate::neo_protocol::NeoBlock;
 
 /// The JSON-RPC client event API for Neo.
 pub trait NeoRustRxTrait {

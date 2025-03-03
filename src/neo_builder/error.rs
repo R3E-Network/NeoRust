@@ -1,6 +1,8 @@
 use thiserror::Error;
-
-use neo::prelude::{CodecError, CryptoError, ProviderError, TransactionError};
+use crate::builder::TransactionError;
+use crate::codec::CodecError;
+use crate::crypto::CryptoError;
+use crate::neo_clients::ProviderError;
 
 #[derive(Debug, Error, PartialEq, Clone)]
 pub enum BuilderError {

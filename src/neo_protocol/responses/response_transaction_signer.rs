@@ -1,18 +1,15 @@
 use std::hash::{Hash, Hasher};
-
+use crate::serialize_script_hash;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
-
-use neo::prelude::{
-	deserialize_scopes, deserialize_script_hash, deserialize_vec_public_key_option,
-	deserialize_vec_script_hash, deserialize_vec_script_hash_option, serialize_scopes,
-	serialize_script_hash, serialize_vec_public_key_option, serialize_vec_script_hash,
-	serialize_vec_script_hash_option, Decoder, Encoder, NeoConstants, NeoSerializable,
-	Secp256r1PublicKey, SignerTrait, SignerType, TransactionError, VarSizeTrait, WitnessRule,
-	WitnessScope,
-};
-
-use crate::prelude::TypeError;
+use neo::TypeError;
+use crate::builder::{SignerTrait, SignerType, WitnessRule, WitnessScope};
+use crate::crypto::Secp256r1PublicKey;
+use crate::serialize_scopes;
+use crate::serialize_vec_script_hash;
+use crate::deserialize_script_hash;
+use crate::deserialize_scopes;
+use crate::deserialize_vec_script_hash;
 
 #[derive(Default, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct RTransactionSigner {

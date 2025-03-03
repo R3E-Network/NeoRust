@@ -10,10 +10,10 @@ use primitive_types::{H160, H256};
 use sha2::Digest;
 use signature::hazmat::{PrehashSigner, PrehashVerifier};
 use yubihsm::ecdsa::Signature;
-
-use neo::prelude::{APITrait, Address, Transaction, WalletError};
-
-use crate::prelude::{JsonRpcProvider, ScriptHashExtension, WalletSigner};
+use crate::{Address, ScriptHashExtension};
+use crate::builder::Transaction;
+use crate::neo_clients::JsonRpcProvider;
+use crate::neo_wallets::WalletError;
 
 /// Neo N3 APDU commands for Ledger devices.
 pub mod apdu {
@@ -177,7 +177,7 @@ impl<T: LedgerAsync> LedgerWallet<T> {
 	pub async fn sign_transaction<'a, P: JsonRpcProvider + 'static>(
 		&self,
 		tx: &Transaction<'a, P>,
-	) -> Result<Signature<NistP256>, WalletError> {
+	) -> Result<Signature, WalletError> {
 		let path = self.derivation_path.to_vec();
 
 		// Get the transaction hash
@@ -204,11 +204,11 @@ impl<T: LedgerAsync> LedgerWallet<T> {
 			return Err(WalletError::LedgerError("Invalid signature length".to_string()));
 		}
 
-		// Convert the signature to a Signature<NistP256>
+		// Convert the signature to a Signature
 		let r = H256::from_slice(&data[0..32]);
 		let s = H256::from_slice(&data[32..64]);
 
-		// Create a Signature<NistP256> from r and s
+		// Create a Signature from r and s
 		let r_bytes: [u8; 32] = r.into();
 		let s_bytes: [u8; 32] = s.into();
 		let signature = Signature::from_scalars(r_bytes, s_bytes)
@@ -218,7 +218,7 @@ impl<T: LedgerAsync> LedgerWallet<T> {
 	}
 
 	/// Signs a message using the Ledger device.
-	pub async fn sign_message(&self, message: &[u8]) -> Result<Signature<NistP256>, WalletError> {
+	pub async fn sign_message(&self, message: &[u8]) -> Result<Signature, WalletError> {
 		let path = self.derivation_path.to_vec();
 
 		// Hash the message using SHA-256
@@ -246,11 +246,11 @@ impl<T: LedgerAsync> LedgerWallet<T> {
 			return Err(WalletError::LedgerError("Invalid signature length".to_string()));
 		}
 
-		// Convert the signature to a Signature<NistP256>
+		// Convert the signature to a Signature
 		let r = H256::from_slice(&data[0..32]);
 		let s = H256::from_slice(&data[32..64]);
 
-		// Create a Signature<NistP256> from r and s
+		// Create a Signature from r and s
 		let r_bytes: [u8; 32] = r.into();
 		let s_bytes: [u8; 32] = s.into();
 		let signature = Signature::from_scalars(r_bytes, s_bytes)

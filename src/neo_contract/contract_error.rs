@@ -1,6 +1,5 @@
 use thiserror::Error;
-
-use neo::prelude::ProviderError;
+use crate::neo_clients::ProviderError;
 
 /// Custom error type for contract-related errors
 #[derive(Error, Debug)]

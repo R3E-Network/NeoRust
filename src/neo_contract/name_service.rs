@@ -5,13 +5,14 @@ use async_trait::async_trait;
 use futures::FutureExt;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
-
-use neo::prelude::{
-	deserialize_script_hash, deserialize_script_hash_option, serialize_script_hash,
-	serialize_script_hash_option, APITrait, AddressOrScriptHash, ContractError, ContractParameter,
-	JsonRpcProvider, NNSName, NeoIterator, NonFungibleTokenTrait, RpcClient, ScriptHash,
-	SmartContractTrait, StackItem, TokenTrait, TransactionBuilder,
-};
+use crate::builder::TransactionBuilder;
+use crate::contract::{ContractError, NeoIterator, NonFungibleTokenTrait, SmartContractTrait, TokenTrait};
+use crate::neo_clients::{APITrait, JsonRpcProvider, RpcClient};
+use crate::{AddressOrScriptHash, ContractParameter, NNSName, ScriptHash, StackItem};
+use crate::serialize_script_hash_option;
+use crate::deserialize_script_hash_option;
+use crate::serialize_script_hash;
+use crate::deserialize_script_hash;
 
 #[repr(u8)]
 enum RecordType {

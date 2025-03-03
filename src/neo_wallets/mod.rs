@@ -113,10 +113,10 @@ use p256::NistP256;
 pub use yubihsm;
 
 pub use error::*;
-use neo::prelude::Account;
 pub use wallet::*;
 pub use wallet_signer::WalletSigner;
 pub use wallet_trait::WalletTrait;
+use crate::neo_protocol::Account;
 
 #[cfg(feature = "ledger")]
 mod ledger;

@@ -1,0 +1,2159 @@
+use std::path::PathBuf;
+use std::str::FromStr;
+use clap::{Args, Subcommand};
+use neo3::prelude::*;
+use primitive_types::H160;
+use crate::errors::CliError;
+use crate::commands::wallet::CliState;
+use crate::utils::{print_success, print_error, print_info, ensure_account_loaded, format_json, prompt_password};
+use num_traits::cast::ToPrimitive;
+use num_bigint::BigInt;
+use rand;
+use neo3::neo_builder::{Transaction, TransactionBuilder, AccountSigner, Signer};
+use neo3::prelude::{Nep17Contract, ScriptBuilder, InteropService};
+
+#[derive(Args, Debug)]
+pub struct DefiArgs {
+    /// Path to wallet file
+    #[arg(short, long)]
+    pub wallet: Option<PathBuf>,
+
+    /// Password for the wallet
+    #[arg(short, long)]
+    pub password: Option<String>,
+    
+    #[command(subcommand)]
+    pub command: DefiCommands,
+}
+
+#[derive(Subcommand, Debug, Clone)]
+pub enum DefiCommands {
+    /// Flamingo Finance operations
+    Flamingo {
+        #[command(subcommand)]
+        command: FlamingoCommands,
+    },
+    
+    /// NeoburgerNeo operations
+    Neoburger {
+        #[command(subcommand)]
+        command: NeoburgerCommands,
+    },
+    
+    /// GrandShare operations
+    GrandShare {
+        #[command(subcommand)]
+        command: GrandShareCommands,
+    },
+    
+    /// NeoCompound operations
+    NeoCompound {
+        #[command(subcommand)]
+        command: NeoCompoundCommands,
+    },
+    
+    /// Token operations
+    Token(TokenArgs),
+    
+    /// List all famous contracts on a network
+    List {
+        /// Network to list contracts for (mainnet or testnet)
+        #[arg(short, long, default_value = "mainnet")]
+        network: String,
+    },
+    
+    /// Show details of a specific contract
+    Show {
+        /// Script hash or name of the contract
+        contract: String,
+    },
+    
+    /// Invoke a method on a famous contract
+    Invoke {
+        /// Script hash or name of the contract
+        contract: String,
+        
+        /// Method to invoke
+        method: String,
+        
+        /// Arguments for the method (in JSON format)
+        #[arg(short, long)]
+        args: Option<String>,
+        
+        /// Whether to actually execute the invocation
+        #[arg(short, long)]
+        execute: bool,
+    },
+    
+    /// Query token balance from a contract
+    Balance {
+        /// Script hash or name of the token contract
+        contract: String,
+        
+        /// Address to check balance for (defaults to the currently loaded account)
+        #[arg(short, long)]
+        address: Option<String>,
+    },
+}
+
+#[derive(Debug, Args, Clone)]
+pub struct TokenArgs {
+    /// Command to execute
+    #[command(subcommand)]
+    pub command: TokenCommand,
+}
+
+#[derive(Debug, Subcommand, Clone)]
+pub enum TokenCommand {
+    /// Get token information
+    Info {
+        /// Token ID (script hash or known symbol like NEO, GAS)
+        #[arg(short, long)]
+        token_id: String,
+    },
+    
+    /// Get token balance
+    Balance {
+        /// Token ID (script hash or known symbol like NEO, GAS)
+        #[arg(short, long)]
+        token: String,
+        
+        /// Address to check balance for (if not provided, will use the currently loaded account)
+        #[arg(short, long)]
+        address: Option<String>,
+    },
+    
+    /// Check allowance for a token
+    Allowance {
+        /// Owner address or script hash
+        #[arg(short, long)]
+        owner: String,
+        
+        /// Spender address or script hash
+        #[arg(short, long)]
+        spender: String,
+    },
+    
+    /// Approve token spending
+    Approve {
+        /// Spender address or script hash
+        #[arg(short, long)]
+        spender: String,
+        
+        /// Amount to approve
+        #[arg(short, long)]
+        amount: String,
+        
+        /// Account to use for approval (if not provided, will use first account)
+        #[arg(short, long)]
+        from: Option<String>,
+        
+        /// Wallet password for signing
+        #[arg(short, long)]
+        password: Option<String>,
+    },
+    
+    /// Transfer tokens
+    Transfer {
+        /// Token ID (script hash or known symbol like NEO, GAS)
+        #[arg(short, long)]
+        token: String,
+        
+        /// Recipient address or script hash
+        #[arg(short, long)]
+        to: String,
+        
+        /// Amount to transfer
+        #[arg(short, long)]
+        amount: String,
+        
+        /// Account to use for transfer (if not provided, will use first account)
+        #[arg(short, long)]
+        account: Option<String>,
+        
+        /// Gas to use for transfer (if not provided, will use default gas)
+        #[arg(short, long)]
+        gas: Option<String>,
+        
+        /// Wallet password for signing
+        #[arg(short, long)]
+        password: Option<String>,
+    },
+}
+
+#[derive(Subcommand, Debug, Clone)]
+pub enum FlamingoCommands {
+    /// Swap tokens on Flamingo
+    Swap {
+        /// Source token script hash or symbol (NEO, GAS)
+        #[arg(short, long)]
+        from_token: String,
+        
+        /// Destination token script hash or symbol
+        #[arg(short, long)]
+        to_token: String,
+        
+        /// Amount of source token to swap
+        #[arg(short, long)]
+        amount: String,
+        
+        /// Minimum amount of destination token to receive
+        #[arg(short, long)]
+        min_return: String,
+        
+        /// Account to pay for the swap (if not specified, uses the first account)
+        #[arg(short, long)]
+        account: Option<String>,
+    },
+    
+    /// Add liquidity to a pool
+    AddLiquidity {
+        /// First token script hash or symbol
+        #[arg(short, long)]
+        token_a: String,
+        
+        /// Second token script hash or symbol
+        #[arg(short, long)]
+        token_b: String,
+        
+        /// Amount of first token
+        #[arg(short, long)]
+        amount_a: String,
+        
+        /// Amount of second token
+        #[arg(short, long)]
+        amount_b: String,
+        
+        /// Account to pay for adding liquidity (if not specified, uses the first account)
+        #[arg(short, long)]
+        account: Option<String>,
+    },
+}
+
+#[derive(Subcommand, Debug, Clone)]
+pub enum NeoburgerCommands {
+    /// Wrap NEO to bNEO
+    Wrap {
+        /// Amount of NEO to wrap
+        #[arg(short, long)]
+        amount: String,
+        
+        /// Account to pay for wrapping (if not specified, uses the first account)
+        #[arg(short, long)]
+        account: Option<String>,
+    },
+    
+    /// Unwrap bNEO to NEO
+    Unwrap {
+        /// Amount of bNEO to unwrap
+        #[arg(short, long)]
+        amount: String,
+        
+        /// Account to pay for unwrapping (if not specified, uses the first account)
+        #[arg(short, long)]
+        account: Option<String>,
+    },
+    
+    /// Claim GAS rewards from bNEO
+    ClaimGas {
+        /// Account to claim GAS (if not specified, uses the first account)
+        #[arg(short, long)]
+        account: Option<String>,
+    },
+    
+    /// Get the current exchange rate between NEO and bNEO
+    GetRate,
+}
+
+#[derive(Subcommand, Debug, Clone)]
+pub enum GrandShareCommands {
+    /// Stake NEO in GrandShare
+    Stake {
+        /// Amount of NEO to stake
+        #[arg(short, long)]
+        amount: String,
+        
+        /// Account to use for staking (if not specified, uses the first account)
+        #[arg(short, long)]
+        account: Option<String>,
+    },
+    
+    /// Withdraw staked NEO from GrandShare
+    Withdraw {
+        /// Amount of NEO to withdraw
+        #[arg(short, long)]
+        amount: String,
+        
+        /// Account to withdraw to (if not specified, uses the first account)
+        #[arg(short, long)]
+        account: Option<String>,
+    },
+    
+    /// Claim rewards from GrandShare staking
+    ClaimRewards {
+        /// Account to claim rewards (if not specified, uses the first account)
+        #[arg(short, long)]
+        account: Option<String>,
+    },
+    
+    /// Get current staking information
+    GetInfo {
+        /// Account to get info for (if not specified, uses the first account)
+        #[arg(short, long)]
+        account: Option<String>,
+    },
+}
+
+#[derive(Subcommand, Debug, Clone)]
+pub enum NeoCompoundCommands {
+    /// Deposit NEO for compounding rewards
+    Deposit {
+        /// Amount of NEO to deposit
+        #[arg(short, long)]
+        amount: String,
+        
+        /// Account to use for deposit (if not specified, uses the first account)
+        #[arg(short, long)]
+        account: Option<String>,
+    },
+    
+    /// Withdraw NEO from NeoCompound
+    Withdraw {
+        /// Amount of NEO to withdraw
+        #[arg(short, long)]
+        amount: String,
+        
+        /// Account to withdraw to (if not specified, uses the first account)
+        #[arg(short, long)]
+        account: Option<String>,
+    },
+    
+    /// Claim accumulated rewards
+    ClaimRewards {
+        /// Account to claim rewards (if not specified, uses the first account)
+        #[arg(short, long)]
+        account: Option<String>,
+    },
+    
+    /// Get current NeoCompound statistics
+    GetStats {
+        /// Account to get stats for (if not specified, uses the first account)
+        #[arg(short, long)]
+        account: Option<String>,
+    },
+}
+
+pub async fn handle_defi_command(args: DefiArgs, state: &mut CliState) -> Result<(), CliError> {
+    // Ensure account is loaded for most commands
+    if !matches!(args.command, 
+        DefiCommands::List { .. } | 
+        DefiCommands::Show { .. }
+    ) {
+        ensure_account_loaded(state, args.wallet, args.password)?;
+    }
+    
+    match args.command {
+        DefiCommands::Flamingo { command } => {
+            handle_flamingo_command(command, state).await
+        },
+        DefiCommands::Neoburger { command } => {
+            handle_neoburger_command(command, state).await
+        },
+        DefiCommands::GrandShare { command } => {
+            handle_grandshare_command(command, state).await
+        },
+        DefiCommands::NeoCompound { command } => {
+            handle_neocompound_command(command, state).await
+        },
+        DefiCommands::Token(args) => {
+            handle_token_command(args, state).await
+        },
+        DefiCommands::List { network } => {
+            let network_type = match network.to_lowercase().as_str() {
+                "mainnet" => Network::Mainnet,
+                "testnet" => Network::Testnet,
+                _ => return Err(CliError::InvalidArgument("network".to_string(), "Must be 'mainnet' or 'testnet'".to_string())),
+            };
+            
+            let contracts = get_famous_contracts(network_type);
+            print_info(&format!("Famous contracts on {}:", network));
+            
+            for contract in contracts {
+                println!("  - {} ({})", contract.name, contract.script_hash);
+                if let Some(desc) = contract.description {
+                    println!("    {}", desc);
+                }
+                println!("    Type: {}", contract.contract_type);
+                println!();
+            }
+            
+            Ok(())
+        },
+        DefiCommands::Show { contract } => {
+            let contract = find_contract(&contract)?;
+            
+            println!("Contract Name: {}", contract.name);
+            println!("Script Hash: {}", contract.script_hash);
+            if let Some(desc) = contract.description {
+                println!("Description: {}", desc);
+            }
+            println!("Network: {}", match contract.network {
+                Network::Mainnet => "Mainnet",
+                Network::Testnet => "Testnet",
+            });
+            println!("Type: {}", contract.contract_type);
+            
+            if let Some(methods) = contract.methods {
+                println!("\nAvailable Methods:");
+                for method in methods {
+                    println!("  - {}", method.name);
+                    if !method.parameters.is_empty() {
+                        println!("    Parameters:");
+                        for param in &method.parameters {
+                            println!("      - {} ({})", param.name, param.type_name);
+                        }
+                    }
+                    println!("    Returns: {}", method.return_type);
+                }
+            }
+            
+            Ok(())
+        },
+        DefiCommands::Invoke { contract, method, args, execute } => {
+            // Find the contract
+            let contract_info = find_contract(&contract)?;
+            let contract_hash = match resolve_token_hash(&contract_info.script_hash, state.config().network.as_ref()) {
+                Ok(hash) => hash,
+                Err(e) => return Err(e),
+            };
+            
+            // Parse arguments if any
+            let params = if let Some(args_str) = args {
+                let json_value: serde_json::Value = serde_json::from_str(&args_str)
+                    .map_err(|e| CliError::InvalidArgument("args".to_string(), format!("Invalid JSON: {}", e)))?;
+                
+                match json_value {
+                    serde_json::Value::Array(values) => {
+                        values.into_iter()
+                            .map(convert_json_to_contract_param)
+                            .collect::<Result<Vec<_>, _>>()?
+                    },
+                    _ => vec![convert_json_to_contract_param(json_value)?],
+                }
+            } else {
+                vec![]
+            };
+            
+            // Get an RPC provider
+            let rpc_client = state.get_rpc_provider()
+                .map_err(|e| CliError::External(format!("Failed to get RPC provider: {}", e)))?;
+            
+            // Create a script builder and add contract call
+            let mut script_builder = ScriptBuilder::new();
+            
+            // Prepare the contract hash and parameters
+            let contract_hash_bytes = hex::decode(&contract_hash)
+                .map_err(|e| CliError::InvalidInput(format!("Invalid token hash: {}", e)))?;
+            
+            // Create a script for calling the contract
+            script_builder.push_data(contract_hash_bytes);
+            script_builder.push_data(method.as_bytes().to_vec());
+            script_builder.push_data(params.to_vec());
+            script_builder.sys_call(InteropService::SystemContractCall);
+            
+            let script = script_builder.to_bytes();
+            
+            // Create TransactionBuilder
+            let mut builder = TransactionBuilder::new();
+            
+            // Set version
+            builder.version(0);
+            
+            // Get current block height
+            let current_block = rpc_client.get_block_count().await
+                .map_err(|e| CliError::Network(format!("Failed to get current block count: {}", e)))?;
+            
+            // Transaction is valid for the next 5760 blocks (~24 hours with 15s blocks)
+            let valid_until_block = current_block + 5760;
+            
+            // Create signers for the transaction
+            let account = if let Some(wallet) = &state.wallet {
+                if wallet.accounts.is_empty() {
+                    return Err(CliError::NoAccount);
+                }
+                wallet.default_account()
+            } else {
+                return Err(CliError::NoWallet);
+            };
+            
+            let signers = vec![
+                Signer::AccountSigner(AccountSigner::called_by_entry(&account).map_err(|e| CliError::TransactionBuilder(e.to_string()))?)
+            ];
+            
+            // Create the transaction using TransactionBuilder
+            let mut tx_builder = TransactionBuilder::new();
+            tx_builder
+                .signers(signers)?
+                .valid_until_block(valid_until_block)?
+                .script(Some(script));
+            
+            // Get the hash data and create a witness
+            let unsigned_tx = tx_builder.get_unsigned_tx().await?;
+            let tx_bytes = unsigned_tx.get_hash_data()
+                .await
+                .map_err(|e| CliError::Transaction(format!("Failed to get hash data: {}", e)))?;
+            
+            // Ensure account has a key pair
+            let key_pair = account.key_pair().as_ref().ok_or_else(|| {
+                CliError::Transaction(format!(
+                    "Cannot create transaction signature because account {} does not hold a private key.",
+                    account.get_address()
+                ))
+            })?;
+            
+            // Create witness and add it to the transaction
+            let witness = Witness::create(tx_bytes, key_pair)
+                .map_err(|e| CliError::Transaction(format!("Failed to create witness: {}", e)))?;
+            
+            unsigned_tx.add_witness(witness);
+            
+            // Send the transaction
+            let tx_hex = hex::encode(unsigned_tx.to_array());
+            let result = rpc_client.send_raw_transaction(tx_hex)
+                .await
+                .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
+            
+            print_success(&format!("Invocation transaction sent: {}", result.hash));
+        },
+        DefiCommands::Balance { contract, address } => {
+            // Find the contract
+            let contract_hash = H160::from_str(&resolve_token_hash(contract, Some(&state.get_network_type()))?)
+                .map_err(|e| CliError::InvalidInput(format!("Invalid hash format: {}", e)))?;
+            
+            // Create a Nep17Contract instance for this token
+            let nep17_contract = Nep17Contract::new(contract_hash, "".to_string(), 0);
+            
+            let decimals = nep17_contract.call_function_returning_int("decimals", vec![]).await
+                .map_err(|e| CliError::External(format!("Failed to get token decimals: {}", e)))? as u8;
+            
+            let symbol = nep17_contract.call_function_returning_string("symbol", vec![]).await
+                .map_err(|e| CliError::External(format!("Failed to get token symbol: {}", e)))?;
+            
+            // Get the address to check
+            let address_to_check = if let Some(addr_str) = address {
+                let addr = Address::from_str(&addr_str)
+                    .map_err(|e| CliError::InvalidArgument("address".to_string(), format!("Invalid address: {}", e)))?;
+                addr.address_to_script_hash()
+                    .map_err(|e| CliError::InvalidArgument("address".to_string(), format!("Invalid address: {}", e)))?
+            } else {
+                if let Some(wallet) = &state.wallet {
+                    if wallet.accounts.is_empty() {
+                        return Err(CliError::NoAccount);
+                    }
+                    wallet.default_account().get_script_hash().clone()
+                } else {
+                    return Err(CliError::NoWallet);
+                }
+            };
+            
+            // Get an RPC provider
+            let rpc_provider = state.get_rpc_provider()
+                .map_err(|e| CliError::External(format!("Failed to get RPC provider: {}", e)))?;
+            
+            // Get balance
+            let address_hash = H160::from_str(&address_to_check)
+                .map_err(|e| CliError::InvalidInput(format!("Invalid address format: {}", e)))?;
+            
+            let params = vec![ContractParameter::from(address_hash)];
+            
+            let script_builder = ScriptBuilder::new();
+            let script = script_builder
+                .contract_call(nep17_contract.script_hash, "balanceOf", &params)?
+                .to_bytes();
+            
+            let response = rpc_provider.invoke_script(script.to_vec()).await
+                .map_err(|e| CliError::Network(format!("Failed to invoke script: {}", e)))?;
+            
+            let raw_balance = response.stack.first()
+                .ok_or(CliError::InvalidResponse("Empty response from RPC server".to_string()))?
+                .clone()
+                .value
+                .as_i64()
+                .ok_or(CliError::InvalidResponse("Invalid balance format in response".to_string()))?;
+            
+            // Format the balance
+            let formatted_balance = format_token_amount(raw_balance, decimals);
+            
+            print_success(&format!("Balance for {}: {} {}", address_to_check, formatted_balance, symbol));
+            
+            Ok(())
+        },
+    }
+}
+
+/// Helper function to find a contract by name or script hash
+fn find_contract(identifier: &str) -> Result<FamousContract, CliError> {
+    // Get all contracts from both networks
+    let all_contracts = get_all_famous_contracts();
+    
+    // First try to match by script hash
+    if identifier.starts_with("0x") || identifier.len() == 40 {
+        let hash = if identifier.starts_with("0x") {
+            identifier.to_string()
+        } else {
+            format!("0x{}", identifier)
+        };
+        
+        if let Some(contract) = all_contracts.iter().find(|c| format!("{:x}", c.script_hash).eq_ignore_ascii_case(&hash)) {
+            return Ok(contract.clone());
+        }
+    }
+    
+    // Try to match by name (case-insensitive)
+    let name_lower = identifier.to_lowercase();
+    if let Some(contract) = all_contracts.iter().find(|c| c.name.to_lowercase() == name_lower) {
+        return Ok(contract.clone());
+    }
+    
+    // Try partial name matching
+    if let Some(contract) = all_contracts.iter().find(|c| c.name.to_lowercase().contains(&name_lower)) {
+        return Ok(contract.clone());
+    }
+    
+    Err(CliError::InvalidArgument("contract".to_string(), format!("Contract not found: {}", identifier)))
+}
+
+/// Convert a JSON value to a ContractParameter
+fn convert_json_to_contract_param(value: serde_json::Value) -> Result<ContractParameter, CliError> {
+    match value {
+        serde_json::Value::Null => Ok(ContractParameter::any()),
+        serde_json::Value::Bool(b) => Ok(ContractParameter::bool(b)),
+        serde_json::Value::Number(n) => {
+            // Handle number parameters
+            if n.is_i64() {
+                Ok(ContractParameter::integer(n.as_i64().unwrap()))
+            } else if n.is_u64() {
+                Ok(ContractParameter::integer(n.as_u64().unwrap() as i64))
+            } else if n.is_f64() {
+                // For floating point values, convert to string
+                Ok(ContractParameter::string(n.to_string()))
+            } else {
+                Err(CliError::InvalidInput(format!("Unsupported number type: {}", n)))
+            }
+        },
+        serde_json::Value::String(s) => {
+            // Try to parse as a hex string for ByteArray
+            if let Ok(bytes) = hex::decode(s.trim_start_matches("0x")) {
+                return Ok(ContractParameter::byte_array(bytes));
+            }
+                
+            // Just return the string as is
+            Ok(ContractParameter::string(s))
+        },
+        serde_json::Value::Array(arr) => {
+            let items = arr
+                .into_iter()
+                .map(|item| convert_json_to_contract_param(item))
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(ContractParameter::array(items))
+        },
+        serde_json::Value::Object(obj) => {
+            // Handle special cases for certain contract parameters
+            if obj.contains_key("hash160") {
+                if let Some(serde_json::Value::String(s)) = obj.get("hash160") {
+                    return create_h160_param(s);
+                }
+            } else if obj.contains_key("address") {
+                if let Some(serde_json::Value::String(s)) = obj.get("address") {
+                    // Parse address and convert to script hash
+                    let address = match Address::from_str(s) {
+                        Ok(addr) => addr,
+                        Err(_) => return Err(CliError::InvalidInput(format!("Invalid address: {}", s))),
+                    };
+                    
+                    let script_hash = match address.address_to_script_hash() {
+                        Ok(hash) => hash,
+                        Err(_) => return Err(CliError::InvalidInput(format!("Failed to get script hash from address: {}", s))),
+                    };
+                    
+                    return create_h160_param(&format!("{:x}", script_hash));
+                }
+            } else if obj.contains_key("publicKey") {
+                if let Some(serde_json::Value::String(s)) = obj.get("publicKey") {
+                    // For simplicity, store public key as ByteArray
+                    if let Ok(bytes) = hex::decode(s.trim_start_matches("0x")) {
+                        return Ok(ContractParameter::byte_array(bytes));
+                    }
+                }
+            } else if obj.contains_key("map") {
+                if let Some(map_obj) = obj.get("map").and_then(|v| v.as_object()) {
+                    let mut contract_map = neo3::prelude::ContractParameterMap::new();
+                    for (key, value) in map_obj {
+                        if let Ok(param_value) = convert_json_to_contract_param(value.clone()) {
+                            let key_param = ContractParameter::string(key.clone());
+                            contract_map.0.insert(key_param, param_value);
+                        }
+                    }
+                    return Ok(ContractParameter::map(contract_map));
+                }
+            }
+            
+            // Convert object to map as a fallback
+            let mut contract_map = neo3::prelude::ContractParameterMap::new();
+            for (key, value) in obj {
+                if let Ok(param_value) = convert_json_to_contract_param(value.clone()) {
+                    let key_param = ContractParameter::string(key.clone());
+                    contract_map.0.insert(key_param, param_value);
+                }
+            }
+            Ok(ContractParameter::map(contract_map))
+        }
+    }
+}
+
+/// Helper function to create H160 contract parameter
+pub fn create_h160_param(hex_str: &str) -> Result<ContractParameter, CliError> {
+    // Strip 0x prefix if present
+    let hex_str = hex::decode(hex_str.trim_start_matches("0x"))
+        .map_err(|e| CliError::InvalidInput(format!("Invalid hex string for H160: {}", e)))?;
+    
+    // Convert the hex string to bytes directly
+    Ok(ContractParameter::byte_array(hex_str))
+}
+
+/// Format a token amount with the correct number of decimal places
+fn format_token_amount(amount: i64, decimals: u32) -> String {
+    if decimals == 0 {
+        return amount.to_string();
+    }
+    
+    let divisor = 10_i64.pow(decimals);
+    let whole_part = amount / divisor;
+    let decimal_part = amount % divisor;
+    
+    if decimal_part == 0 {
+        return whole_part.to_string();
+    }
+    
+    // Format the decimal part with leading zeros
+    let decimal_str = format!("{:0>width$}", decimal_part.abs(), width = decimals as usize);
+    
+    // Trim trailing zeros
+    let trimmed = decimal_str.trim_end_matches('0');
+    
+    if trimmed.is_empty() {
+        whole_part.to_string()
+    } else {
+        format!("{}.{}", whole_part, trimmed)
+    }
+}
+
+async fn handle_flamingo_command(args: FlamingoCommands, state: &mut CliState) -> Result<(), CliError> {
+    if state.wallet.is_none() {
+        print_error("No wallet is currently open");
+        return Err(CliError::NoWallet);
+    }
+    
+    if state.rpc_client.is_none() {
+        print_error("No RPC client is connected. Please connect to a node first.");
+        return Err(CliError::Network("No RPC client is connected".to_string()));
+    }
+    
+    let rpc_client = state.rpc_client.as_ref().unwrap();
+    let flamingo_contract = FlamingoContract::new(Some(rpc_client));
+    
+    match args {
+        FlamingoCommands::Swap { from_token, to_token, amount, min_return, account } => {
+            // Resolve token script hashes with network awareness
+            let from_token_hash = match resolve_token_to_scripthash_with_network(&from_token, Some(&state.get_network_type())) {
+                Ok(hash) => hash,
+                Err(e) => return Err(e),
+            };
+            let to_token_hash = match resolve_token_to_scripthash_with_network(&to_token, Some(&state.get_network_type())) {
+                Ok(hash) => hash,
+                Err(e) => return Err(e),
+            };
+            
+            // Parse amounts
+            let amount_val = parse_amount(&amount, &from_token, rpc_client, Some(&state.get_network_type())).await?;
+            let min_return_val = parse_amount(&min_return, &to_token, rpc_client, Some(&state.get_network_type())).await?;
+            
+            // Get account
+            let account_obj = get_account_by_address_or_first(state.wallet.as_ref().unwrap(), account)?;
+            
+            print_info(&format!("Swapping {} {} for at least {} {} on Flamingo...", 
+                     amount, from_token, min_return, to_token));
+            
+            // Get password for signing
+            let password = prompt_password("Enter wallet password")?;
+            
+            // Build transaction
+            let mut builder = TransactionBuilder::new();
+            
+            // Get current block height for valid until block calculation
+            let network = state.config().network.clone();
+            let rpc_client = Http::new(&network.rpc_url.as_str()).map_err(|e| CliError::Provider(e.to_string()))?;
+            let chain_state = rpc_client.get_block_count().await
+                .map_err(|e| CliError::Provider(format!("Failed to get current block height: {}", e)))?;
+            
+            // Get current block height
+            let current_block = rpc_client.get_block_count().await
+                .map_err(|e| CliError::Network(format!("Failed to get current block count: {}", e)))?;
+            
+            // Transaction is valid for the next 5760 blocks (~24 hours with 15s blocks)
+            let valid_until_block = current_block + 5760;
+            
+            // Create signers for the transaction
+            let sender_hash = account_obj.get_script_hash();
+            let signers = vec![
+                Signer::AccountSigner(AccountSigner::called_by_entry(&account_obj).map_err(|e| CliError::TransactionBuilder(e.to_string()))?)
+            ];
+            
+            builder.version(0);
+            
+            builder.nonce((rand::random::<u32>() % 1000000) as u32)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+            
+            builder.valid_until_block = Some(valid_until_block);
+            builder.set_signers(signers)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+            
+            // Create a script builder and add contract call
+            let mut script_builder = ScriptBuilder::new();
+            script_builder.push_data(hex::decode(&from_token_hash).map_err(|e| CliError::InvalidInput(format!("Invalid token hash: {}", e)))?);
+            script_builder.push_data("swap".as_bytes().to_vec());
+            
+            // Create a separate Vec for the parameters
+            let mut params = Vec::new();
+            // to_token_hash parameter
+            params.extend(hex::decode(&to_token_hash).map_err(|e| CliError::InvalidInput(format!("Invalid token hash: {}", e)))?);
+            // amount parameter
+            params.extend(amount_val.to_i64().unwrap().to_be_bytes().to_vec());
+            // min_return parameter
+            params.extend(min_return_val.to_i64().unwrap().to_be_bytes().to_vec());
+            // sender_hash parameter
+            params.extend(hex::decode(&format!("{:x}", sender_hash)).map_err(|e| CliError::InvalidInput(format!("Invalid token hash: {}", e)))?);
+            
+            script_builder.push_data(params);
+            script_builder.sys_call(InteropService::SystemContractCall);
+            
+            let script_bytes = script_builder.to_bytes();
+            
+            builder = builder.script(script_bytes)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+            
+            // Create the transaction using TransactionBuilder
+            let mut tx_builder = TransactionBuilder::new();
+            tx_builder
+                .set_signers(signers)?
+                .set_valid_until_block(valid_until_block)?
+                .script(Some(script));
+            
+            // Get the hash data and create a witness
+            let unsigned_tx = tx_builder.get_unsigned_tx().await?;
+            let tx_bytes = unsigned_tx.get_hash_data()
+                .await
+                .map_err(|e| CliError::Transaction(format!("Failed to get hash data: {}", e)))?;
+            
+            // Ensure account has a key pair
+            let key_pair = account_obj.key_pair().as_ref().ok_or_else(|| {
+                CliError::Transaction(format!(
+                    "Cannot create transaction signature because account {} does not hold a private key.",
+                    account_obj.get_address()
+                ))
+            })?;
+            
+            // Create witness and add it to the transaction
+            let witness = Witness::create(tx_bytes, key_pair)
+                .map_err(|e| CliError::Transaction(format!("Failed to create witness: {}", e)))?;
+            
+            unsigned_tx.add_witness(witness);
+            
+            // Send the transaction
+            let tx_hex = hex::encode(unsigned_tx.to_array());
+            let result = rpc_client.send_raw_transaction(tx_hex)
+                .await
+                .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
+            
+            print_success("Swap transaction sent successfully");
+            println!("Transaction hash: {}", result.hash);
+        },
+        
+        FlamingoCommands::AddLiquidity { token_a, token_b, amount_a, amount_b, account } => {
+            // Resolve token script hashes with network awareness
+            let token_a_hash = match resolve_token_to_scripthash_with_network(&token_a, Some(&state.get_network_type())) {
+                Ok(hash) => hash,
+                Err(e) => return Err(e),
+            };
+            let token_b_hash = match resolve_token_to_scripthash_with_network(&token_b, Some(&state.get_network_type())) {
+                Ok(hash) => hash,
+                Err(e) => return Err(e),
+            };
+            
+            // Parse amounts
+            let amount_a_val = parse_amount(&amount_a, &token_a, rpc_client, Some(&state.get_network_type())).await?;
+            let amount_b_val = parse_amount(&amount_b, &token_b, rpc_client, Some(&state.get_network_type())).await?;
+            
+            // Get account
+            let account_obj = get_account_by_address_or_first(state.wallet.as_ref().unwrap(), account)?;
+            
+            print_info(&format!("Adding liquidity with {} {} and {} {} on Flamingo...", 
+                     amount_a, token_a, amount_b, token_b));
+            
+            // Get password for signing
+            let password = prompt_password("Enter wallet password")?;
+            
+            // Create and sign add liquidity transaction
+            let tx_builder = flamingo_contract.add_liquidity(
+                &token_a_hash, 
+                &token_b_hash, 
+                amount_a_val, 
+                amount_b_val, 
+                &account_obj,
+            ).await.map_err(|e| CliError::Sdk(format!("Failed to create add liquidity transaction: {}", e)))?;
+            
+            // Create the transaction using TransactionBuilder
+            let mut tx_builder = TransactionBuilder::new();
+            tx_builder
+                .set_signers(signers)?
+                .set_valid_until_block(valid_until_block)?
+                .script(Some(script));
+            
+            // Get the hash data and create a witness
+            let unsigned_tx = tx_builder.get_unsigned_tx().await?;
+            let tx_bytes = unsigned_tx.get_hash_data()
+                .await
+                .map_err(|e| CliError::Transaction(format!("Failed to get hash data: {}", e)))?;
+            
+            // Ensure account has a key pair
+            let key_pair = account_obj.key_pair().as_ref().ok_or_else(|| {
+                CliError::Transaction(format!(
+                    "Cannot create transaction signature because account {} does not hold a private key.",
+                    account_obj.get_address()
+                ))
+            })?;
+            
+            // Create witness and add it to the transaction
+            let witness = Witness::create(tx_bytes, key_pair)
+                .map_err(|e| CliError::Transaction(format!("Failed to create witness: {}", e)))?;
+            
+            unsigned_tx.add_witness(witness);
+            
+            // Send the transaction
+            let tx_hex = hex::encode(unsigned_tx.to_array());
+            let result = rpc_client.send_raw_transaction(tx_hex)
+                .await
+                .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
+            
+            print_success("Add liquidity transaction sent successfully");
+            println!("Transaction hash: {}", result.hash);
+        },
+    }
+    
+    Ok(())
+}
+
+/// Helper function to resolve address or script hash string to ScriptHash
+fn resolve_address_to_scripthash(address_str: &str) -> Result<ScriptHash, CliError> {
+    if address_str.starts_with("0x") || address_str.starts_with("0X") {
+        ScriptHash::from_str(address_str)
+            .map_err(|e| CliError::InvalidInput(format!("Invalid script hash: {}", e)))
+    } else if address_str.starts_with("N") {
+        Address::from_str(address_str)
+            .map_err(|e| CliError::InvalidInput(format!("Invalid address: {}", e)))?
+            .address_to_script_hash()
+            .map_err(|e| CliError::InvalidInput(format!("Invalid address: {}", e)))
+    } else {
+        ScriptHash::from_str(address_str)
+            .map_err(|e| CliError::InvalidInput(format!("Invalid script hash: {}", e)))
+    }
+}
+
+/// Helper function to resolve token to script hash with network awareness
+fn resolve_token_hash(token_id: &str, network_type: Option<&Network>) -> Result<String, CliError> {
+    // For well-known tokens, use our centralized token address registry
+    let network = network_type.unwrap_or(&Network::Mainnet);
+    
+    // Try to match common token names (case-insensitive)
+    if let Some(hash) = get_token_address_for_network(token_id, network) {
+        return Ok(format!("{:x}", hash));
+    }
+    
+    // Not a well-known token, try to parse as a script hash or address
+    if token_id.starts_with("0x") || token_id.starts_with("0X") {
+        // Remove 0x prefix if present
+        let hash_str = if token_id.starts_with("0x") || token_id.starts_with("0X") {
+            &token_id[2..]
+        } else {
+            token_id
+        };
+        
+        // Validate it's a proper hex script hash
+        if hash_str.len() == 40 && hash_str.chars().all(|c| c.is_digit(16)) {
+            return Ok(hash_str.to_string());
+        } else {
+            return Err(CliError::InvalidInput(format!("Invalid hex script hash: {}", token_id)));
+        }
+    } else if token_id.starts_with("N") {
+        // Try to parse as a NEO address
+        let addr = Address::from_str(token_id)
+            .map_err(|_| CliError::InvalidInput(format!("Invalid address: {}", token_id)))?;
+        let script_hash = addr.address_to_script_hash()
+            .map_err(|_| CliError::InvalidInput(format!("Invalid address: {}", token_id)))?;
+        
+        return Ok(format!("{:x}", script_hash));
+    }
+    
+    Err(CliError::InvalidInput(format!("Invalid token identifier: {}. Use a valid token name, script hash, or Neo address.", token_id)))
+}
+
+/// Helper function to resolve token to script hash with network awareness
+fn resolve_token_to_scripthash_with_network(token_str: &str, network_type: Option<&Network>) -> Result<ScriptHash, CliError> {
+    // For well-known tokens, use our centralized token address registry
+    let network = network_type.unwrap_or(&Network::Mainnet);
+    
+    // Try to match common token names
+    if let Some(hash) = get_token_address_for_network(token_str, network) {
+        return Ok(hash);
+    }
+    
+    // Not a well-known token, try to parse as a script hash or address
+    if token_str.starts_with("0x") || token_str.starts_with("0X") {
+        ScriptHash::from_str(token_str)
+            .map_err(|e| CliError::InvalidInput(format!("Invalid token script hash: {}", e)))
+    } else if token_str.starts_with("N") {
+        Address::from_str(token_str)
+            .map_err(|e| CliError::InvalidInput(format!("Invalid token address: {}", e)))?
+            .address_to_script_hash()
+            .map_err(|e| CliError::InvalidInput(format!("Invalid token address: {}", e)))
+    } else {
+        Err(CliError::InvalidInput(format!("Unknown token: {}. Please use the script hash directly or a valid Neo address.", token_str)))
+    }
+}
+
+/// Legacy function - use the network-aware version instead when possible
+fn resolve_token_to_scripthash(token_str: &str) -> Result<ScriptHash, CliError> {
+    // Default to mainnet if no network specified
+    resolve_token_to_scripthash_with_network(token_str, Some(&Network::Mainnet))
+}
+
+/// Parse amount string to correct token units based on decimals
+async fn parse_amount<P>(amount: &str, token: &str, rpc_client: &RpcClient<P>, network_type: Option<&Network>) -> Result<i64, CliError> 
+where P: JsonRpcProvider + 'static {
+    // Parse the amount as f64 first
+    let amount_f64 = amount.parse::<f64>()
+        .map_err(|_| CliError::InvalidInput(format!("Invalid amount: {}", amount)))?;
+    
+    // Get token decimals to convert to raw units
+    let token_hash = match resolve_token_hash(token, network_type) {
+        Ok(hash) => {
+            if let Ok(h160) = H160::from_str(&hash) {
+                h160
+            } else {
+                return Err(CliError::InvalidInput(format!("Invalid token hash: {}", hash)));
+            }
+        }
+        Err(e) => return Err(e),
+    };
+    
+    let decimals = get_token_decimals(rpc_client, &token_hash).await?;
+    
+    // Convert to raw units
+    let raw_amount = (amount_f64 * 10_f64.powf(decimals as f64)) as i64;
+    
+    Ok(raw_amount)
+}
+
+// Helper function to get account from wallet
+fn get_account_by_address_or_first(wallet: &Wallet, account: Option<String>) -> Result<Account, CliError> {
+    // If no accounts in wallet
+    if wallet.accounts.is_empty() {
+        return Err(CliError::NoAccount);
+    }
+    
+    let account_address = match account {
+        Some(address) => address,
+        None => {
+            // Get the first account's address if no specific account was requested
+            wallet.get_accounts()[0].get_address()
+        },
+    };
+    
+    match wallet.get_accounts().iter()
+        .find(|a| a.get_address() == account_address) {
+        Some(acct) => Ok((*acct).clone()),
+        None => Err(CliError::Wallet(format!("Account not found: {}", account_address)))
+    }
+}
+
+// Similar implementation for handle_neoburger_command, handle_grandshare_command, and handle_neocompound_command
+// ... 
+
+/// Helper function to sign a transaction
+fn sign_transaction<'a>(account: &'a Account, builder: &'a TransactionBuilder<'a>, password: &'a str) -> Result<Transaction<'a>, CliError> {
+    // Build the transaction
+    let tx = builder.build()
+        .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+    
+    // Sign the transaction
+    let signed_tx = tx.sign(&[account], password)
+        .map_err(|e| CliError::Transaction(format!("Failed to sign transaction: {}", e)))?;
+    
+    Ok(signed_tx)
+}
+
+async fn handle_token_command(args: TokenArgs, state: &mut CliState) -> Result<(), CliError> {
+    // Check if wallet is needed for this command
+    match &args.command {
+        TokenCommand::Approve { .. } | TokenCommand::Transfer { .. } => {
+            if state.wallet.is_none() {
+                print_error("No wallet is currently open");
+                return Err(CliError::NoWallet);
+            }
+        },
+        _ => {}
+    }
+
+    // Get RPC client early to avoid borrow checker issues
+    let rpc_client = state.rpc_client.as_ref().ok_or(CliError::NoRpcClient)?;
+    // Store network type to avoid multiple borrows
+    let network_type = state.get_network_type();
+    
+    match args.command {
+        TokenCommand::Info { token_id } => {
+            // Convert token_id to ScriptHash
+            let token_hash = resolve_token_to_scripthash_with_network(&token_id, Some(&network_type))?;
+            
+            // Get token info
+            let symbol = get_token_symbol(rpc_client, &token_hash).await?;
+            let decimals = get_token_decimals(rpc_client, &token_hash).await?;
+            let total_supply = get_token_total_supply(rpc_client, &token_hash).await?;
+            
+            // Format total supply with correct decimals
+            let divisor = 10_f64.powf(decimals as f64);
+            let formatted_total_supply = (total_supply as f64) / divisor;
+            
+            println!("Token Information:");
+            println!("Symbol: {}", symbol);
+            println!("Decimals: {}", decimals);
+            println!("Total Supply: {}", formatted_total_supply);
+            println!("Script Hash: {}", token_hash);
+        },
+        TokenCommand::Allowance { owner, spender } => {
+            // Default to NEO token if not specified
+            let _token_hash = ScriptHash::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap();
+            
+            // Convert addresses to script hashes
+            let _owner_hash = resolve_address_to_scripthash(&owner)?;
+            let _spender_hash = resolve_address_to_scripthash(&spender)?;
+            
+            // Get allowance
+            // Note: This assumes NEP-17 token with allowance method, which not all tokens might have
+            // In a real implementation, we would check if the token supports this feature
+            println!("Checking allowance...");
+            // This would typically be token_contract.allowance(&owner_hash, &spender_hash)
+            // But for now let's just print the information we would use
+            println!("Owner: {}", owner);
+            println!("Spender: {}", spender);
+        },
+        
+        TokenCommand::Approve { spender, amount, from, password } => {
+            // Default to NEO token if not specified
+            let token_hash = ScriptHash::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap();
+            
+            // Get account from wallet
+            let account_obj = get_account_by_address_or_first(state.wallet.as_ref().unwrap(), from)?;
+            
+            // Convert spender to script hash
+            let spender_hash = resolve_address_to_scripthash(&spender)?;
+            
+            // Parse amount
+            let amount_val = parse_amount(&amount, "neo", rpc_client, Some(&network_type)).await?;
+            
+            // Get password for signing if not provided
+            let _pwd = match password {
+                Some(p) => p,
+                None => prompt_password("Enter wallet password")?,
+            };
+            
+            // Get token symbol
+            let token_name = get_token_symbol(rpc_client, &token_hash).await?;
+            
+            print_info(&format!("Approving {} {} for spending by {}", amount, token_name, spender));
+            
+            // Create the transaction using TransactionBuilder
+            let mut tx_builder = TransactionBuilder::new();
+            tx_builder
+                .set_signers(signers)?
+                .set_valid_until_block(valid_until_block)?
+                .script(Some(script));
+            
+            // Get the hash data and create a witness
+            let unsigned_tx = tx_builder.get_unsigned_tx().await?;
+            let tx_bytes = unsigned_tx.get_hash_data()
+                .await
+                .map_err(|e| CliError::Transaction(format!("Failed to get hash data: {}", e)))?;
+            
+            // Ensure account has a key pair
+            let key_pair = account_obj.key_pair().as_ref().ok_or_else(|| {
+                CliError::Transaction(format!(
+                    "Cannot create transaction signature because account {} does not hold a private key.",
+                    account_obj.get_address()
+                ))
+            })?;
+            
+            // Create witness and add it to the transaction
+            let witness = Witness::create(tx_bytes, key_pair)
+                .map_err(|e| CliError::Transaction(format!("Failed to create witness: {}", e)))?;
+            
+            unsigned_tx.add_witness(witness);
+            
+            // Send the transaction
+            let tx_hex = hex::encode(unsigned_tx.to_array());
+            let result = rpc_client.send_raw_transaction(tx_hex)
+                .await
+                .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
+            
+            print_success("Approval successful (simulated)");
+        },
+        TokenCommand::Balance { token, address } => {
+            // Convert token to ScriptHash
+            let token_hash = resolve_token_to_scripthash_with_network(&token, Some(&network_type))?;
+            
+            // Get address script hash
+            let script_hash = if let Some(addr) = address {
+                Address::from_str(&addr)
+                    .map_err(|e| CliError::InvalidArgument("address".to_string(), format!("Invalid address: {}", e)))?
+                    .address_to_script_hash()
+                    .map_err(|e| CliError::InvalidArgument("address".to_string(), format!("Invalid address: {}", e)))?
+            } else {
+                if let Some(wallet) = &state.wallet {
+                    if wallet.accounts.is_empty() {
+                        return Err(CliError::NoAccount);
+                    }
+                    wallet.default_account().get_script_hash().clone()
+                } else {
+                    return Err(CliError::NoWallet);
+                }
+            };
+            
+            // Get token info
+            let symbol = get_token_symbol(rpc_client, &token_hash).await?;
+            let decimals = get_token_decimals(rpc_client, &token_hash).await?;
+            
+            // Get balance
+            let contract_hash = H160::from_str(&token_hash.to_string())
+                .map_err(|e| CliError::InvalidInput(format!("Invalid token hash format: {}", e)))?;
+            
+            let nep17_contract = Nep17Contract::new(contract_hash, symbol, decimals);
+            
+            let symbol = nep17_contract.symbol.clone();
+            let params = vec![ContractParameter::from(script_hash)];
+            
+            let script_builder = ScriptBuilder::new();
+            let script = script_builder
+                .contract_call(nep17_contract.script_hash, "balanceOf", &params)?
+                .to_bytes();
+            
+            let response = rpc_client.invoke_script(script.to_vec()).await
+                .map_err(|e| CliError::Network(format!("Failed to invoke script: {}", e)))?;
+            
+            let raw_balance = response.stack.first()
+                .ok_or(CliError::InvalidResponse("Empty response from RPC server".to_string()))?
+                .clone()
+                .value
+                .as_i64()
+                .ok_or(CliError::InvalidResponse("Invalid balance format in response".to_string()))?;
+            
+            let formatted_balance = format_token_amount(raw_balance, decimals);
+            
+            println!("Token Balance:");
+            println!("Token: {}", symbol);
+            println!("Balance: {}", formatted_balance);
+        },
+        TokenCommand::Transfer { token, to, amount, account, gas: _, password } => {
+            // Convert token to ScriptHash
+            let token_hash = resolve_token_to_scripthash_with_network(&token, Some(&network_type))?;
+            
+            // Get recipient script hash
+            let to_script_hash = if to.len() == 40 || to.len() == 42 {
+                // Handle hex string
+                H160::from_str(&to)
+                    .map_err(|e| CliError::InvalidInput(format!("Invalid address format: {}", e)))?
+            } else {
+                // Handle Neo address
+                Address::from_str(&to)
+                    .map_err(|e| CliError::InvalidInput(format!("Invalid address: {}", e)))?
+                    .address_to_script_hash()
+                    .map_err(|e| CliError::InvalidInput(format!("Invalid address: {}", e)))?
+            };
+            
+            // Get account
+            let account_obj = get_account_by_address_or_first(state.wallet.as_ref().unwrap(), account)?;
+            
+            // Parse amount with network awareness
+            let decimals = get_token_decimals(rpc_client, &token_hash).await?;
+            let amount_val = parse_amount(&amount, decimals)?;
+            
+            // Get password for signing if not provided
+            let _pwd = match password {
+                Some(p) => p,
+                None => prompt_password("Enter wallet password")?,
+            };
+            
+            // Get token symbol
+            let token_name = get_token_symbol(rpc_client, &token_hash).await?;
+            
+            print_info(&format!("Transferring {} {} to {}", amount, token_name, to));
+            
+            // Create the token transfer transaction
+            let token_hash = match token {
+                // Handle different token types
+                "neo" => {
+                    // Use network-aware token resolution to get the correct NEO token hash
+                    resolve_token_to_scripthash_with_network("neo", &state.network_type)?
+                },
+                "gas" => {
+                    // Use network-aware token resolution to get the correct GAS token hash
+                    resolve_token_to_scripthash_with_network("gas", &state.network_type)?
+                },
+                _ => {
+                    // For other tokens, try to resolve from the token mapping with network awareness
+                    resolve_token_to_scripthash_with_network(&token, &state.network_type)
+                        .map_err(|_| CliError::InvalidInput(format!("Unknown token: {}", token)))?
+                }
+            };
+            
+            // Parse amount
+            let amount_val = parse_amount(&amount, &token, rpc_client, Some(&state.get_network_type())).await?;
+            
+            // Parse to address
+            let to_script_hash = if to.len() == 40 || to.len() == 42 {
+                // Handle hex string
+                H160::from_str(&to)
+                    .map_err(|e| CliError::InvalidInput(format!("Invalid address format: {}", e)))?
+            } else {
+                // Handle Neo address
+                Address::from_str(&to)
+                    .map_err(|e| CliError::InvalidInput(format!("Invalid address: {}", e)))?
+                    .address_to_script_hash()
+                    .map_err(|e| CliError::InvalidInput(format!("Invalid address: {}", e)))?
+            };
+            
+            // Build the transaction with a properly configured ScriptBuilder
+            let mut script_builder = ScriptBuilder::new();
+            
+            // Push data for NEP-17 transfer operation
+            let token_hash_bytes = token_hash.as_bytes().to_vec();
+            let from_address_bytes = account_obj.get_script_hash().as_bytes().to_vec();
+            let to_address_bytes = to_script_hash.as_bytes().to_vec();
+            
+            script_builder
+                .sys_call(InteropService::SystemContractNep17Transfer)
+                .push_data(token_hash_bytes)
+                .push_data("transfer".as_bytes().to_vec())
+                .push_data(vec![
+                    from_address_bytes,
+                    to_address_bytes,
+                    BigInt::from(amount_val).to_bytes_be(),
+                    Vec::new()
+                ]);
+            
+            // Get the built script
+            let script = script_builder.to_bytes();
+            
+            // Get current block height for transaction validity
+            let current_block = rpc_client.get_block_count().await
+                .map_err(|e| CliError::Network(format!("Failed to get current block count: {}", e)))?;
+            
+            // Transaction is valid for the next 5760 blocks (~24 hours with 15s blocks)
+            let valid_until_block = current_block + 5760;
+            
+            // Create signers for the transaction
+            let signers = vec![
+                Signer::AccountSigner(AccountSigner::called_by_entry(&account_obj).map_err(|e| CliError::TransactionBuilder(e.to_string()))?)
+            ];
+            
+            // Create the transaction using TransactionBuilder
+            let mut tx_builder = TransactionBuilder::new();
+            tx_builder
+                .signers(signers)?
+                .valid_until_block(valid_until_block)?
+                .script(Some(script));
+            
+            // Get the hash data and create a witness
+            let unsigned_tx = tx_builder.get_unsigned_tx().await?;
+            let tx_bytes = unsigned_tx.get_hash_data()
+                .await
+                .map_err(|e| CliError::Transaction(format!("Failed to get hash data: {}", e)))?;
+            
+            // Ensure account has a key pair
+            let key_pair = account_obj.key_pair().as_ref().ok_or_else(|| {
+                CliError::Transaction(format!(
+                    "Cannot create transaction signature because account {} does not hold a private key.",
+                    account_obj.get_address()
+                ))
+            })?;
+            
+            // Create witness and add it to the transaction
+            let witness = Witness::create(tx_bytes, key_pair)
+                .map_err(|e| CliError::Transaction(format!("Failed to create witness: {}", e)))?;
+            
+            unsigned_tx.add_witness(witness);
+            
+            // Send the transaction
+            let tx_hex = hex::encode(unsigned_tx.to_array());
+            let result = rpc_client.send_raw_transaction(tx_hex)
+                .await
+                .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
+            
+            print_success("Transfer transaction sent successfully");
+            println!("Transaction hash: {}", result.hash);
+        },
+    }
+    
+    Ok(())
+}
+
+async fn handle_neoburger_command(args: NeoburgerCommands, state: &mut CliState) -> Result<(), CliError> {
+    if state.wallet.is_none() {
+        print_error("No wallet is currently open");
+        return Err(CliError::NoWallet);
+    }
+    
+    if state.rpc_client.is_none() {
+        print_error("No RPC client is connected. Please connect to a node first.");
+        return Err(CliError::Network("No RPC client is connected".to_string()));
+    }
+    
+    let rpc_client = state.rpc_client.as_ref().unwrap();
+    let neoburger_contract = NeoburgerContract::new(Some(rpc_client));
+    
+    match args {
+        NeoburgerCommands::Wrap { amount, account } => {
+            // Parse NEO amount
+            let amount_val = parse_amount(&amount, "neo", rpc_client, Some(&state.get_network_type())).await?;
+            
+            // Get account
+            let account_obj = get_account_by_address_or_first(state.wallet.as_ref().unwrap(), account)?;
+            
+            print_info(&format!("Wrapping {} NEO to bNEO...", amount));
+            
+            // Get password for signing
+            let password = prompt_password("Enter wallet password")?;
+            
+            // Create wrap transaction
+            let tx_builder = neoburger_contract.wrap(amount_val, &account_obj)
+                .await.map_err(|e| CliError::Sdk(format!("Failed to create wrap transaction: {}", e)))?;
+            
+            // Create the transaction using TransactionBuilder
+            let mut builder = TransactionBuilder::new();
+            
+            // Set signers
+            builder.set_signers(signers)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set valid until block
+            builder.valid_until_block(valid_until_block)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set the script
+            builder.script = Some(script);
+            
+            // Get the hash data and create a witness
+            let unsigned_tx = builder.get_unsigned_tx()
+                .await
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+            
+            // Ensure account has a key pair
+            let key_pair = account_obj.key_pair().as_ref().ok_or_else(|| {
+                CliError::Transaction(format!(
+                    "Cannot create transaction signature because account {} does not hold a private key.",
+                    account_obj.get_address()
+                ))
+            })?;
+            
+            // Create witness and add it to the transaction
+            let witness = Witness::create(unsigned_tx.get_hash_data().await.map_err(|e| CliError::Transaction(format!("Failed to get hash data: {}", e)))?, key_pair)
+                .map_err(|e| CliError::Transaction(format!("Failed to create witness: {}", e)))?;
+            
+            unsigned_tx.add_witness(witness);
+            
+            // Send the transaction
+            let tx_hex = hex::encode(unsigned_tx.to_array());
+            let result = rpc_client.send_raw_transaction(tx_hex)
+                .await
+                .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
+            
+            print_success("Wrap transaction sent successfully");
+            println!("Transaction hash: {}", result.hash);
+        },
+        
+        NeoburgerCommands::Unwrap { amount, account } => {
+            // Parse bNEO amount
+            let amount_val = parse_amount(&amount, "bneo", rpc_client, Some(&state.get_network_type())).await?;
+            
+            // Get account
+            let account_obj = get_account_by_address_or_first(state.wallet.as_ref().unwrap(), account)?;
+            
+            print_info(&format!("Unwrapping {} bNEO to NEO...", amount));
+            
+            // Get password for signing
+            let password = prompt_password("Enter wallet password")?;
+            
+            // Create unwrap transaction
+            let tx_builder = neoburger_contract.unwrap(amount_val, &account_obj)
+                .await.map_err(|e| CliError::Sdk(format!("Failed to create unwrap transaction: {}", e)))?;
+            
+            // Create the transaction using TransactionBuilder
+            let mut builder = TransactionBuilder::new();
+            
+            // Set signers
+            builder.set_signers(signers)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set valid until block
+            builder.valid_until_block(valid_until_block)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set the script
+            builder.script = Some(script);
+            
+            // Get the hash data and create a witness
+            let unsigned_tx = builder.get_unsigned_tx()
+                .await
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+            
+            // Ensure account has a key pair
+            let key_pair = account_obj.key_pair().as_ref().ok_or_else(|| {
+                CliError::Transaction(format!(
+                    "Cannot create transaction signature because account {} does not hold a private key.",
+                    account_obj.get_address()
+                ))
+            })?;
+            
+            // Create witness and add it to the transaction
+            let witness = Witness::create(unsigned_tx.get_hash_data().await.map_err(|e| CliError::Transaction(format!("Failed to get hash data: {}", e)))?, key_pair)
+                .map_err(|e| CliError::Transaction(format!("Failed to create witness: {}", e)))?;
+            
+            unsigned_tx.add_witness(witness);
+            
+            // Send the transaction
+            let tx_hex = hex::encode(unsigned_tx.to_array());
+            let result = rpc_client.send_raw_transaction(tx_hex)
+                .await
+                .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
+            
+            print_success("Unwrap transaction sent successfully");
+            println!("Transaction hash: {}", result.hash);
+        },
+        
+        NeoburgerCommands::ClaimGas { account } => {
+            // Get account
+            let account_obj = get_account_by_address_or_first(state.wallet.as_ref().unwrap(), account)?;
+            
+            print_info("Claiming GAS rewards from bNEO...");
+            
+            // Get password for signing
+            let password = prompt_password("Enter wallet password")?;
+            
+            // Create claim transaction
+            let tx_builder = neoburger_contract.claim_gas(&account_obj)
+                .await.map_err(|e| CliError::Sdk(format!("Failed to create claim transaction: {}", e)))?;
+            
+            // Create the transaction using TransactionBuilder
+            let mut builder = TransactionBuilder::new();
+            
+            // Set signers
+            builder.set_signers(signers)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set valid until block
+            builder.valid_until_block(valid_until_block)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set the script
+            builder.script = Some(script);
+            
+            // Get the hash data and create a witness
+            let unsigned_tx = builder.get_unsigned_tx()
+                .await
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+            
+            // Ensure account has a key pair
+            let key_pair = account_obj.key_pair().as_ref().ok_or_else(|| {
+                CliError::Transaction(format!(
+                    "Cannot create transaction signature because account {} does not hold a private key.",
+                    account_obj.get_address()
+                ))
+            })?;
+            
+            // Create witness and add it to the transaction
+            let witness = Witness::create(unsigned_tx.get_hash_data().await.map_err(|e| CliError::Transaction(format!("Failed to get hash data: {}", e)))?, key_pair)
+                .map_err(|e| CliError::Transaction(format!("Failed to create witness: {}", e)))?;
+            
+            unsigned_tx.add_witness(witness);
+            
+            // Send the transaction
+            let tx_hex = hex::encode(unsigned_tx.to_array());
+            let result = rpc_client.send_raw_transaction(tx_hex)
+                .await
+                .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
+            
+            print_success("Claim transaction sent successfully");
+            println!("Transaction hash: {}", result.hash);
+        },
+        
+        NeoburgerCommands::GetRate => {
+            print_info("Getting current NEO to bNEO exchange rate...");
+            
+            // Get exchange rate
+            let rate = neoburger_contract.get_rate().await
+                .map_err(|e| CliError::Sdk(format!("Failed to get exchange rate: {}", e)))?;
+            
+            println!("Current exchange rate: 1 NEO = {} bNEO", rate);
+        },
+    }
+    
+    Ok(())
+}
+
+async fn handle_grandshare_command(args: GrandShareCommands, state: &mut CliState) -> Result<(), CliError> {
+    if state.wallet.is_none() {
+        print_error("No wallet is currently open");
+        return Err(CliError::NoWallet);
+    }
+    
+    if state.rpc_client.is_none() {
+        print_error("No RPC client is connected. Please connect to a node first.");
+        return Err(CliError::Network("No RPC client is connected".to_string()));
+    }
+    
+    let rpc_client = state.rpc_client.as_ref().unwrap();
+    let grandshare_contract = GrandShareContract::new(Some(rpc_client));
+    
+    match args {
+        GrandShareCommands::Stake { amount, account } => {
+            let account_obj = get_account_by_address_or_first(state.wallet.as_ref().unwrap(), account)?;
+            
+            print_info(&format!("Staking {} NEO in GrandShare...", amount));
+            
+            // Get password for signing
+            let password = prompt_password("Enter wallet password")?;
+            
+            // GrandShare doesn't have a direct stake method, use fund_project instead
+            print_info("Using fund_project method for staking into GrandShare");
+            
+            // Default project ID - in a production environment this would be selected by the user
+            let project_id = 1;
+            print_info(&format!("Using default project ID: {}", project_id));
+            
+            // Parse amount
+            let amount_val = parse_amount(&amount, "neo", rpc_client, Some(&state.get_network_type())).await?;
+            
+            // Create stake transaction
+            let tx_builder = grandshare_contract.fund_project(project_id, amount_val, &account_obj)
+                .await.map_err(|e| CliError::Sdk(format!("Failed to create stake transaction: {}", e)))?;
+            
+            // Create the transaction using TransactionBuilder
+            let mut builder = TransactionBuilder::new();
+            
+            // Set signers
+            builder.set_signers(signers)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set valid until block
+            builder.valid_until_block(valid_until_block)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set the script
+            builder.script = Some(script);
+            
+            // Get the hash data and create a witness
+            let unsigned_tx = builder.get_unsigned_tx()
+                .await
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+            
+            // Ensure account has a key pair
+            let key_pair = account_obj.key_pair().as_ref().ok_or_else(|| {
+                CliError::Transaction(format!(
+                    "Cannot create transaction signature because account {} does not hold a private key.",
+                    account_obj.get_address()
+                ))
+            })?;
+            
+            // Create witness and add it to the transaction
+            let witness = Witness::create(unsigned_tx.get_hash_data().await.map_err(|e| CliError::Transaction(format!("Failed to get hash data: {}", e)))?, key_pair)
+                .map_err(|e| CliError::Transaction(format!("Failed to create witness: {}", e)))?;
+            
+            unsigned_tx.add_witness(witness);
+            
+            // Send the transaction
+            let tx_hex = hex::encode(unsigned_tx.to_array());
+            let result = rpc_client.send_raw_transaction(tx_hex)
+                .await
+                .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
+            
+            print_success("Stake transaction sent successfully");
+            println!("Transaction hash: {}", result.hash);
+        },
+        
+        GrandShareCommands::Withdraw { amount, account } => {
+            print_info(&format!("Cannot withdraw from GrandShare directly. This operation is not supported."));
+            print_info("To withdraw, you need to create a proposal and claim funds after approval.");
+            
+            return Ok(());
+        },
+        
+        GrandShareCommands::ClaimRewards { account } => {
+            let account_obj = get_account_by_address_or_first(state.wallet.as_ref().unwrap(), account)?;
+            
+            print_info("Claiming GrandShare rewards...");
+            
+            // Get password for signing
+            let password = prompt_password("Enter wallet password")?;
+            
+            // Project ID is required for claim_funds. Using a default value for now
+            let project_id = 1; // Default project ID
+            print_info(&format!("Using default project ID: {}", project_id));
+            
+            // Create claim transaction - use claim_funds method which requires a project_id
+            let tx_builder = grandshare_contract.claim_funds(project_id, &account_obj)
+                .await.map_err(|e| CliError::Sdk(format!("Failed to create claim transaction: {}", e)))?;
+            
+            // Create the transaction using TransactionBuilder
+            let mut builder = TransactionBuilder::new();
+            
+            // Set signers
+            builder.set_signers(signers)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set valid until block
+            builder.valid_until_block(valid_until_block)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set the script
+            builder.script = Some(script);
+            
+            // Get the hash data and create a witness
+            let unsigned_tx = builder.get_unsigned_tx()
+                .await
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+            
+            // Ensure account has a key pair
+            let key_pair = account_obj.key_pair().as_ref().ok_or_else(|| {
+                CliError::Transaction(format!(
+                    "Cannot create transaction signature because account {} does not hold a private key.",
+                    account_obj.get_address()
+                ))
+            })?;
+            
+            // Create witness and add it to the transaction
+            let witness = Witness::create(unsigned_tx.get_hash_data().await.map_err(|e| CliError::Transaction(format!("Failed to get hash data: {}", e)))?, key_pair)
+                .map_err(|e| CliError::Transaction(format!("Failed to create witness: {}", e)))?;
+            
+            unsigned_tx.add_witness(witness);
+            
+            // Send the transaction
+            let tx_hex = hex::encode(unsigned_tx.to_array());
+            let result = rpc_client.send_raw_transaction(tx_hex)
+                .await
+                .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
+            
+            print_success("Claim rewards transaction sent successfully");
+            println!("Transaction hash: {}", result.hash);
+        },
+        
+        GrandShareCommands::GetInfo { account } => {
+            // Get account if specified
+            let account_hash = if let Some(acc) = account {
+                if acc.starts_with("N") {
+                    // Use the ScriptHash methods directly
+                    ScriptHash::from_address(&acc)
+                        .map_err(|e| CliError::InvalidInput(format!("Invalid address: {}", e)))?
+                } else {
+                    // Use the ScriptHash methods directly
+                    ScriptHash::from_str(&acc)
+                        .map_err(|e| CliError::InvalidInput(format!("Invalid script hash: {}", e)))?
+                }
+            } else if let Some(wallet) = &state.wallet {
+                // Use first account from wallet
+                if wallet.accounts.is_empty() {
+                    return Err(CliError::NoAccount);
+                }
+                wallet.get_accounts()[0].get_script_hash().clone()
+            } else {
+                return Err(CliError::NoWallet);
+            };
+            
+            print_info("Getting GrandShare staking information...");
+            
+            // The necessary methods don't exist yet, so we'll just print placeholder info
+            print_info("GrandShare Statistics:");
+            print_info("- The GrandShare contract doesn't have implemented query methods yet.");
+            print_info(&format!("- Account: {}", account_hash));
+            print_info("- Project information will be available in a future version.");
+            
+            // TODO: Implement when the contract methods are available
+            // let staked_amount = grandshare_contract.get_staked_amount(&account_hash).await
+            //     .map_err(|e| CliError::Sdk(format!("Failed to get staked amount: {}", e)))?;
+            // 
+            // let rewards = grandshare_contract.get_rewards(&account_hash).await
+            //     .map_err(|e| CliError::Sdk(format!("Failed to get rewards: {}", e)))?;
+            
+            // Print statistics
+            // println!("GrandShare Statistics:");
+            // println!("- Staked: {:.8} NEO", staked_amount.as_u64() as f64 / 100_000_000.0);
+            // println!("- Claimable rewards: {:.8} GAS", rewards.as_u64() as f64 / 100_000_000.0);
+        },
+    }
+    
+    Ok(())
+}
+
+async fn handle_neocompound_command(args: NeoCompoundCommands, state: &mut CliState) -> Result<(), CliError> {
+    if state.wallet.is_none() {
+        print_error("No wallet is currently open");
+        return Err(CliError::NoWallet);
+    }
+    
+    if state.rpc_client.is_none() {
+        print_error("No RPC client is connected. Please connect to a node first.");
+        return Err(CliError::Network("No RPC client is connected".to_string()));
+    }
+    
+    let rpc_client = state.rpc_client.as_ref().unwrap();
+    let neocompound_contract = NeoCompoundContract::new(Some(rpc_client));
+    
+    match args {
+        NeoCompoundCommands::Deposit { amount, account } => {
+            // Parse NEO amount
+            let amount_val = parse_amount(&amount, "neo", rpc_client, Some(&state.get_network_type())).await?;
+            
+            // Get account
+            let account_obj = get_account_by_address_or_first(state.wallet.as_ref().unwrap(), account)?;
+            
+            print_info(&format!("Depositing {} NEO into NeoCompound...", amount));
+            
+            // Get password for signing
+            let password = prompt_password("Enter wallet password")?;
+            
+            // Create deposit transaction
+            // Need to add NEO token script hash as the first parameter
+            let neo_script_hash = ScriptHash::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(); // NEO token
+            let tx_builder = neocompound_contract.deposit(&neo_script_hash, amount_val, &account_obj)
+                .await.map_err(|e| CliError::Sdk(format!("Failed to create deposit transaction: {}", e)))?;
+            
+            // Create the transaction using TransactionBuilder
+            let mut builder = TransactionBuilder::new();
+            
+            // Set signers
+            builder.set_signers(signers)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set valid until block
+            builder.valid_until_block(valid_until_block)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set the script
+            builder.script = Some(script);
+            
+            // Get the hash data and create a witness
+            let unsigned_tx = builder.get_unsigned_tx()
+                .await
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+            
+            // Ensure account has a key pair
+            let key_pair = account_obj.key_pair().as_ref().ok_or_else(|| {
+                CliError::Transaction(format!(
+                    "Cannot create transaction signature because account {} does not hold a private key.",
+                    account_obj.get_address()
+                ))
+            })?;
+            
+            // Create witness and add it to the transaction
+            let witness = Witness::create(unsigned_tx.get_hash_data().await.map_err(|e| CliError::Transaction(format!("Failed to get hash data: {}", e)))?, key_pair)
+                .map_err(|e| CliError::Transaction(format!("Failed to create witness: {}", e)))?;
+            
+            unsigned_tx.add_witness(witness);
+            
+            // Send the transaction
+            let tx_hex = hex::encode(unsigned_tx.to_array());
+            let result = rpc_client.send_raw_transaction(tx_hex)
+                .await
+                .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
+            
+            print_success("Deposit transaction sent successfully");
+            println!("Transaction hash: {}", result.hash);
+        },
+        
+        NeoCompoundCommands::Withdraw { amount, account } => {
+            let account_obj = get_account_by_address_or_first(state.wallet.as_ref().unwrap(), account)?;
+            
+            print_info(&format!("Withdrawing {} NEO from NeoCompound...", amount));
+            
+            // Get password for signing
+            let password = prompt_password("Enter wallet password")?;
+            
+            // Create withdraw transaction
+            // Need to add NEO token script hash as the first parameter for withdraw
+            let neo_script_hash = ScriptHash::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(); // NEO token
+            let amount_val = parse_amount(&amount, "neo", rpc_client, Some(&state.get_network_type())).await?;
+            let tx_builder = neocompound_contract.withdraw(&neo_script_hash, amount_val, &account_obj)
+                .await.map_err(|e| CliError::Sdk(format!("Failed to create withdraw transaction: {}", e)))?;
+            
+            // Create the transaction using TransactionBuilder
+            let mut builder = TransactionBuilder::new();
+            
+            // Set signers
+            builder.set_signers(signers)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set valid until block
+            builder.valid_until_block(valid_until_block)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set the script
+            builder.script = Some(script);
+            
+            // Get the hash data and create a witness
+            let unsigned_tx = builder.get_unsigned_tx()
+                .await
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+            
+            // Ensure account has a key pair
+            let key_pair = account_obj.key_pair().as_ref().ok_or_else(|| {
+                CliError::Transaction(format!(
+                    "Cannot create transaction signature because account {} does not hold a private key.",
+                    account_obj.get_address()
+                ))
+            })?;
+            
+            // Create witness and add it to the transaction
+            let witness = Witness::create(unsigned_tx.get_hash_data().await.map_err(|e| CliError::Transaction(format!("Failed to get hash data: {}", e)))?, key_pair)
+                .map_err(|e| CliError::Transaction(format!("Failed to create witness: {}", e)))?;
+            
+            unsigned_tx.add_witness(witness);
+            
+            // Send the transaction
+            let tx_hex = hex::encode(unsigned_tx.to_array());
+            let result = rpc_client.send_raw_transaction(tx_hex)
+                .await
+                .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
+            
+            print_success("Withdraw transaction sent successfully");
+            println!("Transaction hash: {}", result.hash);
+        },
+        
+        NeoCompoundCommands::ClaimRewards { account } => {
+            let account_obj = get_account_by_address_or_first(state.wallet.as_ref().unwrap(), account)?;
+            
+            print_info("Claiming NeoCompound rewards...");
+            
+            // Get password for signing
+            let password = prompt_password("Enter wallet password")?;
+            
+            // The claim_rewards method doesn't exist yet, we need to use compound which takes a token parameter
+            print_info("Using compound method for claiming rewards");
+            
+            // Need to add NEO token script hash as the first parameter for compound
+            let neo_script_hash = ScriptHash::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap(); // NEO token
+            let tx_builder = neocompound_contract.compound(&neo_script_hash, &account_obj)
+                .await.map_err(|e| CliError::Sdk(format!("Failed to create claim transaction: {}", e)))?;
+            
+            // Create the transaction using TransactionBuilder
+            let mut builder = TransactionBuilder::new();
+            
+            // Set signers
+            builder.set_signers(signers)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set valid until block
+            builder.valid_until_block(valid_until_block)
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+                
+            // Set the script
+            builder.script = Some(script);
+            
+            // Get the hash data and create a witness
+            let unsigned_tx = builder.get_unsigned_tx()
+                .await
+                .map_err(|e| CliError::TransactionBuilder(e.to_string()))?;
+            
+            // Ensure account has a key pair
+            let key_pair = account_obj.key_pair().as_ref().ok_or_else(|| {
+                CliError::Transaction(format!(
+                    "Cannot create transaction signature because account {} does not hold a private key.",
+                    account_obj.get_address()
+                ))
+            })?;
+            
+            // Create witness and add it to the transaction
+            let witness = Witness::create(unsigned_tx.get_hash_data().await.map_err(|e| CliError::Transaction(format!("Failed to get hash data: {}", e)))?, key_pair)
+                .map_err(|e| CliError::Transaction(format!("Failed to create witness: {}", e)))?;
+            
+            unsigned_tx.add_witness(witness);
+            
+            // Send the transaction
+            let tx_hex = hex::encode(unsigned_tx.to_array());
+            let result = rpc_client.send_raw_transaction(tx_hex)
+                .await
+                .map_err(|e| CliError::Network(format!("Failed to send transaction: {}", e)))?;
+            
+            print_success("Claim rewards transaction sent successfully");
+            println!("Transaction hash: {}", result.hash);
+        },
+        
+        NeoCompoundCommands::GetStats { account } => {
+            print_info("Getting NeoCompound statistics...");
+            
+            // Get account if specified
+            let account_hash = if let Some(acc) = account {
+                // Use the ScriptHash methods directly
+                if acc.starts_with("N") {
+                    ScriptHash::from_address(&acc)
+                        .map_err(|e| CliError::InvalidInput(format!("Invalid address: {}", e)))?
+                } else {
+                    // Use the ScriptHash methods directly
+                    ScriptHash::from_str(&acc)
+                        .map_err(|e| CliError::InvalidInput(format!("Invalid script hash: {}", e)))?
+                }
+            } else if let Some(wallet) = &state.wallet {
+                // Use first account from wallet
+                if wallet.accounts.is_empty() {
+                    return Err(CliError::NoAccount);
+                }
+                wallet.get_accounts()[0].get_script_hash().clone()
+            } else {
+                return Err(CliError::NoWallet);
+            };
+            
+            print_info("Getting token information...");
+            
+            // Use NEO token as an example
+            let neo_token = ScriptHash::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap();
+            
+            // Get APY for NEO
+            if let Ok(apy) = neocompound_contract.get_apy(&neo_token).await {
+                println!("NeoCompound Statistics:");
+                println!("- Account: {}", account_hash);
+                println!("- Current NEO APY: {:.2}%", apy);
+            } else {
+                println!("Error: Could not retrieve NeoCompound APY information");
+            }
+        },
+    }
+    
+    Ok(())
+}
+
+// Helper function to get token balance
+async fn get_token_balance<P>(rpc_client: &RpcClient<P>, token_hash: &ScriptHash, script_hash: &ScriptHash) -> Result<i64, CliError> 
+where P: JsonRpcProvider + 'static {
+    let result = rpc_client.invoke_function(
+        token_hash,
+        "balanceOf".to_string(),
+        vec![script_hash.into()],
+        None
+    ).await.map_err(|e| CliError::Sdk(format!("Failed to get balance: {}", e)))?;
+    
+    for item in result.stack {
+        if let StackItem::Integer { value } = item {
+            // Extract integer value
+            return Ok(value.to_i64().ok_or_else(|| CliError::Sdk("Failed to convert balance to i64".to_string()))?);
+        }
+    }
+    
+    Err(CliError::Sdk("Failed to parse balance response".to_string()))
+}
+
+// Helper function to get token symbol
+async fn get_token_symbol<P>(rpc_client: &RpcClient<P>, token_hash: &ScriptHash) -> Result<String, CliError> 
+where P: JsonRpcProvider + 'static {
+    let result = rpc_client.invoke_function(
+        token_hash,
+        "symbol".to_string(),
+        vec![],
+        None
+    ).await.map_err(|e| CliError::Sdk(format!("Failed to get symbol: {}", e)))?;
+    
+    for item in result.stack {
+        if let StackItem::ByteString { value } = item {
+            return Ok(String::from_utf8_lossy(value.as_bytes()).to_string());
+        }
+    }
+    
+    Err(CliError::Sdk("Failed to parse symbol response".to_string()))
+}
+
+// Helper function to get token decimals
+async fn get_token_decimals<P>(rpc_client: &RpcClient<P>, token_hash: &ScriptHash) -> Result<u8, CliError> 
+where P: JsonRpcProvider + 'static {
+    let result = rpc_client.invoke_function(
+        token_hash,
+        "decimals".to_string(),
+        vec![],
+        None
+    ).await.map_err(|e| CliError::Sdk(format!("Failed to get decimals: {}", e)))?;
+    
+    for item in result.stack {
+        if let StackItem::Integer { value } = item {
+            // Extract integer value
+            return Ok(value.to_u8().ok_or_else(|| CliError::Sdk("Failed to convert decimals to u8".to_string()))?);
+        }
+    }
+    
+    Err(CliError::Sdk("Failed to parse decimals response".to_string()))
+}
+
+// Helper function to get token total supply
+async fn get_token_total_supply<P>(rpc_client: &RpcClient<P>, token_hash: &ScriptHash) -> Result<i64, CliError> 
+where P: JsonRpcProvider + 'static {
+    let result = rpc_client.invoke_function(
+        token_hash,
+        "totalSupply".to_string(),
+        vec![],
+        None
+    ).await.map_err(|e| CliError::Sdk(format!("Failed to get total supply: {}", e)))?;
+    
+    for item in result.stack {
+        if let StackItem::Integer { value } = item {
+            // Extract integer value
+            return Ok(value.to_i64().ok_or_else(|| CliError::Sdk("Failed to convert totalSupply to i64".to_string()))?);
+        }
+    }
+    
+    Err(CliError::Sdk("Failed to parse total supply response".to_string()))
+}
+
+/// Get token address based on network type
+/// This provides a centralized function for getting token addresses across all networks
+fn get_token_address_for_network(token_name: &str, network: &Network) -> Option<ScriptHash> {
+    match (token_name.to_uppercase().as_str(), network) {
+        // Neo N3 Mainnet tokens
+        ("NEO", &Network::Mainnet) => Some(ScriptHash::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").unwrap()),
+        ("GAS", &Network::Mainnet) => Some(ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap()),
+        ("BNEO", &Network::Mainnet) => Some(ScriptHash::from_str("0x48c40d4666f93408be1bef038b6722404d9a4c2a").unwrap()),
+        
+        // Neo N3 Testnet tokens
+        ("NEO", &Network::Testnet) => Some(ScriptHash::from_str("0x4866f096ffdcfa1a0b398e648c9872fb41bac0f1").unwrap()),
+        ("GAS", &Network::Testnet) => Some(ScriptHash::from_str("0x9c3eef65842533835861e0edbd9e9d9811ba62b3").unwrap()),
+        
+        // Add Neo X tokens when they become available
+        // ("NEO", &Network::NeoX) => Some(ScriptHash::from_str("NEO_X_ADDRESS").unwrap()),
+        // ("GAS", &Network::NeoX) => Some(ScriptHash::from_str("GAS_X_ADDRESS").unwrap()),
+        
+        // No match found
+        _ => None
+    }
+}
+
+/// Helper function to ensure token addresses use the correct network
+fn ensure_network_correct_address(token_name: &str, hash: &ScriptHash, network: &Network) -> bool {
+    if let Some(expected_hash) = get_token_address_for_network(token_name, network) {
+        return expected_hash == *hash;
+    }
+    
+    // If we don't have a known address for this token on this network, we can't verify
+    true
+}

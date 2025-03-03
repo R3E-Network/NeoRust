@@ -1,8 +1,7 @@
 use primitive_types::{H160, H256};
 use serde_json::Value;
-
-use neo::prelude::{Bytes, Secp256r1PublicKey};
-
+use crate::Bytes;
+use crate::crypto::Secp256r1PublicKey;
 use super::ScriptHashExtension;
 
 pub trait ValueExtension {

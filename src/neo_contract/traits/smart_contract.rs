@@ -5,7 +5,12 @@ use num_bigint::BigInt;
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
 
-use neo::prelude::*;
+// Replace prelude imports with specific types
+use crate::neo_builder::{CallFlags, ScriptBuilder, TransactionBuilder, Signer};
+use crate::neo_clients::{APITrait, JsonRpcProvider, RpcClient};
+use crate::neo_contract::{ContractError, NeoIterator};
+use crate::neo_types::{Bytes, ContractManifest, ContractParameter, InvocationResult, OpCode, ScriptHash, StackItem};
+use crate::ScriptHashExtension;
 
 #[async_trait]
 pub trait SmartContractTrait<'a>: Send + Sync {

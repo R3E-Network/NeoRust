@@ -67,7 +67,6 @@
 
 pub use base58_helper::*;
 pub use error::*;
-pub use hash::*;
 pub use key_pair::*;
 pub use keys::*;
 pub use utils::*;
@@ -75,11 +74,18 @@ pub use wif::*;
 
 mod base58_helper;
 mod error;
-mod hash;
+pub mod hash;
 mod key_pair;
 mod keys;
 mod utils;
 mod wif;
+
+// Re-export important types
+pub use hash::HashableForVec;
+pub use key_pair::KeyPair;
+pub use error::CryptoError;
+pub use keys::Secp256r1PublicKey;
+pub use keys::Secp256r1Signature;
 
 pub(crate) fn add(left: usize, right: usize) -> usize {
 	left + right

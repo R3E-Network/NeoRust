@@ -6,9 +6,21 @@ description = "Command-line interface for the NeoRust SDK"
 authors = ["R3E Network"]
 license = "MIT"
 
+[[bin]]
+name = "neo-cli"
+path = "src/main.rs"
+
+[features]
+default = ["network", "fs", "storage", "files", "neofs"]
+network = []
+fs = []
+storage = []
+files = []
+neofs = []
+
 [dependencies]
 neo3 = { path = ".." }
-clap = { version = "4.4.18", features = ["derive"] }
+clap = { version = "4.4.18", features = ["derive", "env", "unicode", "wrap_help"] }
 tokio = { version = "1.35.1", features = ["full"] }
 serde = "1.0.195"
 serde_json = "1.0.114"
@@ -16,6 +28,7 @@ serde_derive = "1.0.195"
 anyhow = "1.0.79"
 thiserror = "1.0.56"
 lazy_static = "1.4.0"
+comfy-table = "7.1.0"
 prettytable-rs = "0.10.0"
 confy = "0.5.1"
 dirs = "5.0.1"
@@ -30,8 +43,12 @@ rand = "0.8.5"
 colored = "2.0.4"
 dialoguer = "0.11.0"
 hex = "0.4.3"
-primitive-types = "0.12.1"
+primitive-types = "0.13.0"
 env_logger = "0.10.1"
+sha2 = "0.10.8"
+ripemd = "0.1.3"
+mime_guess = "2.0.4"
+async-trait = "0.1.77"
 
 [dev-dependencies]
 tempfile = "3.10.0"

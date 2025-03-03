@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use neo::prelude::*;
+use crate::builder::{TransactionError, WitnessAction, WitnessCondition};
+use crate::codec::{Decoder, Encoder, NeoSerializable};
 
 #[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Clone)]
 pub struct WitnessRule {
@@ -45,6 +47,10 @@ mod tests {
 	use primitive_types::H160;
 
 	use neo::prelude::*;
+	use crate::builder::{WitnessCondition, WitnessRule};
+	use crate::codec::{Encoder, NeoSerializable};
+	use crate::config::TestConstants;
+	use crate::crypto::Secp256r1PublicKey;
 
 	#[test]
 	fn test_decode_boolean_condition() {

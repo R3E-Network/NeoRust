@@ -1,10 +1,9 @@
 use std::{error::Error, fmt::Debug, sync::Arc};
 
 use thiserror::Error;
-
-use neo::prelude::{CryptoError, JsonRpcError, TypeError};
-
-use crate::prelude::APITrait;
+use crate::crypto::CryptoError;
+use crate::neo_clients::JsonRpcError;
+use crate::TypeError;
 
 #[derive(Debug, Error)]
 /// An error thrown when making a call to the provider

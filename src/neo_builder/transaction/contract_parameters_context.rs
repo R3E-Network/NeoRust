@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-
-use neo::prelude::ContractParameter;
+use crate::ContractParameter;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ContractParametersContext {

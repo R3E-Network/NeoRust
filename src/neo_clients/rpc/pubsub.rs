@@ -11,8 +11,7 @@ use primitive_types::U256;
 use serde::de::DeserializeOwned;
 use serde_json::value::RawValue;
 use tracing::error;
-
-use neo::prelude::{JsonRpcProvider, RpcClient};
+use crate::neo_clients::{JsonRpcProvider, RpcClient};
 
 /// A transport implementation supporting pub sub subscriptions.
 pub trait PubsubClient: JsonRpcProvider {

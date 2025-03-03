@@ -2,7 +2,19 @@ use async_trait::async_trait;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
-use neo::prelude::*;
+use crate::neo_clients::{JsonRpcProvider, RpcClient};
+use crate::neo_contract::{
+	ContractError,
+	traits::{TokenTrait, SmartContractTrait, FungibleTokenTrait}
+};
+use crate::neo_types::{
+	NNSName, ScriptHash, StackItem, ContractParameterType, 
+	ContractParameter,
+	serde_with_utils::{deserialize_script_hash, serialize_script_hash}
+};
+use crate::neo_crypto::Secp256r1PublicKey;
+use crate::neo_builder::TransactionBuilder;
+use crate::neo_protocol::Account;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NeoToken<'a, P: JsonRpcProvider> {
@@ -293,5 +305,21 @@ impl Candidate {
 		let key = items[0].as_public_key().unwrap();
 		let votes = items[1].as_int().unwrap() as i32;
 		Ok(Self { public_key: key, votes })
+	}
+}
+
+pub struct AccountState {
+	pub balance: i64,
+	pub balance_height: Option<i64>,
+	pub public_key: Option<Secp256r1PublicKey>,
+}
+
+impl AccountState {
+	pub fn with_no_balance() -> Self {
+		Self {
+			balance: 0,
+			balance_height: None,
+			public_key: None,
+		}
 	}
 }

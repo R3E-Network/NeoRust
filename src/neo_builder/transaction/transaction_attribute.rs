@@ -3,9 +3,8 @@ use std::hash::Hasher;
 use ethereum_types::H256;
 use rustc_serialize::base64::FromBase64;
 use serde::{Deserialize, Serialize};
-
-use neo::prelude::{Decoder, Encoder, NeoSerializable, TransactionError};
-
+use crate::builder::TransactionError;
+use crate::codec::{Decoder, Encoder, NeoSerializable};
 use crate::prelude::Base64Encode;
 
 use super::oracle_response_code::OracleResponseCode;

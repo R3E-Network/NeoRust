@@ -3,7 +3,15 @@ use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
-use neo::prelude::*;
+use crate::neo_types::{
+	ScriptHash,
+	serde_with_utils::{deserialize_script_hash, serialize_script_hash}
+};
+use crate::neo_contract::{ContractError, SmartContractTrait};
+use crate::neo_protocol::Account;
+use crate::ContractParameter;
+use crate::neo_clients::{JsonRpcProvider, RpcClient};
+use crate::neo_builder::{TransactionBuilder, AccountSigner};
 
 /// Neo X Bridge contract interface for token transfers between Neo N3 and Neo X
 #[derive(Debug, Clone, Serialize, Deserialize)]

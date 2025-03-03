@@ -1,27 +1,11 @@
 #[cfg(test)]
 mod tests {
-	use crate::{
-		neo_builder::GAS_TOKEN_HASH,
-		neo_clients::MockClient,
-		neo_protocol::{NeoProtocol, NeoVersion},
-		neo_types::ScriptHashExtension,
-		prelude::{
-			init_logger, ApplicationLog, BuilderError, ContractParameter, ContractSigner,
-			InvocationResult, Signer, StackItem, TestConstants, TransactionAttribute,
-			TransactionError, Witness, WitnessScope,
-		},
-		types::NeoVMStateType,
-	};
+	use crate::{neo_builder::GAS_TOKEN_HASH, neo_clients::MockClient, neo_protocol::{NeoProtocol, NeoVersion}, neo_types::ScriptHashExtension, types::NeoVMStateType, ContractParameter, InvocationResult};
 	use lazy_static::lazy_static;
 	use log::info;
 	use neo::{
 		builder::VerificationScript,
 		config::{NeoConfig, NEOCONFIG},
-		prelude::{
-			APITrait, Account, AccountSigner, AccountTrait, Http, HttpProvider, KeyPair,
-			NeoConstants, RawTransaction, RpcClient, ScriptBuilder, Secp256r1PrivateKey,
-			TransactionBuilder,
-		},
 		types::VMState,
 	};
 	use num_bigint::BigInt;
@@ -31,6 +15,11 @@ mod tests {
 	use std::{default, ops::Deref, str::FromStr, sync::Arc};
 	use tokio::sync::{Mutex, OnceCell};
 	use tracing::debug;
+	use crate::builder::{init_logger, AccountSigner, BuilderError, ContractSigner, ScriptBuilder, Signer, TransactionAttribute, TransactionBuilder, TransactionError, Witness};
+	use crate::config::{NeoConstants, TestConstants};
+	use crate::crypto::{KeyPair, Secp256r1PrivateKey};
+	use crate::neo_clients::{APITrait, HttpProvider, RpcClient};
+	use crate::neo_protocol::{Account, AccountTrait, ApplicationLog, RawTransaction};
 
 	lazy_static! {
 		pub static ref ACCOUNT1: Account = Account::from_key_pair(
