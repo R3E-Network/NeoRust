@@ -19,6 +19,7 @@
 - [API Overview](reference/api-overview.md)
 - [Configuration](reference/configuration.md)
 - [Error Handling](reference/error-handling.md)
+- [Copyright Information](reference/copyright.md)
 
 # Examples
 - [Example Code](examples/README.md)

@@ -1,8 +1,10 @@
 use std::fmt::Debug;
 
+use crate::{
+	codec::{CodecError, Decoder, Encoder},
+	config::NeoConstants,
+};
 use primitive_types::{H160, H256};
-use crate::codec::{CodecError, Decoder, Encoder};
-use crate::config::NeoConstants;
 
 pub trait NeoSerializable {
 	type Error: Send + Sync + Debug;

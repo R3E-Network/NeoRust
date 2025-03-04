@@ -1,5 +1,9 @@
 use std::{fmt, str::FromStr, sync::Arc};
 
+use crate::{
+	builder::Transaction, neo_clients::JsonRpcProvider, neo_wallets::WalletError, Address,
+	ScriptHashExtension,
+};
 use async_trait::async_trait;
 use coins_ledger::{
 	common::APDUCommand,
@@ -10,10 +14,6 @@ use primitive_types::{H160, H256};
 use sha2::Digest;
 use signature::hazmat::{PrehashSigner, PrehashVerifier};
 use yubihsm::ecdsa::Signature;
-use crate::{Address, ScriptHashExtension};
-use crate::builder::Transaction;
-use crate::neo_clients::JsonRpcProvider;
-use crate::neo_wallets::WalletError;
 
 /// Neo N3 APDU commands for Ledger devices.
 pub mod apdu {
@@ -218,7 +218,10 @@ impl<T: LedgerAsync> LedgerWallet<T> {
 	}
 
 	/// Signs a message using the Ledger device.
-	pub async fn sign_message(&self, message: &[u8]) -> Result<k256::ecdsa::Signature, WalletError> {
+	pub async fn sign_message(
+		&self,
+		message: &[u8],
+	) -> Result<k256::ecdsa::Signature, WalletError> {
 		let path = self.derivation_path.to_vec();
 
 		// Hash the message using SHA-256

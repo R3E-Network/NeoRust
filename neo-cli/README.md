@@ -223,3 +223,6 @@ MIT License
 ## Credits
 
 Developed by the R3E Network team
+
+---
+Copyright © 2020-2025 R3E Network. All rights reserved.

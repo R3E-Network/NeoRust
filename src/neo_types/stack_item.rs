@@ -10,8 +10,8 @@ use serde::{
 	Deserialize, Deserializer, Serialize,
 };
 
-use neo::prelude::{Address, ScriptHashExtension};
 use crate::crypto::Secp256r1PublicKey;
+use neo::prelude::{Address, ScriptHashExtension};
 
 /// The `StackItem` enum represents an item on the Neo virtual machine stack.
 #[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize, Deserialize)]

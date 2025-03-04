@@ -1,5 +1,12 @@
 use std::vec;
 
+use crate::{
+	builder::{BuilderError, InteropService, ScriptBuilder},
+	codec::{Decoder, Encoder, NeoSerializable},
+	config::NeoConstants,
+	crypto::{HashableForVec, Secp256r1PublicKey, Secp256r1Signature},
+	var_size, Bytes, OpCode,
+};
 use getset::{Getters, Setters};
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Zero};
@@ -7,11 +14,6 @@ use p256::pkcs8::der::Encode;
 use primitive_types::H160;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{Deserialize, Serialize};
-use crate::builder::{BuilderError, InteropService, ScriptBuilder};
-use crate::{var_size, Bytes, OpCode};
-use crate::codec::{Decoder, Encoder, NeoSerializable};
-use crate::config::NeoConstants;
-use crate::crypto::{HashableForVec, Secp256r1PublicKey, Secp256r1Signature};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
 pub struct VerificationScript {

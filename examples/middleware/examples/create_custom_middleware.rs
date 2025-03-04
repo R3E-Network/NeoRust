@@ -1,12 +1,12 @@
 use async_trait::async_trait;
 use ethers::{
-    core::{
-        types::{BlockId, transaction::eip2718::TypedTransaction, TransactionRequest, U256},
-        utils::{Anvil, parse_units},
-    },
-    middleware::MiddlewareBuilder,
-    providers::{Http, Middleware, MiddlewareError, PendingTransaction, Provider},
-    signers::{LocalWallet, Signer},
+	core::{
+		types::{transaction::eip2718::TypedTransaction, BlockId, TransactionRequest, U256},
+		utils::{parse_units, Anvil},
+	},
+	middleware::MiddlewareBuilder,
+	providers::{Http, Middleware, MiddlewareError, PendingTransaction, Provider},
+	signers::{LocalWallet, Signer},
 };
 use thiserror::Error;
 
@@ -21,9 +21,9 @@ use thiserror::Error;
 /// estimated, in order to improve the chances of them not to run out of gas when landing on-chain.
 #[derive(Debug)]
 struct GasMiddleware<M> {
-    inner: M,
-    /// This value is used to raise the gas value before sending transactions
-    contingency: U256,
+	inner: M,
+	/// This value is used to raise the gas value before sending transactions
+	contingency: U256,
 }
 
 /// Contingency is expressed with 4 units
@@ -35,29 +35,29 @@ const CONTINGENCY_UNITS: usize = 4;
 
 impl<M> GasMiddleware<M>
 where
-    M: Middleware,
+	M: Middleware,
 {
-    /// Creates an instance of GasMiddleware
-    /// `ìnner` the inner Middleware
-    /// `perc` This is an unsigned integer representing the percentage increase in the amount of gas
-    /// to be used for the transaction. The percentage is relative to the gas value specified in the
-    /// transaction. Valid contingency values are in range 1..=50. Otherwise a custom middleware
-    /// error is raised.
-    pub fn new(inner: M, perc: u32) -> Result<Self, GasMiddlewareError<M>> {
-        let contingency = match perc {
-            0 => Err(GasMiddlewareError::TooLowContingency(perc))?,
-            51.. => Err(GasMiddlewareError::TooHighContingency(perc))?,
-            1..=50 => {
-                let decimals = 2;
-                let perc = U256::from(perc) * U256::exp10(decimals); // e.g. 50 => 5000
-                let one = parse_units(1, CONTINGENCY_UNITS).unwrap();
-                let one = U256::from(one);
-                one + perc // e.g. 50% => 1 + 0.5 => 10000 + 5000 => 15000
-            }
-        };
+	/// Creates an instance of GasMiddleware
+	/// `ìnner` the inner Middleware
+	/// `perc` This is an unsigned integer representing the percentage increase in the amount of gas
+	/// to be used for the transaction. The percentage is relative to the gas value specified in the
+	/// transaction. Valid contingency values are in range 1..=50. Otherwise a custom middleware
+	/// error is raised.
+	pub fn new(inner: M, perc: u32) -> Result<Self, GasMiddlewareError<M>> {
+		let contingency = match perc {
+			0 => Err(GasMiddlewareError::TooLowContingency(perc))?,
+			51.. => Err(GasMiddlewareError::TooHighContingency(perc))?,
+			1..=50 => {
+				let decimals = 2;
+				let perc = U256::from(perc) * U256::exp10(decimals); // e.g. 50 => 5000
+				let one = parse_units(1, CONTINGENCY_UNITS).unwrap();
+				let one = U256::from(one);
+				one + perc // e.g. 50% => 1 + 0.5 => 10000 + 5000 => 15000
+			},
+		};
 
-        Ok(Self { inner, contingency })
-    }
+		Ok(Self { inner, contingency })
+	}
 }
 
 /// Let's implement the `Middleware` trait for our custom middleware.
@@ -66,40 +66,40 @@ where
 #[async_trait]
 impl<M> Middleware for GasMiddleware<M>
 where
-    M: Middleware,
+	M: Middleware,
 {
-    type Error = GasMiddlewareError<M>;
-    type Provider = M::Provider;
-    type Inner = M;
+	type Error = GasMiddlewareError<M>;
+	type Provider = M::Provider;
+	type Inner = M;
 
-    fn inner(&self) -> &M {
-        &self.inner
-    }
+	fn inner(&self) -> &M {
+		&self.inner
+	}
 
-    /// In this function we bump the transaction gas value by the specified percentage
-    /// This can raise a custom middleware error if a gas amount was not set for
-    /// the transaction.
-    async fn send_transaction<T: Into<TypedTransaction> + Send + Sync>(
-        &self,
-        tx: T,
-        block: Option<BlockId>,
-    ) -> Result<PendingTransaction<'_, Self::Provider>, Self::Error> {
-        let mut tx: TypedTransaction = tx.into();
+	/// In this function we bump the transaction gas value by the specified percentage
+	/// This can raise a custom middleware error if a gas amount was not set for
+	/// the transaction.
+	async fn send_transaction<T: Into<TypedTransaction> + Send + Sync>(
+		&self,
+		tx: T,
+		block: Option<BlockId>,
+	) -> Result<PendingTransaction<'_, Self::Provider>, Self::Error> {
+		let mut tx: TypedTransaction = tx.into();
 
-        let curr_gas: U256 = match tx.gas() {
-            Some(gas) => gas.to_owned(),
-            None => Err(GasMiddlewareError::NoGasSetForTransaction)?,
-        };
+		let curr_gas: U256 = match tx.gas() {
+			Some(gas) => gas.to_owned(),
+			None => Err(GasMiddlewareError::NoGasSetForTransaction)?,
+		};
 
-        println!("Original transaction gas: {curr_gas:?} wei");
-        let units: U256 = U256::exp10(CONTINGENCY_UNITS);
-        let raised_gas: U256 = (curr_gas * self.contingency) / units;
-        tx.set_gas(raised_gas);
-        println!("Raised transaction gas: {raised_gas:?} wei");
+		println!("Original transaction gas: {curr_gas:?} wei");
+		let units: U256 = U256::exp10(CONTINGENCY_UNITS);
+		let raised_gas: U256 = (curr_gas * self.contingency) / units;
+		tx.set_gas(raised_gas);
+		println!("Raised transaction gas: {raised_gas:?} wei");
 
-        // Dispatch the call to the inner layer
-        self.send_transaction(tx, block).await.map_err(MiddlewareError::from_err)
-    }
+		// Dispatch the call to the inner layer
+		self.send_transaction(tx, block).await.map_err(MiddlewareError::from_err)
+	}
 }
 
 /// This example demonstrates how to handle errors in custom middlewares. It shows how to define
@@ -108,58 +108,58 @@ where
 /// middlewares that can handle and propagate errors in a consistent and robust way.
 #[derive(Error, Debug)]
 pub enum GasMiddlewareError<M: Middleware> {
-    /// Thrown when the internal middleware errors
-    #[error("{0}")]
-    MiddlewareError(M::Error),
-    /// Specific errors of this GasMiddleware.
-    /// Please refer to the `thiserror` crate for
-    /// further docs.
-    #[error("{0}")]
-    TooHighContingency(u32),
-    #[error("{0}")]
-    TooLowContingency(u32),
-    #[error("Cannot raise gas! Gas value not provided for this transaction.")]
-    NoGasSetForTransaction,
+	/// Thrown when the internal middleware errors
+	#[error("{0}")]
+	MiddlewareError(M::Error),
+	/// Specific errors of this GasMiddleware.
+	/// Please refer to the `thiserror` crate for
+	/// further docs.
+	#[error("{0}")]
+	TooHighContingency(u32),
+	#[error("{0}")]
+	TooLowContingency(u32),
+	#[error("Cannot raise gas! Gas value not provided for this transaction.")]
+	NoGasSetForTransaction,
 }
 
 impl<M: Middleware> MiddlewareError for GasMiddlewareError<M> {
-    type Inner = M::Error;
+	type Inner = M::Error;
 
-    fn from_err(src: M::Error) -> Self {
-        GasMiddlewareError::MiddlewareError(src)
-    }
+	fn from_err(src: M::Error) -> Self {
+		GasMiddlewareError::MiddlewareError(src)
+	}
 
-    fn as_inner(&self) -> Option<&Self::Inner> {
-        match self {
-            GasMiddlewareError::MiddlewareError(e) => Some(e),
-            _ => None,
-        }
-    }
+	fn as_inner(&self) -> Option<&Self::Inner> {
+		match self {
+			GasMiddlewareError::MiddlewareError(e) => Some(e),
+			_ => None,
+		}
+	}
 }
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
-    let anvil = Anvil::new().spawn();
+	let anvil = Anvil::new().spawn();
 
-    let wallet: LocalWallet = anvil.keys()[0].clone().into();
-    let wallet2: LocalWallet = anvil.keys()[1].clone().into();
-    let signer = wallet.with_chain_id(anvil.chain_id());
+	let wallet: LocalWallet = anvil.keys()[0].clone().into();
+	let wallet2: LocalWallet = anvil.keys()[1].clone().into();
+	let signer = wallet.with_chain_id(anvil.chain_id());
 
-    let gas_raise_perc = 50; // 50%;
-    let provider = Provider::<Http>::try_from(anvil.endpoint())?
-        .with_signer(signer)
-        .wrap_into(|s| GasMiddleware::new(s, gas_raise_perc).unwrap());
+	let gas_raise_perc = 50; // 50%;
+	let provider = Provider::<Http>::try_from(anvil.endpoint())?
+		.with_signer(signer)
+		.wrap_into(|s| GasMiddleware::new(s, gas_raise_perc).unwrap());
 
-    let gas = 15000;
-    let tx = TransactionRequest::new().to(wallet2.address()).value(10000).gas(gas);
+	let gas = 15000;
+	let tx = TransactionRequest::new().to(wallet2.address()).value(10000).gas(gas);
 
-    let pending_tx = provider.send_transaction(tx, None).await?;
+	let pending_tx = provider.send_transaction(tx, None).await?;
 
-    let receipt = pending_tx.await?.ok_or_else(|| eyre::format_err!("tx dropped from mempool"))?;
-    let tx = provider.get_transaction(receipt.transaction_hash).await?;
+	let receipt = pending_tx.await?.ok_or_else(|| eyre::format_err!("tx dropped from mempool"))?;
+	let tx = provider.get_transaction(receipt.transaction_hash).await?;
 
-    println!("Sent tx: {}\n", serde_json::to_string(&tx)?);
-    println!("Tx receipt: {}", serde_json::to_string(&receipt)?);
+	println!("Sent tx: {}\n", serde_json::to_string(&tx)?);
+	println!("Tx receipt: {}", serde_json::to_string(&receipt)?);
 
-    Ok(())
+	Ok(())
 }

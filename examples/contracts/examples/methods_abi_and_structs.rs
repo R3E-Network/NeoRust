@@ -3,14 +3,14 @@
 use std::{sync::Arc, time::Duration};
 
 use ethers::{
-    contract::abigen,
-    core::{
-        types::{Address, U256},
-        utils::Anvil,
-    },
-    middleware::SignerMiddleware,
-    providers::{Http, Provider},
-    signers::LocalWallet,
+	contract::abigen,
+	core::{
+		types::{Address, U256},
+		utils::Anvil,
+	},
+	middleware::SignerMiddleware,
+	providers::{Http, Provider},
+	signers::LocalWallet,
 };
 
 abigen!(VerifierContract, "ethers-contract/tests/solidity-contracts/verifier_abi.json");
@@ -19,28 +19,28 @@ abigen!(VerifierContract, "ethers-contract/tests/solidity-contracts/verifier_abi
 /// have structs as input.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let anvil = Anvil::new().spawn();
-    let provider =
-        Provider::<Http>::try_from(anvil.endpoint())?.interval(Duration::from_millis(10u64));
-    let wallet: LocalWallet = anvil.keys()[0].clone().into();
+	let anvil = Anvil::new().spawn();
+	let provider =
+		Provider::<Http>::try_from(anvil.endpoint())?.interval(Duration::from_millis(10u64));
+	let wallet: LocalWallet = anvil.keys()[0].clone().into();
 
-    let client = SignerMiddleware::new(provider, wallet);
-    let client = Arc::new(client);
+	let client = SignerMiddleware::new(provider, wallet);
+	let client = Arc::new(client);
 
-    let contract = VerifierContract::new(Address::zero(), client);
+	let contract = VerifierContract::new(Address::zero(), client);
 
-    // NOTE: this is all just dummy data
-    let g1 = G1Point { x: U256::zero(), y: U256::zero() };
-    let g2 = G2Point { x: [U256::zero(), U256::zero()], y: [U256::zero(), U256::zero()] };
-    let vk = VerifyingKey {
-        alfa_1: g1.clone(),
-        beta_2: g2.clone(),
-        gamma_2: g2.clone(),
-        delta_2: g2.clone(),
-        ic: vec![g1.clone()],
-    };
-    let proof = Proof { a: g1.clone(), b: g2, c: g1 };
+	// NOTE: this is all just dummy data
+	let g1 = G1Point { x: U256::zero(), y: U256::zero() };
+	let g2 = G2Point { x: [U256::zero(), U256::zero()], y: [U256::zero(), U256::zero()] };
+	let vk = VerifyingKey {
+		alfa_1: g1.clone(),
+		beta_2: g2.clone(),
+		gamma_2: g2.clone(),
+		delta_2: g2.clone(),
+		ic: vec![g1.clone()],
+	};
+	let proof = Proof { a: g1.clone(), b: g2, c: g1 };
 
-    let _ = contract.verify(vec![], proof, vk);
-    Ok(())
+	let _ = contract.verify(vec![], proof, vk);
+	Ok(())
 }

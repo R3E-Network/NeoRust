@@ -3,11 +3,13 @@ use futures::{FutureExt, TryFutureExt};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
+use crate::{
+	builder::TransactionBuilder,
+	neo_clients::{APITrait, JsonRpcProvider, RpcClient},
+	neo_contract::{ContractError, SmartContractTrait},
+	ContractIdentifiers,
+};
 use neo::prelude::*;
-use crate::builder::TransactionBuilder;
-use crate::neo_contract::{ContractError, SmartContractTrait};
-use crate::ContractIdentifiers;
-use crate::neo_clients::{APITrait, JsonRpcProvider, RpcClient};
 
 /// A struct representing contract management functionalities
 #[derive(Debug, Clone, Serialize, Deserialize)]

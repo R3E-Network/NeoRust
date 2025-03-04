@@ -1,4 +1,4 @@
-//! # Neo Types (v0.1.8)
+//! # Neo Types (v0.1.9)
 //!
 //! Core data types for the Neo N3 blockchain.
 //!
@@ -48,7 +48,7 @@
 //! let string_param = ContractParameter::string("Hello, Neo!");
 //! let integer_param = ContractParameter::integer(42);
 //! let bool_param = ContractParameter::bool(true);
-//! 
+//!
 //! // Create a parameter array for a contract invocation
 //! let params = vec![string_param, integer_param, bool_param];
 //! ```
@@ -63,7 +63,7 @@
 //! let int_item = StackItem::integer(123);
 //! let bool_item = StackItem::bool(true);
 //! let bytes_item = StackItem::byte_string(b"Neo");
-//! 
+//!
 //! // Convert between stack items and JSON values
 //! let json_value = int_item.to_json_value();
 //! assert_eq!(json_value, json!(123));
@@ -100,8 +100,8 @@ pub use vm_state::*;
 
 // Make modules public for direct access
 pub mod contract;
-pub mod nns;
 pub mod error;
+pub mod nns;
 pub mod serde_value;
 pub mod serde_with_utils;
 
@@ -264,14 +264,10 @@ mod tests {
 
 // Re-export serialization functions from serde_with_utils
 pub use serde_with_utils::{
-	deserialize_h160, serialize_h160,
-	deserialize_h256, serialize_h256,
-	deserialize_vec_h256, serialize_vec_h256,
-	deserialize_vec_u256, serialize_vec_u256,
-	deserialize_script_hash, serialize_script_hash,
-	deserialize_wildcard, serialize_wildcard,
-	deserialize_u256, serialize_u256,
-	deserialize_u64, serialize_u64,
+	deserialize_h160, deserialize_h256, deserialize_script_hash, deserialize_u256, deserialize_u64,
+	deserialize_vec_h256, deserialize_vec_u256, deserialize_wildcard, serialize_h160,
+	serialize_h256, serialize_script_hash, serialize_u256, serialize_u64, serialize_vec_h256,
+	serialize_vec_u256, serialize_wildcard,
 };
 
 // Re-export ValueExtension trait
@@ -281,5 +277,5 @@ pub use serde_value::ValueExtension;
 pub use address::NameOrAddress;
 
 // Other re-exports
-pub use vm_state::VMState;
 pub use string::StringExt;
+pub use vm_state::VMState;

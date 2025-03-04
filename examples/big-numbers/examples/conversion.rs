@@ -9,20 +9,20 @@ use primitive_types::U256;
 /// However, there may be cases where you want to perform conversions for presentation purposes.
 /// For example, you may want to display a large number to the user in a more readable format.
 fn main() {
-    let num = U256::from(42_u8);
+	let num = U256::from(42_u8);
 
-    let a: u128 = num.as_u128();
-    assert_eq!(a, 42);
+	let a: u128 = num.as_u128();
+	assert_eq!(a, 42);
 
-    let b: u64 = num.as_u64();
-    assert_eq!(b, 42);
+	let b: u64 = num.as_u64();
+	assert_eq!(b, 42);
 
-    let c: u32 = num.as_u32();
-    assert_eq!(c, 42);
+	let c: u32 = num.as_u32();
+	assert_eq!(c, 42);
 
-    let d: usize = num.as_usize();
-    assert_eq!(d, 42);
+	let d: usize = num.as_usize();
+	assert_eq!(d, 42);
 
-    let e: String = num.to_string();
-    assert_eq!(e, "42");
+	let e: String = num.to_string();
+	assert_eq!(e, "42");
 }

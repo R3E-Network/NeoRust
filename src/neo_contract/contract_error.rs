@@ -1,5 +1,5 @@
-use thiserror::Error;
 use crate::neo_clients::ProviderError;
+use thiserror::Error;
 
 /// Custom error type for contract-related errors
 #[derive(Error, Debug)]

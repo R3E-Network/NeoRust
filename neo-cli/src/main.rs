@@ -1,16 +1,24 @@
 use clap::{Parser, Subcommand};
 use commands::{
+	defi::{handle_defi_command, DefiArgs},
 	neofs::{handle_neofs_command, NeoFSArgs},
 	network::{handle_network_command, CliState, NetworkArgs},
-	defi::{handle_defi_command, DefiArgs},
+	wallet,
 };
 use errors::CliError;
 use std::path::PathBuf;
 use tokio;
-use utils::{
-	config::{get_config_path, save_config, Config},
-	print_success,
+
+// Import the utils_core module
+mod utils_core;
+
+// Re-export utility functions
+pub use utils_core::{
+	ensure_account_loaded, print_error, print_info, print_success, prompt_password, prompt_yes_no,
 };
+
+// Import config functions
+use utils::config::{get_config_path, save_config, Config};
 
 mod commands;
 mod config;
@@ -54,7 +62,7 @@ enum Commands {
 
 	/// NeoFS commands for file storage on the Neo blockchain
 	NeoFS(NeoFSArgs),
-	
+
 	/// DeFi commands for interacting with Neo DeFi protocols
 	DeFi(DefiArgs),
 }
@@ -113,6 +121,13 @@ async fn main() -> Result<(), CliError> {
 			Ok(())
 		},
 		Commands::NeoFS(args) => handle_neofs_command(args, &mut state).await,
-		Commands::DeFi(args) => handle_defi_command(args, &mut state).await,
+		Commands::DeFi(args) => {
+			// Create a new wallet::CliState and copy over the network_type
+			let mut defi_state = commands::wallet::CliState::default();
+			if let Some(network_type) = &state.network_type {
+				defi_state.network_type = Some(network_type.clone());
+			}
+			handle_defi_command(args, &mut defi_state).await
+		},
 	}
 }

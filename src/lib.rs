@@ -2,7 +2,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 //! ![Neo Logo](https://neo.org/images/neo-logo/NEO-logo.svg)
-//! # NeoRust SDK v0.1.8
+//! # NeoRust SDK v0.1.9
 //!
 //! A comprehensive Rust library for building applications on the Neo N3 blockchain ecosystem.
 //!
@@ -27,13 +27,13 @@
 //!
 //! ```toml
 //! [dependencies]
-//! neo3 = { version = "0.1.8", features = ["futures", "ledger"] }
+//! neo3 = { version = "0.1.9", features = ["futures", "ledger"] }
 //! ```
 //!
 //! You can disable default features with:
 //!
 //! ```toml
-//! neo3 = { version = "0.1.8", default-features = false, features = ["futures"] }
+//! neo3 = { version = "0.1.9", default-features = false, features = ["futures"] }
 //! ```
 //!
 //! ## Overview
@@ -78,7 +78,7 @@
 //! use neo_rust::neo_contract::{NeoToken, GasToken};
 //! use neo_rust::neo_builder::{TransactionBuilder, ScriptBuilder};
 //! use std::str::FromStr;
-//! 
+//!
 //! async fn neo_example() -> Result<(), Box<dyn std::error::Error>> {
 //!     // Connect to Neo TestNet
 //!     let provider = HttpProvider::new("https://testnet1.neo.org:443")?;
@@ -109,7 +109,7 @@
 //!     println!("{} token decimals: {}", gas_symbol, gas_decimals);
 //!     
 //!     // Query account balances
-//!     // Note: A newly created account will have zero balance 
+//!     // Note: A newly created account will have zero balance
 //!     // until it receives tokens from somewhere
 //!     let test_address = "NUVPACTpQvd2HHmBgFjJJRWwVXJiR3uAEh";
 //!     let test_account = Account::from_address(test_address)?;
@@ -439,16 +439,16 @@ pub mod neo_types;
 pub mod neo_utils;
 
 // All modules unconditionally available
-pub mod neo_crypto;
 pub mod neo_builder;
 pub mod neo_clients;
 pub mod neo_codec;
 pub mod neo_config;
 pub mod neo_contract;
+pub mod neo_crypto;
+pub mod neo_fs;
 pub mod neo_protocol;
 pub mod neo_wallets;
 pub mod neo_x;
-pub mod neo_fs;
 
 // Re-exports for convenience
 #[doc(inline)]
@@ -471,64 +471,79 @@ pub use neo_x as x;
 
 // Re-export common types directly in lib.rs for easy access
 pub use crate::neo_types::{
-	Address, AddressOrScriptHash, Bytes, 
-	ContractParameter, ContractParameterType, OpCode, OperandSize,
-	ScriptHash, ScriptHashExtension, StackItem,
+	deserialize_address_or_script_hash,
+	deserialize_h256,
+	deserialize_h256_option,
+	deserialize_hash_map_h160_account,
+	deserialize_script_hash,
+	deserialize_script_hash_option,
+	deserialize_url_option,
+	serialize_address_or_script_hash,
+	serialize_h256,
+	serialize_h256_option,
+	serialize_hash_map_h160_account,
 	// Serialization/deserialization helpers
-	serialize_script_hash, deserialize_script_hash,
-	serialize_url_option, deserialize_url_option,
-	serialize_script_hash_option, deserialize_script_hash_option,
-	serialize_address_or_script_hash, deserialize_address_or_script_hash,
-	serialize_h256, deserialize_h256,
-	serialize_h256_option, deserialize_h256_option,
-	serialize_hash_map_h160_account, deserialize_hash_map_h160_account,
-	vec_to_array32,
+	serialize_script_hash,
+	serialize_script_hash_option,
+	serialize_url_option,
 	var_size,
+	vec_to_array32,
+	Address,
+	AddressOrScriptHash,
 	// Additional types
-	Base64Encode, StringExt, VMState, TypeError,
+	Base64Encode,
+	Bytes,
+	ContractIdentifiers,
 	// Contract types
-	ContractManifest, ContractState, ContractIdentifiers, 
-	InvocationResult, NefFile,
+	ContractManifest,
+	ContractParameter,
+	ContractParameterType,
+	ContractState,
+	InvocationResult,
 	// NNS types
 	NNSName,
+	NefFile,
+	OpCode,
+	OperandSize,
+	ParameterValue,
+	ScriptHash,
+	ScriptHashExtension,
 	// Additional types
-	ScryptParamsDef, ParameterValue,
+	ScryptParamsDef,
+	StackItem,
+	StringExt,
+	TypeError,
+	VMState,
 };
 
-// Add direct re-exports for commonly used serde utils  
+// Add direct re-exports for commonly used serde utils
 pub use crate::neo_types::serde_with_utils::{
-	deserialize_boolean_expression, serialize_boolean_expression,
-	deserialize_bytes, serialize_bytes,
-	deserialize_h160, serialize_h160,
-	deserialize_hashmap_address_u256, serialize_hashmap_address_u256,
-	deserialize_hashmap_u256_hashset_h256, serialize_hashmap_u256_hashset_h256,
-	deserialize_hashmap_u256_hashset_u256, serialize_hashmap_u256_hashset_u256,
-	deserialize_hashmap_u256_vec_u256, serialize_hashmap_u256_vec_u256,
-	deserialize_hashset_u256, serialize_hashset_u256,
-	deserialize_private_key, serialize_private_key,
-	deserialize_public_key, serialize_public_key,
-	deserialize_public_key_option, serialize_public_key_option,
-	deserialize_scopes, serialize_scopes,
-	deserialize_vec_script_hash, serialize_vec_script_hash,
-	deserialize_vec_script_hash_option, serialize_vec_script_hash_option,
-	deserialize_map, serialize_map,
-	deserialize_wildcard, serialize_wildcard,
-	deserialize_hardforks,
+	deserialize_boolean_expression, deserialize_bytes, deserialize_h160, deserialize_hardforks,
+	deserialize_hashmap_address_u256, deserialize_hashmap_u256_hashset_h256,
+	deserialize_hashmap_u256_hashset_u256, deserialize_hashmap_u256_vec_u256,
+	deserialize_hashset_u256, deserialize_map, deserialize_private_key, deserialize_public_key,
+	deserialize_public_key_option, deserialize_scopes, deserialize_vec_script_hash,
+	deserialize_vec_script_hash_option, deserialize_wildcard, serialize_boolean_expression,
+	serialize_bytes, serialize_h160, serialize_hashmap_address_u256,
+	serialize_hashmap_u256_hashset_h256, serialize_hashmap_u256_hashset_u256,
+	serialize_hashmap_u256_vec_u256, serialize_hashset_u256, serialize_map, serialize_private_key,
+	serialize_public_key, serialize_public_key_option, serialize_scopes, serialize_vec_script_hash,
+	serialize_vec_script_hash_option, serialize_wildcard,
 };
 
 // Re-export additional contract types
 pub use crate::neo_types::contract::{
-	ContractMethodToken, ContractNef, NeoVMStateType, NativeContractState
+	ContractMethodToken, ContractNef, NativeContractState, NeoVMStateType,
 };
 
 // Re-export value extension trait
 pub use crate::neo_types::serde_value::ValueExtension;
 
 /// Convenient imports for commonly used types and traits.
-/// 
-/// This prelude module provides a single import to access the most commonly used 
+///
+/// This prelude module provides a single import to access the most commonly used
 /// components of the NeoRust SDK. Import it with:
-/// 
+///
 /// ```rust
 /// use neo::prelude::*;
 /// ```
@@ -542,10 +557,12 @@ mod tests {
 
 	use tokio;
 
+	use crate::{
+		builder::{AccountSigner, ScriptBuilder, TransactionBuilder},
+		neo_clients::{APITrait, HttpProvider, RpcClient},
+		neo_protocol::{Account, AccountTrait},
+	};
 	use url::Url;
-	use crate::builder::{AccountSigner, ScriptBuilder, TransactionBuilder};
-	use crate::neo_clients::{APITrait, HttpProvider, RpcClient};
-	use crate::neo_protocol::{Account, AccountTrait};
 
 	#[cfg(all(test))]
 	#[tokio::test]
@@ -605,35 +622,35 @@ mod tests {
 // These extensions will be used by the http-client feature
 pub mod extensions {
 	use serde_json::{Result as JsonResult, Value};
-	
+
 	pub trait ToValue {
 		fn to_value(&self) -> Value;
 	}
-	
+
 	impl ToValue for String {
 		fn to_value(&self) -> Value {
 			serde_json::Value::String(self.clone())
 		}
 	}
-	
+
 	impl ToValue for &str {
 		fn to_value(&self) -> Value {
 			serde_json::Value::String((*self).to_string())
 		}
 	}
-	
+
 	impl ToValue for u32 {
 		fn to_value(&self) -> Value {
 			serde_json::Value::Number(serde_json::Number::from(*self))
 		}
 	}
-	
+
 	impl ToValue for i32 {
 		fn to_value(&self) -> Value {
 			serde_json::Value::Number(serde_json::Number::from(*self))
 		}
 	}
-	
+
 	impl ToValue for bool {
 		fn to_value(&self) -> Value {
 			serde_json::Value::Bool(*self)

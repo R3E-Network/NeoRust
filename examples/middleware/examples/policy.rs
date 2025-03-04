@@ -1,12 +1,12 @@
 use eyre::Result;
 
 use ethers::{
-    core::{types::TransactionRequest, utils::Anvil},
-    middleware::{
-        MiddlewareBuilder,
-        policy::{PolicyMiddlewareError, RejectEverything}, PolicyMiddleware,
-    },
-    providers::{Http, Middleware, Provider},
+	core::{types::TransactionRequest, utils::Anvil},
+	middleware::{
+		policy::{PolicyMiddlewareError, RejectEverything},
+		MiddlewareBuilder, PolicyMiddleware,
+	},
+	providers::{Http, Middleware, Provider},
 };
 
 /// Policy middleware is a way to inject custom logic into the process of sending transactions and
@@ -15,26 +15,26 @@ use ethers::{
 /// library based on these policies.
 #[tokio::main]
 async fn main() -> Result<()> {
-    let anvil = Anvil::new().spawn();
-    let endpoint = anvil.endpoint();
+	let anvil = Anvil::new().spawn();
+	let endpoint = anvil.endpoint();
 
-    let provider = Provider::<Http>::try_from(endpoint)?;
+	let provider = Provider::<Http>::try_from(endpoint)?;
 
-    let accounts = provider.get_accounts().await?;
-    let account = accounts[0];
-    let to = accounts[1];
-    let tx = TransactionRequest::new().from(account).to(to).value(1000);
+	let accounts = provider.get_accounts().await?;
+	let account = accounts[0];
+	let to = accounts[1];
+	let tx = TransactionRequest::new().from(account).to(to).value(1000);
 
-    let policy = RejectEverything;
-    let policy_middleware = provider.wrap_into(|p| PolicyMiddleware::new(p, policy));
+	let policy = RejectEverything;
+	let policy_middleware = provider.wrap_into(|p| PolicyMiddleware::new(p, policy));
 
-    match policy_middleware.send_transaction(tx, None).await {
-        Err(e) => {
-            // Given the RejectEverything policy, we expect to execute this branch
-            assert!(matches!(e, PolicyMiddlewareError::PolicyError(())))
-        }
-        _ => panic!("We don't expect this to happen!"),
-    }
+	match policy_middleware.send_transaction(tx, None).await {
+		Err(e) => {
+			// Given the RejectEverything policy, we expect to execute this branch
+			assert!(matches!(e, PolicyMiddlewareError::PolicyError(())))
+		},
+		_ => panic!("We don't expect this to happen!"),
+	}
 
-    Ok(())
+	Ok(())
 }

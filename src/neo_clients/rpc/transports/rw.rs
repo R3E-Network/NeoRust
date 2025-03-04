@@ -1,11 +1,11 @@
 //! A [JsonRpcProvider] implementation that serves as a wrapper around two different [JsonRpcProvider]
 //! and uses a dedicated client for read and the other for write operations
 
+use crate::neo_clients::{JsonRpcProvider, ProviderError};
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt::Display;
 use thiserror::Error;
-use crate::neo_clients::{JsonRpcProvider, ProviderError};
 
 /// A client containing two clients.
 ///

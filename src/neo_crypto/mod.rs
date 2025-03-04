@@ -85,11 +85,10 @@ mod utils;
 mod wif;
 
 // Re-export important types
+pub use error::CryptoError;
 pub use hash::HashableForVec;
 pub use key_pair::KeyPair;
-pub use error::CryptoError;
-pub use keys::Secp256r1PublicKey;
-pub use keys::Secp256r1Signature;
+pub use keys::{Secp256r1PublicKey, Secp256r1Signature};
 
 pub(crate) fn add(left: usize, right: usize) -> usize {
 	left + right

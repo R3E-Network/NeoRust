@@ -2,19 +2,20 @@ use async_trait::async_trait;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
-use crate::neo_clients::{JsonRpcProvider, RpcClient};
-use crate::neo_contract::{
-	ContractError,
-	traits::{TokenTrait, SmartContractTrait, FungibleTokenTrait}
+use crate::{
+	neo_builder::TransactionBuilder,
+	neo_clients::{JsonRpcProvider, RpcClient},
+	neo_contract::{
+		traits::{FungibleTokenTrait, SmartContractTrait, TokenTrait},
+		ContractError,
+	},
+	neo_crypto::Secp256r1PublicKey,
+	neo_protocol::Account,
+	neo_types::{
+		serde_with_utils::{deserialize_script_hash, serialize_script_hash},
+		ContractParameter, ContractParameterType, NNSName, ScriptHash, StackItem,
+	},
 };
-use crate::neo_types::{
-	NNSName, ScriptHash, StackItem, ContractParameterType, 
-	ContractParameter,
-	serde_with_utils::{deserialize_script_hash, serialize_script_hash}
-};
-use crate::neo_crypto::Secp256r1PublicKey;
-use crate::neo_builder::TransactionBuilder;
-use crate::neo_protocol::Account;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NeoToken<'a, P: JsonRpcProvider> {
@@ -316,10 +317,6 @@ pub struct AccountState {
 
 impl AccountState {
 	pub fn with_no_balance() -> Self {
-		Self {
-			balance: 0,
-			balance_height: None,
-			public_key: None,
-		}
+		Self { balance: 0, balance_height: None, public_key: None }
 	}
 }

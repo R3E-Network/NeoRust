@@ -1,26 +1,26 @@
 //! # Neo Account Module (v0.1.8)
-//! 
+//!
 //! The Account module provides functionality for managing Neo accounts, including
 //! key management, signature operations, and interaction with the Neo blockchain.
-//! 
+//!
 //! ## Overview
-//! 
+//!
 //! This module implements account-related operations for the Neo blockchain, including:
-//! 
+//!
 //! - **Account Creation**: Generate accounts from private keys, WIFs, or public keys
 //! - **Key Management**: Encrypt/decrypt private keys, manage key pairs
 //! - **Multi-signature Support**: Create and manage multi-signature accounts
 //! - **Blockchain Integration**: Query balances and account state
 //! - **Wallet Integration**: Connect accounts to wallet infrastructure
-//! 
+//!
 //! ## Example
-//! 
+//!
 //! ```rust
 //! use neo_rust::prelude::*;
 //! use neo_rust::neo_protocol::{Account, AccountTrait};
 //! use neo_rust::neo_crypto::keys::{Secp256r1PrivateKey, Secp256r1PublicKey};
 //! use std::str::FromStr;
-//! 
+//!
 //! // Create a new random account
 //! fn create_account_example() -> Result<(), Box<dyn std::error::Error>> {
 //!     // Generate a completely new random account
@@ -85,16 +85,18 @@ use rustc_serialize::hex::ToHex;
 use serde_derive::{Deserialize, Serialize};
 use signature::{hazmat::PrehashSigner, Error, SignerMut};
 
-use crate::neo_builder::VerificationScript;
-use crate::neo_clients::{JsonRpcProvider, ProviderError, RpcClient, public_key_to_address, APITrait};
-use crate::neo_crypto::{KeyPair, Secp256r1PublicKey, Secp256r1Signature, private_key_from_wif};
-use crate::neo_protocol::{get_private_key_from_nep2, get_nep2_from_private_key};
-use crate::neo_types::{
-	AddressOrScriptHash, serialize_address_or_script_hash, deserialize_address_or_script_hash,
-	Address, ScriptHash, ContractParameterType
+use crate::{
+	neo_builder::VerificationScript,
+	neo_clients::{public_key_to_address, APITrait, JsonRpcProvider, ProviderError, RpcClient},
+	neo_crypto::{private_key_from_wif, KeyPair, Secp256r1PublicKey, Secp256r1Signature},
+	neo_protocol::{get_nep2_from_private_key, get_private_key_from_nep2},
+	neo_types::{
+		deserialize_address_or_script_hash, serialize_address_or_script_hash, Address,
+		AddressOrScriptHash, ContractParameterType, ScriptHash,
+	},
+	neo_wallets::{NEP6Account, NEP6Contract, NEP6Parameter, Wallet},
+	vec_to_array32, Base64Encode, ScriptHashExtension,
 };
-use crate::neo_wallets::{Wallet, NEP6Account, NEP6Contract, NEP6Parameter};
-use crate::{vec_to_array32, Base64Encode, ScriptHashExtension};
 
 pub trait AccountTrait: Sized + PartialEq + Send + Sync + Debug + Clone {
 	type Error: Sync + Send + Debug + Sized;
@@ -655,8 +657,10 @@ impl Account {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::neo_config::TestConstants;
-	use crate::neo_clients::{BodyRegexMatcher, HttpProvider, MockClient};
-	
+	use crate::{
+		neo_clients::{BodyRegexMatcher, HttpProvider, MockClient},
+		neo_config::TestConstants,
+	};
+
 	// ... rest of test module
 }

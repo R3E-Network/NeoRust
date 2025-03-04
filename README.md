@@ -1,4 +1,4 @@
-# NeoRust v0.1.8
+# NeoRust v0.1.9
 
 <div align="center">
   <p>
@@ -66,7 +66,7 @@ Add neo3 to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-neo3 = "0.1.8"
+neo3 = "0.1.9"
 ```
 
 Note: The crate is published as `neo3` but is imported as `neo` in code:
@@ -88,7 +88,7 @@ NeoRust supports several feature flags to customize functionality:
 
 ```toml
 [dependencies]
-neo3 = { version = "0.1.8", features = ["futures", "ledger", "aws"] }
+neo3 = { version = "0.1.9", features = ["futures", "ledger", "aws"] }
 ```
 
 Available features:
@@ -100,7 +100,7 @@ Available features:
 
 You can disable default features with:
 ```toml
-neo3 = { version = "0.1.8", default-features = false, features = ["futures"] }
+neo3 = { version = "0.1.9", default-features = false, features = ["futures"] }
 ```
 
 ### Documentation
@@ -109,7 +109,6 @@ Comprehensive documentation is available at:
 
 - **API Reference**: [https://docs.rs/neo3](https://docs.rs/neo3)
 - **Online Documentation**: [https://r3e-network.github.io/NeoRust/](https://r3e-network.github.io/NeoRust/)
-- **PDF Documentation**: [https://r3e-network.github.io/NeoRust/pdf/neorust-sdk-documentation.pdf](https://r3e-network.github.io/NeoRust/pdf/neorust-sdk-documentation.pdf)
 - **Crate Page**: [https://crates.io/crates/neo3](https://crates.io/crates/neo3)
 
 ## Usage Examples
@@ -578,7 +577,7 @@ Contributions are welcome! Here's how you can contribute to the NeoRust SDK:
 
 ## Package Status
 
-NeoRust is now available on [crates.io](https://crates.io/crates/neo3) as the `neo3` crate. The latest version is `0.1.4`.
+NeoRust is now available on [crates.io](https://crates.io/crates/neo3) as the `neo3` crate. The latest version is `0.1.9`.
 
 This means you can now easily add it to your Rust projects without having to reference the GitHub repository directly.
 
@@ -595,3 +594,7 @@ at your option.
 Supported by [R3E Network](https://github.com/R3E-Network) and [GrantShares](https://grantshares.io/app/details/155b825697b61f9f95292c8e466f6891). Additional support is welcome.
 
 The NeoRust team would like to thank everyone who contributed to reaching the milestone of publishing the neo3 crate to crates.io.
+
+---
+
+Copyright © 2020-2025 R3E Network. All rights reserved.

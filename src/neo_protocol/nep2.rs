@@ -43,14 +43,16 @@
 //! Proper error handling is implemented to deal with common issues like incorrect password, invalid NEP2 format,
 //! and other cryptographic errors.
 
+use crate::{
+	config::NeoConstants,
+	crypto::{base58check_decode, base58check_encode, HashableForVec, KeyPair, Secp256r1PublicKey},
+	neo_clients::public_key_to_address,
+	providers::ProviderError,
+	vec_to_array32,
+};
 use aes::cipher::{block_padding::NoPadding, BlockDecryptMut, BlockEncryptMut, KeyInit};
 use rustc_serialize::hex::FromHex;
 use scrypt::{scrypt, Params};
-use crate::config::NeoConstants;
-use crate::crypto::{base58check_decode, base58check_encode, HashableForVec, KeyPair, Secp256r1PublicKey};
-use crate::neo_clients::public_key_to_address;
-use crate::providers::ProviderError;
-use crate::vec_to_array32;
 
 type Aes256EcbEnc = ecb::Encryptor<aes::Aes256>;
 type Aes256EcbDec = ecb::Decryptor<aes::Aes256>;
@@ -226,8 +228,8 @@ fn address_hash_from_pubkey(pubkey: &[u8]) -> [u8; 4] {
 
 #[cfg(test)]
 mod tests {
-	use crate::config::TestConstants;
 	use super::*;
+	use crate::config::TestConstants;
 
 	#[test]
 	fn test_decrypt_with_default_scrypt_params() {

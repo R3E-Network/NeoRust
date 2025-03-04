@@ -1,8 +1,8 @@
 [package]
 name = "neo3"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
-authors = ["R3E Network <contact@r3e.network>"]
+authors = ["R3E Network <contact@r3e.network> (c) 2020-2025"]
 license = "MIT OR Apache-2.0"
 description = "Rust SDK for Neo N3"
 documentation = "https://docs.rs/neo3"

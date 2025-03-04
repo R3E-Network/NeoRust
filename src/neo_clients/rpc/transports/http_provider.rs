@@ -13,11 +13,9 @@ use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use url::Url;
 
-use neo::{
-	config::NeoConstants,
-};
-use crate::neo_clients::{Authorization, JsonRpcProvider, ProviderError};
 use super::common::{JsonRpcError, Request, Response};
+use crate::neo_clients::{Authorization, JsonRpcProvider, ProviderError};
+use neo::config::NeoConstants;
 
 /// A low-level JSON-RPC Client over HTTP.
 ///

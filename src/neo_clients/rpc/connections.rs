@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
+use crate::neo_clients::ProviderError;
 use async_trait::async_trait;
 use auto_impl::auto_impl;
 use serde::{de::DeserializeOwned, Serialize};
-use crate::neo_clients::ProviderError;
 
 #[cfg_attr(target_arch = "wasm32", async_trait(? Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]

@@ -6,6 +6,6 @@ pub mod neofs;
 pub use neofs::NeoFSArgs;
 pub mod defi;
 pub use defi::DefiArgs;
-pub mod wallet;
 pub mod blockchain;
 pub mod contract;
+pub mod wallet;

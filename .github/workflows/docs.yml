@@ -45,9 +45,7 @@ jobs:
           toolchain: stable
           override: true
       
-      - name: Setup Chrome (required for PDF generation)
-        uses: browser-actions/setup-chrome@v1
-      
+      # Note: PDF generation has been removed in v0.1.9
       - name: Install mdBook plugins
         run: |
           # Temporarily move rust-toolchain.toml to avoid nightly override
@@ -60,7 +58,6 @@ jobs:
           cargo install mdbook-toc
           cargo install mdbook-admonish
           cargo install mdbook-linkcheck
-          cargo install mdbook-pdf
           
           # Restore rust-toolchain.toml
           if [ -f "rust-toolchain.toml.bak" ]; then
@@ -72,22 +69,11 @@ jobs:
           cd docs
           ls -la
           mdbook --version
-          echo "Chrome version:"
-          google-chrome --version
-          echo "mdbook-pdf version:"
-          mdbook-pdf --version || echo "mdbook-pdf version check failed"
       
       - name: Build HTML documentation
         run: |
           cd docs
           RUST_BACKTRACE=1 mdbook build
-      
-      - name: Generate PDF
-        run: |
-          cd docs
-          RUST_BACKTRACE=1 mdbook-pdf
-          mkdir -p book/html/pdf
-          cp book/pdf/output.pdf book/html/pdf/neorust-sdk-documentation.pdf
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

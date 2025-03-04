@@ -1,6 +1,6 @@
+use crate::{ContractMethodToken, TypeError};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
-use crate::{ContractMethodToken, TypeError};
 
 #[derive(Serialize, Deserialize, Default, Hash, Clone, Debug, PartialEq)]
 #[serde_as]

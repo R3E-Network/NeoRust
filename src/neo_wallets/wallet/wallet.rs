@@ -3,19 +3,24 @@ use std::{collections::HashMap, fs::File, io::Write, path::PathBuf};
 use primitive_types::H160;
 use serde_derive::{Deserialize, Serialize};
 
-use crate::neo_types::{ScryptParamsDef, serde_with_utils::{
-	deserialize_hash_map_h160_account, serialize_hash_map_h160_account,
-	deserialize_script_hash, serialize_script_hash,
-}, script_hash::ScriptHashExtension, AddressExtension};
-use crate::neo_protocol::{Account, AccountTrait};
-use crate::neo_wallets::{WalletTrait, WalletError, Nep6Wallet, NEP6Account, NEP6Contract, NEP6Parameter};
-use crate::neo_crypto::{KeyPair, CryptoError, Secp256r1Signature, HashableForVec};
-use crate::neo_builder::{Transaction, TransactionBuilder, Witness, AccountSigner, VerificationScript};
-use crate::neo_clients::{JsonRpcProvider, RpcClient, ProviderError, APITrait};
-use crate::neo_config::NeoConstants;
-use crate::neo_contract::ContractError;
-use crate::neo_types::contract::ContractMethodToken;
-use crate::neo_protocol::UnclaimedGas;
+use crate::{
+	neo_builder::{AccountSigner, Transaction, TransactionBuilder, VerificationScript, Witness},
+	neo_clients::{APITrait, JsonRpcProvider, ProviderError, RpcClient},
+	neo_config::NeoConstants,
+	neo_contract::ContractError,
+	neo_crypto::{CryptoError, HashableForVec, KeyPair, Secp256r1Signature},
+	neo_protocol::{Account, AccountTrait, UnclaimedGas},
+	neo_types::{
+		contract::ContractMethodToken,
+		script_hash::ScriptHashExtension,
+		serde_with_utils::{
+			deserialize_hash_map_h160_account, deserialize_script_hash,
+			serialize_hash_map_h160_account, serialize_script_hash,
+		},
+		AddressExtension, ScryptParamsDef,
+	},
+	neo_wallets::{NEP6Account, NEP6Contract, NEP6Parameter, Nep6Wallet, WalletError, WalletTrait},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wallet {
@@ -793,10 +798,12 @@ impl Wallet {
 
 #[cfg(test)]
 mod tests {
-	use crate::neo_protocol::{Account, AccountTrait};
-	use crate::neo_config::TestConstants;
-	use crate::neo_wallets::{ Wallet, WalletTrait};
-	
+	use crate::{
+		neo_config::TestConstants,
+		neo_protocol::{Account, AccountTrait},
+		neo_wallets::{Wallet, WalletTrait},
+	};
+
 	#[test]
 	fn test_is_default() {
 		let account = Account::from_address(TestConstants::DEFAULT_ACCOUNT_ADDRESS)

@@ -3,9 +3,11 @@ use num_traits::{real::Real, ToPrimitive};
 use primitive_types::H160;
 use rust_decimal::Decimal;
 
-use crate::neo_clients::JsonRpcProvider;
-use crate::neo_contract::{ContractError, SmartContractTrait};
-use crate::neo_types::NNSName;
+use crate::{
+	neo_clients::JsonRpcProvider,
+	neo_contract::{ContractError, SmartContractTrait},
+	neo_types::NNSName,
+};
 
 #[async_trait]
 pub trait TokenTrait<'a, P: JsonRpcProvider>: SmartContractTrait<'a, P = P> {

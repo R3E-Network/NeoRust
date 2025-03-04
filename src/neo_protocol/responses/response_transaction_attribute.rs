@@ -1,6 +1,6 @@
-use serde::{Deserialize, Deserializer, Serialize};
-use primitive_types::H256;
 use crate::builder::OracleResponseCode;
+use primitive_types::H256;
+use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]

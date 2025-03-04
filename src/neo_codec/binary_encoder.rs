@@ -1,5 +1,6 @@
 use std::hash::Hasher;
 
+use crate::codec::{CodecError, NeoSerializable};
 /// A binary encoder that can write various primitive types and serializable objects to a byte vector.
 ///
 /// # Examples
@@ -16,7 +17,6 @@ use std::hash::Hasher;
 /// ```
 use serde::Serialize;
 use serde_derive::Deserialize;
-use crate::codec::{CodecError, NeoSerializable};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Encoder {

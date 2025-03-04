@@ -1,9 +1,6 @@
+use crate::{builder::BuilderError, crypto::CryptoError, neo_wallets::WalletError, TypeError};
 use hex::FromHexError;
 use thiserror::Error;
-use crate::builder::BuilderError;
-use crate::crypto::CryptoError;
-use crate::neo_wallets::WalletError;
-use crate::TypeError;
 
 /// Represents errors that can occur within the signing process.
 ///

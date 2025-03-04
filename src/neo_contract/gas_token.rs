@@ -2,14 +2,16 @@ use async_trait::async_trait;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
-use crate::neo_clients::{JsonRpcProvider, RpcClient};
-use crate::neo_contract::{
-	ContractError,
-	traits::{TokenTrait, SmartContractTrait, FungibleTokenTrait}
-};
-use crate::neo_types::{
-	NNSName, ScriptHash,
-	serde_with_utils::{deserialize_script_hash, serialize_script_hash}
+use crate::{
+	neo_clients::{JsonRpcProvider, RpcClient},
+	neo_contract::{
+		traits::{FungibleTokenTrait, SmartContractTrait, TokenTrait},
+		ContractError,
+	},
+	neo_types::{
+		serde_with_utils::{deserialize_script_hash, serialize_script_hash},
+		NNSName, ScriptHash,
+	},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

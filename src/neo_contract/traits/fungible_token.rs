@@ -1,11 +1,13 @@
+use crate::{
+	builder::{AccountSigner, TransactionBuilder},
+	neo_clients::JsonRpcProvider,
+	neo_contract::{ContractError, FungibleTokenContract, TokenTrait},
+	neo_protocol::{Account, AccountTrait},
+	neo_wallets::Wallet,
+	Bytes, ContractParameter, NNSName, ScriptHash,
+};
 use async_trait::async_trait;
 use primitive_types::H160;
-use crate::neo_contract::{ContractError, FungibleTokenContract, TokenTrait};
-use crate::neo_clients::JsonRpcProvider;
-use crate::neo_protocol::{Account, AccountTrait};
-use crate::neo_wallets::Wallet;
-use crate::{Bytes, ContractParameter, NNSName, ScriptHash};
-use crate::builder::{AccountSigner, TransactionBuilder};
 
 #[async_trait]
 pub trait FungibleTokenTrait<'a, P: JsonRpcProvider>: TokenTrait<'a, P> {

@@ -1,6 +1,6 @@
 [book]
 title = "NeoRust SDK Documentation"
-authors = ["R3E Network"]
+authors = ["R3E Network (c) 2020-2025"]
 description = "Documentation for the NeoRust SDK, a comprehensive Rust SDK for interacting with the Neo N3 blockchain"
 src = "src"
 language = "en"
@@ -50,10 +50,3 @@ assets_version = "3.0.3" # do not edit: managed by `mdbook-admonish install`
 follow-web-links = false
 traverse-parent-directories = false
 exclude = [ "github\\.com", "https://github.com/R3E-Network/NeoRust/blob/master/SGX_SETUP.md" ]
-
-# PDF output configuration
-[output.pdf]
-optional = true
-page-break = true
-command = "mdbook-pdf"
-install-missing = false

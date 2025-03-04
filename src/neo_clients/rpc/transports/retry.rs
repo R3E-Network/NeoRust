@@ -7,13 +7,13 @@ use std::{
 	time::Duration,
 };
 
+use super::{common::JsonRpcError, http_provider::ClientError};
+use crate::neo_clients::{JsonRpcProvider, ProviderError};
 use async_trait::async_trait;
 use reqwest::StatusCode;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
 use tracing::trace;
-use crate::neo_clients::{JsonRpcProvider, ProviderError};
-use super::{common::JsonRpcError, http_provider::ClientError};
 
 /// [RetryPolicy] defines logic for which [JsonRpcProvider::Error] instances should
 /// the client retry the request and try to recover from.

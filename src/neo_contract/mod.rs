@@ -49,7 +49,7 @@
 //! use neo_rust::neo_contract::{NeoToken, GasToken, PolicyContract};
 //! use neo_rust::neo_protocol::account::Account;
 //! use std::str::FromStr;
-//! 
+//!
 //! async fn contract_examples() -> Result<(), Box<dyn std::error::Error>> {
 //!     // Set up a client connection
 //!     let provider = HttpProvider::new("https://testnet1.neo.org:443")?;
@@ -67,7 +67,7 @@
 //!     let decimals = neo_token.decimals().await?;
 //!     let total_supply = neo_token.total_supply().await?;
 //!     
-//!     println!("NEO Token: Symbol={}, Decimals={}, Total Supply={}", 
+//!     println!("NEO Token: Symbol={}, Decimals={}, Total Supply={}",
 //!              symbol, decimals, total_supply);
 //!     
 //!     // Check account balance
@@ -136,7 +136,7 @@
 //! use neo_rust::neo_protocol::account::Account;
 //! use neo_rust::neo_types::{ContractManifest, NefFile};
 //! use std::fs;
-//! 
+//!
 //! async fn deploy_contract_example() -> Result<(), Box<dyn std::error::Error>> {
 //!     // Set up a client connection
 //!     let provider = HttpProvider::new("https://testnet1.neo.org:443")?;

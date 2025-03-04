@@ -1,12 +1,17 @@
-use std::hash::{Hash, Hasher};
+use crate::{
+	builder::{
+		AccountSigner, BuilderError, ContractSigner, TransactionError, TransactionSigner,
+		WitnessCondition, WitnessRule, WitnessScope,
+	},
+	codec::{Decoder, Encoder, NeoSerializable},
+	config::NeoConstants,
+	crypto::Secp256r1PublicKey,
+	neo_protocol::AccountTrait,
+};
 use elliptic_curve::pkcs8::der::Encode;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize, Serializer};
-use crate::builder::{AccountSigner, BuilderError, ContractSigner, TransactionError, TransactionSigner, WitnessCondition, WitnessRule, WitnessScope};
-use crate::codec::{Decoder, Encoder, NeoSerializable};
-use crate::config::NeoConstants;
-use crate::crypto::Secp256r1PublicKey;
-use crate::neo_protocol::AccountTrait;
+use std::hash::{Hash, Hasher};
 
 /// Represents the type of signer in the NEO blockchain.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -547,15 +552,18 @@ mod tests {
 	use primitive_types::H160;
 	use rustc_serialize::hex::{FromHex, ToHex};
 
-	use neo::{
-		builder::Signer,
+	use crate::{
+		builder::{
+			AccountSigner, BuilderError, ContractSigner, SignerTrait, WitnessAction,
+			WitnessCondition, WitnessRule, WitnessScope,
+		},
+		codec::{Encoder, NeoSerializable},
+		config::NeoConstants,
+		crypto::Secp256r1PublicKey,
+		neo_protocol::{Account, AccountTrait},
+		ScriptHash, ScriptHashExtension,
 	};
-	use crate::builder::{AccountSigner, BuilderError, ContractSigner, SignerTrait, WitnessAction, WitnessCondition, WitnessRule, WitnessScope};
-	use crate::codec::{Encoder, NeoSerializable};
-	use crate::config::NeoConstants;
-	use crate::crypto::Secp256r1PublicKey;
-	use crate::neo_protocol::{Account, AccountTrait};
-	use crate::{ScriptHash, ScriptHashExtension};
+	use neo::builder::Signer;
 
 	lazy_static! {
 		pub static ref SCRIPT_HASH: ScriptHash = {

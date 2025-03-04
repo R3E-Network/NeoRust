@@ -112,11 +112,11 @@ use p256::NistP256;
 #[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
 pub use yubihsm;
 
+use crate::neo_protocol::Account;
 pub use error::*;
 pub use wallet::*;
 pub use wallet_signer::WalletSigner;
 pub use wallet_trait::WalletTrait;
-use crate::neo_protocol::Account;
 
 #[cfg(feature = "ledger")]
 mod ledger;

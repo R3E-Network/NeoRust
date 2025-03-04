@@ -1,7 +1,7 @@
+use crate::TypeError;
 use derive_more::Display;
 use getset::{Getters, Setters};
 use serde::{Deserialize, Serialize};
-use crate::TypeError;
 
 #[derive(Debug, Clone, Display, PartialEq, Eq, Serialize, Deserialize, Getters, Setters)]
 pub struct NNSName {

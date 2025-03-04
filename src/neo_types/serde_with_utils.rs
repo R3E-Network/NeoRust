@@ -17,18 +17,21 @@ use serde::{
 	Deserialize, Deserializer, Serialize, Serializer,
 };
 
-
 #[cfg(feature = "substrate")]
 use serde_big_array_substrate::big_array;
 
-
+use crate::{
+	builder::WitnessScope,
+	crypto::{Secp256r1PrivateKey, Secp256r1PublicKey},
+	neo_protocol::HardForks,
+	neo_types::{
+		encode_string_h160, encode_string_h256, encode_string_u256, parse_address,
+		parse_string_h160, parse_string_h256, parse_string_u256, parse_string_u64,
+	},
+	Address, AddressOrScriptHash, ContractParameter, ScriptHash, ScriptHashExtension,
+};
 #[cfg(feature = "substrate")]
 use serde_substrate as serde;
-use crate::builder::WitnessScope;
-use crate::crypto::{Secp256r1PrivateKey, Secp256r1PublicKey};
-use crate::neo_types::{encode_string_h160, encode_string_h256, encode_string_u256, parse_address, parse_string_h160, parse_string_h256, parse_string_u256, parse_string_u64};
-use crate::{Address, AddressOrScriptHash, ContractParameter, ScriptHash, ScriptHashExtension};
-use crate::neo_protocol::HardForks;
 
 pub fn serialize_h160_without_0x<S>(h160: &H160, serializer: S) -> Result<S::Ok, S::Error>
 where

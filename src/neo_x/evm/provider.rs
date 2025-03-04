@@ -3,8 +3,10 @@ use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
-use crate::neo_contract::ContractError;
-use crate::neo_clients::{JsonRpcProvider, RpcClient};
+use crate::{
+	neo_clients::{JsonRpcProvider, RpcClient},
+	neo_contract::ContractError,
+};
 
 /// Neo X EVM provider for interacting with the Neo X EVM-compatible chain
 #[derive(Debug, Clone, Serialize, Deserialize)]

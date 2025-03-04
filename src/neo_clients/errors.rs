@@ -1,9 +1,7 @@
 use std::{error::Error, fmt::Debug, sync::Arc};
 
+use crate::{crypto::CryptoError, neo_clients::JsonRpcError, TypeError};
 use thiserror::Error;
-use crate::crypto::CryptoError;
-use crate::neo_clients::JsonRpcError;
-use crate::TypeError;
 
 #[derive(Debug, Error)]
 /// An error thrown when making a call to the provider

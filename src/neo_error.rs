@@ -45,127 +45,127 @@ pub enum NeoError {
 	/// An error for illegal or invalid argument values.
 	#[error("Illegal argument: {0}")]
 	IllegalArgument(String),
-	
+
 	/// An error that occurs during deserialization.
 	#[error("Deserialization error: {0}")]
 	Deserialization(String),
-	
+
 	/// An error for illegal state conditions.
 	#[error("Illegal state: {0}")]
 	IllegalState(String),
-	
+
 	/// An error for index out of bounds conditions.
 	#[error("Index out of bounds: {0}")]
 	IndexOutOfBounds(String),
-	
+
 	/// An error for invalid configuration settings.
 	#[error("Invalid configuration: {0}")]
 	InvalidConfiguration(String),
-	
+
 	/// A general runtime error.
 	#[error("Runtime error: {0}")]
 	Runtime(String),
-	
+
 	/// An error for invalid data.
 	#[error("Invalid data: {0}")]
 	InvalidData(String),
-	
+
 	/// An error for unsupported operations.
 	#[error("Unsupported operation: {0}")]
 	UnsupportedOperation(String),
-	
+
 	/// A general transaction error.
 	#[error("Transaction error: {0}")]
 	Transaction(String),
-	
+
 	/// An error for invalid scripts.
 	#[error("Invalid script: {0}")]
 	InvalidScript(String),
-	
+
 	/// An error for invalid format.
 	#[error("Invalid format")]
 	InvalidFormat,
-	
+
 	/// An error indicating that NeoRust has not been initialized.
 	#[error("neo-rs not initialized")]
 	NeoNotInitialized,
-	
+
 	/// An error related to smart contracts.
 	#[error("Contract error: {0}")]
 	ContractError(#[from] ContractError),
-	
+
 	/// An error for wallet-related issues.
 	#[error("Wallet error: {0}")]
 	WalletError(#[from] WalletError),
-	
+
 	/// An error for signing-related issues.
 	#[error("Sign error: {0}")]
 	SignError(#[from] SignError),
-	
+
 	/// A general transaction error.
 	#[error("Transaction error: {0}")]
 	TransactionError(#[from] TransactionError),
-	
+
 	/// An error for unexpected returned types.
 	#[error("Unexpected returned type")]
 	UnexpectedReturnType,
-	
+
 	/// An error for invalid private keys.
 	#[error("Invalid private key")]
 	InvalidPrivateKey,
-	
+
 	/// An error for invalid public keys.
 	#[error("Invalid public key")]
 	InvalidPublicKey,
-	
+
 	/// An error for invalid addresses.
 	#[error("Invalid address")]
 	InvalidAddress,
-	
+
 	/// An error for invalid signatures.
 	#[error("Invalid signature")]
 	InvalidSignature,
-	
+
 	/// An error for invalid encoding.
 	#[error("Invalid encoding {0}")]
 	InvalidEncoding(String),
-	
+
 	/// An error for invalid op codes.
 	#[error("Invalid op code")]
 	InvalidOpCode,
-	
+
 	/// An error for numeric overflow.
 	#[error("Numeric overflow")]
 	NumericOverflow,
-	
+
 	/// An error for WIF (Wallet Import Format) issues.
 	#[error("Wif error {0}")]
 	WifError(String),
-	
+
 	/// An error for provider-related issues.
 	#[error("Provider error: {0}")]
 	ProviderError(#[from] ProviderError),
-	
+
 	/// An error for codec-related issues.
 	#[error("Codec error: {0}")]
 	CodecError(#[from] CodecError),
-	
+
 	/// An error for type-related issues.
 	#[error("Type error: {0}")]
 	TypeError(#[from] TypeError),
-	
+
 	/// An error for protocol-related issues.
 	#[error("Protocol error: {0}")]
 	ProtocolError(#[from] ProtocolError),
-	
+
 	/// An error for JSON RPC-related issues.
 	#[error("JSON RPC error: {0}")]
 	JsonRpcError(String),
-	
+
 	/// An error for IO-related issues.
 	#[error("IO error: {0}")]
 	IoError(#[from] std::io::Error),
-	
+
 	/// An error for serialization-related issues.
 	#[error("Serialization error: {0}")]
 	SerializationError(String),
@@ -195,14 +195,16 @@ impl From<&str> for NeoError {
 	}
 }
 
-use crate::builder::{BuilderError, TransactionError};
-use crate::codec::CodecError;
-use crate::crypto::{CryptoError, Nep2Error, SignError};
-use crate::neo_clients::ProviderError;
-use crate::neo_contract::ContractError;
-use crate::neo_protocol::ProtocolError;
-use crate::neo_wallets::WalletError;
-use crate::TypeError;
+use crate::{
+	builder::{BuilderError, TransactionError},
+	codec::CodecError,
+	crypto::{CryptoError, Nep2Error, SignError},
+	neo_clients::ProviderError,
+	neo_contract::ContractError,
+	neo_protocol::ProtocolError,
+	neo_wallets::WalletError,
+	TypeError,
+};
 
 impl From<BuilderError> for NeoError {
 	fn from(err: BuilderError) -> Self {

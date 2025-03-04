@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! # Neo File Storage (NeoFS) Module (v0.1.8)
+//! # Neo File Storage (NeoFS) Module (v0.1.9)
 //!
 //! NeoFS is a decentralized distributed object storage network integrated with
 //! the Neo Blockchain. It provides a robust platform for storing, retrieving,
@@ -80,8 +80,8 @@
 //!     
 //!     // Download the object
 //!     let retrieved_object = client.get_object(&container_id, &object_id).await?;
-//!     println!("Downloaded object: {} ({} bytes)", 
-//!              retrieved_object.file_name(), 
+//!     println!("Downloaded object: {} ({} bytes)",
+//!              retrieved_object.file_name(),
 //!              retrieved_object.data().len());
 //!     
 //!     // Clean up - delete the object and container
@@ -105,8 +105,10 @@ pub use error::{NeoFSError, NeoFSResult};
 // Re-export types directly from types module
 pub use acl::{BearerToken, SessionToken};
 pub use container::Container;
-pub use object::{Object, MultipartUpload, Part, MultipartUploadResult};
-pub use types::{OwnerId, Attributes, ObjectType, PlacementPolicy, ContainerId, ObjectId, AccessPermission};
+pub use object::{MultipartUpload, MultipartUploadResult, Object, Part};
+pub use types::{
+	AccessPermission, Attributes, ContainerId, ObjectId, ObjectType, OwnerId, PlacementPolicy,
+};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -124,78 +126,108 @@ pub const DEFAULT_ENDPOINT: &str = "grpc.main.fs.neo.org:8082";
 /// Represents a NeoFS service provider configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NeoFSConfig {
-    /// The NeoFS service endpoint URL
-    pub endpoint: String,
-    /// Authentication information, typically from a Neo wallet
-    pub auth: Option<NeoFSAuth>,
-    /// Timeout for NeoFS operations in seconds
-    pub timeout_sec: u64,
-    /// Specifies whether to use insecure connections
-    pub insecure: bool,
+	/// The NeoFS service endpoint URL
+	pub endpoint: String,
+	/// Authentication information, typically from a Neo wallet
+	pub auth: Option<NeoFSAuth>,
+	/// Timeout for NeoFS operations in seconds
+	pub timeout_sec: u64,
+	/// Specifies whether to use insecure connections
+	pub insecure: bool,
 }
 
 impl Default for NeoFSConfig {
-    fn default() -> Self {
-        Self {
-            endpoint: DEFAULT_TESTNET_ENDPOINT.to_string(),
-            auth: None,
-            timeout_sec: 60,
-            insecure: false,
-        }
-    }
+	fn default() -> Self {
+		Self {
+			endpoint: DEFAULT_TESTNET_ENDPOINT.to_string(),
+			auth: None,
+			timeout_sec: 60,
+			insecure: false,
+		}
+	}
 }
 
 /// Authentication information for NeoFS
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NeoFSAuth {
-    /// The wallet account used for authentication
-    pub wallet_address: String,
-    /// The private key to sign NeoFS requests
-    pub private_key: Option<String>,
+	/// The wallet account used for authentication
+	pub wallet_address: String,
+	/// The private key to sign NeoFS requests
+	pub private_key: Option<String>,
 }
 
 /// Service trait for interacting with NeoFS
 #[async_trait]
 pub trait NeoFSService {
-    /// Creates a new container in NeoFS
-    async fn create_container(&self, container: &Container) -> NeoFSResult<ContainerId>;
-    
-    /// Gets a container by its ID
-    async fn get_container(&self, id: &ContainerId) -> NeoFSResult<Container>;
-    
-    /// Lists all containers owned by the current account
-    async fn list_containers(&self) -> NeoFSResult<Vec<ContainerId>>;
-    
-    /// Deletes a container by its ID
-    async fn delete_container(&self, id: &ContainerId) -> NeoFSResult<bool>;
-    
-    /// Uploads an object to a container
-    async fn put_object(&self, container_id: &ContainerId, object: &Object) -> NeoFSResult<ObjectId>;
-    
-    /// Gets an object by its ID from a container
-    async fn get_object(&self, container_id: &ContainerId, object_id: &ObjectId) -> NeoFSResult<Object>;
-    
-    /// Lists all objects in a container
-    async fn list_objects(&self, container_id: &ContainerId) -> NeoFSResult<Vec<ObjectId>>;
-    
-    /// Deletes an object by its ID from a container
-    async fn delete_object(&self, container_id: &ContainerId, object_id: &ObjectId) -> NeoFSResult<bool>;
-    
-    /// Creates a bearer token for accessing objects in a container
-    async fn create_bearer_token(&self, container_id: &ContainerId, permissions: Vec<AccessPermission>, expires_sec: u64) -> NeoFSResult<BearerToken>;
-    
-    /// Gets a session token for the current account
-    async fn get_session_token(&self) -> NeoFSResult<SessionToken>;
-    
-    /// Initiates a multipart upload for a large object
-    async fn initiate_multipart_upload(&self, container_id: &ContainerId, object: &Object) -> NeoFSResult<MultipartUpload>;
-    
-    /// Uploads a part of a multipart upload
-    async fn upload_part(&self, upload: &MultipartUpload, part_number: u32, data: Vec<u8>) -> NeoFSResult<Part>;
-    
-    /// Completes a multipart upload
-    async fn complete_multipart_upload(&self, upload: &MultipartUpload, parts: Vec<Part>) -> NeoFSResult<MultipartUploadResult>;
-    
-    /// Aborts a multipart upload
-    async fn abort_multipart_upload(&self, upload: &MultipartUpload) -> NeoFSResult<bool>;
+	/// Creates a new container in NeoFS
+	async fn create_container(&self, container: &Container) -> NeoFSResult<ContainerId>;
+
+	/// Gets a container by its ID
+	async fn get_container(&self, id: &ContainerId) -> NeoFSResult<Container>;
+
+	/// Lists all containers owned by the current account
+	async fn list_containers(&self) -> NeoFSResult<Vec<ContainerId>>;
+
+	/// Deletes a container by its ID
+	async fn delete_container(&self, id: &ContainerId) -> NeoFSResult<bool>;
+
+	/// Uploads an object to a container
+	async fn put_object(
+		&self,
+		container_id: &ContainerId,
+		object: &Object,
+	) -> NeoFSResult<ObjectId>;
+
+	/// Gets an object by its ID from a container
+	async fn get_object(
+		&self,
+		container_id: &ContainerId,
+		object_id: &ObjectId,
+	) -> NeoFSResult<Object>;
+
+	/// Lists all objects in a container
+	async fn list_objects(&self, container_id: &ContainerId) -> NeoFSResult<Vec<ObjectId>>;
+
+	/// Deletes an object by its ID from a container
+	async fn delete_object(
+		&self,
+		container_id: &ContainerId,
+		object_id: &ObjectId,
+	) -> NeoFSResult<bool>;
+
+	/// Creates a bearer token for accessing objects in a container
+	async fn create_bearer_token(
+		&self,
+		container_id: &ContainerId,
+		permissions: Vec<AccessPermission>,
+		expires_sec: u64,
+	) -> NeoFSResult<BearerToken>;
+
+	/// Gets a session token for the current account
+	async fn get_session_token(&self) -> NeoFSResult<SessionToken>;
+
+	/// Initiates a multipart upload for a large object
+	async fn initiate_multipart_upload(
+		&self,
+		container_id: &ContainerId,
+		object: &Object,
+	) -> NeoFSResult<MultipartUpload>;
+
+	/// Uploads a part of a multipart upload
+	async fn upload_part(
+		&self,
+		upload: &MultipartUpload,
+		part_number: u32,
+		data: Vec<u8>,
+	) -> NeoFSResult<Part>;
+
+	/// Completes a multipart upload
+	async fn complete_multipart_upload(
+		&self,
+		upload: &MultipartUpload,
+		parts: Vec<Part>,
+	) -> NeoFSResult<MultipartUploadResult>;
+
+	/// Aborts a multipart upload
+	async fn abort_multipart_upload(&self, upload: &MultipartUpload) -> NeoFSResult<bool>;
 }

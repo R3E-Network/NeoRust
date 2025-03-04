@@ -1,12 +1,11 @@
+use crate::{
+	builder::{TransactionAttribute, TransactionSigner, WitnessRule, WitnessScope},
+	deserialize_h256, deserialize_h256_option,
+	neo_protocol::NeoWitness,
+	serialize_h256, serialize_h256_option, NeoVMStateType,
+};
 use primitive_types::{H160, H256};
 use serde::{Deserialize, Serialize};
-use crate::builder::{TransactionAttribute, TransactionSigner, WitnessRule, WitnessScope};
-use crate::neo_protocol::NeoWitness;
-use crate::NeoVMStateType;
-use crate::serialize_h256;
-use crate::deserialize_h256;
-use crate::serialize_h256_option;
-use crate::deserialize_h256_option;
 
 #[derive(Serialize, Deserialize, Hash, Clone, Debug)]
 pub struct TransactionResult {

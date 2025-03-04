@@ -3,18 +3,17 @@ use num_enum::TryFromPrimitive;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
-use crate::neo_clients::{APITrait, JsonRpcProvider, RpcClient};
-use crate::neo_contract::{
-	ContractError,
-	traits::SmartContractTrait
+use crate::{
+	neo_builder::TransactionBuilder,
+	neo_clients::{APITrait, JsonRpcProvider, RpcClient},
+	neo_contract::{traits::SmartContractTrait, ContractError},
+	neo_crypto::Secp256r1PublicKey,
+	neo_types::{
+		serde_with_utils::{deserialize_script_hash, serialize_script_hash},
+		ContractParameter, ScriptHash, StackItem,
+	},
+	ValueExtension,
 };
-use crate::neo_types::{
-	ScriptHash, StackItem, ContractParameter,
-	serde_with_utils::{deserialize_script_hash, serialize_script_hash}
-};
-use crate::neo_crypto::Secp256r1PublicKey;
-use crate::neo_builder::TransactionBuilder;
-use crate::ValueExtension;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RoleManagement<'a, P: JsonRpcProvider> {

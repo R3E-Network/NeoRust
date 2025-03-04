@@ -1,6 +1,6 @@
 //! # Neo RPC Client Module (v0.1.8)
 //!
-//! The RPC module provides client implementations for interacting with Neo nodes 
+//! The RPC module provides client implementations for interacting with Neo nodes
 //! through JSON-RPC API calls.
 //!
 //! ## Overview
@@ -19,7 +19,7 @@
 //! use neo_rust::neo_clients::rpc::{RpcClient, HttpTransport};
 //! use neo_rust::neo_types::{Address, ScriptHash};
 //! use std::str::FromStr;
-//! 
+//!
 //! async fn rpc_examples() -> Result<(), Box<dyn std::error::Error>> {
 //!     // Create an HTTP client connected to a Neo TestNet node
 //!     let transport = HttpTransport::new("https://testnet1.neo.org:443");
@@ -34,8 +34,8 @@
 //!     
 //!     // Get detailed block information
 //!     let block = client.get_block(best_block_hash, true).await?;
-//!     println!("Block time: {}, tx count: {}", 
-//!              block.time, 
+//!     println!("Block time: {}, tx count: {}",
+//!              block.time,
 //!              block.tx.as_ref().map(|txs| txs.len()).unwrap_or(0));
 //!     
 //!     // Query account information
@@ -46,8 +46,8 @@
 //!     let balances = client.get_nep17_balances(&script_hash).await?;
 //!     
 //!     for balance in balances.balances {
-//!         println!("Token: {}, Amount: {}", 
-//!                  balance.asset_hash, 
+//!         println!("Token: {}, Amount: {}",
+//!                  balance.asset_hash,
 //!                  balance.amount);
 //!     }
 //!     
@@ -59,8 +59,8 @@
 //!         // Print any notifications emitted by the contract
 //!         for execution in app_log.executions {
 //!             for notification in execution.notifications {
-//!                 println!("Contract {} emitted event: {}", 
-//!                          notification.contract, 
+//!                 println!("Contract {} emitted event: {}",
+//!                          notification.contract,
 //!                          notification.event_name);
 //!             }
 //!         }

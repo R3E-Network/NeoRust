@@ -1,7 +1,9 @@
+use crate::{
+	crypto::KeyPair,
+	neo_protocol::{Account, AccountTrait},
+};
 use bip39::{Language, Mnemonic};
 use sha2::{Digest, Sha256};
-use crate::crypto::KeyPair;
-use crate::neo_protocol::{Account, AccountTrait};
 
 /// A BIP-39 compatible neo account that uses mnemonic phrases for key generation and recovery.
 ///

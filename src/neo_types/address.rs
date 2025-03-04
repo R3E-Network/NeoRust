@@ -7,8 +7,10 @@ use rand::Rng;
 use rustc_serialize::hex::FromHex;
 use serde_derive::{Deserialize, Serialize};
 
-use crate::neo_crypto::HashableForVec;
-use crate::neo_types::{ScriptHash, ScriptHashExtension, StringExt, TypeError};
+use crate::{
+	neo_crypto::HashableForVec,
+	neo_types::{ScriptHash, ScriptHashExtension, StringExt, TypeError},
+};
 
 pub type Address = String;
 

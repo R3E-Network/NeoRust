@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use ethers::{
-    prelude::{abigen, Abigen},
-    providers::{Http, Provider},
-    types::Address,
+	prelude::{abigen, Abigen},
+	providers::{Http, Provider},
+	types::Address,
 };
 use eyre::Result;
 
@@ -26,33 +26,33 @@ use eyre::Result;
 /// code takes in input a smart contract's Application Binary Interface (ABI) file.
 #[tokio::main]
 async fn main() -> Result<()> {
-    rust_file_generation()?;
-    rust_inline_generation().await?;
-    rust_inline_generation_from_abi();
-    Ok(())
+	rust_file_generation()?;
+	rust_inline_generation().await?;
+	rust_inline_generation_from_abi();
+	Ok(())
 }
 
 fn rust_file_generation() -> Result<()> {
-    let abi_source = "./examples/contracts/examples/abi/IERC20.json";
-    let out_file = std::env::temp_dir().join("ierc20.rs");
-    if out_file.exists() {
-        std::fs::remove_file(&out_file)?;
-    }
-    Abigen::new("IERC20", abi_source)?.generate()?.write_to_file(out_file)?;
-    Ok(())
+	let abi_source = "./examples/contracts/examples/abi/IERC20.json";
+	let out_file = std::env::temp_dir().join("ierc20.rs");
+	if out_file.exists() {
+		std::fs::remove_file(&out_file)?;
+	}
+	Abigen::new("IERC20", abi_source)?.generate()?.write_to_file(out_file)?;
+	Ok(())
 }
 
 fn rust_inline_generation_from_abi() {
-    abigen!(IERC20, "./examples/contracts/examples/abi/IERC20.json");
+	abigen!(IERC20, "./examples/contracts/examples/abi/IERC20.json");
 }
 
 async fn rust_inline_generation() -> Result<()> {
-    // The abigen! macro expands the contract's code in the current scope
-    // so that you can interface your Rust program with the blockchain
-    // counterpart of the contract.
-    abigen!(
-        IERC20,
-        r#"[
+	// The abigen! macro expands the contract's code in the current scope
+	// so that you can interface your Rust program with the blockchain
+	// counterpart of the contract.
+	abigen!(
+		IERC20,
+		r#"[
             function totalSupply() external view returns (uint256)
             function balanceOf(address account) external view returns (uint256)
             function transfer(address recipient, uint256 amount) external returns (bool)
@@ -62,19 +62,19 @@ async fn rust_inline_generation() -> Result<()> {
             event Transfer(address indexed from, address indexed to, uint256 value)
             event Approval(address indexed owner, address indexed spender, uint256 value)
         ]"#,
-    );
+	);
 
-    const RPC_URL: &str = "https://eth.llamarpc.com";
-    const WETH_ADDRESS: &str = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+	const RPC_URL: &str = "https://eth.llamarpc.com";
+	const WETH_ADDRESS: &str = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
-    let provider = Provider::<Http>::try_from(RPC_URL)?;
-    let client = Arc::new(provider);
-    let address: Address = WETH_ADDRESS.parse()?;
-    let contract = IERC20::new(address, client);
+	let provider = Provider::<Http>::try_from(RPC_URL)?;
+	let client = Arc::new(provider);
+	let address: Address = WETH_ADDRESS.parse()?;
+	let contract = IERC20::new(address, client);
 
-    if let Ok(total_supply) = contract.total_supply().call().await {
-        println!("WETH total supply is {total_supply:?}");
-    }
+	if let Ok(total_supply) = contract.total_supply().call().await {
+		println!("WETH total supply is {total_supply:?}");
+	}
 
-    Ok(())
+	Ok(())
 }

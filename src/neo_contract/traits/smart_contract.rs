@@ -6,11 +6,15 @@ use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
 
 // Replace prelude imports with specific types
-use crate::neo_builder::{CallFlags, ScriptBuilder, TransactionBuilder, Signer};
-use crate::neo_clients::{APITrait, JsonRpcProvider, RpcClient};
-use crate::neo_contract::{ContractError, NeoIterator};
-use crate::neo_types::{Bytes, ContractManifest, ContractParameter, InvocationResult, OpCode, ScriptHash, StackItem};
-use crate::ScriptHashExtension;
+use crate::{
+	neo_builder::{CallFlags, ScriptBuilder, Signer, TransactionBuilder},
+	neo_clients::{APITrait, JsonRpcProvider, RpcClient},
+	neo_contract::{ContractError, NeoIterator},
+	neo_types::{
+		Bytes, ContractManifest, ContractParameter, InvocationResult, OpCode, ScriptHash, StackItem,
+	},
+	ScriptHashExtension,
+};
 
 #[async_trait]
 pub trait SmartContractTrait<'a>: Send + Sync {

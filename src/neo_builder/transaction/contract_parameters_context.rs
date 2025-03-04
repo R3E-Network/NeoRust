@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
 use crate::ContractParameter;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ContractParametersContext {

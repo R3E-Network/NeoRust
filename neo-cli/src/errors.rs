@@ -65,6 +65,12 @@ pub enum CliError {
 	#[error("External error: {0}")]
 	External(String),
 
+	#[error("User cancelled: {0}")]
+	UserCancelled(String),
+
+	#[error("Transaction failed: {0}")]
+	TransactionFailed(String),
+
 	#[error("No RPC client connected")]
 	NoRpcClient,
 
@@ -104,6 +110,8 @@ impl From<&str> for CliError {
 	}
 }
 
+// Comment out the utils::error implementation to resolve the error
+/*
 // Implement From trait for utils::error::CliError
 impl From<crate::utils::error::CliError> for CliError {
 	fn from(error: crate::utils::error::CliError) -> Self {
@@ -128,6 +136,7 @@ impl From<crate::utils::error::CliError> for CliError {
 		}
 	}
 }
+*/
 
 // Implement From trait for BuilderError
 impl From<neo3::neo_builder::BuilderError> for CliError {

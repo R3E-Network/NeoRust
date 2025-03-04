@@ -1,12 +1,14 @@
 use async_trait::async_trait;
 use primitive_types::H160;
 
-use crate::neo_clients::{JsonRpcProvider, RpcClient};
-use crate::neo_contract::{
-	ContractError, 
-	traits::{TokenTrait, SmartContractTrait, NonFungibleTokenTrait}
+use crate::{
+	neo_clients::{JsonRpcProvider, RpcClient},
+	neo_contract::{
+		traits::{NonFungibleTokenTrait, SmartContractTrait, TokenTrait},
+		ContractError,
+	},
+	neo_types::NNSName,
 };
-use crate::neo_types::NNSName;
 
 #[derive(Debug)]
 pub struct NftContract<'a, P: JsonRpcProvider> {

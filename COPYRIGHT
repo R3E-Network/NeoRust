@@ -1,0 +1,22 @@
+# NeoRust Copyright Notice
+
+Copyright (c) 2020-2025 R3E Network and contributors.
+
+This project is dual-licensed under either:
+
+1. MIT License ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+2. Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+
+at your option.
+
+## Original Attribution
+
+Parts of this codebase originated from work by Georgios Konstantopoulos (Copyright (c) 2020).
+
+## Contributors
+
+The NeoRust project is maintained by the R3E Network team and includes contributions from many individuals and organizations.
+
+## Year Updates
+
+This copyright notice covers all years from 2020 through 2025. When making changes in future years, please update both this file and relevant copyright headers throughout the codebase. 

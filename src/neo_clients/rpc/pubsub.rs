@@ -5,13 +5,13 @@ use std::{
 	task::{Context, Poll},
 };
 
+use crate::neo_clients::{JsonRpcProvider, RpcClient};
 use futures_util::stream::Stream;
 use pin_project::{pin_project, pinned_drop};
 use primitive_types::U256;
 use serde::de::DeserializeOwned;
 use serde_json::value::RawValue;
 use tracing::error;
-use crate::neo_clients::{JsonRpcProvider, RpcClient};
 
 /// A transport implementation supporting pub sub subscriptions.
 pub trait PubsubClient: JsonRpcProvider {

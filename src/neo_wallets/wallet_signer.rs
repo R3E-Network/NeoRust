@@ -1,13 +1,12 @@
 use std::fmt;
 
-use p256::NistP256;
-use p256::ecdsa::Signature;
+use p256::{ecdsa::Signature, NistP256};
 use primitive_types::{H160, H256};
 use serde_derive::{Deserialize, Serialize};
 use signature::hazmat::{PrehashSigner, PrehashVerifier};
 
 use crate::{
-	neo_builder::{Transaction, TransactionError, AccountSigner},
+	neo_builder::{AccountSigner, Transaction, TransactionError},
 	neo_clients::JsonRpcProvider,
 	neo_crypto::HashableForVec,
 	neo_types::Address,
@@ -91,9 +90,10 @@ impl<D: Sync + Send + PrehashSigner<Signature>> WalletSigner<D> {
 			// tx_with_network.set_network(self.network.map(|n| n as u32));
 		}
 		let hash_data = tx_with_network.get_hash_data().await.map_err(|e| {
-			WalletError::TransactionError(TransactionError::TransactionConfiguration(
-				format!("Failed to get transaction hash data: {}", e),
-			))
+			WalletError::TransactionError(TransactionError::TransactionConfiguration(format!(
+				"Failed to get transaction hash data: {}",
+				e
+			)))
 		})?;
 
 		self.signer.sign_prehash(&hash_data).map_err(|_| WalletError::SignHashError)
@@ -166,9 +166,7 @@ impl<D: Sync + Send + PrehashSigner<Signature>> WalletSigner<D> {
 }
 
 // do not log the signer
-impl<D: PrehashSigner<Signature> + PrehashVerifier<Signature>> fmt::Debug
-	for WalletSigner<D>
-{
+impl<D: PrehashSigner<Signature> + PrehashVerifier<Signature>> fmt::Debug for WalletSigner<D> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("WalletSigner")
 			.field("address", &self.address)

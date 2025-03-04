@@ -48,33 +48,33 @@ use std::{
 	str::FromStr,
 };
 
+use crate::builder::SignerTrait;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use once_cell::sync::Lazy;
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
-use crate::builder::SignerTrait;
 // Import from neo_types
 use crate::neo_types::{
-	ScriptHashExtension, ScriptHash, Bytes, ContractParameter, NameOrAddress,
-	InvocationResult
+	Bytes, ContractParameter, InvocationResult, NameOrAddress, ScriptHash, ScriptHashExtension,
 };
 
 // Import transaction types from neo_builder
 use crate::neo_builder::{
 	transaction::{
-		Signer, TransactionAttribute, Witness, WitnessScope, SignerType, 
-		VerificationScript, Transaction, TransactionError
+		Signer, SignerType, Transaction, TransactionAttribute, TransactionError,
+		VerificationScript, Witness, WitnessScope,
 	},
-	BuilderError
+	BuilderError,
 };
 
 // Import other modules
-use crate::neo_config::{NeoConstants, NEOCONFIG};
-use crate::neo_protocol::{AccountTrait, NeoNetworkFee};
-use crate::neo_clients::{APITrait, JsonRpcProvider, RpcClient};
-use crate::neo_crypto::Secp256r1PublicKey;
-use crate::neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
-use crate::neo_crypto::HashableForVec;
+use crate::{
+	neo_clients::{APITrait, JsonRpcProvider, RpcClient},
+	neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait},
+	neo_config::{NeoConstants, NEOCONFIG},
+	neo_crypto::{HashableForVec, Secp256r1PublicKey},
+	neo_protocol::{AccountTrait, NeoNetworkFee},
+};
 
 // Helper functions
 use crate::neo_clients::public_key_to_script_hash;
@@ -717,7 +717,9 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 			TransactionError::IllegalState(format!("Failed to get signing threshold: {}", e))
 		})?;
 		let signing_threshold = u8::try_from(threshold_value).map_err(|_| {
-			TransactionError::IllegalState("Signing threshold value out of range for u8".to_string())
+			TransactionError::IllegalState(
+				"Signing threshold value out of range for u8".to_string(),
+			)
 		})?;
 
 		// Create and return the VerificationScript with the pub_keys and signing threshold

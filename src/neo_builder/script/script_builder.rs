@@ -1,3 +1,9 @@
+use crate::{
+	builder::{BuilderError, CallFlags, InteropService},
+	codec::Encoder,
+	crypto::Secp256r1PublicKey,
+	Bytes, ContractParameter, ContractParameterType, OpCode, ParameterValue, ScriptHashExtension,
+};
 use futures_util::future::ok;
 use getset::{Getters, Setters};
 use num_bigint::BigInt;
@@ -6,10 +12,6 @@ use primitive_types::H160;
 use rustc_serialize::hex::FromHex;
 use std::{cmp::PartialEq, collections::HashMap};
 use tokio::io::AsyncWriteExt;
-use crate::builder::{BuilderError, CallFlags, InteropService};
-use crate::codec::Encoder;
-use crate::{Bytes, ContractParameter, ContractParameterType, OpCode, ParameterValue, ScriptHashExtension};
-use crate::crypto::Secp256r1PublicKey;
 
 /// A builder for constructing Neo smart contract scripts.
 ///
@@ -701,12 +703,12 @@ impl ScriptBuilder {
 mod tests {
 	use std::vec;
 
+	use super::*;
+	use crate::neo_types::ContractParameterMap;
 	use hex_literal::hex;
 	use num_bigint::BigInt;
 	use num_traits::FromPrimitive;
 	use rustc_serialize::hex::{FromHex, ToHex};
-	use crate::neo_types::ContractParameterMap;
-	use super::*;
 
 	#[test]
 	fn test_push_empty_array() {
@@ -790,38 +792,26 @@ mod tests {
 		builder.push_integer(BigInt::from(-10i128.pow(23)));
 		let mut expected_bytes = "ffffffffffffead2fd381eb509800000".from_hex().unwrap();
 		expected_bytes.reverse();
-		assert_eq!(
-			builder.to_bytes()[builder.len() - 16..],
-			expected_bytes
-		);
+		assert_eq!(builder.to_bytes()[builder.len() - 16..], expected_bytes);
 
 		builder.push_integer(BigInt::from(10i128.pow(23)));
 		let mut expected_bytes = "000000000000152d02c7e14af6800000".from_hex().unwrap();
 		expected_bytes.reverse();
-		assert_eq!(
-			builder.to_bytes()[builder.len() - 16..],
-			expected_bytes
-		);
+		assert_eq!(builder.to_bytes()[builder.len() - 16..], expected_bytes);
 
 		builder.push_integer(BigInt::from(10).pow(40));
 		let mut expected_bytes = "0000000000000000000000000000001d6329f1c35ca4bfabb9f5610000000000"
 			.from_hex()
 			.unwrap();
 		expected_bytes.reverse();
-		assert_eq!(
-			builder.to_bytes()[builder.len() - 32..],
-			expected_bytes
-		);
+		assert_eq!(builder.to_bytes()[builder.len() - 32..], expected_bytes);
 
 		builder.push_integer(-BigInt::from(10).pow(40));
 		let mut expected_bytes = "ffffffffffffffffffffffffffffffe29cd60e3ca35b4054460a9f0000000000"
 			.from_hex()
 			.unwrap();
 		expected_bytes.reverse();
-		assert_eq!(
-			builder.to_bytes()[builder.len() - 32..],
-			expected_bytes
-		);
+		assert_eq!(builder.to_bytes()[builder.len() - 32..], expected_bytes);
 	}
 
 	#[test]

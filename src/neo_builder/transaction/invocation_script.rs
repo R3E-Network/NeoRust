@@ -1,11 +1,13 @@
 use std::hash::Hash;
 
+use crate::{
+	builder::{BuilderError, ScriptBuilder},
+	codec::{Decoder, Encoder, NeoSerializable},
+	crypto::{KeyPair, Secp256r1Signature},
+	var_size, OpCode,
+};
 use getset::{Getters, Setters};
 use serde_derive::{Deserialize, Serialize};
-use crate::builder::{BuilderError, ScriptBuilder};
-use crate::codec::{Decoder, Encoder, NeoSerializable};
-use crate::crypto::{KeyPair, Secp256r1Signature};
-use crate::{var_size, OpCode};
 // #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
 // #[getset(get_copy, set)]
 // #[derive(educe::Educe)]

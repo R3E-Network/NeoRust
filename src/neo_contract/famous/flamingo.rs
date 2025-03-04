@@ -3,11 +3,13 @@ use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
+use crate::{
+	builder::{AccountSigner, TransactionBuilder},
+	neo_clients::{APITrait, JsonRpcProvider, RpcClient},
+	neo_contract::{ContractError, SmartContractTrait},
+	neo_protocol::Account,
+};
 use neo::prelude::*;
-use crate::builder::{AccountSigner, TransactionBuilder};
-use crate::neo_contract::{ContractError, SmartContractTrait};
-use crate::neo_clients::{APITrait, JsonRpcProvider, RpcClient};
-use crate::neo_protocol::Account;
 
 /// Flamingo Finance contract interface for Neo N3
 ///

@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 
+use crate::{
+	builder::VerificationScript,
+	codec::NeoSerializable,
+	neo_protocol::Account,
+	neo_wallets::{NEP6Contract, NEP6Parameter, WalletError},
+	Address, AddressOrScriptHash, Base64Encode, ContractParameterType, StringExt,
+};
 use getset::{Getters, Setters};
 use serde::{Deserialize, Serialize};
-use crate::{Address, AddressOrScriptHash, Base64Encode, ContractParameterType, StringExt};
-use crate::builder::VerificationScript;
-use crate::codec::NeoSerializable;
-use crate::neo_protocol::Account;
-use crate::neo_wallets::{NEP6Contract, NEP6Parameter, WalletError};
 
 /// Represents an account in the NEP-6 format.
 #[derive(Clone, Debug, Serialize, Deserialize, Getters, Setters)]
@@ -237,13 +239,15 @@ impl PartialEq for NEP6Account {
 
 #[cfg(test)]
 mod tests {
-	use crate::config::TestConstants;
-	use crate::ContractParameterType;
-	use crate::crypto::{PrivateKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey};
-	use crate::neo_clients::ProviderError;
-	use crate::neo_protocol::{Account, AccountTrait};
-	use crate::neo_types::Base64Encode;
-	use crate::neo_wallets::NEP6Account;
+	use crate::{
+		config::TestConstants,
+		crypto::{PrivateKeyExtension, Secp256r1PrivateKey, Secp256r1PublicKey},
+		neo_clients::ProviderError,
+		neo_protocol::{Account, AccountTrait},
+		neo_types::Base64Encode,
+		neo_wallets::NEP6Account,
+		ContractParameterType,
+	};
 
 	#[test]
 	fn test_decrypt_with_standard_scrypt_params() {

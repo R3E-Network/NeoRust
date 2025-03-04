@@ -3,13 +3,12 @@ use std::hash::Hasher;
 use primitive_types::H160;
 use tokio::io::AsyncReadExt;
 
-use neo::prelude::{
-	Bytes, ContractParameter,
-	StackItem,
+use crate::{
+	codec::{CodecError, Decoder, Encoder, NeoSerializable},
+	crypto::HashableForVec,
+	TypeError,
 };
-use crate::codec::{CodecError, Decoder, Encoder, NeoSerializable};
-use crate::crypto::HashableForVec;
-use crate::TypeError;
+use neo::prelude::{Bytes, ContractParameter, StackItem};
 /*
 ┌───────────────────────────────────────────────────────────────────────┐
 │                    NEO Executable Format 3 (NEF3)                     │

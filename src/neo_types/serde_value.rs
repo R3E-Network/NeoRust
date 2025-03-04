@@ -1,8 +1,7 @@
+use super::ScriptHashExtension;
+use crate::{crypto::Secp256r1PublicKey, Bytes};
 use primitive_types::{H160, H256};
 use serde_json::Value;
-use crate::Bytes;
-use crate::crypto::Secp256r1PublicKey;
-use super::ScriptHashExtension;
 
 pub trait ValueExtension {
 	fn to_value(&self) -> Value;

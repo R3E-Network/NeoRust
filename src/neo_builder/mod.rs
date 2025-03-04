@@ -42,7 +42,7 @@
 //! use neo_rust::neo_protocol::account::Account;
 //! use neo_rust::neo_types::{ContractParameter, Signer, WitnessScope};
 //! use std::str::FromStr;
-//! 
+//!
 //! async fn transaction_example() -> Result<(), Box<dyn std::error::Error>> {
 //!     // Set up connections
 //!     let provider = HttpProvider::new("https://testnet1.neo.org:443")?;

@@ -78,6 +78,7 @@
 
 use lazy_static::lazy_static;
 
+use crate::config::NeoConstants;
 pub use api_trait::*;
 pub use errors::ProviderError;
 pub use ext::*;
@@ -86,7 +87,6 @@ pub use rpc::*;
 #[allow(deprecated)]
 pub use test_provider::{MAINNET, TESTNET};
 pub use utils::*;
-use crate::config::NeoConstants;
 
 mod api_trait;
 /// Errors
