@@ -4,11 +4,11 @@ use strum_macros::{Display, EnumString};
 #[derive(Display, EnumString, Copy, Clone, Debug, PartialEq, Eq, TryFromPrimitive)]
 #[repr(u8)]
 pub(crate) enum Role {
-	#[strum_macros::strum(serialize = "StateValidator")]
+	#[strum(serialize = "StateValidator")]
 	StateValidator = 0x04,
-	#[strum_macros::strum(serialize = "Oracle")]
+	#[strum(serialize = "Oracle")]
 	Oracle = 0x08,
-	#[strum_macros::strum(serialize = "NeoFSAlphabetNode")]
+	#[strum(serialize = "NeoFSAlphabetNode")]
 	NeoFsAlphabetNode = 0x10,
 }
 
