@@ -52,7 +52,6 @@ pub trait SignerTrait {
     fn set_rules(&mut self, rules: Vec<WitnessRule>);
 }
 use crate::protocol_error::ProtocolError;
-use primitive_types::H160;
 use std::hash::{Hash, Hasher};
 
 #[derive(Default, Clone, Debug, PartialEq)]
