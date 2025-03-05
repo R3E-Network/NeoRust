@@ -45,8 +45,8 @@ pub use account::*;
 pub use nep2::*;
 pub use protocol_error::*;
 pub use responses::*;
-// Re-export role module
-pub mod role;
+// Re-export role module contents
+pub use role::*;
 
 // Conditionally re-export client functionality
 // Temporarily comment out to avoid circular dependency

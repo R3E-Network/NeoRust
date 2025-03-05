@@ -45,7 +45,8 @@
 
 use neo_config::NeoConstants;
 use neo_crypto::{base58check_decode, base58check_encode, HashableForVec, KeyPair, Secp256r1PublicKey};
-use neo_clients::public_key_to_address;
+// Temporarily comment out to avoid circular dependency
+// use neo_clients::public_key_to_address;
 use neo_error::ProviderError;
 use neo_types::vec_to_array32;
 use block_modes::{BlockMode, Ecb};
@@ -231,9 +232,18 @@ fn address_hash_from_pubkey(pubkey: &[u8]) -> [u8; 4] {
 	let public_key = Secp256r1PublicKey::from_bytes(pubkey)
 		.expect("Invalid public key format in address_hash_from_pubkey");
 
-	let addr = public_key_to_address(&public_key);
-	let hash = addr.as_bytes();
-	let hash = hash.hash256().hash256();
+	// Temporarily implement address generation directly to avoid circular dependency
+	// Original: let addr = public_key_to_address(&public_key);
+	let encoded = public_key.get_encoded(true);
+	let hash = encoded.hash256();
+	let script_hash = hash.ripemd160();
+	
+	// Convert script hash to address format
+	let mut address_bytes = vec![0x35]; // Address version byte for Neo N3
+	address_bytes.extend_from_slice(&script_hash);
+	
+	// Hash the address bytes
+	let hash = address_bytes.hash256().hash256();
 	let mut result = [0u8; 4];
 	result.copy_from_slice(&hash[..4]);
 	result

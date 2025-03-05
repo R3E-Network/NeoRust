@@ -17,7 +17,7 @@ pub enum OracleResponseCode {
     Error = 0xFF,
 }
 use primitive_types::H256;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::Deserializer;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
