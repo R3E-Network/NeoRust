@@ -1,12 +1,10 @@
 use std::str::FromStr;
 
-use neo::{
-	neo_clients::{HttpProvider, JsonRpcProvider},
-	neo_contract::{FungibleTokenContract, FungibleTokenTrait},
-	neo_protocol::account::Account,
-	neo_types::script_hash::ScriptHash,
-	prelude::RpcClient,
-};
+use neo3::prelude::*;
+use neo_clients::{HttpProvider, JsonRpcProvider};
+use neo_contract::{FungibleTokenContract, FungibleTokenTrait};
+use neo_protocol::account::Account;
+use neo_types::ScriptHash;
 
 /// This example demonstrates how to work with NEP-17 tokens on the Neo N3 blockchain.
 /// It shows how to check balances, transfer tokens, and get token information.

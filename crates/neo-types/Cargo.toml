@@ -1,0 +1,65 @@
+[package]
+name = "neo-types"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Core Neo ecosystem data types for the NeoRust SDK"
+documentation = "https://docs.rs/neo-types"
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+# Internal crates
+neo-error = { path = "../neo-error", version = "0.1.9" }
+neo-codec = { path = "../neo-codec", version = "0.1.9" }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["raw_value"] }
+serde_derive = { version = "1.0.188" }
+serde_with = { version = "3.4.0" }
+serde_bytes = { version = "0.11.12" }
+hex = { package = "const-hex", version = "1.6", features = ["hex"] }
+rustc-serialize = { version = "0.3.24" }
+base64 = { version = "0.22.1" }
+
+# Numeric types
+primitive-types = { version = "0.13.0", features = ["serde"] }
+ethereum-types = { version = "0.14.1" }
+num-bigint = { version = "0.4" }
+num-traits = { version = "0.2.16" }
+num_enum = { version = "0.7.0" }
+
+# Cryptography
+bs58 = { version = "0.5.1" }
+sha2 = { version = "0.10.7" }
+sha3 = { version = "0.10.8" }
+rand = { version = "0.8" }
+elliptic-curve = { version = "0.13.5", features = ["sec1"] }
+
+# Async
+tokio = { version = "1.32", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
+
+# Enums
+strum = { version = "0.25", features = ["derive"] }
+strum_macros = { version = "0.25" }
+
+# Misc
+thiserror = { version = "1.0" }
+getset = { version = "0.1.2" }
+chrono = { version = "0.4.31", features = ["serde"] }
+lazy_static = { version = "1.4.0" }
+once_cell = { version = "1.18" }
+url = { version = "2.4", default-features = false }
+derive_more = { version = "0.99.17", features = ["as_ref", "deref", "index", "index_mut", "into_iterator"] }
+byte-slice-cast = { version = "1.2.2" }
+ripemd.workspace = true
+
+[features]
+default = []
+substrate = []

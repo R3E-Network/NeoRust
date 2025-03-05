@@ -1,0 +1,115 @@
+[package]
+name = "neo3"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Rust SDK for Neo N3"
+documentation = "https://docs.rs/neo3"
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+categories.workspace = true
+keywords.workspace = true
+exclude = [
+    ".github/",
+    "bin/",
+    "book/",
+    "**/tests/",
+    "**/test-data/",
+    "**/testdata/",
+    "scripts/",
+    "docs/book/",
+]
+
+[lib]
+doctest = false
+
+[dependencies]
+neo-builder = { path = "../neo-builder", version = "0.1.9" }
+neo-clients = { path = "../neo-clients", version = "0.1.9" }
+neo-codec = { path = "../neo-codec", version = "0.1.9" }
+neo-config = { path = "../neo-config", version = "0.1.9" }
+neo-contract = { path = "../neo-contract", version = "0.1.9" }
+neo-crypto = { path = "../neo-crypto", version = "0.1.9" }
+neo-error = { path = "../neo-error", version = "0.1.9" }
+neo-fs = { path = "../neo-fs", version = "0.1.9" }
+neo-protocol = { path = "../neo-protocol", version = "0.1.9" }
+neo-types = { path = "../neo-types", version = "0.1.9" }
+neo-utils = { path = "../neo-utils", version = "0.1.9" }
+neo-wallets = { path = "../neo-wallets", version = "0.1.9" }
+neo-x = { path = "../neo-x", version = "0.1.9" }
+
+# Core dependencies
+tokio = { workspace = true }
+futures = { workspace = true }
+futures-core = { workspace = true }
+futures-util = { workspace = true }
+futures-executor = { workspace = true }
+futures-channel = { workspace = true }
+futures-locks = { workspace = true }
+futures-timer = { workspace = true }
+pin-project = { workspace = true }
+reqwest = { workspace = true }
+url = { workspace = true }
+
+# Crypto
+elliptic-curve = { workspace = true }
+generic-array = { workspace = true }
+k256 = { workspace = true }
+sha2 = { workspace = true }
+tiny-keccak = { workspace = true }
+spki = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_with = { workspace = true }
+serde_derive = { workspace = true }
+serde_bytes = { workspace = true }
+
+# Macros
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }
+async-trait = { workspace = true }
+auto_impl = { workspace = true }
+
+# Misc
+bytes = { workspace = true }
+eyre = { workspace = true }
+hex = { workspace = true }
+hex-literal = { workspace = true }
+home = { workspace = true }
+once_cell = { workspace = true }
+rand = { workspace = true }
+thiserror = { workspace = true }
+
+# Tracing
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-futures = { workspace = true }
+
+# Feature-gated dependencies
+rusoto_core = { workspace = true, optional = true }
+rusoto_kms = { workspace = true, optional = true }
+coins-ledger = { workspace = true, optional = true }
+protobuf = { workspace = true, optional = true }
+
+[features]
+futures = ["neo-builder/futures", "neo-clients/futures", "neo-contract/futures"]
+ledger = ["neo-wallets/ledger", "coins-ledger", "protobuf"]
+aws = ["neo-wallets/aws", "rusoto_core", "rusoto_kms"]
+default = []
+
+# https://docs.rs/about/metadata
+[metadata.docs.rs]
+all-features = false
+features = ["futures", "ledger", "aws"]
+rustdoc-args = ["--cfg", "docsrs"]
+default-target = "x86_64-unknown-linux-gnu"
+
+# https://github.com/integer32llc/rust-playground/blob/c6165a36923db5d99313e6056b5b610a2ede5bb0/top-crates/src/lib.rs#L175-L184
+[metadata.playground]
+all-features = true
+resolver = "2"

@@ -1,0 +1,54 @@
+[package]
+name = "neo-wallets"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Wallet management for the NeoRust SDK"
+documentation = "https://docs.rs/neo-wallets"
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+# Internal crates
+neo-error = { path = "../neo-error", version = "0.1.9" }
+neo-types = { path = "../neo-types", version = "0.1.9" }
+neo-crypto = { path = "../neo-crypto", version = "0.1.9" }
+neo-protocol = { path = "../neo-protocol", version = "0.1.9" }
+neo-clients = { path = "../neo-clients", version = "0.1.9" }
+neo-builder = { path = "../neo-builder", version = "0.1.9" }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["raw_value"] }
+hex = { package = "const-hex", version = "1.6", features = ["hex"] }
+rustc-serialize = { version = "0.3.24" }
+
+# Async
+tokio = { version = "1.32", features = ["full"] }
+futures = { version = "0.3.28", default-features = false, features = ["std"] }
+
+# Crypto
+primitive-types = { version = "0.13.0" }
+signature = { version = "2.1.0" }
+rand = { version = "0.8" }
+
+# Misc
+thiserror = { version = "1.0" }
+getset = { version = "0.1.2" }
+chrono = { version = "0.4.31", features = ["serde"] }
+lazy_static = { version = "1.4.0" }
+once_cell = { version = "1.18" }
+tracing = { version = "0.1.37" }
+
+[features]
+default = []
+yubi = ["dep:yubihsm"]
+
+[dependencies.yubihsm]
+version = "0.42"
+features = ["mockhsm", "http", "usb"]
+optional = true

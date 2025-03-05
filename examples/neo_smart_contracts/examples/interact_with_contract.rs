@@ -1,12 +1,10 @@
 use std::str::FromStr;
 
-use neo::{
-	neo_clients::{HttpProvider, JsonRpcProvider},
-	neo_contract::SmartContractTrait,
-	neo_protocol::account::Account,
-	neo_types::{contract::ContractParameter, script_hash::ScriptHash},
-	prelude::{RpcClient, SmartContract},
-};
+use neo3::prelude::*;
+use neo_clients::{HttpProvider, JsonRpcProvider};
+use neo_contract::SmartContractTrait;
+use neo_protocol::account::Account;
+use neo_types::{contract::ContractParameter, script_hash::ScriptHash};
 
 /// This example demonstrates how to interact with a smart contract on the Neo N3 blockchain.
 /// It shows how to call read-only methods and how to invoke methods that modify state.

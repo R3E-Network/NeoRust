@@ -1,0 +1,51 @@
+[package]
+name = "neo-builder"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Transaction and script building utilities for the NeoRust SDK"
+documentation = "https://docs.rs/neo-builder"
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+# Internal crates
+neo-crypto = { path = "../neo-crypto", version = "0.1.9" }
+neo-types = { path = "../neo-types", version = "0.1.9" }
+neo-protocol = { path = "../neo-protocol", version = "0.1.9", optional = true }
+neo-codec = { path = "../neo-codec", version = "0.1.9" }
+neo-error = { path = "../neo-error", version = "0.1.9" }
+neo-utils = { path = "../neo-utils", version = "0.1.9" }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Async
+tokio = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+
+# Crypto
+hex = { workspace = true }
+sha2 = { workspace = true }
+base64 = { version = "0.21.7" }
+
+# Misc
+thiserror = { workspace = true }
+tracing = { workspace = true }
+rand = { workspace = true }
+bytes = { workspace = true }
+primitive-types = { workspace = true }
+log = { workspace = true }
+strum = { version = "0.26.1" }
+strum_macros = { version = "0.26.1" }
+
+[features]
+futures = []
+default = []
+protocol = ["neo-protocol"]

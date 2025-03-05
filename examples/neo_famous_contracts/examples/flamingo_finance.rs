@@ -1,12 +1,10 @@
 use std::str::FromStr;
 
-use neo::{
-	neo_clients::{HttpProvider, JsonRpcProvider},
-	neo_contract::famous::FlamingoContract,
-	neo_protocol::account::Account,
-	neo_types::script_hash::ScriptHash,
-	prelude::RpcClient,
-};
+use neo3::prelude::*;
+use neo_clients::{HttpProvider, JsonRpcProvider, RpcClient};
+use neo_contract::famous::FlamingoContract;
+use neo_protocol::account::Account;
+use neo_types::ScriptHash;
 
 /// This example demonstrates how to interact with the Flamingo Finance contract on Neo N3.
 /// It shows how to perform token swaps, add/remove liquidity, stake tokens, and claim rewards.

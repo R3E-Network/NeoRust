@@ -1,13 +1,11 @@
 use std::str::FromStr;
 
-use neo::{
-	neo_builder::TransactionBuilder,
-	neo_clients::{HttpProvider, JsonRpcProvider},
-	neo_contract::GasToken,
-	neo_protocol::account::Account,
-	neo_types::{contract::ContractParameter, script_hash::ScriptHash},
-	prelude::{RpcClient, ScriptBuilder},
-};
+use neo3::prelude::*;
+use neo_builder::TransactionBuilder;
+use neo_clients::{HttpProvider, JsonRpcProvider};
+use neo_contract::GasToken;
+use neo_protocol::account::Account;
+use neo_types::{contract::ContractParameter, script_hash::ScriptHash};
 
 /// This example demonstrates how to create, sign, and send a transaction on the Neo N3 blockchain.
 /// It shows the process of transferring GAS tokens from one account to another.

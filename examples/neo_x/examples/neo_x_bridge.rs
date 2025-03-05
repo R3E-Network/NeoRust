@@ -1,4 +1,4 @@
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::str::FromStr;
 
 /// Example demonstrating Neo X Bridge contract interactions

@@ -46,7 +46,7 @@ use neo::prelude::*;
 
 async fn example() -> Result<(), Box<dyn std::error::Error>> {
    // Connect to a Neo N3 TestNet node
-   let provider = neo_providers::JsonRpcClient::new("https://testnet1.neo.coz.io:443");
+   let provider = neo_clients::JsonRpcClient::new("https://testnet1.neo.coz.io:443");
    
    // Get basic blockchain information
    let block_count = provider.get_block_count().await?;
@@ -504,7 +504,7 @@ Example of enabling multiple features:
 
 ```toml
 [dependencies]
-neo3 = "0.1.4"
+neo3 = { version = "0.1.9", features = ["ledger", "aws", "futures"] }
 ```
 
 ## Build and Test Scripts
@@ -544,17 +544,23 @@ For more details on available script options, see the [scripts README](scripts/R
 
 ## Project Structure
 
-NeoRust is organized into several modules:
+NeoRust is organized into several crates, each with a specific responsibility:
 
-- **neo_builder**: Transaction and script building utilities
-- **neo_clients**: Neo node interaction clients (RPC and WebSocket)
-- **neo_codec**: Encoding/decoding for Neo-specific data structures
-- **neo_config**: Network and client configuration
-- **neo_contract**: Smart contract interaction
-- **neo_crypto**: Neo-specific cryptographic operations
-- **neo_protocol**: Neo network protocol implementation
-- **neo_types**: Core Neo ecosystem data types
-- **neo_wallets**: Neo asset and account management
+- **neo-builder**: Transaction and script building utilities
+- **neo-clients**: Neo node interaction clients (RPC and WebSocket)
+- **neo-codec**: Encoding/decoding for Neo-specific data structures
+- **neo-config**: Network and client configuration
+- **neo-contract**: Smart contract interaction
+- **neo-crypto**: Neo-specific cryptographic operations
+- **neo-error**: Unified error handling
+- **neo-fs**: NeoFS distributed storage system integration
+- **neo-protocol**: Neo network protocol implementation
+- **neo-types**: Core Neo ecosystem data types
+- **neo-utils**: General utility functions
+- **neo-wallets**: Neo asset and account management
+- **neo-x**: Neo X EVM compatibility layer
+
+Each crate can be used independently or through the main `neo3` crate which re-exports all functionality.
 
 ## Contributing
 
