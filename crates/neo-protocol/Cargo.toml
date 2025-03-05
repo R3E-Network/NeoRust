@@ -49,8 +49,6 @@ primitive-types = { workspace = true }
 getset = { workspace = true }
 chrono = { workspace = true }
 url = { workspace = true }
-strum = { version = "0.26.1" }
-strum_macros = { version = "0.26.1" }
 num_enum = { version = "0.7.2" }
 futures-util = { version = "0.3.30" }
 signature = { version = "2.2.0" }
