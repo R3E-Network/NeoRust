@@ -33,6 +33,9 @@ async-trait = { workspace = true }
 # Crypto
 hex = { workspace = true }
 sha2 = { workspace = true }
+
+# Attributes
+getset = "0.1.2"
 base64 = { version = "0.21.7" }
 
 # Misc

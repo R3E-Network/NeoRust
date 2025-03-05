@@ -33,6 +33,10 @@ futures = { workspace = true }
 
 # Crypto
 aes = { version = "0.8.3" }
+
+# Enums
+strum = { version = "0.26.3", features = ["derive"] }
+strum_macros = { version = "0.26.3" }
 block-modes = { version = "0.9.1" }
 scrypt = { version = "0.11.0" }
 bs58 = { version = "0.5.1" }
