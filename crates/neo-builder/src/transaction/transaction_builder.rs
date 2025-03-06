@@ -393,10 +393,21 @@ pub fn first_signer(&mut self, sender: &neo_protocol::Account<neo_protocol::wall
 			return Err(TransactionError::NoScript);
 		}
 		let client = self.client.unwrap();
-		let result = client
-			.invoke_script(self.script.clone().unwrap().to_hex(), self.signers.clone())
+		
+		// Convert signers to strings
+		let signer_strings: Vec<String> = self.signers.iter()
+			.map(|s| s.to_string())
+			.collect();
+		
+		let future = client.invoke_script(
+			self.script.clone().unwrap().to_hex(), 
+			signer_strings
+		);
+		
+		let result = Box::pin(future)
 			.await
 			.map_err(|e| TransactionError::ProviderError(e))?;
+			
 		Ok(result)
 	}
 
@@ -537,8 +548,11 @@ use neo_common::*;
 			.client
 			.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
 
-		let response = client
-			.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
+		// Convert signers to strings
+		let signer_strings: Vec<String> = vec![self.signers[0].to_string()];
+		
+		let future = client.invoke_script(script.to_hex(), signer_strings);
+		let response = Box::pin(future)
 			.await
 			.map_err(|e| TransactionError::ProviderError(e))?;
 
@@ -651,7 +665,8 @@ use neo_common::*;
 			return Err(TransactionError::TransactionConfiguration("A transaction requires at least one signing account (i.e. an AccountSigner). None was provided.".to_string()))
 		}
 
-		let fee = client.calculate_network_fee(tx.to_array().to_hex())
+		let future = client.calculate_network_fee(tx.to_array().to_hex());
+		let fee = Box::pin(future)
 			.await
 			.map_err(|e| TransactionError::ProviderError(e))?;
 		Ok(fee.network_fee)
@@ -661,7 +676,8 @@ use neo_common::*;
 		let client = self
 			.client
 			.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
-		let count = client.get_block_count().await
+		let future = client.get_block_count();
+		let count = Box::pin(future).await
 			.map_err(|e| TransactionError::ProviderError(e))?;
 		Ok(count)
 	}
@@ -675,14 +691,15 @@ use neo_common::*;
 				.client
 				.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
 
-			let balance = client
-				.invoke_function(
-					GAS_TOKEN_HASH.to_string(),
-					Self::BALANCE_OF_FUNCTION.to_string(),
-					vec![ContractParameter::from(sender.get_signer_hash()).to_string()],
-					vec![],
-				)
-				.await
+			let param = ContractParameter::from(sender.get_signer_hash());
+			let param_str = param.to_string().unwrap_or_default();
+			let future = client.invoke_function(
+				GAS_TOKEN_HASH.to_string(),
+				Self::BALANCE_OF_FUNCTION.to_string(),
+				vec![param_str],
+				vec![],
+			);
+			let balance = Box::pin(future).await
 				.map_err(|e| TransactionError::ProviderError(e))?;
 
 			// Parse the response to get the balance
@@ -1080,11 +1097,11 @@ use neo_common::*;
 			None => return false, // If no client is available, we can't verify committee membership
 		};
 
-		let response =
-			match client.get_committee().await.map_err(|e| TransactionError::ProviderError(e)) {
-				Ok(response) => response,
-				Err(_) => return false, // If we can't get committee info, assume not allowed
-			};
+		let future = client.get_committee();
+		let response = match Box::pin(future).await.map_err(|e| TransactionError::ProviderError(e)) {
+			Ok(response) => response,
+			Err(_) => return false, // If we can't get committee info, assume not allowed
+		};
 
 		// Map the Vec<String> response to Vec<Hash160>
 		let committee: HashSet<H160> = response
@@ -1194,7 +1211,8 @@ use neo_common::*;
 	}
 
 	async fn can_send_cover_fees(&self, fees: u64) -> Result<bool, BuilderError> {
-		let balance = self.get_sender_balance().await?;
+		let balance_future = self.get_sender_balance();
+		let balance = Box::pin(balance_future).await?;
 		Ok(balance >= fees)
 	}
 
