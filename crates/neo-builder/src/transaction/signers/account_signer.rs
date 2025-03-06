@@ -8,12 +8,14 @@ use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
 use neo_config::NeoConstants;
 use neo_crypto::{PublicKeyExtension, Secp256r1PublicKey};
 use neo_protocol::{Account, AccountTrait};
-use neo_protocol::wallet::Wallet;
+use neo_wallets::wallet::Wallet;
 use neo_types::{
-    deserialize_script_hash, deserialize_vec_script_hash,
-    deserialize_vec_public_key, serialize_vec_public_key,
-    serialize_script_hash, serialize_vec_script_hash,
     ScriptHashExtension,
+    serde_utils::{
+        deserialize_script_hash, deserialize_vec_script_hash,
+        deserialize_vec_public_key, serialize_vec_public_key,
+        serialize_script_hash, serialize_vec_script_hash
+    },
 };
 use getset::{Getters, Setters};
 use primitive_types::H160;

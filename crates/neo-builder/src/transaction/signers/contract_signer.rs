@@ -3,9 +3,12 @@ use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
 use neo_config::NeoConstants;
 use neo_crypto::Secp256r1PublicKey;
 use neo_types::{
-    deserialize_script_hash, deserialize_vec_script_hash,
-    deserialize_vec_public_key, serialize_vec_public_key,
-    serialize_script_hash, serialize_vec_script_hash, ContractParameter,
+    ContractParameter,
+    serde_utils::{
+        deserialize_script_hash, deserialize_vec_script_hash,
+        deserialize_vec_public_key, serialize_vec_public_key,
+        serialize_script_hash, serialize_vec_script_hash
+    },
 };
 use getset::{Getters, Setters};
 use primitive_types::H160;

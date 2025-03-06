@@ -1,4 +1,5 @@
-use crate::builder::{BuilderError, CallFlags, InteropService};
+use crate::{BuilderError, InteropService};
+use crate::script::CallFlags;
 use neo_codec::Encoder;
 use neo_crypto::Secp256r1PublicKey;
 use neo_types::{Bytes, ContractParameter, ContractParameterType, OpCode, ParameterValue, ScriptHashExtension};
