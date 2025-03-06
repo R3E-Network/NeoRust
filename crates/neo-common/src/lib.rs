@@ -48,6 +48,7 @@ pub use address_conversion::PublicKey;
 pub use crypto_utils::{hash160, hash256, ripemd160, sha256};
 pub use error_adapter::{provider_error_to_string, to_provider_error, ErrorAdapter};
 pub use error_conversion::ProviderErrorConversion;
+pub use h256_utils::{deserialize_h256, deserialize_h256_option, serialize_h256, serialize_h256_option};
 pub use hard_forks::HardForks;
 pub use provider_error::ProviderError;
 pub use rpc_client_trait::RpcClient;
