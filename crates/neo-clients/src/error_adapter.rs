@@ -24,9 +24,10 @@ pub fn to_common_error(error: ClientProviderError) -> CommonProviderError {
         ClientProviderError::TypeError(e) => CommonProviderError::CustomError(format!("Type error: {:?}", e)),
         ClientProviderError::InvalidPassword => CommonProviderError::CustomError("Invalid password".to_string()),
         ClientProviderError::ParseError(s) => CommonProviderError::SerializationError(format!("Parse error: {}", s)),
-        ClientProviderError::LockError => CommonProviderError::CustomError("Lock error".to_string()),
-        ClientProviderError::ProtocolNotFound => CommonProviderError::CustomError("Protocol not found".to_string()),
-        ClientProviderError::NetworkNotFound => CommonProviderError::CustomError("Network not found".to_string()),
+        ClientProviderError::LockError => CommonProviderError::LockError,
+        ClientProviderError::ProtocolNotFound => CommonProviderError::ProtocolNotFound,
+        ClientProviderError::NetworkNotFound => CommonProviderError::NetworkNotFound,
+        ClientProviderError::Other(s) => CommonProviderError::Other(s),
     }
 }
 
@@ -40,6 +41,9 @@ pub fn from_common_error(error: CommonProviderError) -> ClientProviderError {
         CommonProviderError::SerializationError(s) => ClientProviderError::ParseError(s),
         CommonProviderError::NetworkError(s) => ClientProviderError::CustomError(format!("Network error: {}", s)),
         CommonProviderError::CryptoError(s) => ClientProviderError::CustomError(format!("Crypto error: {}", s)),
+        CommonProviderError::LockError => ClientProviderError::LockError,
+        CommonProviderError::ProtocolNotFound => ClientProviderError::ProtocolNotFound,
+        CommonProviderError::NetworkNotFound => ClientProviderError::NetworkNotFound,
         CommonProviderError::Other(s) => ClientProviderError::CustomError(format!("Other error: {}", s)),
     }
 }
