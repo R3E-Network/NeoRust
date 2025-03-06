@@ -13,6 +13,7 @@ categories.workspace = true
 keywords.workspace = true
 
 [dependencies]
+neo-common = { path = "../neo-common", version = "0.1.9" }
 # Internal crates
 neo-builder = { path = "../neo-builder", version = "0.1.9" }
 neo-clients = { path = "../neo-clients", version = "0.1.9" }

@@ -7,8 +7,7 @@
 //! and converting them to various formats.
 
 use rand::rngs::OsRng;
-
-use neo_types::{ScriptHash, ScriptHashExtension};
+use primitive_types::H160;
 
 // Temporary stub for VerificationScript until circular dependency is resolved
 #[derive(Debug)]
@@ -30,13 +29,13 @@ impl VerificationScript {
         VerificationScript(script)
     }
     
-    pub fn hash(&self) -> ScriptHash {
+    pub fn hash(&self) -> H160 {
         // Use proper hashing for script hash
         use crate::HashableForVec;
         let mut hash = self.0.clone().sha256_ripemd160();
         // Reverse the hash bytes to match Neo's expected format
         hash.reverse();
-        ScriptHash::from_slice(&hash)
+        H160::from_slice(&hash)
     }
 }
 use crate::{
@@ -152,13 +151,23 @@ impl KeyPair {
 		wif_from_private_key(&self.private_key())
 	}
 
-	pub fn get_script_hash(&self) -> ScriptHash {
+	pub fn get_script_hash(&self) -> H160 {
 		let vs = VerificationScript::from_public_key(&self.public_key());
 		vs.hash()
 	}
 
 	pub fn get_address(&self) -> String {
-		self.get_script_hash().to_address()
+		// Convert script hash to address format
+        let script_hash = self.get_script_hash();
+        let script_hash_bytes = script_hash.as_bytes();
+        
+        // Create address with version byte
+        let mut address_bytes = vec![0x35]; // Address version byte for Neo N3
+        address_bytes.extend_from_slice(script_hash_bytes);
+        
+        // Base58Check encode
+        use crate::base58check_encode;
+        base58check_encode(&address_bytes)
 	}
 }
 
@@ -171,9 +180,10 @@ impl PartialEq for KeyPair {
 #[cfg(test)]
 mod tests {
 	use neo_config::TestConstants;
-	use neo_types::{ScriptHash, ScriptHashExtension};
+	use primitive_types::H160;
 	use crate::KeyPair;
 	use rustc_serialize::hex::FromHex;
+	use hex;
 
 	#[test]
 	fn test_public_key_wif() {
@@ -201,10 +211,13 @@ mod tests {
 		let private_key = TestConstants::DEFAULT_ACCOUNT_PRIVATE_KEY.from_hex().unwrap();
 		let private_key_arr: &[u8; 32] = private_key.as_slice().try_into().unwrap();
 		let key_pair = KeyPair::from_private_key(private_key_arr).unwrap();
-		assert_eq!(
-			key_pair.get_script_hash(),
-			ScriptHash::from_hex(TestConstants::DEFAULT_ACCOUNT_SCRIPT_HASH).unwrap()
-		);
+		
+		// Convert script hash string to H160
+		let script_hash_str = TestConstants::DEFAULT_ACCOUNT_SCRIPT_HASH;
+		let script_hash_bytes = hex::decode(script_hash_str).unwrap();
+		let expected_script_hash = H160::from_slice(&script_hash_bytes);
+		
+		assert_eq!(key_pair.get_script_hash(), expected_script_hash);
 	}
 
 	// #[test]

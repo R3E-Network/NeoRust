@@ -8,6 +8,7 @@ use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
 use neo_config::NeoConstants;
 use neo_crypto::{PublicKeyExtension, Secp256r1PublicKey};
 use neo_protocol::{Account, AccountTrait};
+use neo_protocol::wallet::Wallet;
 use neo_types::{
     deserialize_script_hash, deserialize_vec_script_hash,
     deserialize_vec_public_key, serialize_vec_public_key,
@@ -42,7 +43,7 @@ pub struct AccountSigner {
 	pub(crate) allowed_groups: Vec<Secp256r1PublicKey>,
 	rules: Vec<WitnessRule>,
 	#[getset(get = "pub")]
-	pub account: Account,
+	pub account: Account<Wallet>,
 }
 
 impl AccountSigner {
@@ -51,7 +52,7 @@ impl AccountSigner {
 	/// # Arguments
 	///
 	/// * `account` - The account to create the signer for.
-	pub fn none(account: &Account) -> Result<Self, TransactionError> {
+	pub fn none(account: &Account<Wallet>) -> Result<Self, TransactionError> {
 		Ok(Self::new(account, WitnessScope::None))
 	}
 
@@ -60,7 +61,7 @@ impl AccountSigner {
 	/// # Arguments
 	///
 	/// * `account` - The account to create the signer for.
-	pub fn called_by_entry(account: &Account) -> Result<Self, TransactionError> {
+	pub fn called_by_entry(account: &Account<Wallet>) -> Result<Self, TransactionError> {
 		Ok(Self::new(account, WitnessScope::CalledByEntry))
 	}
 
@@ -69,7 +70,7 @@ impl AccountSigner {
 	/// # Arguments
 	///
 	/// * `account` - The account to create the signer for.
-	pub fn global(account: &Account) -> Result<Self, TransactionError> {
+	pub fn global(account: &Account<Wallet>) -> Result<Self, TransactionError> {
 		Ok(Self::new(account, WitnessScope::Global))
 	}
 
@@ -251,7 +252,7 @@ impl SignerTrait for AccountSigner {
 }
 
 impl AccountSigner {
-	pub fn new(account: &Account, scope: WitnessScope) -> Self {
+	pub fn new(account: &Account<Wallet>, scope: WitnessScope) -> Self {
 		Self {
 			signer_hash: account.get_script_hash().clone(),
 			scopes: vec![scope],

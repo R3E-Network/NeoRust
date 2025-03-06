@@ -65,7 +65,7 @@ impl Nep6Wallet {
 #[cfg(test)]
 mod tests {
 	use crate::{neo_wallets::Nep6Wallet, ScryptParamsDef};
-	use neo::prelude::ContractParameterType;
+	use neo_common::ContractParameterType;
 
 	#[test]
 	fn test_read_wallet() {

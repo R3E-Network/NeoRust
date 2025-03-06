@@ -783,7 +783,7 @@ mod tests {
 
 	use neo_crypto::Secp256r1PublicKey;
 	use crate::ContractParameterMap;
-	use neo::prelude::{ContractParameter, ContractParameterType};
+	use crate::{ContractParameter, ContractParameterType};
 
 	#[test]
 	fn test_string_from_string() {

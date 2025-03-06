@@ -39,6 +39,7 @@ mod nep2;
 mod protocol_error;
 mod responses;
 mod role;
+mod vm_state;
 
 // Re-export all public items
 pub use account::*;
@@ -47,6 +48,7 @@ pub use protocol_error::*;
 pub use responses::*;
 // Re-export role module contents
 pub use role::*;
+pub use vm_state::*;
 
 // Conditionally re-export client functionality
 // Temporarily comment out to avoid circular dependency

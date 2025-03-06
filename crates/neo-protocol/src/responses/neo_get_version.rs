@@ -1,4 +1,4 @@
-use neo_types::deserialize_hardforks;
+use neo_common::deserialize_hardforks;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -132,9 +132,5 @@ fn default_initial_gas_distribution() -> u64 {
 	5200000000000000
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct HardForks {
-	pub name: String,
-	#[serde(rename = "blockheight")]
-	pub block_height: u32,
-}
+// Use the HardForks type from neo-common
+use neo_common::HardForks;

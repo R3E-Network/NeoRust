@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{TransactionError, WitnessAction, WitnessCondition};
 use neo_codec::{Decoder, Encoder, NeoSerializable};
-use neo::prelude::*;
+use neo_common::{serialize_h160, deserialize_h160};
+use neo_types::{H160, H256};
 
 #[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Clone)]
 pub struct WitnessRule {
@@ -50,7 +51,8 @@ mod tests {
 	use neo_codec::{Encoder, NeoSerializable};
 	use neo_config::TestConstants;
 	use neo_crypto::Secp256r1PublicKey;
-	use neo::prelude::*;
+	use neo_common::{serialize_h160, deserialize_h160};
+use neo_types::{H160, H256};
 
 	#[test]
 	fn test_decode_boolean_condition() {

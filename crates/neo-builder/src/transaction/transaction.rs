@@ -12,7 +12,8 @@ use crate::{init_logger, Signer, TransactionAttribute, TransactionError, Witness
 use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
 use neo_config::NeoConstants;
 use neo_crypto::HashableForVec;
-use neo_clients::{APITrait, HttpProvider, JsonRpcProvider, RpcClient};
+use neo_common::{JsonRpcProvider, RpcClient};
+#[cfg(feature = "protocol")]
 use neo_protocol::{ApplicationLog, RawTransaction};
 use neo_types::{NameOrAddress, Bytes};
 
@@ -40,7 +41,7 @@ use neo_types::{NameOrAddress, Bytes};
 /// # Examples
 ///
 /// ```rust
-/// use neo::prelude::*;
+/// use neo_types::Transaction;
 ///
 /// // Create a new transaction
 /// let tx = Transaction::new();
@@ -54,7 +55,7 @@ use neo_types::{NameOrAddress, Bytes};
 pub struct Transaction<'a, P: JsonRpcProvider + 'static> {
 	#[serde(skip)]
 	#[getset(get = "pub", set = "pub")]
-	pub network: Option<&'a RpcClient<P>>,
+	pub network: Option<&'a dyn neo_common::RpcClient>,
 
 	#[serde(rename = "version")]
 	#[getset(get = "pub", set = "pub")]
@@ -253,10 +254,11 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
-	/// use std::str::FromStr;
-	///
-	/// #[tokio::main]
+/// use neo_types::{Transaction, TransactionBuilder};
+/// use neo_clients::{HttpProvider, RpcClient};
+/// use std::str::FromStr;
+///
+/// #[tokio::main]
 	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	///     let provider = HttpProvider::new("https://testnet1.neo.org:443");
 	///     let client = RpcClient::new(provider);
@@ -322,10 +324,11 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
-	/// use std::str::FromStr;
-	///
-	/// #[tokio::main]
+/// use neo_types::{Transaction, TransactionBuilder};
+/// use neo_clients::{HttpProvider, RpcClient};
+/// use std::str::FromStr;
+///
+/// #[tokio::main]
 	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	///     let provider = HttpProvider::new("https://testnet1.neo.org:443");
 	///     let client = RpcClient::new(provider);
@@ -417,9 +420,10 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
-	///
-	/// #[tokio::main]
+/// use neo_types::{Transaction, TransactionBuilder};
+/// use neo_clients::{HttpProvider, RpcClient};
+///
+/// #[tokio::main]
 	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	///     let provider = HttpProvider::new("https://testnet1.neo.org:443");
 	///     let client = RpcClient::new(provider);

@@ -5,7 +5,8 @@
 /// # Examples
 ///
 /// ```
-/// use neo::prelude::*;
+/// use neo_types::*;
+use neo_common::*;
 /// use neo::neo_utils::error::option_to_result;
 ///
 /// let value: Option<u32> = Some(42);
@@ -24,7 +25,8 @@ where
 /// # Examples
 ///
 /// ```
-/// use neo::prelude::*;
+/// use neo_types::*;
+use neo_common::*;
 /// use neo::neo_utils::error::with_context;
 ///
 /// let result: Result<u32, NeoError> = Err(NeoError::IllegalState("Original error".to_string()));
@@ -52,7 +54,8 @@ where
 /// # Examples
 ///
 /// ```
-/// use neo::prelude::*;
+/// use neo_types::*;
+use neo_common::*;
 /// use neo::neo_utils::error::result_to_option;
 ///
 /// let result: Result<u32, NeoError> = Ok(42);
@@ -74,7 +77,8 @@ pub fn result_to_option<T, E: std::fmt::Display>(result: Result<T, E>) -> Option
 /// # Examples
 ///
 /// ```
-/// use neo::prelude::*;
+/// use neo_types::*;
+use neo_common::*;
 /// use neo::neo_utils::error::retry;
 /// use std::time::Duration;
 ///

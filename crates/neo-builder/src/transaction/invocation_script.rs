@@ -5,9 +5,8 @@ use neo_crypto::{KeyPair, Secp256r1Signature};
 use crate::{
     BuilderError,
     ScriptBuilder,
-    var_size,
-    OpCode,
 };
+use neo_codec::{OpCode, VarSizeTrait as var_size};
 use getset::{Getters, Setters};
 use serde_derive::{Deserialize, Serialize};
 // #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
@@ -176,7 +175,7 @@ impl NeoSerializable for InvocationScript {
 	type Error = BuilderError;
 
 	fn size(&self) -> usize {
-		return var_size(self.script.len()) + self.script.len();
+		return var_size::get_var_size(self.script.len()) + self.script.len();
 	}
 
 	fn encode(&self, writer: &mut Encoder) {

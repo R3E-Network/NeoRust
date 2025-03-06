@@ -29,7 +29,7 @@
 //! ### Connecting to a Neo N3 node using HTTP
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo_types::{HttpProvider, RpcClient, WebSocketProvider};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -54,7 +54,7 @@
 //! ### Using WebSocket for real-time updates
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo_types::{HttpProvider, RpcClient, WebSocketProvider};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {

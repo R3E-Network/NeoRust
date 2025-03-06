@@ -18,7 +18,7 @@ use wiremock::{
 };
 
 lazy_static! {
-	pub static ref ACCOUNT1: Account = Account::from_key_pair(
+	pub static ref ACCOUNT1: Account<()> = Account::from_key_pair(
 		KeyPair::from_secret_key(
 			&Secp256r1PrivateKey::from_bytes(
 				&hex::decode("e6e919577dd7b8e97805151c05ae07ff4f752654d6d8797597aca989c02c4cb3")
@@ -30,7 +30,7 @@ lazy_static! {
 		None
 	)
 	.expect("Failed to create ACCOUNT1");
-	pub static ref ACCOUNT2: Account = Account::from_key_pair(
+	pub static ref ACCOUNT2: Account<()> = Account::from_key_pair(
 		KeyPair::from_secret_key(
 			&Secp256r1PrivateKey::from_bytes(
 				&hex::decode("b4b2b579cac270125259f08a5f414e9235817e7637b9a66cfeb3b77d90c8e7f9")
@@ -220,7 +220,7 @@ impl MockClient {
 				TestConstants::NEO_TOKEN_HASH,
 				"transfer",
 				vec![
-					ContractParameter::from(ACCOUNT1.address_or_scripthash().script_hash()),
+					ContractParameter::from(ACCOUNT1.get_script_hash()),
 					ContractParameter::from(
 						H160::from_str("969a77db482f74ce27105f760efa139223431394").unwrap(),
 					),

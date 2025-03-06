@@ -3,7 +3,7 @@ use std::hash::{Hash, Hasher};
 use primitive_types::{H160, H256};
 use serde::{Deserialize, Serialize};
 
-use neo3::prelude::{
+use neo_common::{
 	deserialize_h256, deserialize_script_hash, serialize_h256, serialize_script_hash,
 };
 

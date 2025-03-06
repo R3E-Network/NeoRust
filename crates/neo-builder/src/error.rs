@@ -1,6 +1,6 @@
 use neo_codec::CodecError;
 use neo_crypto::CryptoError;
-use neo_clients::ProviderError;
+use neo_common::ProviderError;
 use crate::transaction::TransactionError;
 use thiserror::Error;
 

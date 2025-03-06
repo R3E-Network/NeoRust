@@ -1,4 +1,4 @@
-use neo_types::{
+use neo_common::{
 	deserialize_h256, deserialize_h256_option,
 	serialize_h256, serialize_h256_option,
 };

@@ -17,8 +17,8 @@ use strum_macros::{Display, EnumString};
 )]
 #[repr(u8)]
 pub enum WitnessAction {
-	#[strum_macros::strum(serialize = "Deny")]
+	#[strum(serialize = "Deny")]
 	Deny = 0,
-	#[strum_macros::strum(serialize = "Allow")]
+	#[strum(serialize = "Allow")]
 	Allow = 1,
 }

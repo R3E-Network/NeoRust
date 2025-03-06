@@ -60,7 +60,6 @@ use std::{
 };
 
 // use zeroize::Zeroize;
-use neo_codec::{Decoder, Encoder, NeoSerializable};
 use neo_config::NeoConstants;
 use crate::CryptoError;
 use elliptic_curve::zeroize::Zeroize;
@@ -230,7 +229,7 @@ impl Secp256r1PublicKey {
 		Secp256r1PublicKey::from_bytes(encoded.as_slice()).ok()
 	}
 
-	fn get_size(&self) -> usize {
+	pub fn get_size(&self) -> usize {
 		if self.inner.to_encoded_point(false).is_identity() {
 			1
 		} else {
@@ -427,6 +426,17 @@ impl fmt::Display for Secp256r1Signature {
 	}
 }
 
+impl Secp256r1PublicKey {
+    /// Returns the encoded bytes of the public key
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.get_encoded(true)
+    }
+}
+
+// We can't implement AsRef<[u8]> directly because get_encoded returns a new Vec
+// Instead, we'll create a wrapper in neo-common that handles this properly
+
+
 impl Serialize for Secp256r1PublicKey {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
@@ -593,31 +603,9 @@ impl PublicKeyExtension for Secp256r1PublicKey {
 	}
 }
 
-impl NeoSerializable for Secp256r1PublicKey {
-	type Error = CryptoError;
+// NeoSerializable implementation removed to break circular dependency
+// This functionality will be provided through the neo-common crate
 
-	fn size(&self) -> usize {
-		NeoConstants::PUBLIC_KEY_SIZE_COMPRESSED as usize
-	}
-
-	fn encode(&self, writer: &mut Encoder) {
-		writer.write_bytes(&self.get_encoded(true));
-	}
-
-	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error> {
-		let bytes = reader
-			.read_bytes(NeoConstants::PUBLIC_KEY_SIZE_COMPRESSED as usize)
-			.map_err(|_| CryptoError::InvalidPublicKey)?;
-		Secp256r1PublicKey::from_bytes(&bytes).map_err(|_| CryptoError::InvalidPublicKey)
-	}
-
-	fn to_array(&self) -> Vec<u8> {
-		//self.get_encoded(false)
-		let mut writer = Encoder::new();
-		self.encode(&mut writer);
-		writer.to_bytes()
-	}
-}
 
 #[cfg(test)]
 mod tests {
@@ -625,7 +613,6 @@ mod tests {
 	use p256::EncodedPoint;
 	use rustc_serialize::hex::{FromHex, ToHex};
 
-	use neo_codec::{Decoder, NeoSerializable};
 	use crate::{
 		HashableForVec, Secp256r1PrivateKey, Secp256r1PublicKey, Secp256r1Signature, ToArray32,
 	};
@@ -683,13 +670,14 @@ mod tests {
 		assert_eq!(pub_key.to_array(), enc_point.from_hex().unwrap());
 	}
 
-	#[test]
-	fn test_deserialize_public_key() {
-		let data = hex!("036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296");
-		let mut decoder = Decoder::new(&data);
-		let mut public_key = Secp256r1PublicKey::decode(&mut decoder).unwrap();
-		assert_eq!(public_key.get_encoded(true).to_hex(), data.to_hex());
-	}
+	// Test removed as it depends on neo-codec
+	// #[test]
+	// fn test_deserialize_public_key() {
+	// 	let data = hex!("036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296");
+	// 	let mut decoder = Decoder::new(&data);
+	// 	let mut public_key = Secp256r1PublicKey::decode(&mut decoder).unwrap();
+	// 	assert_eq!(public_key.get_encoded(true).to_hex(), data.to_hex());
+	// }
 
 	#[test]
 	fn test_public_key_size() {

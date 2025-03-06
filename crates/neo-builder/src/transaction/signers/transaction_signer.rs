@@ -1,9 +1,11 @@
 use std::hash::{Hash, Hasher};
 
-use crate::{SignerTrait, SignerType, TransactionError, WitnessRule, WitnessScope};
+use crate::{TransactionError, WitnessRule, WitnessScope};
 use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
 use neo_config::NeoConstants;
 use neo_crypto::Secp256r1PublicKey;
+use crate::transaction::signers::signer::SignerTrait;
+use crate::transaction::signers::signer::SignerType;
 use neo_types::{
     deserialize_scopes, deserialize_script_hash, deserialize_vec_script_hash_option,
     deserialize_vec_public_key_option, serialize_vec_public_key_option,
@@ -94,7 +96,7 @@ impl TransactionSigner {
 	}
 }
 
-impl SignerTrait for TransactionSigner {
+impl crate::transaction::signers::signer::SignerTrait for TransactionSigner {
 	fn get_type(&self) -> SignerType {
 		SignerType::TransactionSigner
 	}

@@ -28,7 +28,8 @@
 //! ### Creating and using a wallet
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo_types::{Wallet, Account};
+//! use neo_common::ScriptHash;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -59,7 +60,7 @@
 //! ### Using a wallet to sign a transaction
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo_types::{Wallet, ScriptHash, ContractParameter, HttpProvider, RpcClient, TransactionBuilder, WalletSigner, Signer, ScriptBuilder};
 //! use std::str::FromStr;
 //!
 //! #[tokio::main]

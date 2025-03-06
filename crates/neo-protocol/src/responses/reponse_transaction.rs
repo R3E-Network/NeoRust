@@ -13,13 +13,8 @@ use getset::{CopyGetters, Getters, MutGetters, Setters};
 // Temporarily comment out to avoid circular dependency
 // use neo::VMState;
 // Define a local enum for VMState to avoid dependency
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-pub enum VMState {
-    NONE,
-    HALT,
-    FAULT,
-    BREAK,
-}
+// Use the VMState from the vm_state module
+use crate::vm_state::VMState;
 use primitive_types::{H256, U256};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;

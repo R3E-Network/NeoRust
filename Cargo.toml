@@ -80,6 +80,7 @@ members = [
     "crates/neo-builder",
     "crates/neo-clients",
     "crates/neo-codec",
+    "crates/neo-common",
     "crates/neo-config",
     "crates/neo-contract",
     "crates/neo-crypto",

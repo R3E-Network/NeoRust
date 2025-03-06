@@ -7,17 +7,17 @@ use strum_macros::{Display, EnumString};
 )]
 #[repr(u8)]
 pub enum WitnessScope {
-	#[strum_macros::strum(serialize = "None")]
+	#[strum(serialize = "None")]
 	None = 0x00,
-	#[strum_macros::strum(serialize = "CalledByEntry")]
+	#[strum(serialize = "CalledByEntry")]
 	CalledByEntry = 0x01,
-	#[strum_macros::strum(serialize = "CustomContracts")]
+	#[strum(serialize = "CustomContracts")]
 	CustomContracts = 0x10,
-	#[strum_macros::strum(serialize = "CustomGroups")]
+	#[strum(serialize = "CustomGroups")]
 	CustomGroups = 0x20,
-	#[strum_macros::strum(serialize = "WitnessRules")]
+	#[strum(serialize = "WitnessRules")]
 	WitnessRules = 0x40,
-	#[strum_macros::strum(serialize = "Global")]
+	#[strum(serialize = "Global")]
 	Global = 0x80,
 }
 

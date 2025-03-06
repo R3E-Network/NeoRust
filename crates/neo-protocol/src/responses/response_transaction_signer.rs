@@ -2,9 +2,10 @@
 // use neo_builder::{SignerTrait, SignerType, WitnessRule, WitnessScope};
 use primitive_types::H160;
 use neo_types::ScriptHash;
+use serde::{Deserialize, Serialize};
 
 // Define local enums and structs to avoid dependency
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum WitnessScope {
     None = 0x00,
     CalledByEntry = 0x01,
@@ -14,7 +15,7 @@ pub enum WitnessScope {
     Global = 0x80,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum WitnessRule {
     Boolean(bool),
     Not(Box<WitnessRule>),
@@ -54,7 +55,7 @@ pub trait SignerTrait {
 use crate::protocol_error::ProtocolError;
 use std::hash::{Hash, Hasher};
 
-#[derive(Default, Clone, Debug, PartialEq)]
+#[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RTransactionSigner {
     pub account: H160,
     pub scopes: Vec<WitnessScope>,

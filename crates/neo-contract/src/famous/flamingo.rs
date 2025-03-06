@@ -7,7 +7,8 @@ use neo_builder::{AccountSigner, TransactionBuilder};
 use neo_clients::{APITrait, JsonRpcProvider, RpcClient};
 use crate::{ContractError, SmartContractTrait};
 use neo_protocol::Account;
-use neo::prelude::*;
+use neo_common::{deserialize_script_hash, serialize_script_hash};
+use neo_types::{ContractParameter, ScriptHash};
 
 /// Flamingo Finance contract interface for Neo N3
 ///

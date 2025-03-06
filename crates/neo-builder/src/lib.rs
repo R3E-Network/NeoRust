@@ -56,8 +56,27 @@ mod script;
 mod transaction;
 mod utils;
 
+// Create a builder module to fix import issues
+pub mod builder {
+    // Re-export transaction types
+    pub use crate::transaction::{
+        Signer, SignerType, Transaction, TransactionAttribute, TransactionBuilder,
+        TransactionError, VerificationScript, Witness, WitnessRule, WitnessAction, WitnessCondition,
+    };
+    
+    // Re-export script types
+    pub use crate::script::{ScriptBuilder, InteropService};
+}
+
 // Re-export all public items
 pub use error::*;
 pub use script::*;
 pub use transaction::*;
 pub use utils::*;
+
+// Re-export builder module items
+pub use builder::{
+    Signer, SignerType, Transaction, TransactionAttribute, TransactionBuilder,
+    TransactionError, VerificationScript, Witness, WitnessRule, WitnessAction, WitnessCondition,
+    ScriptBuilder, InteropService,
+};

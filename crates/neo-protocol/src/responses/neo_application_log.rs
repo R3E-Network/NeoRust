@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::LogNotification;
 use neo_types::TypeError;
-use neo::prelude::{deserialize_h256, serialize_h256, StackItem, VMState};
+use neo_common::{deserialize_h256, serialize_h256};
+use neo_types::{StackItem, VMState};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ApplicationLog {

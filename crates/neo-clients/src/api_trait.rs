@@ -1,6 +1,10 @@
 use std::{collections::HashMap, error::Error, fmt::Debug};
 
+#[cfg(feature = "builder")]
 use neo_builder::{Signer, Transaction, TransactionBuilder, TransactionSendToken};
+#[cfg(not(feature = "builder"))]
+use neo_common::transaction_types::{Signer, TransactionSendToken};
+
 use neo_config::NEOCONFIG;
 use crate::{JsonRpcProvider, ProviderError, RpcClient};
 use neo_protocol::{
@@ -100,14 +104,14 @@ pub trait APITrait: Sync + Send + Debug {
 		contract_hash: H160,
 		prefix_hex_string: &str,
 		start_index: u64,
-	) -> Result<String, ProviderError>;
+	) -> Result<String, Self::Error>;
 
 	async fn find_storage_with_id(
 		&self,
 		contract_id: i64,
 		prefix_hex_string: &str,
 		start_index: u64,
-	) -> Result<String, ProviderError>;
+	) -> Result<String, Self::Error>;
 
 	// Blockchain methods
 
@@ -212,7 +216,7 @@ pub trait APITrait: Sync + Send + Debug {
 		txHash: H256,
 		signers: Vec<H160>,
 		extra_fee: Option<u64>,
-	) -> Result<RTransaction, ProviderError>;
+	) -> Result<RTransaction, Self::Error>;
 
 	async fn get_application_log(&self, tx_hash: H256) -> Result<ApplicationLog, Self::Error>;
 
@@ -300,6 +304,7 @@ pub trait APITrait: Sync + Send + Debug {
 
 	async fn broadcast_transaction(&self, tx: RTransaction) -> Result<bool, Self::Error>;
 
+	#[cfg(feature = "builder")]
 	async fn create_contract_deployment_transaction(
 		&self,
 		nef: NefFile,
@@ -307,6 +312,7 @@ pub trait APITrait: Sync + Send + Debug {
 		signers: Vec<Signer>,
 	) -> Result<TransactionBuilder<Self::Provider>, Self::Error>;
 
+	#[cfg(feature = "builder")]
 	async fn create_contract_update_transaction(
 		&self,
 		contract_hash: H160,
@@ -315,6 +321,7 @@ pub trait APITrait: Sync + Send + Debug {
 		signers: Vec<Signer>,
 	) -> Result<TransactionBuilder<Self::Provider>, Self::Error>;
 
+	#[cfg(feature = "builder")]
 	async fn create_invocation_transaction(
 		&self,
 		contract_hash: H160,

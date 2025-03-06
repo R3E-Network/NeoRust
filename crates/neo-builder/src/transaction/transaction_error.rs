@@ -1,7 +1,7 @@
 use neo_codec::CodecError;
 use neo_crypto::CryptoError;
 use crate::BuilderError;
-use neo_clients::ProviderError;
+use neo_common::ProviderError;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq, Clone)]

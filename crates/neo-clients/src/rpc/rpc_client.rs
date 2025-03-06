@@ -3,8 +3,6 @@ use futures_util::lock::Mutex;
 use getset::{Getters, Setters};
 use primitive_types::{H160, H256};
 use rustc_serialize::{
-	base64,
-	base64::ToBase64,
 	hex::{FromHex, ToHex},
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -33,12 +31,14 @@ use neo_codec::NeoSerializable;
 use neo_config::NEOCONFIG;
 use crate::rpc::rpc_client::sealed::Sealed;
 // Import protocol types
-use neo_protocol::*;
+use neo_common::{
+    Nep17BalanceProvider, Nep17BalancesResponse, Nep17Balance, ProviderError, Base64Encode
+};
+#[cfg(feature = "builder")]
 use neo_builder::{ScriptBuilder, InteropService, TransactionBuilder};
 use neo_types::{
     ScriptHashExtension, Address, ContractManifest, ContractParameter, ContractState,
     InvocationResult, NativeContractState, NefFile, StackItem, ValueExtension,
-    Base64Encode,
 };
 
 /// Node Clients
@@ -351,7 +351,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		contract_hash: H160,
 		prefix_hex_string: &str,
 		start_index: u64,
-	) -> Result<String, ProviderError> {
+	) -> Result<String, Self::Error> {
 		//let params = [contract_hash.to_hex(), Base64Encode::to_base64(&prefix_hex_string.to_string()), start_index.to_value()];
 		let params = json!([
 			contract_hash.to_hex(),
@@ -372,7 +372,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		contract_id: i64,
 		prefix_hex_string: &str,
 		start_index: u64,
-	) -> Result<String, ProviderError> {
+	) -> Result<String, Self::Error> {
 		//let params = [contract_hash.to_hex(), Base64Encode::to_base64(&prefix_hex_string.to_string()), start_index.to_value()];
 		let params = json!([
 			contract_id,
@@ -795,7 +795,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		txHash: H256,
 		signers: Vec<H160>,
 		extra_fee: Option<u64>,
-	) -> Result<RTransaction, ProviderError> {
+	) -> Result<RTransaction, Self::Error> {
 		//to be implemented
 		if signers.is_empty() {
 			return Err(ProviderError::CustomError("signers must not be empty".into()));

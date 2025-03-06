@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::ContractParameter;
+use neo_types::ContractParameter;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -83,16 +83,19 @@ use std::{
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
 use serde_derive::{Deserialize, Serialize};
-use signature::{hazmat::PrehashSigner, Error, SignerMut};
+use signature::{hazmat::PrehashSigner, Error};
 
-// Temporarily comment out to avoid circular dependency
-// use neo_builder::VerificationScript;
-use neo_clients::{public_key_to_address, APITrait, JsonRpcProvider, ProviderError, RpcClient};
-use neo_crypto::{private_key_from_wif, KeyPair, Secp256r1PublicKey, Secp256r1Signature, VerificationScript};
+use neo_common::{
+    public_key_to_address, VerificationScript, deserialize_address_or_script_hash, 
+    serialize_address_or_script_hash, vec_to_array32, ContractParameterType,
+    ProviderError, PublicKey
+};
+use rustc_serialize::base64::{ToBase64, STANDARD};
+use neo_crypto::{private_key_from_wif, KeyPair, Secp256r1PublicKey, Secp256r1Signature};
+use neo_crypto::crypto_adapter_impl::secp256r1_to_common_public_key;
 use crate::{get_nep2_from_private_key, get_private_key_from_nep2};
 use neo_types::{
-	deserialize_address_or_script_hash, serialize_address_or_script_hash, Address,
-	AddressOrScriptHash, ContractParameterType, ScriptHash, vec_to_array32, Base64Encode, ScriptHashExtension,
+	Address, AddressOrScriptHash, ScriptHash, ScriptHashExtension,
 };
 // Temporarily comment out to avoid circular dependency
 // use neo_wallets::{NEP6Account, NEP6Contract, NEP6Parameter, Wallet};
@@ -231,7 +234,7 @@ pub trait AccountTrait<Wallet>: Sized + PartialEq + Send + Sync + Debug + Clone 
 	fn is_multi_sig(&self) -> bool;
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Account<Wallet> {
 	#[serde(skip)]
 	pub key_pair: Option<KeyPair>,
@@ -249,6 +252,23 @@ pub struct Account<Wallet> {
 	pub nr_of_participants: Option<u32>,
 	#[serde(skip)]
 	pub wallet: Option<Weak<Wallet>>,
+}
+
+impl<Wallet: Clone + Debug + Send + Sync> Default for Account<Wallet> {
+    fn default() -> Self {
+        Self {
+            key_pair: None,
+            address_or_scripthash: AddressOrScriptHash::Address("".to_string()),
+            label: None,
+            verification_script: None,
+            is_default: false,
+            is_locked: false,
+            encrypted_private_key: None,
+            signing_threshold: None,
+            nr_of_participants: None,
+            wallet: None,
+        }
+    }
 }
 
 impl<Wallet: Clone + Debug + Send + Sync> Account<Wallet> {
@@ -271,8 +291,16 @@ impl<Wallet: Clone + Debug + Send + Sync> Account<Wallet> {
 impl<Wallet: Clone + Debug + Send + Sync> From<H160> for Account<Wallet> {
 	fn from(script_hash: H160) -> Self {
 		Self {
+			key_pair: None,
 			address_or_scripthash: AddressOrScriptHash::ScriptHash(script_hash),
-			..Default::default()
+			label: None,
+			verification_script: None,
+			is_default: false,
+			is_locked: false,
+			encrypted_private_key: None,
+			signing_threshold: None,
+			nr_of_participants: None,
+			wallet: None,
 		}
 	}
 }
@@ -280,8 +308,16 @@ impl<Wallet: Clone + Debug + Send + Sync> From<H160> for Account<Wallet> {
 impl<Wallet: Clone + Debug + Send + Sync> From<&H160> for Account<Wallet> {
 	fn from(script_hash: &H160) -> Self {
 		Self {
+			key_pair: None,
 			address_or_scripthash: AddressOrScriptHash::ScriptHash(script_hash.clone()),
-			..Default::default()
+			label: None,
+			verification_script: None,
+			is_default: false,
+			is_locked: false,
+			encrypted_private_key: None,
+			signing_threshold: None,
+			nr_of_participants: None,
+			wallet: None,
 		}
 	}
 }
@@ -311,7 +347,7 @@ impl<Wallet: Clone + Debug + Send + Sync> Hash for Account<Wallet> {
 }
 
 impl<Wallet: Clone + Debug + Send + Sync> AccountTrait<Wallet> for Account<Wallet> {
-	type Error = ProviderError;
+	type Error = String;
 
 	fn key_pair(&self) -> &Option<KeyPair> {
 		&self.key_pair
@@ -403,14 +439,14 @@ impl<Wallet: Clone + Debug + Send + Sync> AccountTrait<Wallet> for Account<Walle
 		signing_threshold: Option<u32>,
 		nr_of_participants: Option<u32>,
 	) -> Result<Self, Self::Error> {
-		let address = public_key_to_address(&key_pair.public_key);
+		// Convert Secp256r1PublicKey to common PublicKey
+		let common_pubkey = PublicKey::new(key_pair.public_key.get_encoded(true));
+		let address = public_key_to_address(&common_pubkey);
 		Ok(Self {
 			key_pair: Some(key_pair.clone()),
 			address_or_scripthash: AddressOrScriptHash::Address(address.clone()),
 			label: Some(address),
-			verification_script: Some(VerificationScript::from_public_key(
-				&key_pair.clone().public_key(),
-			)),
+			verification_script: Some(VerificationScript::from_public_key(&common_pubkey)),
 			is_default: false,
 			is_locked: false,
 			encrypted_private_key: None,
@@ -446,7 +482,9 @@ impl<Wallet: Clone + Debug + Send + Sync> AccountTrait<Wallet> for Account<Walle
 	}
 
 	fn from_wif(wif: &str) -> Result<Self, Self::Error> {
-		let key_pair = KeyPair::from_secret_key(&private_key_from_wif(wif)?);
+		let private_key = private_key_from_wif(wif)
+			.map_err(|e| Self::Error::from(format!("Failed to decode WIF: {:?}", e)))?;
+		let key_pair = KeyPair::from_secret_key(&private_key);
 		Self::from_key_pair(key_pair, None, None)
 	}
 
@@ -458,26 +496,26 @@ impl<Wallet: Clone + Debug + Send + Sync> AccountTrait<Wallet> for Account<Walle
 		let encrypted_private_key = self
 			.encrypted_private_key
 			.as_ref()
-			.ok_or(Self::Error::IllegalState("No encrypted private key present".to_string()))?;
+			.ok_or_else(|| Self::Error::from("No encrypted private key present".to_string()))?;
 
 		let key_pair = get_private_key_from_nep2(encrypted_private_key, password).map_err(|e| {
-			Self::Error::IllegalState(format!("Failed to decrypt private key: {}", e))
+			Self::Error::from(format!("Failed to decrypt private key: {}", e))
 		})?;
 
 		let key_pair_array = vec_to_array32(key_pair).map_err(|_| {
-			Self::Error::IllegalState("Failed to convert private key to 32-byte array".to_string())
+			Self::Error::from("Failed to convert private key to 32-byte array".to_string())
 		})?;
 
 		self.key_pair =
 			Some(KeyPair::from_private_key(&key_pair_array).map_err(|e| {
-				Self::Error::IllegalState(format!("Failed to create key pair: {}", e))
+				Self::Error::from(format!("Failed to create key pair: {}", e))
 			})?);
 
 		Ok(())
 	}
 
 	fn encrypt_private_key(&mut self, password: &str) -> Result<(), Self::Error> {
-		let key_pair = self.key_pair.as_ref().ok_or(Self::Error::IllegalState(
+		let key_pair = self.key_pair.as_ref().ok_or_else(|| Self::Error::from(
 			"The account does not hold a decrypted private key.".to_string(),
 		))?;
 
@@ -485,7 +523,7 @@ impl<Wallet: Clone + Debug + Send + Sync> AccountTrait<Wallet> for Account<Walle
 			key_pair.private_key.to_raw_bytes().to_hex().as_str(),
 			password,
 		)
-		.map_err(|e| Self::Error::IllegalState(format!("Failed to encrypt private key: {}", e)))?;
+		.map_err(|e| Self::Error::from(format!("Failed to encrypt private key: {}", e)))?;
 
 		self.encrypted_private_key = Some(encrypted_private_key);
 		self.key_pair = None;
@@ -498,7 +536,7 @@ impl<Wallet: Clone + Debug + Send + Sync> AccountTrait<Wallet> for Account<Walle
 
 	fn get_signing_threshold(&self) -> Result<u32, Self::Error> {
 		self.signing_threshold.ok_or_else(|| {
-			Self::Error::IllegalState(format!(
+			Self::Error::from(format!(
 				"Cannot get signing threshold from account {}",
 				self.address_or_scripthash().address()
 			))
@@ -507,7 +545,7 @@ impl<Wallet: Clone + Debug + Send + Sync> AccountTrait<Wallet> for Account<Walle
 
 	fn get_nr_of_participants(&self) -> Result<u32, Self::Error> {
 		self.nr_of_participants.ok_or_else(|| {
-			Self::Error::IllegalState(format!(
+			Self::Error::from(format!(
 				"Cannot get signing threshold from account {}",
 				self.address_or_scripthash().address()
 			))
@@ -527,24 +565,38 @@ impl<Wallet: Clone + Debug + Send + Sync> AccountTrait<Wallet> for Account<Walle
 		};
 
 		Ok(Self {
+			key_pair: None,
 			address_or_scripthash: AddressOrScriptHash::ScriptHash(address),
 			label: Some(address.to_address()),
 			verification_script: Some(script.clone()),
 			signing_threshold: signing_threshold.map(|x| x as u32),
 			nr_of_participants: nr_of_participants.map(|x| x as u32),
-			..Default::default()
+			is_default: false,
+			is_locked: false,
+			encrypted_private_key: None,
+			wallet: None,
 		})
 	}
 
 	fn from_public_key(public_key: &Secp256r1PublicKey) -> Result<Self, Self::Error> {
-		let script = VerificationScript::from_public_key(public_key);
-		let address = ScriptHash::from_script(&script.script());
-
+		// Convert Secp256r1PublicKey to common PublicKey
+		let common_pubkey = secp256r1_to_common_public_key(public_key);
+		let script = VerificationScript::from_public_key(&common_pubkey);
+		
+		// Get script hash from verification script
+		let script_hash = script.hash();
+		
 		Ok(Self {
-			address_or_scripthash: AddressOrScriptHash::ScriptHash(address),
-			label: Some(address.to_address()),
+			key_pair: None,
+			address_or_scripthash: AddressOrScriptHash::ScriptHash(script_hash),
+			label: Some(AddressOrScriptHash::ScriptHash(script_hash).address()),
 			verification_script: Some(script),
-			..Default::default()
+			is_default: false,
+			is_locked: false,
+			encrypted_private_key: None,
+			signing_threshold: None,
+			nr_of_participants: None,
+			wallet: None,
 		})
 	}
 
@@ -560,16 +612,43 @@ impl<Wallet: Clone + Debug + Send + Sync> AccountTrait<Wallet> for Account<Walle
 		public_keys: &mut [Secp256r1PublicKey],
 		signing_threshold: u32,
 	) -> Result<Self, Self::Error> {
-		let script = VerificationScript::from_multi_sig(public_keys, signing_threshold as u8);
-		let addr = ScriptHash::from_script(&script.script());
+		if public_keys.is_empty() {
+			return Err(Self::Error::from("No public keys provided".to_string()));
+		}
+
+		if signing_threshold == 0 || signing_threshold as usize > public_keys.len() {
+			return Err(Self::Error::from(format!(
+				"Invalid signing threshold: {}. Must be between 1 and {}",
+				signing_threshold,
+				public_keys.len()
+			)));
+		}
+
+		// Sort public keys
+		public_keys.sort();
+		
+		// Convert Secp256r1PublicKey array to common PublicKey array
+		let common_pubkeys: Vec<PublicKey> = public_keys.iter()
+			.map(secp256r1_to_common_public_key)
+			.collect();
+
+		let script = VerificationScript::from_multi_sig(&common_pubkeys, signing_threshold as usize);
+		let script_hash = script.hash();
+		
+		// Convert script hash to address
+		let address = AddressOrScriptHash::ScriptHash(script_hash).address();
 
 		Ok(Self {
-			label: Some(addr.to_address()),
+			key_pair: None,
+			label: Some(address),
 			verification_script: Some(script),
 			signing_threshold: Some(signing_threshold),
 			nr_of_participants: Some(public_keys.len() as u32),
-			address_or_scripthash: AddressOrScriptHash::ScriptHash(addr),
-			..Default::default()
+			address_or_scripthash: AddressOrScriptHash::ScriptHash(script_hash),
+			is_default: false,
+			is_locked: false,
+			encrypted_private_key: None,
+			wallet: None,
 		})
 	}
 
@@ -579,23 +658,36 @@ impl<Wallet: Clone + Debug + Send + Sync> AccountTrait<Wallet> for Account<Walle
 		nr_of_participants: u8,
 	) -> Result<Self, Self::Error> {
 		Ok(Self {
+			key_pair: None,
 			label: Option::from(address.clone()),
 			signing_threshold: Some(signing_threshold as u32),
 			nr_of_participants: Some(nr_of_participants as u32),
 			address_or_scripthash: AddressOrScriptHash::Address(address),
-			..Default::default()
+			verification_script: None,
+			is_default: false,
+			is_locked: false,
+			encrypted_private_key: None,
+			wallet: None,
 		})
 	}
 
 	fn from_address(address: &str) -> Result<Self, Self::Error> {
-		let address = Address::from_str(address).map_err(|_| {
-			Self::Error::IllegalState(format!("Invalid address format: {}", address))
-		})?;
+		// Validate address format
+		if !address.starts_with('N') {
+			return Err(Self::Error::from(format!("Invalid address format: {}", address)));
+		}
 
 		Ok(Self {
-			address_or_scripthash: AddressOrScriptHash::Address(address.clone()),
-			label: Some(address),
-			..Default::default()
+			key_pair: None,
+			address_or_scripthash: AddressOrScriptHash::Address(address.to_string()),
+			label: Some(address.to_string()),
+			verification_script: None,
+			is_default: false,
+			is_locked: false,
+			encrypted_private_key: None,
+			signing_threshold: None,
+			nr_of_participants: None,
+			wallet: None,
 		})
 	}
 
@@ -661,7 +753,7 @@ impl<Wallet: Clone + Debug + Send + Sync> Account<Wallet> {
 			});
 		}
 
-		let script_encoded = script_data.script().to_base64();
+		let script_encoded = script_data.script().to_base64(STANDARD);
 		let contract = NEP6Contract {
 			script: script_encoded,
 			parameters,
@@ -681,10 +773,10 @@ impl<Wallet: Clone + Debug + Send + Sync> Account<Wallet> {
 
 	pub async fn get_nep17_balances<P>(
 		&self,
-		provider: &RpcClient<P>,
+		provider: &P,
 	) -> Result<HashMap<H160, u64>, ProviderError>
 	where
-		P: JsonRpcProvider,
+		P: neo_common::Nep17BalanceProvider + Sync,
 	{
 		let response =
 			provider.get_nep17_balances(self.address_or_scripthash().script_hash()).await?;
@@ -703,10 +795,7 @@ impl<Wallet: Clone + Debug + Send + Sync> Account<Wallet> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{
-		neo_clients::{BodyRegexMatcher, HttpProvider, MockClient},
-		neo_config::TestConstants,
-	};
+	use neo_config::TestConstants;
 
 	// ... rest of test module
 }

@@ -39,6 +39,7 @@
 #![deny(rustdoc::broken_intra_doc_links)]
 
 mod base58_helper;
+pub mod crypto_adapter_impl;
 mod error;
 mod hash;
 mod hashable;
@@ -49,6 +50,7 @@ mod wif;
 
 // Re-export all public items
 pub use base58_helper::*;
+pub use crypto_adapter_impl::*;
 pub use error::*;
 // Re-export specific items to avoid ambiguity
 pub use hash::HashableForString;

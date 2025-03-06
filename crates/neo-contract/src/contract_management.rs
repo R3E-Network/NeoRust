@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 use neo_builder::TransactionBuilder;
 use neo_clients::{APITrait, JsonRpcProvider, RpcClient};
 use crate::{ContractError, SmartContractTrait, ContractIdentifiers};
-use neo::prelude::*;
+use neo_common::{deserialize_script_hash, serialize_script_hash};
+use neo_types::{ScriptHash, ContractState, ContractParameter, NefFile};
 
 /// A struct representing contract management functionalities
 #[derive(Debug, Clone, Serialize, Deserialize)]

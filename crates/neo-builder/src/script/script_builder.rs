@@ -42,9 +42,9 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::ScriptBuilder;
-	///
-	/// let builder = ScriptBuilder::new();
+/// use neo_types::ScriptBuilder;
+///
+/// let builder = ScriptBuilder::new();
 	/// ```
 	pub fn new() -> Self {
 		Self { script: Encoder::new() }
@@ -63,10 +63,10 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::{ScriptBuilder, OpCode};
-	///
-	/// let mut builder = ScriptBuilder::new();
-	/// builder.op_code(&[OpCode::Push1, OpCode::Push2, OpCode::Add]);
+/// use neo_types::{ScriptBuilder, OpCode};
+///
+/// let mut builder = ScriptBuilder::new();
+/// builder.op_code(&[OpCode::Push1, OpCode::Push2, OpCode::Add]);
 	/// ```
 	pub fn op_code(&mut self, op_codes: &[OpCode]) -> &mut Self {
 		for opcode in op_codes {
@@ -89,10 +89,10 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::{ScriptBuilder, OpCode};
-	///
-	/// let mut builder = ScriptBuilder::new();
-	/// builder.op_code_with_arg(OpCode::PushData1, vec![0x01, 0x02, 0x03]);
+/// use neo_types::{ScriptBuilder, OpCode};
+///
+/// let mut builder = ScriptBuilder::new();
+/// builder.op_code_with_arg(OpCode::PushData1, vec![0x01, 0x02, 0x03]);
 	/// ```
 	pub fn op_code_with_arg(&mut self, opcode: OpCode, argument: Bytes) -> &mut Self {
 		self.script.write_u8(opcode.opcode());
@@ -117,10 +117,11 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::{ScriptBuilder, H160, ContractParameter, CallFlags};
-	///
-	/// let mut builder = ScriptBuilder::new();
-	/// let contract_hash = H160::from_slice(&[0; 20]);
+/// use neo_types::{ScriptBuilder, ContractParameter, CallFlags};
+/// use primitive_types::H160;
+///
+/// let mut builder = ScriptBuilder::new();
+/// let contract_hash = H160::from_slice(&[0; 20]);
 	/// let result = builder.contract_call(
 	///     &contract_hash,
 	///     "transfer",
@@ -164,10 +165,10 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::{ScriptBuilder, InteropService};
-	///
-	/// let mut builder = ScriptBuilder::new();
-	/// builder.sys_call(InteropService::SystemRuntimeCheckWitness);
+/// use neo_types::{ScriptBuilder, InteropService};
+///
+/// let mut builder = ScriptBuilder::new();
+/// builder.sys_call(InteropService::SystemRuntimeCheckWitness);
 	/// ```
 	pub fn sys_call(&mut self, operation: InteropService) -> &mut Self {
 		self.push_opcode_bytes(
@@ -195,10 +196,10 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::{ScriptBuilder, ContractParameter};
-	///
-	/// let mut builder = ScriptBuilder::new();
-	/// builder.push_params(&[
+/// use neo_types::{ScriptBuilder, ContractParameter};
+///
+/// let mut builder = ScriptBuilder::new();
+/// builder.push_params(&[
 	///     ContractParameter::from("param1"),
 	///     ContractParameter::from(42),
 	///     ContractParameter::from(true)
@@ -228,10 +229,10 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::{ScriptBuilder, ContractParameter};
-	///
-	/// let mut builder = ScriptBuilder::new();
-	/// builder.push_param(&ContractParameter::from("Hello, Neo!")).unwrap();
+/// use neo_types::{ScriptBuilder, ContractParameter};
+///
+/// let mut builder = ScriptBuilder::new();
+/// builder.push_param(&ContractParameter::from("Hello, Neo!")).unwrap();
 	/// ```
 	pub fn push_param(&mut self, param: &ContractParameter) -> Result<&mut Self, BuilderError> {
 		if param.get_type() == ContractParameterType::Any {
@@ -281,10 +282,10 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::ScriptBuilder;
-	/// use num_bigint::BigInt;
-	///
-	/// let mut builder = ScriptBuilder::new();
+/// use neo_types::ScriptBuilder;
+/// use num_bigint::BigInt;
+///
+/// let mut builder = ScriptBuilder::new();
 	/// builder.push_integer(BigInt::from(42));
 	/// ```
 	pub fn push_integer(&mut self, i: BigInt) -> &mut Self {
@@ -546,7 +547,8 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo_types::*;
+use neo_common::*;
 	/// use std::str::FromStr;
 	///
 	/// let sender = ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap();
@@ -596,7 +598,8 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo_types::*;
+use neo_common::*;
 	/// use std::str::FromStr;
 	///
 	/// // Call a contract method that returns an iterator and collect up to 100 items

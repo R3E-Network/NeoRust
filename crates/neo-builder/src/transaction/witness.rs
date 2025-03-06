@@ -21,10 +21,10 @@ impl Witness {
 		Self { invocation: InvocationScript::new(), verification: VerificationScript::new() }
 	}
 
-	pub fn from_scripts(invocation_script: Bytes, verification_script: Bytes) -> Self {
+	pub fn from_scripts(invocation_script: impl Into<Bytes>, verification_script: impl Into<Bytes>) -> Self {
 		Self {
-			invocation: InvocationScript::new_with_script(invocation_script),
-			verification: VerificationScript::from(verification_script),
+			invocation: InvocationScript::new_with_script(invocation_script.into()),
+			verification: VerificationScript::from(verification_script.into()),
 		}
 	}
 

@@ -1,33 +1,7 @@
-// Temporarily comment out to avoid circular dependency
-// use neo_builder::OracleResponseCode;
-use serde::{Deserialize, Serialize};
-
-// Define a local enum for OracleResponseCode to avoid dependency
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OracleResponseCode {
-    Success = 0x00,
-    ProtocolNotSupported = 0x10,
-    ConsensusUnreachable = 0x12,
-    NotFound = 0x14,
-    Timeout = 0x16,
-    Forbidden = 0x18,
-    ResponseTooLarge = 0x1A,
-    InsufficientFunds = 0x1C,
-    ContentTypeNotSupported = 0x1F,
-    Error = 0xFF,
-}
+use neo_common::OracleResponseCode;
+use neo_common::TransactionAttributeType;
+use serde::{Deserialize, Deserializer, Serialize};
 use primitive_types::H256;
-use serde::Deserializer;
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum TransactionAttributeType {
-	HighPriority,
-	OracleResponse,
-	NotValidBefore,
-	Conflicts,
-	// Add other types as needed
-}
 
 // pub trait TransactionAttribute {
 //     fn get_type(&self) -> TransactionAttributeType;
