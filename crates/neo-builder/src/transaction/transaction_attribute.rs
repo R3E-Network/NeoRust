@@ -2,7 +2,7 @@ use std::hash::Hasher;
 
 use crate::TransactionError;
 use neo_codec::{Decoder, Encoder, NeoSerializable};
-use neo_utils::Base64Encode;
+use neo_common::base64_utils::Base64Encode;
 use ethereum_types::H256;
 use rustc_serialize::base64::FromBase64;
 use serde::{Deserialize, Serialize};
@@ -137,7 +137,7 @@ impl NeoSerializable for TransactionAttribute {
 		}
 	}
 
-	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
+	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error> {
 		match reader.read_u8() {
 			0x01 => Ok(TransactionAttribute::HighPriority),
 			0x11 => {

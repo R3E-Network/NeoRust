@@ -5,10 +5,11 @@
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::convert::From;
 
 /// Neo VM OpCodes
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, IntoPrimitive, TryFromPrimitive, Serialize, Deserialize,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, IntoPrimitive, TryFromPrimitive, Serialize, Deserialize
 )]
 #[repr(u8)]
 pub enum OpCode {
@@ -121,22 +122,24 @@ pub enum OpCode {
     Swap = 0x41,
     /// Removes the top stack item.
     Pop = 0x42,
+    /// Removes the second item on the stack.
+    Nip = 0x43,
     /// Converts the top stack item to a boolean.
-    ConvertTo = 0x43,
+    ConvertTo = 0x44,
     /// Converts the top stack item to a different type.
-    ConvertTo2 = 0x44,
+    ConvertTo2 = 0x45,
     /// Packs the top n stack items into an array.
-    Pack = 0x45,
+    Pack = 0x46,
     /// Unpacks an array into multiple stack items.
-    Unpack = 0x46,
+    Unpack = 0x47,
     /// Duplicates the top n stack items.
-    DupN = 0x47,
+    DupN = 0x48,
     /// Reverses the top n stack items.
-    RevN = 0x48,
+    RevN = 0x49,
     /// Removes the top n stack items.
-    PopN = 0x49,
+    PopN = 0x4a,
     /// Pushes a null value onto the stack.
-    PushNull = 0x4a,
+    PushNull = 0x4b,
     /// Pushes a data value onto the stack.
     PushData1 = 0x4c,
     /// Pushes a data value onto the stack.
@@ -292,5 +295,40 @@ pub enum OpCode {
 impl fmt::Display for OpCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
+    }
+}
+
+// The TryFrom<u8> implementation is already provided by the TryFromPrimitive derive macro
+
+impl OpCode {
+    /// Returns the opcode as a u8 value
+    pub fn opcode(&self) -> u8 {
+        *self as u8
+    }
+    
+    /// Returns the opcode as a hex string
+    pub fn to_hex_string(&self) -> String {
+        format!("{:02x}", *self as u8)
+    }
+    
+    /// Returns the operand size for the opcode, if applicable
+    pub fn operand_size(&self) -> Option<usize> {
+        match self {
+            OpCode::PushData1 => Some(1),
+            OpCode::PushData2 => Some(2),
+            OpCode::PushData4 => Some(4),
+            OpCode::PushInt8 => Some(1),
+            OpCode::PushInt16 => Some(2),
+            OpCode::PushInt32 => Some(4),
+            OpCode::PushInt64 => Some(8),
+            OpCode::PushInt128 => Some(16),
+            OpCode::PushInt256 => Some(32),
+            OpCode::Jmp | OpCode::JmpIf | OpCode::JmpIfNot | OpCode::JmpEq | OpCode::JmpNe |
+            OpCode::JmpGt | OpCode::JmpGe | OpCode::JmpLt | OpCode::JmpLe |
+            OpCode::Call | OpCode::CallIf | OpCode::CallIfNot | OpCode::CallEq | OpCode::CallNe |
+            OpCode::CallGt | OpCode::CallGe | OpCode::CallLt | OpCode::CallLe => Some(2),
+            OpCode::SysCall => Some(4),
+            _ => None,
+        }
     }
 }

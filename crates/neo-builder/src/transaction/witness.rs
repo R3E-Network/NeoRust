@@ -23,7 +23,7 @@ impl Witness {
 
 	pub fn from_scripts(invocation_script: impl Into<Bytes>, verification_script: impl Into<Bytes>) -> Self {
 		Self {
-			invocation: InvocationScript::new_with_script(invocation_script.into()),
+			invocation: InvocationScript::new_with_script(invocation_script.into().to_vec()),
 			verification: VerificationScript::from(verification_script.into()),
 		}
 	}
@@ -37,7 +37,7 @@ impl Witness {
 
 	pub fn create(message_to_sign: Bytes, key_pair: &KeyPair) -> Result<Self, BuilderError> {
 		let invocation_script =
-			InvocationScript::from_message_and_key_pair(message_to_sign, key_pair).unwrap();
+			InvocationScript::from_message_and_key_pair(message_to_sign.to_vec(), key_pair)?;
 		let verification_script = VerificationScript::from_public_key(&key_pair.public_key());
 		Ok(Self { invocation: invocation_script, verification: verification_script })
 	}
@@ -82,7 +82,7 @@ impl Witness {
 		let invocation_script = builder.to_bytes();
 
 		Ok(Self {
-			invocation: InvocationScript::new_with_script(invocation_script),
+			invocation: InvocationScript::new_with_script(invocation_script.to_vec()),
 			verification: VerificationScript::new(),
 		})
 	}
@@ -100,7 +100,7 @@ impl NeoSerializable for Witness {
 		self.verification.encode(writer);
 	}
 
-	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
+	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error> {
 		let invocation = InvocationScript::decode(reader)?;
 		let verification = VerificationScript::decode(reader)?;
 		Ok(Self { invocation, verification })

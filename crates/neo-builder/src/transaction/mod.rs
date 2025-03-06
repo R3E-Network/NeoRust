@@ -13,20 +13,20 @@ pub use witness::*;
 pub use witness_rule::*;
 pub use witness_scope::*;
 
-mod call_flags;
+pub mod call_flags;
 mod contract_parameters_context;
 mod invocation_script;
 mod oracle_response_code;
-mod signers;
+pub mod signers;
 mod transaction;
-mod transaction_attribute;
+pub mod transaction_attribute;
 mod transaction_builder;
 mod transaction_builder_tests;
 mod transaction_error;
-mod transaction_send_token;
+pub mod transaction_send_token;
 mod verification_script;
 mod witness;
-mod witness_rule;
+pub mod witness_rule;
 mod witness_scope;
 
 use std::sync::Once;

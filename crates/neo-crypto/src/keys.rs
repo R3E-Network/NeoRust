@@ -431,10 +431,44 @@ impl Secp256r1PublicKey {
     pub fn to_bytes(&self) -> Vec<u8> {
         self.get_encoded(true)
     }
+    
+    /// Returns the bytes of this public key as a slice
+    pub fn as_bytes(&self) -> &[u8] {
+        // This is not ideal as it creates a new allocation each time
+        // but it's necessary for implementing AsRef<[u8]>
+        Box::leak(self.get_encoded(true).into_boxed_slice())
+    }
 }
 
-// We can't implement AsRef<[u8]> directly because get_encoded returns a new Vec
-// Instead, we'll create a wrapper in neo-common that handles this properly
+// Implement AsRef<[u8]> for Secp256r1PublicKey
+impl AsRef<[u8]> for Secp256r1PublicKey {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+// Implement NeoSerializable for Secp256r1PublicKey
+impl neo_codec::NeoSerializable for Secp256r1PublicKey {
+    type Error = CryptoError;
+
+    fn size(&self) -> usize {
+        self.get_size()
+    }
+
+    fn encode(&self, writer: &mut neo_codec::Encoder) {
+        let encoded = self.get_encoded(true);
+        writer.write_bytes(&encoded);
+    }
+
+    fn decode(reader: &mut neo_codec::Decoder<'_>) -> Result<Self, Self::Error> {
+        let bytes = reader.read_bytes(33)?;
+        Self::from_bytes(&bytes)
+    }
+
+    fn to_array(&self) -> Vec<u8> {
+        self.get_encoded(true)
+    }
+}
 
 
 impl Serialize for Secp256r1PublicKey {

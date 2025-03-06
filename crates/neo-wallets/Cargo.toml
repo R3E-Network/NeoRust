@@ -13,14 +13,13 @@ categories.workspace = true
 keywords.workspace = true
 
 [dependencies]
-neo-common = { path = "../neo-common", version = "0.1.9" }
 # Internal crates
+neo-common = { path = "../neo-common", version = "0.1.9" }
 neo-error = { path = "../neo-error", version = "0.1.9" }
 neo-types = { path = "../neo-types", version = "0.1.9" }
 neo-crypto = { path = "../neo-crypto", version = "0.1.9" }
 neo-protocol = { path = "../neo-protocol", version = "0.1.9" }
 neo-clients = { path = "../neo-clients", version = "0.1.9" }
-neo-builder = { path = "../neo-builder", version = "0.1.9" }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }

@@ -1,9 +1,5 @@
 use std::hash::{Hash, Hasher};
-
-use num_enum::TryFromPrimitiveError;
 use thiserror::Error;
-
-use crate::OpCode;
 
 #[derive(Error, Debug, PartialEq, Eq, Clone)]
 pub enum CodecError {
@@ -17,8 +13,6 @@ pub enum CodecError {
 	InvalidEncoding(String),
 	#[error("Invalid op code")]
 	InvalidOpCode,
-	#[error(transparent)]
-	TryFromPrimitiveError(#[from] TryFromPrimitiveError<OpCode>),
 }
 
 impl Hash for CodecError {
@@ -38,7 +32,7 @@ impl Hash for CodecError {
 				s.hash(state);
 			},
 			CodecError::InvalidOpCode => 4.hash(state),
-			CodecError::TryFromPrimitiveError(_) => 5.hash(state),
+
 		}
 	}
 }

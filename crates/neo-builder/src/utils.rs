@@ -1,10 +1,12 @@
 use serde_json::Value;
 
-use crate::builder::{
-	ScriptBuilder, Signer, TransactionAttribute, TransactionSendToken, TransactionSigner,
+use crate::{
+	ScriptBuilder, Signer, TransactionAttribute, 
+	transaction::transaction_send_token::TransactionSendToken,
+	transaction::signers::TransactionSigner,
 };
 use neo_crypto::Secp256r1PublicKey;
-use neo_types::{ScriptHash, ValueExtension};
+use neo_types::{ScriptHash, ValueExtension, ScriptHashExtension};
 // pub type ScriptHash = H160;
 
 /// Converts a list of public keys to a script hash using a given threshold.

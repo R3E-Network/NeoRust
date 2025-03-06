@@ -1,53 +1,54 @@
-//! Error adapter utilities
+//! Error adapter for converting between different error types.
 //!
-//! This module provides utilities for adapting between different error types
-//! to help break circular dependencies between crates.
+//! This module provides utilities for converting between different error types
+//! in the NeoRust SDK.
 
-use crate::ProviderError;
+use crate::provider_error::ProviderError;
+use std::fmt::Display;
 
-/// Convert a string error message to a common ProviderError
-pub fn to_provider_error(message: &str) -> ProviderError {
-    ProviderError::CustomError(message.to_string())
+/// A trait for adapting errors from one type to another.
+pub trait ErrorAdapter<T, E> {
+    /// Adapts an error of type `E` to type `T`.
+    fn adapt_error(error: E) -> T;
 }
 
-/// Convert a serialization error message to a common ProviderError
-pub fn to_serialization_error(message: &str) -> ProviderError {
-    ProviderError::SerializationError(message.to_string())
-}
-
-/// Convert a network error message to a common ProviderError
-pub fn to_network_error(message: &str) -> ProviderError {
-    ProviderError::NetworkError(message.to_string())
-}
-
-/// Convert an RPC error message to a common ProviderError
-pub fn to_rpc_error(message: &str) -> ProviderError {
-    ProviderError::RpcError(message.to_string())
-}
-
-/// Convert a crypto error message to a common ProviderError
-pub fn to_crypto_error(message: &str) -> ProviderError {
-    ProviderError::CryptoError(message.to_string())
-}
-
-/// Convert an illegal state error message to a common ProviderError
-pub fn to_illegal_state_error(message: &str) -> ProviderError {
-    ProviderError::IllegalState(message.to_string())
-}
-
-/// Convert a common ProviderError to a string representation
-pub fn from_provider_error(error: &ProviderError) -> String {
+/// Converts a provider error to a string.
+///
+/// This function is used to convert a provider error to a string
+/// for display purposes.
+///
+/// # Arguments
+///
+/// * `error` - The provider error to convert.
+///
+/// # Returns
+///
+/// A string representation of the provider error.
+pub fn provider_error_to_string(error: &ProviderError) -> String {
     match error {
-        ProviderError::CustomError(s) => s.clone(),
-        ProviderError::InvalidAddress => "Invalid address".to_string(),
-        ProviderError::IllegalState(s) => format!("Illegal state: {}", s),
-        ProviderError::RpcError(s) => format!("RPC error: {}", s),
+        ProviderError::JsonError(s) => format!("JSON error: {}", s),
+        ProviderError::HttpError(s) => format!("HTTP error: {}", s),
+        ProviderError::WebSocketError(s) => format!("WebSocket error: {}", s),
+        ProviderError::IpcError(s) => format!("IPC error: {}", s),
+        ProviderError::Timeout => "Request timeout".to_string(),
+        ProviderError::NotImplemented(s) => format!("Not implemented: {}", s),
         ProviderError::SerializationError(s) => format!("Serialization error: {}", s),
-        ProviderError::NetworkError(s) => format!("Network error: {}", s),
-        ProviderError::CryptoError(s) => format!("Crypto error: {}", s),
-        ProviderError::LockError => "Lock error".to_string(),
-        ProviderError::ProtocolNotFound => "Protocol not found".to_string(),
-        ProviderError::NetworkNotFound => "Network not found".to_string(),
         ProviderError::Other(s) => format!("Other error: {}", s),
     }
+}
+
+/// Converts any error to a provider error.
+///
+/// This function is used to convert any error that implements `Display`
+/// to a provider error.
+///
+/// # Arguments
+///
+/// * `error` - The error to convert.
+///
+/// # Returns
+///
+/// A provider error with the string representation of the input error.
+pub fn to_provider_error<E: Display>(error: E) -> ProviderError {
+    ProviderError::Other(error.to_string())
 }

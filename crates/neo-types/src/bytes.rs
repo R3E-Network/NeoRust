@@ -10,7 +10,7 @@ use sha2::{Digest, Sha256};
 
 /// `Bytes` is a wrapper around a vector of bytes (`Vec<u8>`) providing utility methods
 /// for encoding, decoding, and other common operations on byte arrays.
-#[derive(Debug, Clone, Serialize, Deserialize, AsRef, Deref, IntoIterator, Index, IndexMut)]
+#[derive(Debug, Clone, Serialize, Deserialize, AsRef, Deref, IntoIterator, Index, IndexMut, PartialEq, Eq, Hash)]
 pub struct Bytes(Vec<u8>);
 
 impl Default for Bytes {

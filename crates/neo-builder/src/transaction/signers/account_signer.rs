@@ -1,22 +1,20 @@
 use std::hash::{Hash, Hasher};
 
 // Local imports
-use crate::{BuilderError, SignerTrait, SignerType, TransactionError, WitnessRule, WitnessScope};
+use crate::{BuilderError, TransactionError};
+use crate::transaction::signers::signer::{SignerTrait, SignerType};
+use crate::transaction::witness_rule::witness_rule::WitnessRule;
 
 // External crate imports
 use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
 use neo_config::NeoConstants;
 use neo_crypto::{PublicKeyExtension, Secp256r1PublicKey};
-use neo_protocol::{Account, AccountTrait};
-use neo_wallets::wallet::Wallet;
-use neo_types::{
-    ScriptHashExtension,
-    serde_utils::{
-        deserialize_script_hash, deserialize_vec_script_hash,
-        deserialize_vec_public_key, serialize_vec_public_key,
-        serialize_script_hash, serialize_vec_script_hash
-    },
-};
+use neo_protocol::AccountTrait;
+use neo_protocol::account::Account;
+use neo_common::Wallet;
+use neo_common::WitnessScope;
+use neo_types::ScriptHashExtension;
+use neo_common::h160_utils::{serialize_h160, deserialize_h160, serialize_vec_h160, deserialize_vec_h160};
 use getset::{Getters, Setters};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
@@ -27,21 +25,17 @@ use serde::{Deserialize, Serialize};
 /// the signer hash, scopes, allowed contracts, allowed groups, and witness rules.
 #[derive(Debug, Clone, Serialize, Deserialize, Getters, Setters)]
 pub struct AccountSigner {
-	#[serde(
-		serialize_with = "serialize_script_hash",
-		deserialize_with = "deserialize_script_hash"
+#[serde(
+		serialize_with = "serialize_h160",
+		deserialize_with = "deserialize_h160"
 	)]
 	pub(crate) signer_hash: H160,
 	pub(crate) scopes: Vec<WitnessScope>,
-	#[serde(
-		serialize_with = "serialize_vec_script_hash",
-		deserialize_with = "deserialize_vec_script_hash"
+#[serde(
+		serialize_with = "serialize_vec_h160",
+		deserialize_with = "deserialize_vec_h160"
 	)]
 	pub(crate) allowed_contracts: Vec<H160>,
-	#[serde(
-		serialize_with = "serialize_vec_public_key",
-		deserialize_with = "deserialize_vec_public_key"
-	)]
 	pub(crate) allowed_groups: Vec<Secp256r1PublicKey>,
 	rules: Vec<WitnessRule>,
 	#[getset(get = "pub")]
@@ -118,7 +112,7 @@ impl NeoSerializable for AccountSigner {
 		}
 	}
 
-	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error>
+	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error>
 	where
 		Self: Sized,
 	{
@@ -244,12 +238,14 @@ impl SignerTrait for AccountSigner {
 		&mut self.allowed_groups
 	}
 
-	fn get_rules(&self) -> &Vec<WitnessRule> {
-		&self.rules
+	fn get_rules(&self) -> &Vec<crate::transaction::witness_rule::witness_rule::WitnessRule> {
+		// This is a temporary solution until we fully migrate to neo-common
+		unsafe { std::mem::transmute(&self.rules) }
 	}
 
-	fn get_rules_mut(&mut self) -> &mut Vec<WitnessRule> {
-		&mut self.rules
+	fn get_rules_mut(&mut self) -> &mut Vec<crate::transaction::witness_rule::witness_rule::WitnessRule> {
+		// This is a temporary solution until we fully migrate to neo-common
+		unsafe { std::mem::transmute(&mut self.rules) }
 	}
 }
 

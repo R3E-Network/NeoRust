@@ -57,3 +57,32 @@ where
         StringOrNull::Null => Ok(None),
     }
 }
+
+/// Serializes a vector of H160 as a list of hex strings.
+pub fn serialize_vec_h160<S>(hashes: &Vec<H160>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    use serde::ser::SerializeSeq;
+    let mut seq = serializer.serialize_seq(Some(hashes.len()))?;
+    for hash in hashes {
+        seq.serialize_element(&format!("0x{}", hex::encode(hash.as_bytes())))?;
+    }
+    seq.end()
+}
+
+/// Deserializes a vector of H160 from a list of hex strings.
+pub fn deserialize_vec_h160<'de, D>(deserializer: D) -> Result<Vec<H160>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let strings: Vec<String> = Vec::deserialize(deserializer)?;
+    let mut result = Vec::with_capacity(strings.len());
+    
+    for s in strings {
+        let s = s.trim_start_matches("0x");
+        result.push(H160::from_str(s).map_err(serde::de::Error::custom)?);
+    }
+    
+    Ok(result)
+}

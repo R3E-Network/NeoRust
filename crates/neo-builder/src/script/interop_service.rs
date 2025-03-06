@@ -8,7 +8,7 @@ use lazy_static::lazy_static;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString};
 
-use neo_crypto::HashableForVec;
+use neo_common::HashableForVec;
 
 lazy_static! {
 	static ref INTEROP_SERVICE_HASHES: Arc<Mutex<HashMap<String, String>>> =
@@ -95,7 +95,7 @@ impl InteropService {
 		// 	hash.clone()
 		// } else {
 		let self_string = self.to_string();
-		let sha = self_string.as_bytes().hash256();
+		let sha = self_string.as_bytes().to_vec().hash256();
 		let hash = hex::encode(sha[..4].to_vec());
 		// hashes.insert(self.to_string(), hash.clone());
 		hash

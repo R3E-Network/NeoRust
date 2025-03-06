@@ -1,4 +1,5 @@
 use thiserror::Error;
+use neo_codec::CodecError;
 
 #[derive(Debug, Error, PartialEq, Clone)]
 pub enum CryptoError {
@@ -26,6 +27,8 @@ pub enum CryptoError {
 	DecryptionError(String),
 	#[error("Key error: {0}")]
 	KeyError(String),
+	#[error("Codec error: {0}")]
+	CodecError(String),
 }
 
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
@@ -42,4 +45,10 @@ pub enum SignError {
 	HeaderOutOfRange(u8),
 	#[error("Could not recover public key from signature")]
 	RecoverFailed,
+}
+
+impl From<CodecError> for CryptoError {
+    fn from(error: CodecError) -> Self {
+        CryptoError::CodecError(error.to_string())
+    }
 }

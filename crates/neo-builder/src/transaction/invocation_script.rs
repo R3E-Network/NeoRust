@@ -38,7 +38,7 @@ use serde_derive::{Deserialize, Serialize};
 // 		builder
 // 			.push_data(signature.to_bytes().into())
 // 			.expect("TODO: panic message");
-// 		Self { script: builder.to_bytes() }
+// 		Self { script: builder.to_bytes().to_vec() }
 // 	}
 //
 // 	pub fn from_message_and_key_pair(
@@ -60,7 +60,7 @@ use serde_derive::{Deserialize, Serialize};
 // 			let mut signature_bytes = signature.to_bytes();
 // 			builder.push_data(signature_bytes.to_vec()).expect("Incorrect signature length");
 // 		}
-// 		Self { script: builder.to_bytes() }
+// 		Self { script: builder.to_bytes().to_vec() }
 // 	}
 // }
 
@@ -112,7 +112,7 @@ impl InvocationScript {
 		let mut script = ScriptBuilder::new();
 		let signature_bytes = signature.to_bytes();
 		script.push_data(signature_bytes.to_vec());
-		Self { script: script.to_bytes() }
+		Self { script: script.to_bytes().to_vec() }
 	}
 
 	/// Creates an invocation script from the signature of the given message signed with the given key pair.
@@ -148,7 +148,7 @@ impl InvocationScript {
 			let signature_bytes = signature.to_bytes();
 			builder.push_data(signature_bytes.to_vec());
 		}
-		Self { script: builder.to_bytes() }
+		Self { script: builder.to_bytes().to_vec() }
 	}
 }
 
@@ -175,14 +175,14 @@ impl NeoSerializable for InvocationScript {
 	type Error = BuilderError;
 
 	fn size(&self) -> usize {
-		return var_size::get_var_size(self.script.len()) + self.script.len();
+		return <Vec<u8> as neo_codec::VarSizeTrait>::get_var_size(self.script.len()) + self.script.len();
 	}
 
 	fn encode(&self, writer: &mut Encoder) {
 		writer.write_var_bytes(&self.script);
 	}
 
-	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
+	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error> {
 		let script = reader.read_var_bytes()?;
 		Ok(Self { script })
 	}

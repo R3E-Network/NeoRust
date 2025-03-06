@@ -39,3 +39,4 @@ async-trait = { version = "0.1.77" }
 
 [features]
 default = []
+with-crypto = []

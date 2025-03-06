@@ -1,6 +1,5 @@
 use std::hash::{Hash, Hasher};
 
-use futures_util::TryFutureExt;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use primitive_types::U256;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -12,8 +11,7 @@ use crate::{init_logger, Signer, TransactionAttribute, TransactionError, Witness
 use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
 use neo_config::NeoConstants;
 use neo_crypto::HashableForVec;
-use neo_common::{JsonRpcProvider, RpcClient};
-#[cfg(feature = "protocol")]
+use neo_common::JsonRpcProvider;
 use neo_protocol::{ApplicationLog, RawTransaction};
 use neo_types::{NameOrAddress, Bytes};
 
@@ -51,11 +49,11 @@ use neo_types::{NameOrAddress, Bytes};
 /// let client = RpcClient::new(provider);
 /// let mut tx_builder = TransactionBuilder::with_client(&client);
 /// ```
-#[derive(Serialize, Getters, Setters, MutGetters, CopyGetters, Debug, Clone)]
-pub struct Transaction<'a, P: JsonRpcProvider + 'static> {
+#[derive(Serialize, Getters, Setters, MutGetters, CopyGetters)]
+pub struct Transaction<'a> {
 	#[serde(skip)]
 	#[getset(get = "pub", set = "pub")]
-	pub network: Option<&'a dyn neo_common::RpcClient>,
+	pub network: Option<&'a (dyn neo_common::RpcClient + 'a)>,
 
 	#[serde(rename = "version")]
 	#[getset(get = "pub", set = "pub")]
@@ -104,7 +102,7 @@ pub struct Transaction<'a, P: JsonRpcProvider + 'static> {
 	pub(crate) block_count_when_sent: Option<u32>,
 }
 
-impl<'a, P: JsonRpcProvider + 'static> Default for Transaction<'a, P> {
+impl<'a> Default for Transaction<'a> {
 	fn default() -> Self {
 		Transaction {
 			network: None,
@@ -124,7 +122,7 @@ impl<'a, P: JsonRpcProvider + 'static> Default for Transaction<'a, P> {
 	}
 }
 
-impl<'de, 'a, P: JsonRpcProvider + 'static> Deserialize<'de> for Transaction<'a, P> {
+impl<'de, 'a> Deserialize<'de> for Transaction<'a> {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
 		D: Deserializer<'de>,
@@ -153,8 +151,9 @@ impl<'de, 'a, P: JsonRpcProvider + 'static> Deserialize<'de> for Transaction<'a,
 			serde_json::from_value(value["witnesses"].clone()).map_err(DeError::custom)?;
 
 		// For bytes, assuming it's a Vec<u8> and stored as a base64 string in JSON
-		let script: Bytes = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, value["script"].as_str().unwrap_or_default())
+		let script_vec = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, value["script"].as_str().unwrap_or_default())
 			.map_err(DeError::custom)?;
+		let script: Bytes = script_vec.into();
 
 		// For optional fields
 		let block_time = value["blocktime"].as_i64().map(|v| v as i32);
@@ -169,7 +168,7 @@ impl<'de, 'a, P: JsonRpcProvider + 'static> Deserialize<'de> for Transaction<'a,
 			sys_fee: value["sysfee"].as_i64().unwrap(),
 			net_fee: value["netfee"].as_i64().unwrap(),
 			attributes,
-			script,
+			script: script.into(),
 			witnesses,
 			// block_time,
 			// Fill in other fields as necessary
@@ -180,13 +179,20 @@ impl<'de, 'a, P: JsonRpcProvider + 'static> Deserialize<'de> for Transaction<'a,
 
 // impl<P: JsonRpcClient + 'static> DeserializeOwned for Transaction<P> {}
 
-impl<'a, P: JsonRpcProvider + 'static> Hash for Transaction<'a, P> {
+impl<'a> Hash for Transaction<'a> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
-		self.to_array().hash(state);
+		// Hash individual fields instead of using to_array()
+		self.version.hash(state);
+		self.nonce.hash(state);
+		self.valid_until_block.hash(state);
+		self.signers.hash(state);
+		self.attributes.hash(state);
+		self.script.hash(state);
+		self.witnesses.hash(state);
 	}
 }
 
-impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
+impl<'a> Transaction<'a> {
 	const HEADER_SIZE: usize = 25;
 	pub fn new() -> Self {
 		Self::default()
@@ -206,23 +212,37 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 			panic!("Transaction network magic is not set");
 		}
 		let mut encoder = Encoder::new();
-		self.serialize_without_witnesses(&mut encoder);
-		let mut data = encoder.to_bytes().hash256();
-		let network_value = self.network.as_ref().unwrap().network().await?;
-		data.splice(0..0, network_value.to_be_bytes());
+		Transaction::serialize_without_witnesses(self, &mut encoder);
+		let data = encoder.to_bytes().hash256();
+		
+		// Get the network magic value
+		let network = self.network.as_ref().unwrap();
+		let network_future = network.network();
+		// Convert the future to a pinned future
+		let network_future = unsafe {
+			// This is safe because we're not moving the future after pinning it
+			std::pin::Pin::new_unchecked(network_future)
+		};
+		let network_magic = network_future.await
+			.map_err(|e| TransactionError::IllegalState(e.to_string()))?;
+		
+		// Create a new vector with network value bytes followed by hash data
+		let mut result = network_magic.to_be_bytes().to_vec();
+		result.extend_from_slice(&data);
 
-		Ok(data)
+		Ok(result.into())
 	}
 
-	fn get_tx_id(&self) -> Result<primitive_types::H256, TransactionError> {
+	pub fn get_tx_id(&self) -> Result<primitive_types::H256, TransactionError>
+	{
 		let mut encoder = Encoder::new();
-		self.serialize_without_witnesses(&mut encoder);
+		Transaction::serialize_without_witnesses(self, &mut encoder);
 		let data = encoder.to_bytes().hash256();
 		let reversed_data = data.iter().rev().cloned().collect::<Vec<u8>>();
 		Ok(primitive_types::H256::from_slice(&reversed_data))
 	}
 
-	fn serialize_without_witnesses(&self, writer: &mut Encoder) {
+	pub fn serialize_without_witnesses(&self, writer: &mut Encoder) {
 		writer.write_u8(self.version);
 		writer.write_u32(self.nonce);
 		writer.write_i64(self.sys_fee);
@@ -276,8 +296,6 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 	/// }
 	/// ```
 	pub async fn send_tx(&mut self) -> Result<RawTransaction, TransactionError>
-// where
-	// 	P: APITrait,
 	{
 		if self.signers.len() != self.witnesses.len() {
 			return Err(TransactionError::TransactionConfiguration(
@@ -285,19 +303,38 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 					.to_string(),
 			));
 		}
-		if self.size() > &(NeoConstants::MAX_TRANSACTION_SIZE as i32) {
+		if self.size > (NeoConstants::MAX_TRANSACTION_SIZE as i32) {
 			return Err(TransactionError::TransactionConfiguration(
 				"The transaction exceeds the maximum transaction size.".to_string(),
 			));
 		}
 		let hex = hex::encode(self.to_array());
-		// self.throw()?;
-		self.block_count_when_sent = Some(self.network().unwrap().get_block_count().await?);
-		self.network()
-			.unwrap()
-			.send_raw_transaction(hex)
-			.await
-			.map_err(|e| TransactionError::IllegalState(e.to_string()))
+		
+		// Get the current block count
+		let network = self.network().unwrap();
+		let block_count_future = network.get_block_count();
+		// Convert the future to a pinned future
+		let block_count_future = unsafe {
+			// This is safe because we're not moving the future after pinning it
+			std::pin::Pin::new_unchecked(block_count_future)
+		};
+		let block_count = block_count_future.await
+			.map_err(|e| TransactionError::IllegalState(e.to_string()))?;
+		self.block_count_when_sent = Some(block_count);
+		
+		// Send the raw transaction
+		let send_tx_future = network.send_raw_transaction(hex);
+		// Convert the future to a pinned future
+		let send_tx_future = unsafe {
+			// This is safe because we're not moving the future after pinning it
+			std::pin::Pin::new_unchecked(send_tx_future)
+		};
+		let tx_result = send_tx_future.await
+			.map_err(|e| TransactionError::IllegalState(e.to_string()))?;
+			
+		// Parse the raw transaction from JSON
+		serde_json::from_str::<RawTransaction>(&tx_result)
+			.map_err(|e| TransactionError::IllegalState(format!("Failed to parse transaction result: {}", e)))
 	}
 
 	/// Tracks a transaction until it appears in a block.
@@ -350,34 +387,63 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 	///     Ok(())
 	/// }
 	/// ```
-	pub async fn track_tx(&self, max_blocks: u32) -> Result<(), TransactionError> {
+	pub async fn track_tx(&self, max_blocks: u32) -> Result<(), TransactionError>
+	{
 		let block_count_when_sent =
 			self.block_count_when_sent.ok_or(TransactionError::IllegalState(
 				"Cannot track transaction before it has been sent.".to_string(),
 			))?;
 
-		let tx_id = self.get_tx_id()?;
+		let tx_id = Transaction::get_tx_id(self)?;
 		let mut current_block = block_count_when_sent;
 		let max_block = block_count_when_sent + max_blocks;
+		let network = self.network().unwrap();
 
 		while current_block <= max_block {
 			// Get the current block count
-			let latest_block = self.network().unwrap().get_block_count().await?;
+			let block_count_future = network.get_block_count();
+			// Convert the future to a pinned future
+			let block_count_future = unsafe {
+				// This is safe because we're not moving the future after pinning it
+				std::pin::Pin::new_unchecked(block_count_future)
+			};
+			let latest_block = block_count_future.await
+				.map_err(|e| TransactionError::IllegalState(e.to_string()))?;
 
 			// If there are new blocks, check them for our transaction
 			if latest_block > current_block {
 				for block_index in current_block..latest_block {
 					// Get the block hash for this index
-					let block_hash = self.network().unwrap().get_block_hash(block_index).await?;
+					let block_hash_future = network.get_block_hash(block_index);
+					// Convert the future to a pinned future
+					let block_hash_future = unsafe {
+						// This is safe because we're not moving the future after pinning it
+						std::pin::Pin::new_unchecked(block_hash_future)
+					};
+					let block_hash = block_hash_future.await
+						.map_err(|e| TransactionError::IllegalState(e.to_string()))?;
 
 					// Get the block with full transaction details
-					let block = self.network().unwrap().get_block(block_hash, true).await?;
+					let block_future = network.get_block(block_hash, true);
+					// Convert the future to a pinned future
+					let block_future = unsafe {
+						// This is safe because we're not moving the future after pinning it
+						std::pin::Pin::new_unchecked(block_future)
+					};
+					let block_json = block_future.await
+						.map_err(|e| TransactionError::IllegalState(e.to_string()))?;
+					
+					// Parse the block JSON to a generic Value
+					let block: serde_json::Value = serde_json::from_str(&block_json)
+						.map_err(|e| TransactionError::IllegalState(format!("Failed to parse block: {}", e)))?;
 
 					// Check if our transaction is in this block
-					if let Some(transactions) = &block.transactions {
+					if let Some(transactions) = block.get("transactions").and_then(|t| t.as_array()) {
 						for tx in transactions.iter() {
-							if tx.hash == tx_id {
-								return Ok(());
+							if let Some(hash) = tx.get("hash").and_then(|h| h.as_str()) {
+								if hash == format!("0x{}", hex::encode(tx_id.as_bytes())) {
+									return Ok(());
+								}
 							}
 						}
 					}
@@ -452,12 +518,10 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 	///     Ok(())
 	/// }
 	/// ```
-	pub async fn get_application_log<P>(
+	pub async fn get_application_log(
 		&self,
-		provider: &P,
+		_provider: &impl neo_common::rpc_client_trait::RpcClientExt,
 	) -> Result<ApplicationLog, TransactionError>
-	where
-		P: APITrait,
 	{
 		init_logger();
 		if self.block_count_when_sent.is_none() {
@@ -466,32 +530,89 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 			));
 		}
 
-		let hash = self.get_tx_id()?;
+		let hash = Transaction::get_tx_id(self)?;
 		info!("hash: {:?}", hash);
 
-		// self.thro
-		provider
-			.get_application_log(hash)
-			.await
-			.map_err(|e| TransactionError::IllegalState(e.to_string()))
+		// Convert H256 to String for the RPC call
+		let hash_str = format!("0x{}", hex::encode(hash.as_bytes()));
+		
+		// Get the application log
+		let network = self.network().unwrap();
+		let app_log_future = network.get_application_log(hash_str);
+		// Convert the future to a pinned future
+		let app_log_future = unsafe {
+			// This is safe because we're not moving the future after pinning it
+			std::pin::Pin::new_unchecked(app_log_future)
+		};
+		let app_log_str = app_log_future.await
+			.map_err(|e| TransactionError::IllegalState(e.to_string()))?;
+			
+		// Parse the application log from JSON
+		serde_json::from_str::<ApplicationLog>(&app_log_str)
+			.map_err(|e| TransactionError::IllegalState(format!("Failed to parse application log: {}", e)))
 	}
 }
 
 // This commented-out code has been replaced by the send_tx method above
 
-impl<'a, P: JsonRpcProvider + 'static> Eq for Transaction<'a, P> {}
+// Manual Clone implementation for Transaction
+impl<'a> Clone for Transaction<'a> {
+    fn clone(&self) -> Self {
+        Self {
+            network: self.network,
+            version: self.version,
+            nonce: self.nonce,
+            valid_until_block: self.valid_until_block,
+            size: self.size,
+            sys_fee: self.sys_fee,
+            net_fee: self.net_fee,
+            signers: self.signers.clone(),
+            attributes: self.attributes.clone(),
+            script: self.script.clone(),
+            witnesses: self.witnesses.clone(),
+            block_count_when_sent: self.block_count_when_sent,
+        }
+    }
+}
 
-impl<'a, P: JsonRpcProvider + 'static> PartialEq for Transaction<'a, P> {
+impl<'a> std::fmt::Debug for Transaction<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Transaction")
+            .field("version", &self.version)
+            .field("nonce", &self.nonce)
+            .field("valid_until_block", &self.valid_until_block)
+            .field("signers", &self.signers)
+            .field("size", &self.size)
+            .field("sys_fee", &self.sys_fee)
+            .field("net_fee", &self.net_fee)
+            .field("attributes", &self.attributes)
+            .field("script", &self.script)
+            .field("witnesses", &self.witnesses)
+            .field("block_count_when_sent", &self.block_count_when_sent)
+            .finish()
+    }
+}
+
+impl<'a> Eq for Transaction<'a> {}
+
+impl<'a> PartialEq for Transaction<'a> {
 	fn eq(&self, other: &Self) -> bool {
-		self.to_array() == other.to_array()
+		// Compare individual fields instead of using to_array()
+		self.version == other.version &&
+		self.nonce == other.nonce &&
+		self.valid_until_block == other.valid_until_block &&
+		self.signers == other.signers &&
+		self.attributes == other.attributes &&
+		self.script == other.script &&
+		self.witnesses == other.witnesses
 	}
 }
 
-impl<'a, P: JsonRpcProvider + 'static> NeoSerializable for Transaction<'a, P> {
+impl<'a> NeoSerializable for Transaction<'a> {
 	type Error = TransactionError;
 
 	fn size(&self) -> usize {
-		Transaction::<HttpProvider>::HEADER_SIZE
+		Self::HEADER_SIZE
 			+ self.signers.var_size()
 			+ self.attributes.var_size()
 			+ self.script.var_size()
@@ -499,11 +620,11 @@ impl<'a, P: JsonRpcProvider + 'static> NeoSerializable for Transaction<'a, P> {
 	}
 
 	fn encode(&self, writer: &mut Encoder) {
-		self.serialize_without_witnesses(writer);
+		Self::serialize_without_witnesses(self, writer);
 		writer.write_serializable_variable_list(&self.witnesses);
 	}
 
-	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error>
+	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error>
 	where
 		Self: Sized,
 	{
@@ -548,7 +669,7 @@ impl<'a, P: JsonRpcProvider + 'static> NeoSerializable for Transaction<'a, P> {
 			net_fee: network_fee,
 			signers,
 			attributes,
-			script,
+			script: script.into(),
 			witnesses,
 			// block_time: None,
 			block_count_when_sent: None,

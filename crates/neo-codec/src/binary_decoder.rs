@@ -203,15 +203,14 @@ impl<'a> Decoder<'a> {
 	/// Reads a push byte slice from the byte slice.
 	pub fn read_push_bytes(&mut self) -> Result<Vec<u8>, CodecError> {
 		let opcode = self.read_u8();
-		let len =
-			match OpCode::try_from(opcode)? {
-				OpCode::PushData1 => self.read_u8() as usize,
-				OpCode::PushData2 => self.read_i16().map_err(|e| {
+		let len = match opcode {
+				0x4c => self.read_u8() as usize, // PushData1
+				0x4d => self.read_i16().map_err(|e| {
 					CodecError::InvalidEncoding(format!("Failed to read i16: {}", e))
-				})? as usize,
-				OpCode::PushData4 => self.read_i32().map_err(|e| {
+				})? as usize, // PushData2
+				0x4e => self.read_i32().map_err(|e| {
 					CodecError::InvalidEncoding(format!("Failed to read i32: {}", e))
-				})? as usize,
+				})? as usize, // PushData4
 				_ => return Err(CodecError::InvalidOpCode),
 			};
 
@@ -226,7 +225,7 @@ impl<'a> Decoder<'a> {
 			return Ok(BigInt::from(byte as i8 - OpCode::Push0 as i8));
 		}
 
-		let count = match OpCode::try_from(byte)? {
+		let count = match OpCode::try_from(byte).map_err(|_| CodecError::InvalidOpCode)? {
 			OpCode::PushInt8 => 1,
 			OpCode::PushInt16 => 2,
 			OpCode::PushInt32 => 4,

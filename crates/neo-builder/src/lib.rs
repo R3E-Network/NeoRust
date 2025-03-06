@@ -62,6 +62,7 @@ pub mod builder {
     pub use crate::transaction::{
         Signer, SignerType, Transaction, TransactionAttribute, TransactionBuilder,
         TransactionError, VerificationScript, Witness, WitnessRule, WitnessAction, WitnessCondition,
+        CallFlags,
     };
     
     // Re-export script types
@@ -70,13 +71,24 @@ pub mod builder {
 
 // Re-export all public items
 pub use error::*;
+
+/// Initialize the logger for the neo-builder crate
+pub fn init_logger() {
+    use tracing_subscriber::fmt::format::FmtSpan;
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter("info")
+        .with_span_events(FmtSpan::CLOSE)
+        .try_init();
+}
 pub use script::*;
 pub use transaction::*;
 pub use utils::*;
+pub use transaction::call_flags::CallFlags;
 
 // Re-export builder module items
 pub use builder::{
     Signer, SignerType, Transaction, TransactionAttribute, TransactionBuilder,
     TransactionError, VerificationScript, Witness, WitnessRule, WitnessAction, WitnessCondition,
-    ScriptBuilder, InteropService,
+    ScriptBuilder, InteropService
 };
+pub use error::BuilderError;

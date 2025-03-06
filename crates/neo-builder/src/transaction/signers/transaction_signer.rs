@@ -1,16 +1,13 @@
 use std::hash::{Hash, Hasher};
 
-use crate::{TransactionError, WitnessRule, WitnessScope};
+use crate::TransactionError;
+use crate::transaction::signers::signer::SignerTrait;
+use crate::transaction::signers::signer::SignerType;
+use crate::transaction::witness_rule::witness_rule::WitnessRule;
 use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
 use neo_config::NeoConstants;
 use neo_crypto::Secp256r1PublicKey;
-use crate::transaction::signers::signer::SignerTrait;
-use crate::transaction::signers::signer::SignerType;
-use neo_types::{
-    deserialize_scopes, deserialize_script_hash, deserialize_vec_script_hash_option,
-    deserialize_vec_public_key_option, serialize_vec_public_key_option,
-    serialize_scopes, serialize_script_hash, serialize_vec_script_hash_option,
-};
+use neo_common::WitnessScope;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
@@ -21,25 +18,19 @@ use serde::{Deserialize, Serialize};
 #[derive(Default, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct TransactionSigner {
 	#[serde(rename = "account")]
-	#[serde(serialize_with = "serialize_script_hash")]
-	#[serde(deserialize_with = "deserialize_script_hash")]
+	#[serde(serialize_with = "neo_common::serialize_h160")]
+	#[serde(deserialize_with = "neo_common::deserialize_h160")]
 	pub account: H160,
 
-	#[serde(rename = "scopes")]
-	#[serde(serialize_with = "serialize_scopes")]
-	#[serde(deserialize_with = "deserialize_scopes")]
+#[serde(rename = "scopes")]
 	pub scopes: Vec<WitnessScope>,
 
-	#[serde(rename = "allowedcontracts")]
-	#[serde(serialize_with = "serialize_vec_script_hash_option")]
-	#[serde(deserialize_with = "deserialize_vec_script_hash_option")]
+#[serde(rename = "allowedcontracts")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[serde(default)]
 	pub allowed_contracts: Option<Vec<H160>>,
 
-	#[serde(rename = "allowedgroups")]
-	#[serde(serialize_with = "serialize_vec_public_key_option")]
-	#[serde(deserialize_with = "deserialize_vec_public_key_option")]
+#[serde(rename = "allowedgroups")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[serde(default)]
 	pub allowed_groups: Option<Vec<Secp256r1PublicKey>>,
@@ -183,7 +174,7 @@ impl NeoSerializable for TransactionSigner {
 	}
 
 	/// Decodes a `TransactionSigner` from bytes.
-	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error>
+	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error>
 	where
 		Self: Sized,
 	{

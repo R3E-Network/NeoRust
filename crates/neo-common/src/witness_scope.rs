@@ -1,53 +1,28 @@
-//! Witness scope types for Neo blockchain
+//! Witness scope types for the NeoRust SDK.
 //!
-//! This module provides types for witness scopes in the Neo blockchain.
+//! This module provides types for working with witness scopes in the Neo blockchain.
 
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString};
+use std::fmt;
 
-/// Witness scope flags for transaction verification
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Display, EnumString)]
+/// Witness scope in the Neo blockchain
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum WitnessScope {
-    /// No scope
-    #[strum(serialize = "none")]
+    /// None scope
     None = 0,
-
-    /// Called by entry
-    #[strum(serialize = "called_by_entry")]
+    /// Called by entry scope
     CalledByEntry = 1,
-
-    /// Custom contracts
-    #[strum(serialize = "custom_contracts")]
+    /// Custom contracts scope
     CustomContracts = 16,
-
-    /// Custom groups
-    #[strum(serialize = "custom_groups")]
+    /// Custom groups scope
     CustomGroups = 32,
-
     /// Global scope
-    #[strum(serialize = "global")]
     Global = 128,
 }
 
 impl WitnessScope {
-    /// Get the scope as a string
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            WitnessScope::None => "none",
-            WitnessScope::CalledByEntry => "called_by_entry",
-            WitnessScope::CustomContracts => "custom_contracts",
-            WitnessScope::CustomGroups => "custom_groups",
-            WitnessScope::Global => "global",
-        }
-    }
-
-    /// Get the scope as a u8 value
-    pub fn as_u8(&self) -> u8 {
-        *self as u8
-    }
-
-    /// Create a scope from a u8 value
+    /// Convert a u8 value to a WitnessScope
     pub fn from_u8(value: u8) -> Option<Self> {
         match value {
             0 => Some(WitnessScope::None),
@@ -56,6 +31,23 @@ impl WitnessScope {
             32 => Some(WitnessScope::CustomGroups),
             128 => Some(WitnessScope::Global),
             _ => None,
+        }
+    }
+
+    /// Get the u8 value of the WitnessScope
+    pub fn as_u8(&self) -> u8 {
+        *self as u8
+    }
+}
+
+impl fmt::Display for WitnessScope {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            WitnessScope::None => write!(f, "None"),
+            WitnessScope::CalledByEntry => write!(f, "CalledByEntry"),
+            WitnessScope::CustomContracts => write!(f, "CustomContracts"),
+            WitnessScope::CustomGroups => write!(f, "CustomGroups"),
+            WitnessScope::Global => write!(f, "Global"),
         }
     }
 }

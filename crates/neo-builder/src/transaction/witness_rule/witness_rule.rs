@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{TransactionError, WitnessAction, WitnessCondition};
 use neo_codec::{Decoder, Encoder, NeoSerializable};
 use neo_common::{serialize_h160, deserialize_h160};
-use neo_types::{H160, H256};
+use primitive_types::{H160, H256};
 
 #[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Clone)]
 pub struct WitnessRule {
@@ -31,7 +31,7 @@ impl NeoSerializable for WitnessRule {
 		writer.write_serializable_fixed(&self.condition);
 	}
 
-	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
+	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error> {
 		let action = reader.read_u8();
 		let condition = WitnessCondition::decode(reader)?;
 		Ok(Self { action: WitnessAction::try_from(action).unwrap(), condition })
@@ -52,7 +52,7 @@ mod tests {
 	use neo_config::TestConstants;
 	use neo_crypto::Secp256r1PublicKey;
 	use neo_common::{serialize_h160, deserialize_h160};
-use neo_types::{H160, H256};
+use primitive_types::{H160, H256};
 
 	#[test]
 	fn test_decode_boolean_condition() {

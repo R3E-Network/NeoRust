@@ -1,7 +1,10 @@
-use crate::builder::{
-	AccountSigner, BuilderError, ContractSigner, TransactionError, TransactionSigner,
-	WitnessCondition, WitnessRule, WitnessScope,
+use crate::{
+	BuilderError, TransactionError, WitnessCondition, WitnessRule
 };
+use crate::transaction::signers::account_signer::AccountSigner;
+use crate::transaction::signers::contract_signer::ContractSigner;
+use crate::transaction::signers::transaction_signer::TransactionSigner;
+use neo_common::witness_scope::WitnessScope;
 use neo_codec::{Decoder, Encoder, NeoSerializable};
 use neo_config::NeoConstants;
 use neo_crypto::Secp256r1PublicKey;
@@ -176,6 +179,16 @@ pub enum Signer {
 	AccountSigner(AccountSigner),
 	ContractSigner(ContractSigner),
 	TransactionSigner(TransactionSigner),
+}
+
+impl std::fmt::Display for Signer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Signer::AccountSigner(signer) => write!(f, "AccountSigner:{}", signer.get_signer_hash()),
+            Signer::ContractSigner(signer) => write!(f, "ContractSigner:{}", signer.get_signer_hash()),
+            Signer::TransactionSigner(signer) => write!(f, "TransactionSigner:{}", signer.get_signer_hash()),
+        }
+    }
 }
 
 impl PartialEq for Signer {
@@ -520,7 +533,7 @@ impl NeoSerializable for Signer {
 		}
 	}
 
-	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error>
+	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error>
 	where
 		Self: Sized,
 	{

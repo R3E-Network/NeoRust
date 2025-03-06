@@ -2,7 +2,7 @@ use crate::{BuilderError, InteropService};
 use crate::script::CallFlags;
 use neo_codec::Encoder;
 use neo_crypto::Secp256r1PublicKey;
-use neo_types::{Bytes, ContractParameter, ContractParameterType, OpCode, ParameterValue, ScriptHashExtension};
+use neo_types::{Bytes, ContractParameter, OpCode, ParameterValue, ScriptHashExtension, ContractParameterType};
 use futures_util::future::ok;
 use getset::{Getters, Setters};
 use num_bigint::BigInt;
@@ -138,7 +138,7 @@ impl ScriptBuilder {
 		call_flags: Option<CallFlags>,
 	) -> Result<&mut Self, BuilderError> {
 		if params.is_empty() {
-			self.op_code(&[OpCode::NewArray0]);
+			self.op_code(&[OpCode::Pack]);
 		} else {
 			self.push_params(params);
 		}
@@ -173,7 +173,7 @@ impl ScriptBuilder {
 	/// ```
 	pub fn sys_call(&mut self, operation: InteropService) -> &mut Self {
 		self.push_opcode_bytes(
-			OpCode::Syscall,
+			OpCode::SysCall,
 			operation
 				.hash()
 				.from_hex()
@@ -443,7 +443,7 @@ impl ScriptBuilder {
 	///
 	pub fn push_array(&mut self, arr: &[ContractParameter]) -> Result<&mut Self, BuilderError> {
 		if arr.is_empty() {
-			self.op_code(&[OpCode::NewArray0]);
+			self.op_code(&[OpCode::Pack]);
 		} else {
 			self.push_params(arr);
 		};
@@ -471,7 +471,7 @@ impl ScriptBuilder {
 			self.push_param(&kk).unwrap();
 		}
 
-		Ok(self.push_integer(BigInt::from(map.len())).op_code(&[OpCode::PackMap]))
+		Ok(self.push_integer(BigInt::from(map.len())).op_code(&[OpCode::Pack]))
 	}
 
 	/// Appends the `Pack` opcode to the script.
@@ -485,7 +485,7 @@ impl ScriptBuilder {
 
 	/// Returns the script as a `Bytes` object.
 	pub fn to_bytes(&self) -> Bytes {
-		self.script.to_bytes()
+		self.script.to_bytes().into()
 	}
 
 	/// Builds a verification script for the given public key.
@@ -549,7 +549,7 @@ impl ScriptBuilder {
 	///
 	/// ```rust
 	/// use neo_types::*;
-use neo_common::*;
+	/// use neo_common::ContractParameterType;
 	/// use std::str::FromStr;
 	///
 	/// let sender = ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap();
@@ -600,7 +600,7 @@ use neo_common::*;
 	///
 	/// ```rust
 	/// use neo_types::*;
-use neo_common::*;
+	/// use neo_common::ContractParameterType;
 	/// use std::str::FromStr;
 	///
 	/// // Call a contract method that returns an iterator and collect up to 100 items
@@ -636,32 +636,32 @@ use neo_common::*;
 
 		sb.contract_call(contract_hash, method, params, call_flags).unwrap();
 
-		sb.op_code(&[OpCode::NewArray]);
+		sb.op_code(&[OpCode::Pack]);
 
 		let cycle_start = sb.len();
-		sb.op_code(&[OpCode::Over]);
+		sb.op_code(&[OpCode::Dup]);
 		sb.sys_call(InteropService::SystemIteratorNext);
 
 		let jmp_if_not = sb.len();
-		sb.op_code_with_arg(OpCode::JmpIf, vec![0]);
+		sb.op_code_with_arg(OpCode::JmpIf, vec![0].into());
 
-		sb.op_code(&[OpCode::Dup, OpCode::Push2, OpCode::Pick])
+		sb.op_code(&[OpCode::Dup, OpCode::Push2, OpCode::Pack])
 			.sys_call(InteropService::SystemIteratorValue)
 			.op_code(&[
 				OpCode::Append,
 				OpCode::Dup,
 				OpCode::Size,
 				OpCode::Push3,
-				OpCode::Pick,
+				OpCode::Pack,
 				OpCode::Ge,
 			]);
 
 		let jmp_if_max = sb.len();
-		sb.op_code_with_arg(OpCode::JmpIf, vec![0]);
+		sb.op_code_with_arg(OpCode::JmpIf, vec![0].into());
 
 		let jmp_offset = sb.len();
 		let jmp_bytes = (cycle_start - jmp_offset) as u8;
-		sb.op_code_with_arg(OpCode::Jmp, vec![jmp_bytes]);
+		sb.op_code_with_arg(OpCode::Jmp, vec![jmp_bytes].into());
 
 		let load_result = sb.len();
 		sb.op_code(&[OpCode::Nip, OpCode::Nip]);

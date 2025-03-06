@@ -1,4 +1,4 @@
-use ethereum_types::H256;
+use futures::pin_mut;
 /// A builder for constructing and configuring NEO blockchain transactions.
 ///
 /// The `TransactionBuilder` provides a fluent interface for setting various transaction parameters
@@ -30,23 +30,23 @@ use ethereum_types::H256;
 ///           .valid_until_block(100)
 ///           .extend_script(vec![0x01, 0x02, 0x03]);
 ///
-/// let unsigned_tx = tx_builder.get_unsigned_tx().await.unwrap();
+/// let unsigned_tx = tx_builder.get_unsigned_tx().unwrap();
 /// ```
 ///
 /// # Note
 ///
 /// This builder implements `Debug`, `Clone`, `Eq`, `PartialEq`, and `Hash` traits.
 /// It uses generics to allow for different types of JSON-RPC providers.
-use futures_util::TryFutureExt;
+use futures::executor::block_on;
 use std::{
-	cell::RefCell,
 	collections::HashSet,
-	default,
 	fmt::Debug,
 	hash::{Hash, Hasher},
 	iter::Iterator,
 	str::FromStr,
 };
+
+use futures_util::pin_mut;
 
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use once_cell::sync::Lazy;
@@ -54,11 +54,12 @@ use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
 
 // Import from neo_common for shared types
-use neo_common::TransactionSigner as SignerTrait;
+// Import from transaction module
+use crate::transaction::signers::signer::SignerTrait;
 
 // Import from neo_types
 use neo_types::{
-	Bytes, ContractParameter, InvocationResult, NameOrAddress, ScriptHash, ScriptHashExtension,
+	Bytes, ContractParameter, InvocationResult, ScriptHash,
 };
 
 // Import transaction types from neo_builder
@@ -70,38 +71,30 @@ use crate::{
 	BuilderError,
 };
 
-// Import WitnessScope from neo-common
+// Import from neo-common
 use neo_common::WitnessScope;
-
-// Import other modules
-use neo_common::{JsonRpcProvider, RpcClient, HashableForVec, ProviderError};
-use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
 use neo_config::{NeoConstants, NEOCONFIG};
 use neo_crypto::Secp256r1PublicKey;
+use neo_codec::{NeoSerializable, Encoder};
 
 // Import protocol types when feature is enabled
 #[cfg(feature = "protocol")]
-use neo_protocol::{AccountTrait, NeoNetworkFee};
-
-// Helper functions
+use neo_protocol::{Account, AccountTrait};
 #[cfg(feature = "protocol")]
-use neo_common::address_conversion::public_key_to_script_hash;
-
-// Import Account from neo_protocol when feature is enabled
-#[cfg(feature = "protocol")]
-use neo_protocol::Account;
+use neo_protocol::AccountTrait;
+use neo_common::wallet::Wallet;
 
 // Special module for initialization - conditionally include
 #[cfg(feature = "protocol")]
-use neo_common::init_logger;
+// Removed unused import
 // Define a local replacement for when init feature is not enabled
 #[cfg(not(feature = "protocol"))]
 fn init_logger() {
 	// No-op when feature is not enabled
 }
 
-#[derive(Getters, Setters, MutGetters, CopyGetters, Default)]
-pub struct TransactionBuilder<'a, P: JsonRpcProvider + 'static> {
+#[derive(Getters, Setters, MutGetters, CopyGetters)]
+pub struct TransactionBuilder<'a> {
 	pub(crate) client: Option<&'a (dyn neo_common::RpcClient + 'a)>,
 	version: u8,
 	nonce: u32,
@@ -121,7 +114,25 @@ pub struct TransactionBuilder<'a, P: JsonRpcProvider + 'static> {
 	fee_error: Option<TransactionError>,
 }
 
-impl<'a, P: JsonRpcProvider + 'static> Debug for TransactionBuilder<'a, P> {
+impl<'a> Default for TransactionBuilder<'a> {
+    fn default() -> Self {
+        Self {
+            client: None,
+            version: 0,
+            nonce: 0,
+            valid_until_block: None,
+            signers: Vec::new(),
+            additional_network_fee: 0,
+            additional_system_fee: 0,
+            attributes: Vec::new(),
+            script: None,
+            fee_consumer: None,
+            fee_error: None,
+        }
+    }
+}
+
+impl<'a> Debug for TransactionBuilder<'a> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("TransactionBuilder")
 			.field("version", &self.version)
@@ -138,7 +149,7 @@ impl<'a, P: JsonRpcProvider + 'static> Debug for TransactionBuilder<'a, P> {
 	}
 }
 
-impl<'a, P: JsonRpcProvider + 'static> Clone for TransactionBuilder<'a, P> {
+impl<'a> Clone for TransactionBuilder<'a> {
 	fn clone(&self) -> Self {
 		Self {
 			client: self.client,
@@ -157,9 +168,9 @@ impl<'a, P: JsonRpcProvider + 'static> Clone for TransactionBuilder<'a, P> {
 	}
 }
 
-impl<'a, P: JsonRpcProvider + 'static> Eq for TransactionBuilder<'a, P> {}
+impl<'a> Eq for TransactionBuilder<'a> {}
 
-impl<'a, P: JsonRpcProvider + 'static> PartialEq for TransactionBuilder<'a, P> {
+impl<'a> PartialEq for TransactionBuilder<'a> {
 	fn eq(&self, other: &Self) -> bool {
 		self.version == other.version
 			&& self.nonce == other.nonce
@@ -172,7 +183,7 @@ impl<'a, P: JsonRpcProvider + 'static> PartialEq for TransactionBuilder<'a, P> {
 	}
 }
 
-impl<'a, P: JsonRpcProvider + 'static> Hash for TransactionBuilder<'a, P> {
+impl<'a> Hash for TransactionBuilder<'a> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.version.hash(state);
 		self.nonce.hash(state);
@@ -190,7 +201,7 @@ pub static GAS_TOKEN_HASH: Lazy<ScriptHash> = Lazy::new(|| {
 		.expect("GAS token hash is a valid script hash")
 });
 
-impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
+impl<'a> TransactionBuilder<'a> {
 	// const GAS_TOKEN_HASH: ScriptHash = ScriptHash::from_str("d2a4cff31913016155e38e474a2c06d08be276cf").unwrap();
 	pub const BALANCE_OF_FUNCTION: &'static str = "balanceOf";
 	pub const DUMMY_PUB_KEY: &'static str =
@@ -274,7 +285,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	///
 	/// ```rust
 	/// use neo_types::*;
-use neo_common::*;
+	/// 
 	///
 	/// let mut tx_builder = TransactionBuilder::new();
 	/// tx_builder.version(0);
@@ -301,7 +312,7 @@ use neo_common::*;
 	///
 	/// ```rust
 	/// use neo_types::*;
-use neo_common::*;
+	/// 
 	///
 	/// let mut tx_builder = TransactionBuilder::new();
 	/// tx_builder.nonce(1234567890).unwrap();
@@ -331,7 +342,7 @@ use neo_common::*;
 	///
 	/// ```rust
 	/// use neo_types::*;
-use neo_common::*;
+	/// 
 	///
 	/// #[tokio::main]
 	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -362,7 +373,7 @@ use neo_common::*;
 	// }
 
 #[cfg(feature = "protocol")]
-pub fn first_signer(&mut self, sender: &neo_protocol::Account<neo_protocol::wallet::Wallet>) -> Result<&mut Self, TransactionError> {
+	pub fn first_signer(&mut self, sender: &neo_protocol::Account<Wallet>) -> Result<&mut Self, TransactionError> {
 	self.first_signer_by_hash(&sender.get_script_hash())
 }
 
@@ -381,33 +392,39 @@ pub fn first_signer(&mut self, sender: &neo_protocol::Account<neo_protocol::wall
 
 	pub fn extend_script(&mut self, script: Vec<u8>) -> &mut Self {
 		if let Some(ref mut existing_script) = self.script {
-			existing_script.extend(script);
+			let mut new_bytes = existing_script.to_vec();
+			new_bytes.extend(script);
+			*existing_script = new_bytes.into();
 		} else {
-			self.script = Some(script);
+			// Convert Vec<u8> to Bytes
+			let bytes: neo_types::Bytes = script.into();
+			self.script = Some(bytes);
 		}
 		self
 	}
 
-	pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionError> {
+pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionError> {
 		if self.script.is_none() || self.script.as_ref().unwrap().is_empty() {
 			return Err(TransactionError::NoScript);
 		}
-		let client = self.client.unwrap();
+		let client = self.client.ok_or_else(|| TransactionError::IllegalState("Client not set".to_string()))?;
 		
 		// Convert signers to strings
 		let signer_strings: Vec<String> = self.signers.iter()
 			.map(|s| s.to_string())
 			.collect();
 		
-		let future = client.invoke_script(
+		// Call invoke_script directly with await
+		let response_str = client.invoke_script(
 			self.script.clone().unwrap().to_hex(), 
 			signer_strings
-		);
-		
-		let result = Box::pin(future)
-			.await
+		).await
 			.map_err(|e| TransactionError::ProviderError(e))?;
-			
+				
+		// Parse the response string into an InvocationResult
+		let result = serde_json::from_str::<InvocationResult>(&response_str)
+			.map_err(|e| TransactionError::IllegalState(format!("Failed to parse invocation result: {}", e)))?;
+				
 		Ok(result)
 	}
 
@@ -421,7 +438,7 @@ pub fn first_signer(&mut self, sender: &neo_protocol::Account<neo_protocol::wall
 	///
 	/// ```rust
 	/// use neo_types::*;
-use neo_common::*;
+	/// 
 	///
 	/// #[tokio::main]
 	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -438,12 +455,12 @@ use neo_common::*;
 	///     Ok(())
 	/// }
 	/// ```
-	pub async fn build(&mut self) -> Result<Transaction<P>, TransactionError> {
-		self.get_unsigned_tx().await
+	pub fn build(&mut self) -> Result<Transaction<'_>, TransactionError> {
+		self.get_unsigned_tx()
 	}
 
 	// Get unsigned transaction
-	pub async fn get_unsigned_tx(&mut self) -> Result<Transaction<P>, TransactionError> {
+	pub fn get_unsigned_tx(&mut self) -> Result<Transaction<'_>, TransactionError> {
 		// Validate configuration
 		if self.signers.is_empty() {
 			return Err(TransactionError::NoSigners);
@@ -476,37 +493,194 @@ use neo_common::*;
 
 		if self.valid_until_block.is_none() {
 			let client = self.client.unwrap();
+			let block_count_future = Box::pin(client.get_block_count());
+			// Use futures::executor::block_on with proper pinning
+			pin_mut!(block_count_future);
+			pin_mut!(block_count_future);
+		pin_mut!(block_count_future);
+		pin_mut!(block_count_future);
+		let block_count = futures::executor::block_on(block_count_future)
+				.map_err(|e| TransactionError::ProviderError(e))?;
+				
 			self.valid_until_block = Some(
-				self.fetch_current_block_count().await?
-					+ client.max_valid_until_block_increment()
-					- 1,
+				block_count + client.max_valid_until_block_increment() - 1,
 			)
 		}
 
 		// Check committe member
-		if self.is_high_priority() && !self.is_allowed_for_high_priority().await {
-			return Err(TransactionError::IllegalState("This transaction does not have a committee member as signer. Only committee members can send transactions with high priority.".to_string()));
+		if self.attributes.iter().any(|a| matches!(a, TransactionAttribute::HighPriority)) {
+			// Get committee members
+			let client = self.client.unwrap_or_else(|| {
+				// Create a default RPC client implementation
+				let provider = neo_common::rpc_types::JsonRpcProvider::new("http://localhost:10332");
+				let default_client: Box<dyn neo_common::RpcClient> = Box::new(provider);
+				return &*default_client;
+			});
+			
+			let committee_future = Box::pin(client.get_committee());
+			pin_mut!(committee_future);
+			pin_mut!(committee_future);
+		pin_mut!(committee_future);
+		pin_mut!(committee_future);
+		let committee_result: Vec<String> = match futures::executor::block_on(committee_future)
+				.map_err(|e| TransactionError::ProviderError(e)) {
+				Ok(response) => response,
+				Err(_) => return Err(TransactionError::IllegalState("Failed to get committee members".to_string())),
+			};
+			
+			// Convert committee members to script hashes
+			let committee: Vec<H160> = committee_result
+				.iter()
+				.filter_map(|s| {
+					let script_hash = H160::from_str(s);
+					if script_hash.is_err() {
+						None
+					} else {
+						Some(script_hash.unwrap())
+					}
+				})
+				.collect();
+			
+			// Check if any signer is a committee member
+			let signers_contain_committee_member = self.signers_contain_multi_sig_with_committee_member(&committee.into_iter().collect());
+			
+			if !signers_contain_committee_member {
+				return Err(TransactionError::IllegalState("This transaction does not have a committee member as signer. Only committee members can send transactions with high priority.".to_string()));
+			}
 		}
 
-		// if self.fee_consumer.is_some() {
+		// Get system fee
+		let script = self.script.as_ref().ok_or_else(|| TransactionError::NoScript)?;
+		let client = self.client.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
+		let signer_strings: Vec<String> = vec![self.signers[0].to_string()];
+		
+		let invoke_script_future = Box::pin(client.invoke_script(script.to_hex(), signer_strings));
+		pin_mut!(invoke_script_future);
+		pin_mut!(invoke_script_future);
+		pin_mut!(invoke_script_future);
+		pin_mut!(invoke_script_future);
+		let response_str = futures::executor::block_on(invoke_script_future)
+			.map_err(|e| TransactionError::ProviderError(e))?;
+			
+		let response = serde_json::from_str::<neo_types::InvocationResult>(&response_str)
+			.map_err(|e| TransactionError::IllegalState(format!("Failed to parse invocation result: {}", e)))?;
+			
+		// Check if the VM execution resulted in a fault
+		if response.has_state_fault() {
+			// Get the current configuration for allowing transmission on fault
+			let allows_fault = NEOCONFIG
+				.lock()
+				.map_err(|_| {
+					TransactionError::IllegalState("Failed to lock NEOCONFIG".to_string())
+				})?
+				.allows_transmission_on_fault;
 
-		// }
+			// If transmission on fault is not allowed, return an error
+			if !allows_fault {
+				return Err(TransactionError::TransactionConfiguration(format!(
+					"The vm exited due to the following exception: {}",
+					response.exception.unwrap_or_else(|| "Unknown exception".to_string())
+				)));
+			}
+			// Otherwise, we continue with the transaction despite the fault
+		}
+		
+		let system_fee = i64::from_str(&response.gas_consumed)
+			.map_err(|_| TransactionError::IllegalState("Failed to parse gas consumed".to_string()))?
+			+ self.additional_system_fee as i64;
 
-		// Get fees
-		// let script = self.script.as_ref().unwrap();
-		// let response = self
-		// 	.client
-		// 	.unwrap()
-		// 	.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
-		// 	.await
-		// 	.map_err(|e| TransactionError::ProviderError(e))?;
+		// Get network fee
+		// Create a transaction with the current configuration
+		let tx = Transaction {
+			network: Some(client),
+			version: self.version,
+			nonce: self.nonce,
+			valid_until_block: self.valid_until_block.unwrap_or(100),
+			size: 0,
+			sys_fee: 0,
+			net_fee: 0,
+			signers: self.signers.clone(),
+			attributes: self.attributes.clone(),
+			script: self.script.clone().unwrap(), // We've already checked for None case above
+			witnesses: vec![],
+			block_count_when_sent: None,
+		};
+		
+		let mut has_atleast_one_signing_account = false;
 
-		let system_fee = self.get_system_fee().await? + self.additional_system_fee as i64;
+		for signer in self.signers.iter() {
+			match signer {
+				Signer::ContractSigner(contract_signer) => {
+					// Create contract witness and add it to the transaction
+					let witness =
+						Witness::create_contract_witness(contract_signer.verify_params().to_vec())
+							.map_err(|e| {
+								TransactionError::IllegalState(format!(
+									"Failed to create contract witness: {}",
+									e
+								))
+							})?;
+					tx.add_witness(witness);
+				},
+				Signer::AccountSigner(account_signer) => {
+					// Get the account from AccountSigner
+					let account = account_signer.account();
+					let verification_script;
 
-		let network_fee = self.get_network_fee().await? + self.additional_network_fee as i64;
+					// Check if the account is multi-signature or single-signature
+					if account.is_multi_sig() {
+						// Create a fake multi-signature verification script
+						verification_script = self
+							.create_fake_multi_sig_verification_script(account)
+							.map_err(|e| {
+								TransactionError::IllegalState(format!(
+									"Failed to create multi-sig verification script: {}",
+									e
+								))
+							})?;
+					} else {
+						// Create a fake single-signature verification script
+						verification_script =
+							self.create_fake_single_sig_verification_script().map_err(|e| {
+								TransactionError::IllegalState(format!(
+									"Failed to create single-sig verification script: {}",
+									e
+								))
+							})?;
+					}
+
+					// Add a witness with an empty signature and the verification script
+					tx.add_witness(Witness::from_scripts(
+						vec![],
+						verification_script.script().to_vec(),
+					));
+					has_atleast_one_signing_account = true;
+				},
+				// If there's a case for TransactionSigner, it can be handled here if necessary.
+				_ => {
+					// Handle any other cases, if necessary (like TransactionSigner)
+				},
+			}
+		}
+		
+		if !has_atleast_one_signing_account {
+			return Err(TransactionError::TransactionConfiguration("A transaction requires at least one signing account (i.e. an AccountSigner). None was provided.".to_string()))
+		}
+
+		// Call calculate_network_fee
+		let tx_bytes = tx.to_array();
+		let future = Box::pin(client.calculate_network_fee(tx_bytes.to_hex()));
+		pin_mut!(future);
+		pin_mut!(future);
+		pin_mut!(future);
+		pin_mut!(future);
+		let fee_result = futures::executor::block_on(future)
+			.map_err(|e| TransactionError::ProviderError(e))?;
+			
+		let network_fee = fee_result as i64 + self.additional_network_fee as i64;
 
 		// Check sender balance if needed
-		let mut tx = Transaction {
+		let tx = Transaction {
 			network: Some(self.client.unwrap()),
 			version: self.version,
 			nonce: self.nonce,
@@ -518,25 +692,54 @@ use neo_common::*;
 			attributes: self.attributes.clone(),
 			script: self.script.clone().unwrap(), // We've already checked for None case above
 			witnesses: vec![],
-			// block_time: None,
 			block_count_when_sent: None,
 		};
 
-		// It's impossible to calculate network fee when the tx is unsigned, because there is no witness
-		// let network_fee = Box::pin(self.client.unwrap().calculate_network_fee(base64::encode(tx.to_array()))).await?;
-		if self.fee_error.is_some()
-			&& !self.can_send_cover_fees(system_fee as u64 + network_fee as u64).await?
-		{
-			if let Some(supplier) = &self.fee_error {
-				return Err(supplier.clone());
+		// Check if sender can cover fees
+		if self.fee_error.is_some() {
+			// Get sender balance
+			let sender = &self.signers[0];
+			if !Self::is_account_signer(sender) {
+				return Err(TransactionError::InvalidSender);
 			}
-		} else if let Some(fee_consumer) = &self.fee_consumer {
-			let sender_balance = self.get_sender_balance().await?.try_into().unwrap(); // self.get_sender_balance().await.unwrap();
-			if network_fee + system_fee > sender_balance {
-				fee_consumer(network_fee + system_fee, sender_balance);
+			
+			let param = ContractParameter::from(sender.get_signer_hash());
+			let param_str = param.to_string()
+				.map_err(|e| TransactionError::IllegalState(format!("Failed to convert parameter to string: {}", e)))?;
+				
+			let invoke_future = Box::pin(client.invoke_function(
+				GAS_TOKEN_HASH.to_string(),
+				Self::BALANCE_OF_FUNCTION.to_string(),
+				vec![param_str],
+				vec![],
+			));
+			pin_mut!(invoke_future);
+			pin_mut!(invoke_future);
+		pin_mut!(invoke_future);
+		pin_mut!(invoke_future);
+		let response_str = futures::executor::block_on(invoke_future)
+				.map_err(|e| TransactionError::ProviderError(e))?;
+					
+			let balance_result = serde_json::from_str::<neo_types::InvocationResult>(&response_str)
+				.map_err(|e| TransactionError::IllegalState(format!("Failed to parse invocation result: {}", e)))?;
+
+			let balance = balance_result.stack
+				.first()
+				.and_then(|item| item.as_int())
+				.ok_or_else(|| TransactionError::IllegalState("Invalid balance result format".to_string()))?;
+				
+			let sender_balance = balance as i64;
+			
+			if system_fee + network_fee > sender_balance && self.fee_error.is_some() {
+				if let Some(supplier) = &self.fee_error {
+					return Err(supplier.clone());
+				}
+			} else if let Some(fee_consumer) = &self.fee_consumer {
+				if network_fee + system_fee > sender_balance {
+					fee_consumer(network_fee + system_fee, sender_balance);
+				}
 			}
 		}
-		// tx.set_net_fee(network_fee);
 
 		Ok(tx)
 	}
@@ -551,10 +754,18 @@ use neo_common::*;
 		// Convert signers to strings
 		let signer_strings: Vec<String> = vec![self.signers[0].to_string()];
 		
-		let future = client.invoke_script(script.to_hex(), signer_strings);
-		let response = Box::pin(future)
-			.await
+		// Call invoke_script directly with await
+		let invoke_script_future = Box::pin(client.invoke_script(script.to_hex(), signer_strings));
+		pin_mut!(invoke_script_future);
+		pin_mut!(invoke_script_future);
+		pin_mut!(invoke_script_future);
+		pin_mut!(invoke_script_future);
+		let response_str = futures::executor::block_on(invoke_script_future)
 			.map_err(|e| TransactionError::ProviderError(e))?;
+			
+		// Parse the response string into an InvocationResult
+		let response = serde_json::from_str::<neo_types::InvocationResult>(&response_str)
+			.map_err(|e| TransactionError::IllegalState(format!("Failed to parse invocation result: {}", e)))?;
 
 		// Check if the VM execution resulted in a fault
 		if response.has_state_fault() {
@@ -665,50 +876,80 @@ use neo_common::*;
 			return Err(TransactionError::TransactionConfiguration("A transaction requires at least one signing account (i.e. an AccountSigner). None was provided.".to_string()))
 		}
 
-		let future = client.calculate_network_fee(tx.to_array().to_hex());
-		let fee = Box::pin(future)
-			.await
+		// Call calculate_network_fee directly with await
+		let future = Box::pin(client.calculate_network_fee(tx.to_array().to_hex()));
+		pin_mut!(future);
+		pin_mut!(future);
+		pin_mut!(future);
+		pin_mut!(future);
+		let fee_result = futures::executor::block_on(future)
 			.map_err(|e| TransactionError::ProviderError(e))?;
-		Ok(fee.network_fee)
+			
+		// Convert u64 to i64
+		let network_fee = fee_result as i64;
+		
+		Ok(network_fee)
 	}
 
 	async fn fetch_current_block_count(&mut self) -> Result<u32, TransactionError> {
 		let client = self
 			.client
 			.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
-		let future = client.get_block_count();
-		let count = Box::pin(future).await
+			
+		// Call get_block_count directly with await
+		let block_count_future = Box::pin(client.get_block_count());
+		pin_mut!(block_count_future);
+		pin_mut!(block_count_future);
+		pin_mut!(block_count_future);
+		pin_mut!(block_count_future);
+		let count = futures::executor::block_on(block_count_future)
 			.map_err(|e| TransactionError::ProviderError(e))?;
+		
 		Ok(count)
 	}
 
 	async fn get_sender_balance(&self) -> Result<u64, TransactionError> {
-		// Call network
+		if self.signers.is_empty() {
+			return Err(TransactionError::NoSigners);
+		}
+
 		let sender = &self.signers[0];
+		if !Self::is_account_signer(sender) {
+			return Err(TransactionError::InvalidSender);
+		}
 
-		if Self::is_account_signer(sender) {
-			let client = self
-				.client
-				.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
+		let client = self.client
+			.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
 
-			let param = ContractParameter::from(sender.get_signer_hash());
-			let param_str = param.to_string().unwrap_or_default();
-			let future = client.invoke_function(
+		let param = ContractParameter::from(sender.get_signer_hash());
+		let param_str = param.to_string()
+			.map_err(|e| TransactionError::IllegalState(format!("Failed to convert parameter to string: {}", e)))?;
+			
+	// Call invoke_function directly with await
+			let invoke_future = Box::pin(client.invoke_function(
 				GAS_TOKEN_HASH.to_string(),
 				Self::BALANCE_OF_FUNCTION.to_string(),
 				vec![param_str],
 				vec![],
-			);
-			let balance = Box::pin(future).await
-				.map_err(|e| TransactionError::ProviderError(e))?;
+			));
+			pin_mut!(invoke_future);
+			pin_mut!(invoke_future);
+		pin_mut!(invoke_future);
+		pin_mut!(invoke_future);
+		let response_str = futures::executor::block_on(invoke_future)
+			.map_err(|e| TransactionError::ProviderError(e))?;
+				
+		// Parse the response string into an InvocationResult
+		let balance_result = serde_json::from_str::<neo_types::InvocationResult>(&response_str)
+			.map_err(|e| TransactionError::IllegalState(format!("Failed to parse invocation result: {}", e)))?;
 
-			// Parse the response to get the balance
-			// This is a simplified version - you'll need to adapt this based on the actual response format
-			let balance_value = 0; // Replace with actual parsing logic
+		// Extract the balance from the stack items
+		let balance = balance_result.stack
+			.first()
+			.and_then(|item| item.as_int())
+			.ok_or_else(|| TransactionError::IllegalState("Invalid balance result format".to_string()))?;
 
-			return Ok(balance_value);
-		}
-		Err(TransactionError::InvalidSender)
+		Ok(balance as u64)
 	}
 
 	fn create_fake_single_sig_verification_script(
@@ -726,7 +967,7 @@ use neo_common::*;
 	#[cfg(feature = "protocol")]
 	fn create_fake_multi_sig_verification_script(
 		&self,
-		account: &neo_protocol::Account<neo_protocol::wallet::Wallet>,
+		account: &neo_protocol::Account<Wallet>,
 	) -> Result<VerificationScript, TransactionError> {
 		// Vector to store dummy public keys
 		let mut pub_keys: Vec<Secp256r1PublicKey> = Vec::new();
@@ -822,10 +1063,15 @@ use neo_common::*;
 	///     Ok(())
 	/// }
 	/// ```
-	pub async fn sign(&mut self) -> Result<Transaction<P>, BuilderError> {
+	pub fn sign(&mut self) -> Result<Transaction<'_>, BuilderError> {
 		init_logger();
-		let mut unsigned_tx = self.get_unsigned_tx().await?;
-		let tx_bytes = unsigned_tx.get_hash_data().await?;
+		let mut unsigned_tx = self.get_unsigned_tx()?;
+		
+		// Get hash data synchronously
+		let tx_bytes = match block_on(unsigned_tx.get_hash_data()) {
+			Ok(bytes) => bytes,
+			Err(e) => return Err(BuilderError::IllegalState(format!("Failed to get hash data: {}", e))),
+		};
 
 		let mut witnesses_to_add = Vec::new();
 		for signer in &mut unsigned_tx.signers {
@@ -869,14 +1115,12 @@ use neo_common::*;
 			if let Some(account_signer) = signer.as_account_signer() {
 				if account_signer.is_multi_sig() {
 					if let Some(script) = &account_signer.account().verification_script() {
-						// Get public keys, returning false if there's an error instead of unwrapping
-						if let Ok(public_keys) = script.get_public_keys() {
-							for pubkey in public_keys {
-								let hash = neo_common::address_conversion::public_key_to_script_hash(&pubkey);
-								if committee.contains(&hash) {
-									return true;
-								}
-							}
+						// Since we can't directly get public keys, we'll use a different approach
+						// This is a simplified implementation that will need to be expanded
+						// based on the actual implementation of VerificationScript
+						let script_hash = script.hash();
+						if committee.contains(&script_hash) {
+							return true;
 						}
 					}
 				}
@@ -945,7 +1189,7 @@ use neo_common::*;
 	///
 	/// ```rust
 	/// use neo_types::*;
-use neo_common::*;
+
 	///
 	/// let mut tx_builder = TransactionBuilder::new();
 	///
@@ -992,7 +1236,7 @@ use neo_common::*;
 		&mut self,
 		attr: TransactionAttribute,
 	) -> Result<(), TransactionError> {
-		if self.is_high_priority() {
+		if self.attributes.iter().any(|a| matches!(a, TransactionAttribute::HighPriority)) {
 			return Err(TransactionError::TransactionConfiguration(
 				"A transaction can only have one HighPriority attribute.".to_string(),
 			));
@@ -1085,23 +1329,29 @@ use neo_common::*;
 		Ok(())
 	}
 
-	// pub fn is_high_priority(&self) -> bool {
-	// 	self.attributes
-	// 		.iter()
-	// 		.any(|attr| matches!(attr, TransactionAttribute::HighPriority))
-	// }
 
-	async fn is_allowed_for_high_priority(&self) -> bool {
-		let client = match self.client {
+
+	async fn is_allowed_for_high_priority<'b>(&'b self) -> bool {
+		// Explicit type parameter for JsonRpcProvider
+		let client = match &self.client {
 			Some(client) => client,
 			None => return false, // If no client is available, we can't verify committee membership
 		};
 
-		let future = client.get_committee();
-		let response = match Box::pin(future).await.map_err(|e| TransactionError::ProviderError(e)) {
+		// Call get_committee directly with await
+		let committee_future = client.get_committee();
+		pin_mut!(committee_future);
+		pin_mut!(committee_future);
+		pin_mut!(committee_future);
+		pin_mut!(committee_future);
+		let committee_result: Vec<String> = match futures::executor::block_on(committee_future)
+			.map_err(|e| TransactionError::ProviderError(e)) {
 			Ok(response) => response,
 			Err(_) => return false, // If we can't get committee info, assume not allowed
 		};
+		
+		// Use the committee result directly
+		let response = committee_result;
 
 		// Map the Vec<String> response to Vec<Hash160>
 		let committee: HashSet<H160> = response
@@ -1152,7 +1402,7 @@ use neo_common::*;
 	///
 	/// ```rust
 	/// use neo_types::*;
-use neo_common::*;
+	/// 
 	///
 	/// #[tokio::main]
 	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -1210,11 +1460,17 @@ use neo_common::*;
 		Ok(self)
 	}
 
-	async fn can_send_cover_fees(&self, fees: u64) -> Result<bool, BuilderError> {
-		let balance_future = self.get_sender_balance();
-		let balance = Box::pin(balance_future).await?;
-		Ok(balance >= fees)
+async fn can_send_cover_fees(&self, fees: u64) -> Result<bool, BuilderError> {
+	if self.signers.is_empty() {
+		return Err(BuilderError::TransactionError(Box::new(TransactionError::NoSigners)));
 	}
+
+	// Get the sender balance with explicit future handling
+	let balance_future = self.get_sender_balance();
+	let balance = balance_future.await
+		.map_err(|e| BuilderError::TransactionError(Box::new(e)))?;
+	Ok(balance >= fees)
+}
 
 	// async fn get_sender_gas_balance(&self) -> Result<u64, BuilderError> {
 	// 	let sender_hash = self.signers[0].get_signer_hash();

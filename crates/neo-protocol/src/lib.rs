@@ -34,7 +34,7 @@
 #![warn(missing_debug_implementations, missing_docs, rust_2018_idioms, unreachable_pub)]
 #![deny(rustdoc::broken_intra_doc_links)]
 
-mod account;
+pub mod account;
 mod nep2;
 mod protocol_error;
 mod responses;
