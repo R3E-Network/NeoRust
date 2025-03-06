@@ -1,31 +1,14 @@
-//! Hard forks serialization utilities
+//! Hard forks utilities for the NeoRust SDK.
 //!
-//! This module provides utilities for serializing and deserializing hard forks.
+//! This module provides utilities for working with hard forks in the Neo blockchain.
 
-use serde::{Deserialize, Deserializer};
-use crate::HardForks;
+use crate::hard_forks::HardForks;
 
-/// Deserializes hard forks from a string.
-pub fn deserialize_hardforks<'de, D>(deserializer: D) -> Result<Vec<HardForks>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    let parts: Vec<&str> = s.split(',').collect();
-    
-    let mut result = Vec::new();
-    for part in parts {
-        let trimmed = part.trim();
-        if !trimmed.is_empty() {
-            match trimmed {
-                "Hardfork_0" | "hardfork_v17" => result.push(HardForks::HardforkV17),
-                "Hardfork_1" | "hardfork_v18" => result.push(HardForks::HardforkV18),
-                "Hardfork_2" | "hardfork_v21" => result.push(HardForks::HardforkV21),
-                "Hardfork_3" | "hardfork_v31" => result.push(HardForks::HardforkV31),
-                _ => return Err(serde::de::Error::custom(format!("Unknown hardfork: {}", trimmed))),
-            }
-        }
+/// Checks if a hard fork is active at a given block height.
+pub fn is_hard_fork_active(hard_fork: HardForks, block_height: u32) -> bool {
+    match hard_fork {
+        HardForks::Aspidochelone => block_height >= 1_730_000,
+        HardForks::Basilisk => block_height >= 2_320_000,
+        HardForks::Cockatrice => block_height >= 3_150_000,
     }
-    
-    Ok(result)
 }

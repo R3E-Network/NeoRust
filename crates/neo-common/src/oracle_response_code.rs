@@ -3,7 +3,7 @@
 //! This module provides utilities for working with oracle response codes.
 
 use serde::{Deserialize, Serialize};
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 
 /// Oracle response codes in the Neo blockchain
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]

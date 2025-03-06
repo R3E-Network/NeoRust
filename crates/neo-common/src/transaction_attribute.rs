@@ -1,48 +1,25 @@
-//! Transaction attribute utilities
+//! Transaction attribute types for the NeoRust SDK.
 //!
-//! This module provides utilities for working with transaction attributes.
+//! This module provides types for working with transaction attributes in the Neo blockchain.
 
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString};
 
-/// Transaction attribute types in the Neo blockchain
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Display, EnumString)]
+/// Transaction attribute type in the Neo blockchain
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum TransactionAttributeType {
     /// High priority attribute
-    #[strum(serialize = "high_priority")]
     HighPriority = 0x01,
-    
     /// Oracle response attribute
-    #[strum(serialize = "oracle_response")]
     OracleResponse = 0x11,
-    
     /// Not valid before attribute
-    #[strum(serialize = "not_valid_before")]
     NotValidBefore = 0x20,
-    
     /// Conflicts attribute
-    #[strum(serialize = "conflicts")]
     Conflicts = 0x21,
 }
 
 impl TransactionAttributeType {
-    /// Get the attribute type as a string
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            TransactionAttributeType::HighPriority => "high_priority",
-            TransactionAttributeType::OracleResponse => "oracle_response",
-            TransactionAttributeType::NotValidBefore => "not_valid_before",
-            TransactionAttributeType::Conflicts => "conflicts",
-        }
-    }
-    
-    /// Get the attribute type as a u8 value
-    pub fn as_u8(&self) -> u8 {
-        *self as u8
-    }
-    
-    /// Create an attribute type from a u8 value
+    /// Convert a u8 value to a TransactionAttributeType
     pub fn from_u8(value: u8) -> Option<Self> {
         match value {
             0x01 => Some(TransactionAttributeType::HighPriority),
@@ -50,6 +27,47 @@ impl TransactionAttributeType {
             0x20 => Some(TransactionAttributeType::NotValidBefore),
             0x21 => Some(TransactionAttributeType::Conflicts),
             _ => None,
+        }
+    }
+
+    /// Get the u8 value of the TransactionAttributeType
+    pub fn as_u8(&self) -> u8 {
+        *self as u8
+    }
+}
+
+/// Transaction attribute in the Neo blockchain
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct TransactionAttribute {
+    /// The type of the attribute
+    pub attribute_type: TransactionAttributeType,
+    /// The data of the attribute
+    pub data: Vec<u8>,
+}
+
+impl TransactionAttribute {
+    /// Create a new transaction attribute
+    pub fn new(attribute_type: TransactionAttributeType, data: Vec<u8>) -> Self {
+        Self {
+            attribute_type,
+            data,
+        }
+    }
+
+    /// Create a high priority transaction attribute
+    pub fn high_priority() -> Self {
+        Self {
+            attribute_type: TransactionAttributeType::HighPriority,
+            data: Vec::new(),
+        }
+    }
+
+    /// Create a not valid before transaction attribute
+    pub fn not_valid_before(block_height: u32) -> Self {
+        let data = block_height.to_le_bytes().to_vec();
+        Self {
+            attribute_type: TransactionAttributeType::NotValidBefore,
+            data,
         }
     }
 }

@@ -3,9 +3,8 @@
 //! This module provides utilities for working with verification scripts.
 
 use crate::address_conversion::PublicKey;
-use crate::hashable::HashableForVec;
 use primitive_types::H160;
-use rustc_serialize::base64::{ToBase64, STANDARD};
+use rustc_serialize::base64::ToBase64;
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 
