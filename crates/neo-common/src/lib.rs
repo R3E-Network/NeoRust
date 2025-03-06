@@ -77,7 +77,7 @@ pub use serde_utils::*;
 pub use provider_error::ProviderError;
 pub use rpc_types::{JsonRpcProvider, RpcClient, HttpProvider, WebSocketProvider, IpcProvider};
 pub use transaction_attribute::TransactionAttributeType;
-pub use transaction_types::{TransactionSigner, WitnessRule, WitnessAction, WitnessCondition, WitnessScope as WitnessScopeType};
+pub use transaction_types::{TransactionSigner, Signer, TransactionSendToken, WitnessRule, WitnessAction, WitnessCondition, WitnessScope as WitnessScopeType};
 pub use vec_utils::vec_to_array32;
 pub use verification_script::VerificationScript;
 pub use witness::Witness;

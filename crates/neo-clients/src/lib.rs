@@ -54,42 +54,83 @@ pub use rpc::*;
 pub use rx::*;
 pub use utils::*;
 
-// Implement RpcClient trait for JsonRpcProvider
-impl neo_common::RpcClient for crate::rpc::RpcClient<crate::rpc::transports::http_provider::HttpProvider> {
+// Implement CommonRpcClient trait for JsonRpcProvider
+impl neo_common::RpcClient for crate::rpc::RpcClient<crate::rpc::HttpProvider> {
     fn max_valid_until_block_increment(&self) -> u32 {
         2048 // Default value
     }
     
-    fn invoke_script(&self, script: String, signers: Vec<String>) -> Result<String, neo_common::provider_error::ProviderError> {
-        // Forward to the actual implementation
-        self.invoke_script(script, signers)
-            .map_err(|e| neo_common::provider_error::ProviderError::RpcError(e.to_string()))
+    fn invoke_script<'a>(&'a self, script: String, signers: Vec<String>) 
+        -> Box<dyn std::future::Future<Output = Result<String, neo_common::provider_error::ProviderError>> + Send + 'a> {
+        Box::new(async move {
+            // Forward to the actual implementation
+            let result = api_trait::APITrait::invoke_script(self, script, Vec::new())
+                .await
+                .map_err(|e| neo_common::provider_error::ProviderError::RpcError(e.to_string()))?;
+            
+            // Convert InvocationResult to String
+            Ok(serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string()))
+        })
     }
     
-    fn calculate_network_fee(&self, tx_hex: String) -> Result<u64, neo_common::provider_error::ProviderError> {
-        // Forward to the actual implementation
-        self.calculate_network_fee(tx_hex)
-            .map_err(|e| neo_common::provider_error::ProviderError::RpcError(e.to_string()))
+    fn calculate_network_fee<'a>(&'a self, tx_hex: String) 
+        -> Box<dyn std::future::Future<Output = Result<u64, neo_common::provider_error::ProviderError>> + Send + 'a> {
+        Box::new(async move {
+            // Forward to the actual implementation
+            let result = api_trait::APITrait::calculate_network_fee(self, tx_hex)
+                .await
+                .map_err(|e| neo_common::provider_error::ProviderError::RpcError(e.to_string()))?;
+            
+            // Extract fee value from NeoNetworkFee
+            Ok(result.network_fee as u64)
+        })
     }
     
-    fn get_block_count(&self) -> Result<u32, neo_common::provider_error::ProviderError> {
-        // Forward to the actual implementation
-        self.get_block_count()
-            .map_err(|e| neo_common::provider_error::ProviderError::RpcError(e.to_string()))
+    fn get_block_count<'a>(&'a self) 
+        -> Box<dyn std::future::Future<Output = Result<u32, neo_common::provider_error::ProviderError>> + Send + 'a> {
+        Box::new(async move {
+            // Forward to the actual implementation
+            api_trait::APITrait::get_block_count(self)
+                .await
+                .map_err(|e| neo_common::provider_error::ProviderError::RpcError(e.to_string()))
+        })
     }
     
-    fn invoke_function(&self, script_hash: String, operation: String, params: Vec<String>, signers: Vec<String>) -> Result<String, neo_common::provider_error::ProviderError> {
-        // Forward to the actual implementation
-        self.invoke_function(script_hash, operation, params, signers)
-            .map_err(|e| neo_common::provider_error::ProviderError::RpcError(e.to_string()))
+    fn invoke_function<'a>(&'a self, script_hash: String, operation: String, params: Vec<String>, signers: Vec<String>) 
+        -> Box<dyn std::future::Future<Output = Result<String, neo_common::provider_error::ProviderError>> + Send + 'a> {
+        Box::new(async move {
+            // Convert script_hash from String to H160
+            let script_hash_h160 = match std::str::FromStr::from_str(&script_hash) {
+                Ok(h) => h,
+                Err(_) => return Err(neo_common::provider_error::ProviderError::InvalidAddress),
+            };
+            
+            // Convert params from Vec<String> to Vec<ContractParameter>
+            let contract_params = Vec::new(); // Empty params for now
+            
+            // Forward to the actual implementation
+            let result = api_trait::APITrait::invoke_function(
+                self, 
+                &script_hash_h160, 
+                operation, 
+                contract_params,
+                None
+            )
+            .await
+            .map_err(|e| neo_common::provider_error::ProviderError::RpcError(e.to_string()))?;
+            
+            // Convert InvocationResult to String
+            Ok(serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string()))
+        })
     }
     
-    fn get_committee(&self) -> Result<Vec<String>, neo_common::provider_error::ProviderError> {
-        // Forward to the actual implementation
-        self.get_committee()
-            .map_err(|e| neo_common::provider_error::ProviderError::RpcError(e.to_string()))
+    fn get_committee<'a>(&'a self) 
+        -> Box<dyn std::future::Future<Output = Result<Vec<String>, neo_common::provider_error::ProviderError>> + Send + 'a> {
+        Box::new(async move {
+            // Forward to the actual implementation
+            api_trait::APITrait::get_committee(self)
+                .await
+                .map_err(|e| neo_common::provider_error::ProviderError::RpcError(e.to_string()))
+        })
     }
 }
-
-// Implement RpcClientExt for JsonRpcProvider
-impl neo_common::RpcClientExt for crate::rpc::RpcClient<crate::rpc::transports::http_provider::HttpProvider> {}

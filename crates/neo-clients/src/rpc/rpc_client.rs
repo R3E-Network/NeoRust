@@ -24,18 +24,21 @@ use url::{Host, ParseError, Url};
 
 // Import client-specific types
 use crate::{
-	APITrait, Http, HttpProvider, HttpRateLimitRetryPolicy, JsonRpcProvider, ProviderError,
+	APITrait, Http, HttpProvider, HttpRateLimitRetryPolicy, JsonRpcProvider, errors::ProviderError,
 	RetryClient, RwClient,
 };
 use neo_codec::NeoSerializable;
 use neo_config::NEOCONFIG;
+use neo_common::{Base64Encode, TransactionSigner, Signer, TransactionSendToken, RpcClient as CommonRpcClient, rpc_client_trait::RpcClientExt};
 use crate::rpc::rpc_client::sealed::Sealed;
-// Import protocol types
-use neo_common::{
-    Nep17BalanceProvider, Nep17BalancesResponse, Nep17Balance, ProviderError, Base64Encode
-};
 #[cfg(feature = "builder")]
-use neo_builder::{ScriptBuilder, InteropService, TransactionBuilder};
+use neo_builder::{ScriptBuilder, InteropService, TransactionBuilder, CallFlags};
+use neo_protocol::{
+    NeoBlock, NeoAddress, MemPoolDetails, RTransaction, ApplicationLog, Balance, 
+    Nep11Balances, Nep11Transfers, Nep17Balances, Nep17Transfers, NeoNetworkFee, 
+    Plugin, StateHeight, StateRoot, States, UnclaimedGas, ValidateAddress,
+    NeoVersion, RawTransaction, SubmitBlock, Peers, Validator
+};
 use neo_types::{
     ScriptHashExtension, Address, ContractManifest, ContractParameter, ContractState,
     InvocationResult, NativeContractState, NefFile, StackItem, ValueExtension,
@@ -120,10 +123,11 @@ impl<P: JsonRpcProvider> RpcClient<P> {
 	pub async fn node_client(&self) -> Result<NeoVersion, ProviderError> {
 		let mut node_client = self._node_client.lock().await;
 
-		if let Some(ref node_client) = *node_client {
-			Ok(node_client.clone())
+		if let Some(ref client_version) = *node_client {
+			// Just clone the NeoVersion to avoid type inference issues
+			Ok(client_version.clone())
 		} else {
-			let client_version: NeoVersion = self.get_version().await?;
+			let client_version = self.get_version().await?;
 			*node_client = Some(client_version.clone());
 			Ok(client_version)
 		}
@@ -168,7 +172,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		self
 	}
 
-	async fn network(&self) -> Result<u32, ProviderError> {
+	async fn network(&self) -> Result<u32, Self::Error> {
 		// trace!("network = {:?}", self.get_version().await.unwrap());
 		if NEOCONFIG.lock().map_err(|_| ProviderError::LockError)?.network.is_none() {
 			let version = self.get_version().await?;
@@ -504,6 +508,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	}
 
 	/// Creates a contract deployment transaction
+	#[cfg(feature = "builder")]
 	async fn create_contract_deployment_transaction(
 		&self,
 		nef: NefFile,
@@ -531,6 +536,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	}
 
 	/// Creates a contract update transaction
+	#[cfg(feature = "builder")]
 	async fn create_contract_update_transaction(
 		&self,
 		contract_hash: H160,
@@ -560,6 +566,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	}
 
 	/// Creates an invocation transaction
+	#[cfg(feature = "builder")]
 	async fn create_invocation_transaction(
 		&self,
 		contract_hash: H160,
@@ -601,7 +608,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 	) -> Result<InvocationResult, ProviderError> {
 		match signers {
 			Some(signers) => {
-				let signers: Vec<TransactionSigner> = signers.iter().map(|f| f.into()).collect();
+				let signers: Vec<TransactionSigner> = signers.iter().map(|signer| signer.into()).collect();
 				self.request(
 					"invokefunction",
 					json!([contract_hash.to_hex(), method, params, signers,]),
@@ -639,12 +646,11 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		hex: String,
 		signers: Vec<Signer>,
 	) -> Result<InvocationResult, ProviderError> {
-		let signers: Vec<TransactionSigner> =
-			signers.into_iter().map(|signer| signer.into()).collect::<Vec<_>>();
+		let signers: Vec<TransactionSigner> = signers.into_iter().map(|signer| signer.into()).collect();
 		let hex_bytes = hex
 			.from_hex()
 			.map_err(|e| ProviderError::ParseError(format!("Failed to parse hex: {}", e)))?;
-		let script_base64 = serde_json::to_value(hex_bytes.to_base64())?;
+		let script_base64 = serde_json::to_value(neo_common::Base64Encode::to_base64(&hex_bytes))?;
 		let signers_json = serde_json::to_value(&signers)?;
 		self.request("invokescript", [script_base64, signers_json]).await
 	}
@@ -1097,7 +1103,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		params: Vec<ContractParameter>,
 		signers: Vec<Signer>,
 	) -> Result<InvocationResult, ProviderError> {
-		let signers: Vec<TransactionSigner> = signers.iter().map(|f| f.into()).collect();
+		let signers: Vec<TransactionSigner> = signers.iter().map(|signer| signer.into()).collect();
 		let params = json!([contract_hash.to_hex(), function_name, params, signers, true]);
 		self.request("invokefunction", params).await
 	}
@@ -1114,12 +1120,11 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		hex: String,
 		signers: Vec<Signer>,
 	) -> Result<InvocationResult, ProviderError> {
-		let signers: Vec<TransactionSigner> =
-			signers.into_iter().map(|signer| signer.into()).collect::<Vec<_>>();
+		let signers: Vec<TransactionSigner> = signers.into_iter().map(|signer| signer.into()).collect();
 		let hex_bytes = hex
 			.from_hex()
 			.map_err(|e| ProviderError::ParseError(format!("Failed to parse hex: {}", e)))?;
-		let script_base64 = serde_json::to_value(hex_bytes.to_base64())?;
+		let script_base64 = serde_json::to_value(neo_common::Base64Encode::to_base64(&hex_bytes))?;
 		let signers_json = serde_json::to_value(&signers)?;
 		let params = vec![script_base64, signers_json, true.to_value()];
 		self.request("invokescript", params).await
@@ -1153,8 +1158,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		params: Vec<ContractParameter>,
 		signers: Vec<Signer>,
 	) -> Result<InvocationResult, ProviderError> {
-		let signers: Vec<TransactionSigner> =
-			signers.into_iter().map(|signer| signer.into()).collect::<Vec<_>>();
+		let signers: Vec<TransactionSigner> = signers.into_iter().map(|signer| signer.into()).collect();
 		let params = json!([hash.to_hex(), params, signers]);
 		self.request("invokecontractverify", params).await
 	}
@@ -1196,7 +1200,7 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		send_token: &TransactionSendToken,
 	) -> Result<RTransaction, ProviderError> {
 		// let params = [send_token.to_value()].to_vec();
-		let params = json!([send_token.token.to_hex(), send_token.address, send_token.value,]);
+		let params = json!([send_token.token_hash.to_hex(), send_token.to, send_token.amount,]);
 		self.request("sendtoaddress", params).await
 	}
 
@@ -1206,10 +1210,10 @@ impl<P: JsonRpcProvider> APITrait for RpcClient<P> {
 		from: H160,
 	) -> Result<RTransaction, ProviderError> {
 		let params = json!([
-			send_token.token.to_hex(),
+			send_token.token_hash.to_hex(),
 			from.to_address(),
-			send_token.address,
-			send_token.value,
+			send_token.to,
+			send_token.amount,
 		]);
 		// let params = [from.to_value(), vec![send_token.to_value()].into()].to_vec();
 		self.request("sendfrom", params).await

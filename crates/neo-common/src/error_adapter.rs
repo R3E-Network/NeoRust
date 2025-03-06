@@ -45,6 +45,9 @@ pub fn from_provider_error(error: &ProviderError) -> String {
         ProviderError::SerializationError(s) => format!("Serialization error: {}", s),
         ProviderError::NetworkError(s) => format!("Network error: {}", s),
         ProviderError::CryptoError(s) => format!("Crypto error: {}", s),
+        ProviderError::LockError => "Lock error".to_string(),
+        ProviderError::ProtocolNotFound => "Protocol not found".to_string(),
+        ProviderError::NetworkNotFound => "Network not found".to_string(),
         ProviderError::Other(s) => format!("Other error: {}", s),
     }
 }

@@ -14,9 +14,9 @@ impl Base64Encode {
         Self(data)
     }
 
-    /// Convert a string to Base64
-    pub fn to_base64(s: &str) -> String {
-        s.as_bytes().to_base64(STANDARD)
+    /// Convert any byte-like data to Base64
+    pub fn to_base64<T: AsRef<[u8]>>(data: T) -> String {
+        data.as_ref().to_base64(STANDARD)
     }
 
     /// Get the inner byte vector

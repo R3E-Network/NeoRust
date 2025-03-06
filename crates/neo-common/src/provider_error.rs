@@ -36,6 +36,18 @@ pub enum ProviderError {
     #[error("Crypto error: {0}")]
     CryptoError(String),
     
+    /// Lock error
+    #[error("Lock error")]
+    LockError,
+    
+    /// Protocol not found
+    #[error("Protocol not found")]
+    ProtocolNotFound,
+    
+    /// Network not found
+    #[error("Network not found")]
+    NetworkNotFound,
+    
     /// Other error
     #[error("Other error: {0}")]
     Other(String),

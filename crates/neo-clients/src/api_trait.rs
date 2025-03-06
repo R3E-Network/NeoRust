@@ -139,6 +139,15 @@ pub trait APITrait: Sync + Send + Debug {
 	/// # Returns
 	///
 	/// A `Result` containing the transaction hash or a `ProviderError`
+	/// Sends a transaction to the network
+	///
+	/// # Arguments
+	///
+	/// * `tx_bytes` - The serialized transaction bytes
+	///
+	/// # Returns
+	///
+	/// A `Result` containing the transaction hash or an error
 	async fn send_transaction(
 		&self,
 		tx_bytes: Vec<u8>,

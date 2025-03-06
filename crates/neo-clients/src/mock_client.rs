@@ -5,6 +5,7 @@ use neo_protocol::{Account, AccountTrait, ApplicationLog, NeoVersion, RawTransac
 use lazy_static::lazy_static;
 use neo_types::*;
 use neo_protocol::*;
+#[cfg(feature = "builder")]
 use neo_builder::*;
 use primitive_types::{H160, H256};
 use regex::Regex;

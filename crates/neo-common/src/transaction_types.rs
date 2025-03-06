@@ -2,6 +2,9 @@
 //!
 //! This module provides placeholder types for transaction-related structures
 //! to help break circular dependencies between crates.
+//!
+//! These types are used by other crates that need transaction-related functionality
+//! but cannot directly depend on the neo-builder crate due to circular dependencies.
 
 use primitive_types::H160;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -18,9 +21,9 @@ pub struct TransactionAttribute {
 /// Placeholder for TransactionSigner
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TransactionSigner {
-    /// Account of the signer
+    /// Account of the signer (as script hash string)
     pub account: H160,
-    /// Scopes of the signer
+    /// Scopes of the signature (as string)
     pub scopes: Vec<WitnessScope>,
     /// Allowed contracts
     pub allowed_contracts: Option<Vec<String>>,
@@ -28,6 +31,161 @@ pub struct TransactionSigner {
     pub allowed_groups: Option<Vec<String>>,
     /// Rules
     pub rules: Option<Vec<WitnessRule>>,
+}
+
+/// Implement From<Signer> for TransactionSigner
+impl From<Signer> for TransactionSigner {
+    fn from(signer: Signer) -> Self {
+        Self {
+            account: signer.account,
+            scopes: signer.scopes,
+            allowed_contracts: if signer.allowed_contracts.is_empty() {
+                None
+            } else {
+                Some(
+                    signer
+                        .allowed_contracts
+                        .iter()
+                        .map(|c| format!("0x{}", hex::encode(c.as_bytes())))
+                        .collect(),
+                )
+            },
+            allowed_groups: if signer.allowed_groups.is_empty() {
+                None
+            } else {
+                Some(
+                    signer
+                        .allowed_groups
+                        .iter()
+                        .map(|g| format!("0x{}", hex::encode(g.as_bytes())))
+                        .collect(),
+                )
+            },
+            rules: if signer.rules.is_empty() {
+                None
+            } else {
+                Some(signer.rules)
+            },
+        }
+    }
+}
+
+/// Implement From<&Signer> for TransactionSigner
+impl From<&Signer> for TransactionSigner {
+    fn from(signer: &Signer) -> Self {
+        Self {
+            account: signer.account.clone(),
+            scopes: signer.scopes.clone(),
+            allowed_contracts: if signer.allowed_contracts.is_empty() {
+                None
+            } else {
+                Some(
+                    signer
+                        .allowed_contracts
+                        .iter()
+                        .map(|c| format!("0x{}", hex::encode(c.as_bytes())))
+                        .collect(),
+                )
+            },
+            allowed_groups: if signer.allowed_groups.is_empty() {
+                None
+            } else {
+                Some(
+                    signer
+                        .allowed_groups
+                        .iter()
+                        .map(|g| format!("0x{}", hex::encode(g.as_bytes())))
+                        .collect(),
+                )
+            },
+            rules: if signer.rules.is_empty() {
+                None
+            } else {
+                Some(signer.rules.clone())
+            },
+        }
+    }
+}
+
+/// Transaction signer interface for API trait
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Signer {
+    /// Account that signs the transaction
+    pub account: H160,
+    /// Scopes of the signature
+    pub scopes: Vec<WitnessScope>,
+    /// Allowed contracts (only used with WitnessScope::CustomContracts)
+    pub allowed_contracts: Vec<H160>,
+    /// Allowed groups (only used with WitnessScope::CustomGroups)
+    pub allowed_groups: Vec<H160>,
+    /// Rules for the witness (only used with WitnessScope::WitnessRules)
+    pub rules: Vec<WitnessRule>,
+}
+
+impl Serialize for Signer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("Signer", 5)?;
+        
+        // Serialize H160 as hex string
+        let account_hex = format!("0x{}", hex::encode(self.account.as_bytes()));
+        state.serialize_field("account", &account_hex)?;
+        
+        state.serialize_field("scopes", &self.scopes)?;
+        
+        // Serialize Vec<H160> as Vec<String>
+        let allowed_contracts: Vec<String> = self.allowed_contracts
+            .iter()
+            .map(|h| format!("0x{}", hex::encode(h.as_bytes())))
+            .collect();
+        state.serialize_field("allowed_contracts", &allowed_contracts)?;
+        
+        let allowed_groups: Vec<String> = self.allowed_groups
+            .iter()
+            .map(|h| format!("0x{}", hex::encode(h.as_bytes())))
+            .collect();
+        state.serialize_field("allowed_groups", &allowed_groups)?;
+        
+        state.serialize_field("rules", &self.rules)?;
+        state.end()
+    }
+}
+
+/// Transaction send token information
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransactionSendToken {
+    /// Token hash
+    pub token_hash: H160,
+    /// Recipient address
+    pub to: H160,
+    /// Amount to send
+    pub amount: u64,
+    /// Data to include with the transfer
+    pub data: Option<String>,
+}
+
+impl Serialize for TransactionSendToken {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("TransactionSendToken", 4)?;
+        
+        // Serialize H160 as hex string
+        let token_hash_hex = format!("0x{}", hex::encode(self.token_hash.as_bytes()));
+        state.serialize_field("token_hash", &token_hash_hex)?;
+        
+        let to_hex = format!("0x{}", hex::encode(self.to.as_bytes()));
+        state.serialize_field("to", &to_hex)?;
+        
+        state.serialize_field("amount", &self.amount)?;
+        state.serialize_field("data", &self.data)?;
+        state.end()
+    }
 }
 
 impl Serialize for TransactionSigner {
