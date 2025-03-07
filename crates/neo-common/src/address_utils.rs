@@ -2,8 +2,7 @@
 //!
 //! This module provides utility functions for working with addresses and script hashes.
 
-use primitive_types::H160;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serializer};
 
 /// Serializes an address or script hash.
 pub fn serialize_address_or_script_hash<S>(

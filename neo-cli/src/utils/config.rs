@@ -50,6 +50,14 @@ impl Default for Config {
 					name: "private-net".to_string(),
 					rpc_url: "http://localhost:50012".to_string(),
 				},
+				NetworkConfig {
+					name: "neox-mainnet".to_string(),
+					rpc_url: "https://rpc.neo-x.org".to_string(),
+				},
+				NetworkConfig {
+					name: "neox-testnet".to_string(),
+					rpc_url: "https://testnet.rpc.neo-x.org".to_string(),
+				},
 			],
 			default_network: "mainnet".to_string(),
 			wallet_path: None,

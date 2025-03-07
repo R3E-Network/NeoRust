@@ -2,7 +2,7 @@
 //!
 //! This module provides types for working with witness rules in the Neo blockchain.
 
-use std::hash::{Hash, Hasher};
+use std::hash::{Hash};
 use serde::{Deserialize, Serialize};
 
 /// Witness action in the Neo blockchain

@@ -24,7 +24,9 @@ pub struct NeoXBridgeContract<'a, P: JsonRpcProvider> {
 
 impl<'a, P: JsonRpcProvider + 'static> NeoXBridgeContract<'a, P> {
 	/// The script hash of the Neo X Bridge contract on Neo N3 MainNet
-	pub const CONTRACT_HASH: &'static str = "74f2dc36a68fdc4682034178eb2220729231db76"; // Placeholder, replace with actual hash
+	pub const CONTRACT_HASH: &'static str = "74f2dc36a68fdc4682034178eb2220729231db76";
+	/// The script hash of the Neo X Bridge contract on Neo N3 TestNet
+	pub const TESTNET_CONTRACT_HASH: &'static str = "31a23ece7cd2fe2d16bda85a2467ae73e3bb1f34";
 
 	// Method constants
 	/// Method name for depositing tokens from Neo N3 to Neo X
@@ -36,18 +38,21 @@ impl<'a, P: JsonRpcProvider + 'static> NeoXBridgeContract<'a, P> {
 	/// Method name for getting the bridge cap
 	pub const GET_CAP: &'static str = "getCap";
 
-	/// Creates a new NeoXBridgeContract instance with the default contract hash
+	/// Creates a new NeoXBridgeContract instance with the default contract hash for the network
 	///
 	/// # Arguments
 	///
 	/// * `provider` - An optional reference to an RPC client
+	/// * `is_testnet` - Flag indicating whether to use the testnet contract hash
 	///
 	/// # Returns
 	///
 	/// A Result containing a new NeoXBridgeContract instance or an error
-	pub fn new(provider: Option<&'a RpcClient<P>>) -> Result<Self, ContractError> {
+	pub fn new(provider: Option<&'a RpcClient<P>>, is_testnet: bool) -> Result<Self, ContractError> {
+		let contract_hash = if is_testnet { Self::TESTNET_CONTRACT_HASH } else { Self::CONTRACT_HASH };
+		
 		Ok(Self {
-			script_hash: ScriptHash::from_str(Self::CONTRACT_HASH).map_err(|e| {
+			script_hash: ScriptHash::from_str(contract_hash).map_err(|e| {
 				ContractError::InvalidScriptHash(format!("Invalid contract hash: {}", e))
 			})?,
 			provider,

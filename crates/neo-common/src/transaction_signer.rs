@@ -7,7 +7,6 @@ use crate::witness_scope::WitnessScope;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize, Serializer, Deserializer};
 use std::str::FromStr;
-use hex;
 
 /// A transaction signer in the Neo blockchain
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -88,8 +87,26 @@ impl TransactionSigner {
     }
 }
 
+impl Signer for TransactionSigner {
+    fn account(&self) -> H160 {
+        self.account
+    }
+    
+    fn scopes(&self) -> &Vec<WitnessScope> {
+        &self.scopes
+    }
+    
+    fn allow_only_fee(&self) -> bool {
+        self.allow_only_fee
+    }
+    
+    fn rules(&self) -> &Vec<WitnessRule> {
+        &self.rules
+    }
+}
+
 /// A trait for signers in the Neo blockchain
-pub trait Signer {
+pub trait Signer: Send + Sync {
     /// Get the account that is signing
     fn account(&self) -> H160;
     
@@ -98,6 +115,8 @@ pub trait Signer {
     
     /// Check if the signer allows fee only if the transaction has no other attributes
     fn allow_only_fee(&self) -> bool;
+    
+
     
     /// Get the rules for the signature
     fn rules(&self) -> &Vec<WitnessRule>;

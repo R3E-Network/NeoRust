@@ -1,0 +1,41 @@
+use neo_types::ValueExtension;
+use futures_util::lock::Mutex;
+use getset::Getters;
+use primitive_types::{H160, H256};
+use rustc_serialize::hex::{FromHex, ToHex};
+use serde::{de::DeserializeOwned, Serialize};
+use serde_json::json;
+use std::{
+    collections::HashMap,
+    convert::TryFrom,
+    fmt::{Debug, Display},
+    future::Future,
+    net::Ipv4Addr,
+    pin::Pin,
+    str::FromStr,
+    sync::Arc,
+    time::Duration,
+};
+use neo_common::base64_encode::Base64Encode;
+use crate::errors::ProviderError;
+use crate::JsonRpcProvider;
+
+/// RPC client for Neo blockchain
+#[derive(Debug, Clone)]
+pub struct RpcClient<P> {
+    provider: P,
+}
+
+impl<P: JsonRpcProvider> RpcClient<P> {
+    /// Create a new RPC client with the given provider
+    pub fn new(provider: P) -> Self {
+        Self { provider }
+    }
+
+    /// Get the provider instance
+    pub fn provider(&self) -> &P {
+        &self.provider
+    }
+}
+
+// Provider extension methods will be implemented separately

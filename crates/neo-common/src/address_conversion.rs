@@ -2,7 +2,6 @@
 //!
 //! This module provides utilities for converting between different address formats.
 
-use primitive_types::H160;
 use sha2::{Digest, Sha256};
 use ripemd::Ripemd160;
 use bs58;

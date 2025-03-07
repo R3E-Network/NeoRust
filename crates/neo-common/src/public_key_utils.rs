@@ -2,7 +2,7 @@
 //!
 //! This module provides utilities for serializing and deserializing public keys.
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serializer};
 
 /// Serializes a public key as a hex string.
 pub fn serialize_public_key_option<S>(public_key_opt: &Option<Vec<u8>>, serializer: S) -> Result<S::Ok, S::Error>

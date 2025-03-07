@@ -1,22 +1,25 @@
 use std::str::FromStr;
+use std::fmt::Debug;
+
+use async_trait::async_trait;
+use primitive_types::H160;
+use serde::{Deserialize, Serialize};
+use url::Url;
 
 use neo_builder::{AccountSigner, ScriptBuilder, TransactionBuilder};
-use neo_clients::{JsonRpcProvider, RpcClient};
+use neo_clients::{APITrait, JsonRpcProvider, RpcClient};
+use neo_protocol::Account;
+use neo_common::{
+	deserialize_script_hash_option, deserialize_url_option, 
+	serialize_script_hash_option, serialize_url_option
+};
+use neo_types::{
+	ContractParameter, ScriptHash, ScriptHashExtension,
+};
 use crate::{
 	ContractError, FungibleTokenContract, GasToken, NeoToken, SmartContractTrait, TokenTrait,
 };
-use neo_protocol::Account;
-use neo_types::{
-	serde_with_utils::{
-		deserialize_script_hash_option, deserialize_url_option, serialize_script_hash_option,
-		serialize_url_option,
-	},
-	ContractParameter, ScriptHash, ScriptHashExtension,
-};
 use getset::{Getters, Setters};
-use primitive_types::H160;
-use reqwest::Url;
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Getters, Setters)]
 pub struct NeoURI<'a, P: JsonRpcProvider> {
@@ -76,7 +79,7 @@ impl<'a, P: JsonRpcProvider + 'static> NeoURI<'a, P> {
 				}
 
 				match kv[0] {
-					"asset" if neo_uri.token().is_none() => {
+					"asset" if neo_uri.token.is_none() => {
 						&neo_uri.set_token(H160::from_str(kv[1]).ok());
 					},
 					"amount" if neo_uri.amount.is_none() => {
@@ -112,10 +115,10 @@ impl<'a, P: JsonRpcProvider + 'static> NeoURI<'a, P> {
 
 	// Builders
 
-	pub async fn build_transfer_from(
+	pub async fn build_transfer_from<W: Clone + Debug + Send + Sync>(
 		&self,
-		sender: &Account,
-	) -> Result<TransactionBuilder<P>, ContractError> {
+		sender: &Account<W>,
+	) -> Result<TransactionBuilder<'_>, ContractError> {
 		let recipient = self
 			.recipient
 			.ok_or_else(|| ContractError::InvalidStateError("Recipient not set".to_string()))?;
@@ -174,7 +177,7 @@ impl<'a, P: JsonRpcProvider + 'static> NeoURI<'a, P> {
 		// Set up the TransactionBuilder
 		tx_builder
 			.set_script(Some(script))
-			.set_signers(vec![AccountSigner::called_by_entry(sender).unwrap().into()]);
+			.set_signers(vec![AccountSigner::called_by_entry_hash160(sender).unwrap().into()]);
 
 		Ok(tx_builder)
 	}
@@ -236,5 +239,17 @@ impl<'a, P: JsonRpcProvider + 'static> NeoURI<'a, P> {
 		self.uri = Some(uri_str.parse().unwrap());
 
 		Ok(self.uri.clone().unwrap())
+	}
+
+	/// Sets the recipient
+	pub fn set_recipient(&mut self, recipient: Option<ScriptHash>) -> &mut Self {
+		self.recipient = recipient;
+		self
+	}
+	
+	/// Sets the token
+	pub fn set_token(&mut self, token: Option<ScriptHash>) -> &mut Self {
+		self.token = token;
+		self
 	}
 }

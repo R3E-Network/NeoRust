@@ -6,7 +6,7 @@ use std::str::FromStr;
 use neo_builder::{AccountSigner, TransactionBuilder};
 use neo_clients::{APITrait, JsonRpcProvider, RpcClient};
 use crate::{ContractError, SmartContractTrait};
-use neo_protocol::Account;
+use neo_protocol::{Account, AccountTrait};
 use neo_common::{deserialize_script_hash, serialize_script_hash};
 use neo_types::{ContractParameter, ScriptHash};
 
@@ -70,32 +70,35 @@ impl<'a, P: JsonRpcProvider + 'static> FlamingoContract<'a, P> {
 	///
 	/// # Arguments
 	///
-	/// * `from_token` - The script hash of the token to swap from
-	/// * `to_token` - The script hash of the token to swap to
-	/// * `amount` - The amount of tokens to swap
-	/// * `min_return` - The minimum amount of tokens to receive
+	/// * `path` - The path of tokens to swap through
+	/// * `amount_in` - The amount of tokens to swap from
+	/// * `min_amount_out` - The minimum amount of tokens to receive
 	/// * `account` - The account that will sign the transaction
+	/// * `deadline` - The deadline for the transaction
 	///
 	/// # Returns
 	///
 	/// A transaction builder that can be used to build and sign the transaction
 	pub async fn swap(
 		&self,
-		from_token: &ScriptHash,
-		to_token: &ScriptHash,
-		amount: i64,
-		min_return: i64,
-		account: &Account,
-	) -> Result<TransactionBuilder<P>, ContractError> {
+		path: Vec<H160>,
+		amount_in: u64,
+		min_amount_out: u64,
+		account: &Account<W>,
+		deadline: Option<u64>,
+	) -> Result<TransactionBuilder<'_>, ContractError>
+	where
+		W: Clone + Debug + Send + Sync,
+	{
 		let params = vec![
-			from_token.into(),
-			to_token.into(),
-			ContractParameter::integer(amount),
-			ContractParameter::integer(min_return),
+			ContractParameter::array(path.iter().map(|p| p.into()).collect()),
+			ContractParameter::integer(amount_in),
+			ContractParameter::integer(min_amount_out),
+			ContractParameter::integer(deadline.unwrap_or_default()),
 		];
 
 		let mut builder = self.invoke_function(Self::SWAP, params).await?;
-		builder.set_signers(vec![AccountSigner::called_by_entry(account).unwrap().into()]);
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(account.address_or_scripthash().script_hash()).unwrap().into()]);
 
 		Ok(builder)
 	}
@@ -106,30 +109,42 @@ impl<'a, P: JsonRpcProvider + 'static> FlamingoContract<'a, P> {
 	///
 	/// * `token_a` - The script hash of the first token
 	/// * `token_b` - The script hash of the second token
-	/// * `amount_a` - The amount of the first token to add
-	/// * `amount_b` - The amount of the second token to add
+	/// * `amount_a_desired` - The desired amount of the first token to add
+	/// * `amount_b_desired` - The desired amount of the second token to add
+	/// * `amount_a_min` - The minimum amount of the first token to add
+	/// * `amount_b_min` - The minimum amount of the second token to add
 	/// * `account` - The account that will sign the transaction
+	/// * `deadline` - The deadline for the transaction
 	///
 	/// # Returns
 	///
 	/// A transaction builder that can be used to build and sign the transaction
 	pub async fn add_liquidity(
 		&self,
-		token_a: &ScriptHash,
-		token_b: &ScriptHash,
-		amount_a: i64,
-		amount_b: i64,
-		account: &Account,
-	) -> Result<TransactionBuilder<P>, ContractError> {
+		token_a: H160,
+		token_b: H160,
+		amount_a_desired: u64,
+		amount_b_desired: u64,
+		amount_a_min: u64,
+		amount_b_min: u64,
+		account: &Account<W>,
+		deadline: Option<u64>,
+	) -> Result<TransactionBuilder<'_>, ContractError>
+	where
+		W: Clone + Debug + Send + Sync,
+	{
 		let params = vec![
 			token_a.into(),
 			token_b.into(),
-			ContractParameter::integer(amount_a),
-			ContractParameter::integer(amount_b),
+			ContractParameter::integer(amount_a_desired),
+			ContractParameter::integer(amount_b_desired),
+			ContractParameter::integer(amount_a_min),
+			ContractParameter::integer(amount_b_min),
+			ContractParameter::integer(deadline.unwrap_or_default()),
 		];
 
 		let mut builder = self.invoke_function(Self::ADD_LIQUIDITY, params).await?;
-		builder.set_signers(vec![AccountSigner::called_by_entry(account).unwrap().into()]);
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(account.address_or_scripthash().script_hash()).unwrap().into()]);
 
 		Ok(builder)
 	}
@@ -141,22 +156,39 @@ impl<'a, P: JsonRpcProvider + 'static> FlamingoContract<'a, P> {
 	/// * `token_a` - The script hash of the first token
 	/// * `token_b` - The script hash of the second token
 	/// * `liquidity` - The amount of liquidity tokens to remove
+	/// * `amount_a_min` - The minimum amount of the first token to remove
+	/// * `amount_b_min` - The minimum amount of the second token to remove
 	/// * `account` - The account that will sign the transaction
+	/// * `deadline` - The deadline for the transaction
 	///
 	/// # Returns
 	///
 	/// A transaction builder that can be used to build and sign the transaction
 	pub async fn remove_liquidity(
 		&self,
-		token_a: &ScriptHash,
-		token_b: &ScriptHash,
-		liquidity: i64,
-		account: &Account,
-	) -> Result<TransactionBuilder<P>, ContractError> {
-		let params = vec![token_a.into(), token_b.into(), ContractParameter::integer(liquidity)];
+		token_a: H160,
+		token_b: H160,
+		liquidity: u64,
+		amount_a_min: u64,
+		amount_b_min: u64,
+		account: &Account<W>,
+		deadline: Option<u64>,
+	) -> Result<TransactionBuilder<'_>, ContractError>
+	where
+		W: Clone + Debug + Send + Sync,
+	{
+		let params = vec![
+			token_a.into(),
+			token_b.into(),
+			ContractParameter::integer(liquidity),
+			ContractParameter::integer(amount_a_min),
+			ContractParameter::integer(amount_b_min),
+			to.into(),
+			ContractParameter::integer(deadline),
+		];
 
 		let mut builder = self.invoke_function(Self::REMOVE_LIQUIDITY, params).await?;
-		builder.set_signers(vec![AccountSigner::called_by_entry(account).unwrap().into()]);
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(account.address_or_scripthash().script_hash()).unwrap().into()]);
 
 		Ok(builder)
 	}
@@ -165,23 +197,26 @@ impl<'a, P: JsonRpcProvider + 'static> FlamingoContract<'a, P> {
 	///
 	/// # Arguments
 	///
-	/// * `token` - The script hash of the token to stake
+	/// * `pid` - The pool ID of the token to stake
 	/// * `amount` - The amount of tokens to stake
 	/// * `account` - The account that will sign the transaction
 	///
 	/// # Returns
 	///
 	/// A transaction builder that can be used to build and sign the transaction
-	pub async fn stake(
+	pub async fn stake<W>(
 		&self,
-		token: &ScriptHash,
+		pid: i32,
 		amount: i64,
-		account: &Account,
-	) -> Result<TransactionBuilder<P>, ContractError> {
-		let params = vec![token.into(), ContractParameter::integer(amount)];
+		account: &Account<W>,
+	) -> Result<TransactionBuilder<'_>, ContractError>
+	where
+		W: Clone + Debug + Send + Sync,
+	{
+		let params = vec![pid.into(), ContractParameter::integer(amount)];
 
 		let mut builder = self.invoke_function(Self::STAKE, params).await?;
-		builder.set_signers(vec![AccountSigner::called_by_entry(account).unwrap().into()]);
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(account.address_or_scripthash().script_hash()).unwrap().into()]);
 
 		Ok(builder)
 	}
@@ -195,16 +230,61 @@ impl<'a, P: JsonRpcProvider + 'static> FlamingoContract<'a, P> {
 	/// # Returns
 	///
 	/// A transaction builder that can be used to build and sign the transaction
-	pub async fn claim_rewards(
+	pub async fn claim_rewards<W>(
 		&self,
-		account: &Account,
-	) -> Result<TransactionBuilder<P>, ContractError> {
-		let params = vec![];
-
-		let mut builder = self.invoke_function(Self::CLAIM_REWARDS, params).await?;
-		builder.set_signers(vec![AccountSigner::called_by_entry(account).unwrap().into()]);
+		account: &Account<W>,
+	) -> Result<TransactionBuilder<'_>, ContractError>
+	where
+		W: Clone + Debug + Send + Sync,
+	{
+		let mut builder = self.invoke_function(Self::CLAIM_REWARDS, vec![]).await?;
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(account.address_or_scripthash().script_hash()).unwrap().into()]);
 
 		Ok(builder)
+	}
+
+	pub async fn get_user_info<W>(
+		&self,
+		token: &H160,
+		account: &Account<W>,
+	) -> Result<FlamingoUserInfo, ContractError> {
+		let params = vec![
+			token.into(),
+			account.address_or_scripthash().script_hash().into(),
+		];
+		let result = self
+			.invoke_function("getUserInfo", params)
+			.await?
+			.stack
+			.get(0)
+			.ok_or(ContractError::InvalidResultError(
+				"No result returned from getUserInfo".to_string(),
+			))?;
+
+		FlamingoUserInfo::try_from(result.clone())
+			.map_err(|e| ContractError::InvalidResultError(format!("Failed to parse user info: {}", e)))
+	}
+
+	pub async fn get_pool_info<W>(
+		&self,
+		token: &H160,
+		account: &Account<W>,
+	) -> Result<FlamingoPoolInfo, ContractError> {
+		let params = vec![
+			token.into(),
+			account.address_or_scripthash().script_hash().into(),
+		];
+		let result = self
+			.invoke_function("getPoolInfo", params)
+			.await?
+			.stack
+			.get(0)
+			.ok_or(ContractError::InvalidResultError(
+				"No result returned from getPoolInfo".to_string(),
+			))?;
+
+		FlamingoPoolInfo::try_from(result.clone())
+			.map_err(|e| ContractError::InvalidResultError(format!("Failed to parse pool info: {}", e)))
 	}
 }
 

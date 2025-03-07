@@ -44,6 +44,12 @@ pub fn from_common_error(error: CommonProviderError) -> ClientProviderError {
         CommonProviderError::LockError => ClientProviderError::LockError,
         CommonProviderError::ProtocolNotFound => ClientProviderError::ProtocolNotFound,
         CommonProviderError::NetworkNotFound => ClientProviderError::NetworkNotFound,
+        CommonProviderError::NotImplemented(s) => ClientProviderError::CustomError(format!("Not implemented: {}", s)),
+        CommonProviderError::JsonError(s) => ClientProviderError::CustomError(format!("JSON error: {}", s)),
+        CommonProviderError::HttpError(s) => ClientProviderError::CustomError(format!("HTTP error: {}", s)),
+        CommonProviderError::WebSocketError(s) => ClientProviderError::CustomError(format!("WebSocket error: {}", s)),
+        CommonProviderError::IpcError(s) => ClientProviderError::CustomError(format!("IPC error: {}", s)),
+        CommonProviderError::Timeout => ClientProviderError::CustomError("Operation timed out".to_string()),
         CommonProviderError::Other(s) => ClientProviderError::CustomError(format!("Other error: {}", s)),
     }
 }

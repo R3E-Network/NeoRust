@@ -8,7 +8,8 @@ use primitive_types::H160;
 
 use crate::rpc::rpc_client::RpcClient;
 use crate::JsonRpcProvider;
-use neo_common::{Nep17BalanceProvider, Nep17BalancesResponse, Nep17Balance, ProviderError};
+use neo_common::nep17_provider::{Nep17BalanceProvider, Nep17BalancesResponse, Nep17Balance};
+use neo_common::ProviderError;
 
 #[async_trait]
 impl<P> Nep17BalanceProvider for RpcClient<P>
@@ -17,7 +18,7 @@ where
 {
     async fn get_nep17_balances(&self, script_hash: H160) -> Result<Nep17BalancesResponse, ProviderError> {
         // Call the existing implementation
-        let response = self.request("getnep17balances", vec![script_hash.to_string()]).await?;
+        let response = self.request("getnep17balances", vec![serde_json::Value::String(script_hash.to_string())]).await?;
         Ok(response)
     }
 }

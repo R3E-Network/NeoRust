@@ -17,14 +17,19 @@
 // NOTE: Most implementations are currently placeholders that demonstrate the intended
 // functionality but do not yet execute actual blockchain transactions.
 
+mod address_convert;
+mod bridge;
+mod bridge_test;
 mod famous;
+mod network_validator;
+mod network_status;
 mod tokens;
 mod types;
 pub mod utils;
 
 // Re-export utility types and functions
 pub use utils::{
-	format_token_amount, get_token_address_for_network, get_token_decimals,
+	format_token_amount, get_bridge_contract_hash, get_token_address_for_network, get_token_decimals,
 	load_wallet_from_state as load_wallet, parse_amount, prepare_state_from_existing,
 	resolve_token_hash, resolve_token_to_scripthash_with_network, NetworkTypeCli as NetworkType,
 };
@@ -130,6 +135,24 @@ pub enum DefiCommands {
 		#[clap(subcommand)]
 		command: GrandShareCommands,
 	},
+
+	/// Neo X Bridge operations (transfer tokens between Neo N3 and Neo X)
+	Bridge {
+		#[clap(subcommand)]
+		command: bridge::BridgeCommands,
+	},
+
+	/// Test Neo X Bridge connectivity
+	BridgeTest {},
+
+	/// Convert between Neo N3 and Neo X address formats
+	AddressConvert {
+		#[clap(flatten)]
+		args: address_convert::AddressConvertArgs,
+	},
+
+	/// Check network status and token compatibility between Neo N3 and Neo X
+	NetworkStatus {},
 }
 
 #[derive(clap::Subcommand, Debug, Clone)]
@@ -400,5 +423,28 @@ pub async fn handle_defi_command(args: DefiArgs, state: &mut CliState) -> Result
 			GrandShareCommands::ClaimFunds { project_id } =>
 				famous::handle_grandshare_claim_funds(project_id, state).await,
 		},
+		DefiCommands::Bridge { command } => {
+			// Pass the bridge command to the dedicated handler
+			bridge::handle_bridge_command(bridge::BridgeArgs {
+				wallet: args.wallet,
+				password: args.password,
+				command,
+			}, state).await
+		},
+		DefiCommands::BridgeTest {} => {
+			// Test bridge connectivity
+			bridge_test::test_bridge_connectivity(state).await
+		},
+		DefiCommands::AddressConvert { args } => {
+			// Convert between Neo N3 and Neo X address formats
+			address_convert::handle_address_convert(args, state).await
+		},
+		DefiCommands::NetworkStatus {} => {
+			// Check network status and token compatibility
+			network_status::check_network_status(state).await
+		},
 	}
 }
+
+// Re-export bridge module handlers
+pub use bridge_test::test_bridge_connectivity;

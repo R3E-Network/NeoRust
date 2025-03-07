@@ -22,6 +22,7 @@ use utils::config::{get_config_path, save_config, Config};
 
 mod commands;
 mod config;
+mod constants;
 mod errors;
 mod utils;
 

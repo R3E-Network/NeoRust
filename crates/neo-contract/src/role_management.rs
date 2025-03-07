@@ -78,16 +78,22 @@ impl<'a, P: JsonRpcProvider + 'static> RoleManagement<'a, P> {
 		&self,
 		role: Role,
 		pub_keys: Vec<Secp256r1PublicKey>,
-	) -> Result<TransactionBuilder<P>, ContractError> {
+	) -> Result<TransactionBuilder<'_>, ContractError> {
 		if pub_keys.is_empty() {
 			return Err(ContractError::InvalidNeoName(
 				"At least 1 public key is required".to_string(),
 			));
 		}
 
-		let params: Vec<_> = pub_keys.into_iter().map(|key| key.to_value()).collect();
+		let params: Vec<ContractParameter> = pub_keys
+			.iter()
+			.map(|key| {
+				let key_bytes = key.to_bytes();
+				ContractParameter::byte_array(key_bytes)
+			})
+			.collect();
 
-		self.invoke_function("designateAsRole", vec![role.into(), params.into()]).await
+		self.invoke_function("designateAsRole", vec![role.into(), ContractParameter::array(params)]).await
 	}
 }
 

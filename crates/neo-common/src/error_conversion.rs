@@ -4,7 +4,6 @@
 //! in the NeoRust SDK.
 
 use crate::provider_error::ProviderError;
-use std::convert::From;
 
 /// A trait for converting errors to provider errors.
 pub trait ProviderErrorConversion {

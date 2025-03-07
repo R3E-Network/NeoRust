@@ -6,6 +6,7 @@ use neo_wallets::Wallet;
 use neo_types::{Bytes, ContractParameter, NNSName, ScriptHash};
 use async_trait::async_trait;
 use primitive_types::H160;
+use std::fmt::Debug;
 
 #[async_trait]
 pub trait FungibleTokenTrait<'a, P: JsonRpcProvider>: TokenTrait<'a, P> {
@@ -32,17 +33,16 @@ pub trait FungibleTokenTrait<'a, P: JsonRpcProvider>: TokenTrait<'a, P> {
 		Ok(sum)
 	}
 
-	async fn transfer_from_account(
+	async fn transfer_from_account<W: Clone + Debug + Send + Sync>(
 		&self,
-		from: &Account,
-		to: &ScriptHash,
-		amount: i32,
-		data: Option<ContractParameter>,
-	) -> Result<TransactionBuilder<P>, ContractError> {
+		from: &Account<W>,
+		to: &H160,
+		amount: i64,
+	) -> Result<TransactionBuilder<'_>, ContractError> {
 		let mut builder = self
-			.transfer_from_hash160(&from.address_or_scripthash().script_hash(), to, amount, data)
+			.transfer_from_hash160(&from.address_or_scripthash().script_hash(), to, amount, None)
 			.await?;
-		builder.set_signers(vec![AccountSigner::called_by_entry(from).unwrap().into()]);
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(from.address_or_scripthash().script_hash()).unwrap().into()]);
 
 		Ok(builder)
 	}
@@ -53,7 +53,7 @@ pub trait FungibleTokenTrait<'a, P: JsonRpcProvider>: TokenTrait<'a, P> {
 		to: &ScriptHash,
 		amount: i32,
 		data: Option<ContractParameter>,
-	) -> Result<TransactionBuilder<P>, ContractError> {
+	) -> Result<TransactionBuilder<'_>, ContractError> {
 		if amount < 0 {
 			return Err(ContractError::InvalidArgError(
 				"The amount must be greater than or equal to 0.".to_string(),
@@ -82,18 +82,18 @@ pub trait FungibleTokenTrait<'a, P: JsonRpcProvider>: TokenTrait<'a, P> {
 
 	// MARK: Transfer using NNS
 
-	async fn transfer_from_account_to_nns(
+	async fn transfer_from_account_to_nns<W>(
 		&self,
-		from: &Account,
+		from: &Account<W>,
 		to: &NNSName,
 		amount: i32,
 		data: Option<ContractParameter>,
-	) -> Result<TransactionBuilder<P>, ContractError> {
+	) -> Result<TransactionBuilder<'_>, ContractError> {
 		let mut builder = self
-			.transfer_from_hash160_to_nns(&from.get_script_hash(), to, amount, data)
+			.transfer_from_hash160_to_nns(&from.address_or_scripthash().script_hash(), to, amount, data)
 			.await
 			.unwrap();
-		builder.set_signers(vec![AccountSigner::called_by_entry(from).unwrap().into()]);
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(from.address_or_scripthash().script_hash()).unwrap().into()]);
 
 		Ok(builder)
 	}
@@ -104,8 +104,30 @@ pub trait FungibleTokenTrait<'a, P: JsonRpcProvider>: TokenTrait<'a, P> {
 		to: &NNSName,
 		amount: i32,
 		data: Option<ContractParameter>,
-	) -> Result<TransactionBuilder<P>, ContractError> {
+	) -> Result<TransactionBuilder<'_>, ContractError> {
 		let script_hash = self.resolve_nns_text_record(to).await.unwrap();
 		self.transfer_from_hash160(from, &script_hash, amount, data).await
+	}
+
+	async fn transfer<W: Clone + Debug + Send + Sync>(
+		&self,
+		from: &H160,
+		to: &H160,
+		amount: i64,
+		data: Option<&[u8]>,
+	) -> Result<TransactionBuilder<'_>, ContractError> {
+		// ... existing code ...
+		Ok(TransactionBuilder::new())
+	}
+
+	async fn transfer_divisible<W: Clone + Debug + Send + Sync>(
+		&self,
+		from: &Account<W>,
+		to: &H160,
+		amount: i64,
+		divisible: bool,
+	) -> Result<TransactionBuilder<'_>, ContractError> {
+		// ... existing code ...
+		Ok(TransactionBuilder::new())
 	}
 }

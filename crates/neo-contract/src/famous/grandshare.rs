@@ -2,13 +2,14 @@ use async_trait::async_trait;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use std::fmt::Debug;
 
 use neo_builder::{AccountSigner, TransactionBuilder};
 use neo_clients::{APITrait, JsonRpcProvider, RpcClient};
 use crate::{ContractError, SmartContractTrait};
-use neo_protocol::Account;
+use neo_protocol::{Account, AccountTrait};
 use neo_common::{deserialize_script_hash, serialize_script_hash};
-use neo_types::{ScriptHash, ContractParameter};
+use neo_types::{ScriptHash, ContractParameter, NNSName};
 
 /// GrandShare contract interface for Neo N3
 ///
@@ -36,6 +37,14 @@ impl<'a, P: JsonRpcProvider + 'static> GrandShareContract<'a, P> {
 	pub const FUND_PROJECT: &'static str = "fundProject";
 	/// Method name for claiming funds
 	pub const CLAIM_FUNDS: &'static str = "claimFunds";
+	/// Method name for claiming gas
+	pub const CLAIM_GAS: &'static str = "claimGas";
+	/// Method name for claiming NEO
+	pub const CLAIM_NEO: &'static str = "claimNeo";
+	/// Method name for claiming all
+	pub const CLAIM_ALL: &'static str = "claimAll";
+	/// Method name for withdrawing
+	pub const WITHDRAW: &'static str = "withdraw";
 
 	/// Creates a new GrandShareContract instance with the default contract hash
 	///
@@ -76,18 +85,18 @@ impl<'a, P: JsonRpcProvider + 'static> GrandShareContract<'a, P> {
 	/// # Returns
 	///
 	/// A transaction builder that can be used to build and sign the transaction
-	pub async fn submit_proposal(
+	pub async fn submit_proposal<W: Clone + Debug + Send + Sync>(
 		&self,
 		title: &str,
 		description: &str,
 		requested_amount: i64,
-		account: &Account,
-	) -> Result<TransactionBuilder<P>, ContractError> {
+		account: &Account<W>,
+	) -> Result<TransactionBuilder<'_>, ContractError> {
 		let params =
 			vec![title.into(), description.into(), ContractParameter::integer(requested_amount)];
 
 		let mut builder = self.invoke_function(Self::SUBMIT_PROPOSAL, params).await?;
-		builder.set_signers(vec![AccountSigner::called_by_entry(account).unwrap().into()]);
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(account.address_or_scripthash().script_hash()).unwrap().into()]);
 
 		Ok(builder)
 	}
@@ -103,19 +112,19 @@ impl<'a, P: JsonRpcProvider + 'static> GrandShareContract<'a, P> {
 	/// # Returns
 	///
 	/// A transaction builder that can be used to build and sign the transaction
-	pub async fn vote(
+	pub async fn vote<W: Clone + Debug + Send + Sync>(
 		&self,
 		proposal_id: i32,
 		vote_type: bool,
-		account: &Account,
-	) -> Result<TransactionBuilder<P>, ContractError> {
+		account: &Account<W>,
+	) -> Result<TransactionBuilder<'_>, ContractError> {
 		let params = vec![
 			ContractParameter::integer(proposal_id.into()),
 			ContractParameter::bool(vote_type),
 		];
 
 		let mut builder = self.invoke_function(Self::VOTE, params).await?;
-		builder.set_signers(vec![AccountSigner::called_by_entry(account).unwrap().into()]);
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(account.address_or_scripthash().script_hash()).unwrap().into()]);
 
 		Ok(builder)
 	}
@@ -131,17 +140,19 @@ impl<'a, P: JsonRpcProvider + 'static> GrandShareContract<'a, P> {
 	/// # Returns
 	///
 	/// A transaction builder that can be used to build and sign the transaction
-	pub async fn fund_project(
+	pub async fn fund_project<W: Clone + Debug + Send + Sync>(
 		&self,
 		project_id: i32,
 		amount: i64,
-		account: &Account,
-	) -> Result<TransactionBuilder<P>, ContractError> {
-		let params =
-			vec![ContractParameter::integer(project_id.into()), ContractParameter::integer(amount)];
+		account: &Account<W>,
+	) -> Result<TransactionBuilder<'_>, ContractError> {
+		let params = vec![
+			ContractParameter::integer(project_id.into()),
+			ContractParameter::integer(amount),
+		];
 
 		let mut builder = self.invoke_function(Self::FUND_PROJECT, params).await?;
-		builder.set_signers(vec![AccountSigner::called_by_entry(account).unwrap().into()]);
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(account.address_or_scripthash().script_hash()).unwrap().into()]);
 
 		Ok(builder)
 	}
@@ -156,17 +167,133 @@ impl<'a, P: JsonRpcProvider + 'static> GrandShareContract<'a, P> {
 	/// # Returns
 	///
 	/// A transaction builder that can be used to build and sign the transaction
-	pub async fn claim_funds(
+	pub async fn claim_funds<W: Clone + Debug + Send + Sync>(
 		&self,
 		project_id: i32,
-		account: &Account,
-	) -> Result<TransactionBuilder<P>, ContractError> {
+		account: &Account<W>,
+	) -> Result<TransactionBuilder<'_>, ContractError> {
 		let params = vec![ContractParameter::integer(project_id.into())];
 
 		let mut builder = self.invoke_function(Self::CLAIM_FUNDS, params).await?;
-		builder.set_signers(vec![AccountSigner::called_by_entry(account).unwrap().into()]);
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(account.address_or_scripthash().script_hash()).unwrap().into()]);
 
 		Ok(builder)
+	}
+
+	/// Claims gas from the contract
+	///
+	/// # Arguments
+	///
+	/// * `account` - The account that will sign the transaction
+	///
+	/// # Returns
+	///
+	/// A transaction builder that can be used to build and sign the transaction
+	pub async fn claim_gas(
+		&self,
+		account: &Account,
+	) -> Result<TransactionBuilder<'_>, ContractError> {
+		let params = vec![];
+
+		let mut builder = self.invoke_function(Self::CLAIM_GAS, params).await?;
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(account.address_or_scripthash().script_hash()).unwrap().into()]);
+
+		Ok(builder)
+	}
+
+	/// Claims NEO from the contract
+	///
+	/// # Arguments
+	///
+	/// * `account` - The account that will sign the transaction
+	///
+	/// # Returns
+	///
+	/// A transaction builder that can be used to build and sign the transaction
+	pub async fn claim_neo(
+		&self,
+		account: &Account,
+	) -> Result<TransactionBuilder<'_>, ContractError> {
+		let params = vec![];
+
+		let mut builder = self.invoke_function(Self::CLAIM_NEO, params).await?;
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(account.address_or_scripthash().script_hash()).unwrap().into()]);
+
+		Ok(builder)
+	}
+
+	/// Claims all assets from the contract
+	///
+	/// # Arguments
+	///
+	/// * `account` - The account that will sign the transaction
+	///
+	/// # Returns
+	///
+	/// A transaction builder that can be used to build and sign the transaction
+	pub async fn claim_all<W: Clone + Debug + Send + Sync>(
+		&self,
+		account: &Account<W>,
+	) -> Result<TransactionBuilder<'_>, ContractError> {
+		let params = vec![];
+
+		let mut builder = self.invoke_function(Self::CLAIM_ALL, params).await?;
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(account.address_or_scripthash().script_hash()).unwrap().into()]);
+
+		Ok(builder)
+	}
+
+	/// Withdraws assets from the contract
+	///
+	/// # Arguments
+	///
+	/// * `account` - The account that will sign the transaction
+	///
+	/// # Returns
+	///
+	/// A transaction builder that can be used to build and sign the transaction
+	pub async fn withdraw<W: Clone + Debug + Send + Sync>(
+		&self,
+		account: &Account<W>,
+	) -> Result<TransactionBuilder<'_>, ContractError> {
+		let params = vec![];
+
+		let mut builder = self.invoke_function(Self::WITHDRAW, params).await?;
+		builder.set_signers(vec![AccountSigner::called_by_entry_hash160(account.address_or_scripthash().script_hash()).unwrap().into()]);
+
+		Ok(builder)
+	}
+
+	pub async fn get_proposal<W: Clone + Debug + Send + Sync>(
+		&self,
+		proposal_id: i32,
+		account: &Account<W>,
+	) -> Result<Proposal, ContractError> {
+		// ... existing code ...
+	}
+
+	pub async fn get_project<W: Clone + Debug + Send + Sync>(
+		&self,
+		project_id: i32,
+		account: &Account<W>,
+	) -> Result<Project, ContractError> {
+		// ... existing code ...
+	}
+
+	pub async fn get_vote<W: Clone + Debug + Send + Sync>(
+		&self,
+		proposal_id: i32,
+		account: &Account<W>,
+	) -> Result<Vote, ContractError> {
+		// ... existing code ...
+	}
+
+	pub async fn get_funding<W: Clone + Debug + Send + Sync>(
+		&self,
+		project_id: i32,
+		account: &Account<W>,
+	) -> Result<Funding, ContractError> {
+		// ... existing code ...
 	}
 }
 

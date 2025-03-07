@@ -4,9 +4,11 @@ use std::{string::ToString, sync::Arc};
 use neo_builder::TransactionBuilder;
 use neo_clients::{APITrait, JsonRpcProvider, RpcClient};
 use neo_types::{
+    AddressOrScriptHash, ContractParameter, NNSName, ScriptHash, StackItem,
+};
+use neo_types::utils::{
     deserialize_script_hash, deserialize_script_hash_option,
     serialize_script_hash, serialize_script_hash_option,
-    AddressOrScriptHash, ContractParameter, NNSName, ScriptHash, StackItem,
 };
 use crate::{
     ContractError, NeoIterator, NonFungibleTokenTrait, SmartContractTrait, TokenTrait,
@@ -96,7 +98,7 @@ impl<'a, P: JsonRpcProvider + 'static> NeoNameService<'a, P> {
 
 	// Implementation
 
-	async fn add_root(&self, root: &str) -> Result<TransactionBuilder<P>, ContractError> {
+	async fn add_root(&self, root: &str) -> Result<TransactionBuilder<'_>, ContractError> {
 		let args = vec![root.to_string().into()];
 		self.invoke_function(Self::ADD_ROOT, args).await
 	}
@@ -128,7 +130,7 @@ impl<'a, P: JsonRpcProvider + 'static> NeoNameService<'a, P> {
 		&self,
 		name: &str,
 		owner: H160,
-	) -> Result<TransactionBuilder<P>, ContractError> {
+	) -> Result<TransactionBuilder<'_>, ContractError> {
 		self.check_domain_name_availability(name, true).await?;
 
 		let args = vec![name.into(), owner.into()];
@@ -141,8 +143,8 @@ impl<'a, P: JsonRpcProvider + 'static> NeoNameService<'a, P> {
 		&self,
 		name: &str,
 		admin: H160,
-	) -> Result<TransactionBuilder<P>, ContractError> {
-		self.check_domain_name_availability(name, true).await?;
+	) -> Result<TransactionBuilder<'_>, ContractError> {
+		self.check_domain_name_availability(name, false).await?;
 
 		let args = vec![name.into(), admin.into()];
 		self.invoke_function(Self::SET_ADMIN, args).await
@@ -155,9 +157,10 @@ impl<'a, P: JsonRpcProvider + 'static> NeoNameService<'a, P> {
 		name: &str,
 		record_type: RecordType,
 		data: &str,
-	) -> Result<TransactionBuilder<P>, ContractError> {
-		let args = vec![name.into(), (record_type as u8).into(), data.into()];
+	) -> Result<TransactionBuilder<'_>, ContractError> {
+		self.check_domain_name_availability(name, false).await?;
 
+		let args = vec![name.into(), (record_type as u8).into(), data.into()];
 		self.invoke_function(Self::SET_RECORD, args).await
 	}
 
@@ -167,7 +170,7 @@ impl<'a, P: JsonRpcProvider + 'static> NeoNameService<'a, P> {
 		&self,
 		name: &str,
 		record_type: RecordType,
-	) -> Result<TransactionBuilder<P>, ContractError> {
+	) -> Result<TransactionBuilder<'_>, ContractError> {
 		let args = vec![name.into(), (record_type as u8).into()];
 		self.invoke_function(Self::DELETE_RECORD, args).await
 	}
@@ -180,8 +183,8 @@ impl<'a, P: JsonRpcProvider + 'static> NeoNameService<'a, P> {
 		&self,
 		name: &str,
 		years: u32,
-	) -> Result<TransactionBuilder<P>, ContractError> {
-		self.check_domain_name_availability(name, true).await?;
+	) -> Result<TransactionBuilder<'_>, ContractError> {
+		self.check_domain_name_availability(name, false).await?;
 
 		let args = vec![name.into(), years.into()];
 		self.invoke_function(Self::RENEW, args).await

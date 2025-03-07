@@ -9,7 +9,9 @@ use crate::transaction::witness_rule::witness_rule::WitnessRule;
 use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
 use neo_config::NeoConstants;
 use neo_crypto::{PublicKeyExtension, Secp256r1PublicKey};
+#[cfg(feature = "protocol")]
 use neo_protocol::AccountTrait;
+#[cfg(feature = "protocol")]
 use neo_protocol::account::Account;
 use neo_common::Wallet;
 use neo_common::WitnessScope;
@@ -39,15 +41,37 @@ pub struct AccountSigner {
 	pub(crate) allowed_groups: Vec<Secp256r1PublicKey>,
 	rules: Vec<WitnessRule>,
 	#[getset(get = "pub")]
+	#[cfg(feature = "protocol")]
 	pub account: Account<Wallet>,
+	#[cfg(not(feature = "protocol"))]
+	pub account: Wallet,
 }
 
 impl AccountSigner {
+	/// Creates a new `AccountSigner` with the specified scope.
+	///
+	/// # Arguments
+	///
+	/// * `account` - The account to create the signer for.
+	/// * `scope` - The witness scope to use.
+	#[cfg(feature = "protocol")]
+	pub fn new(account: &Account<Wallet>, scope: WitnessScope) -> Self {
+		Self {
+			signer_hash: account.get_script_hash().clone(),
+			scopes: vec![scope],
+			allowed_contracts: vec![],
+			allowed_groups: vec![],
+			rules: vec![],
+			account: account.clone(),
+		}
+	}
+
 	/// Creates a new `AccountSigner` with no scope.
 	///
 	/// # Arguments
 	///
 	/// * `account` - The account to create the signer for.
+	#[cfg(feature = "protocol")]
 	pub fn none(account: &Account<Wallet>) -> Result<Self, TransactionError> {
 		Ok(Self::new(account, WitnessScope::None))
 	}
@@ -57,6 +81,7 @@ impl AccountSigner {
 	/// # Arguments
 	///
 	/// * `account` - The account to create the signer for.
+	#[cfg(feature = "protocol")]
 	pub fn called_by_entry(account: &Account<Wallet>) -> Result<Self, TransactionError> {
 		Ok(Self::new(account, WitnessScope::CalledByEntry))
 	}
@@ -66,18 +91,31 @@ impl AccountSigner {
 	/// # Arguments
 	///
 	/// * `account` - The account to create the signer for.
+	#[cfg(feature = "protocol")]
 	pub fn global(account: &Account<Wallet>) -> Result<Self, TransactionError> {
 		Ok(Self::new(account, WitnessScope::Global))
 	}
 
 	/// Checks if the account is a multi-signature account.
+	#[cfg(feature = "protocol")]
 	pub fn is_multi_sig(&self) -> bool {
 		matches!(&self.account.verification_script(), Some(script) if script.is_multi_sig())
 	}
 
+	#[cfg(not(feature = "protocol"))]
+	pub fn is_multi_sig(&self) -> bool {
+		false // Default implementation when protocol feature is not enabled
+	}
+
 	/// Returns the script hash of the account.
+	#[cfg(feature = "protocol")]
 	pub fn get_script_hash(&self) -> H160 {
 		self.account.get_script_hash().clone()
+	}
+
+	#[cfg(not(feature = "protocol"))]
+	pub fn get_script_hash(&self) -> H160 {
+		self.signer_hash.clone()
 	}
 }
 
@@ -154,14 +192,32 @@ impl NeoSerializable for AccountSigner {
                     .into());
 			}
 		}
-		Ok(Self {
-			signer_hash,
-			scopes,
-			allowed_contracts,
-			allowed_groups,
-			rules,
-			account: Account::from_address(signer_hash.to_address().as_str()).unwrap(),
-		})
+
+		#[cfg(feature = "protocol")]
+		{
+			let account = Account::from_address(signer_hash.to_address().as_str()).unwrap();
+			Ok(Self {
+				signer_hash,
+				scopes,
+				allowed_contracts,
+				allowed_groups,
+				rules,
+				account,
+			})
+		}
+
+		#[cfg(not(feature = "protocol"))]
+		{
+			let wallet = Wallet::new("NeoRustDefaultAddress".to_string());
+			Ok(Self {
+				signer_hash,
+				scopes,
+				allowed_contracts,
+				allowed_groups,
+				rules,
+				account: wallet,
+			})
+		}
 	}
 
 	fn to_array(&self) -> Vec<u8> {
@@ -250,29 +306,66 @@ impl SignerTrait for AccountSigner {
 }
 
 impl AccountSigner {
-	pub fn new(account: &Account<Wallet>, scope: WitnessScope) -> Self {
-		Self {
-			signer_hash: account.get_script_hash().clone(),
-			scopes: vec![scope],
-			allowed_contracts: vec![],
-			allowed_groups: vec![],
-			rules: vec![],
-			account: account.clone(),
+	pub fn none_hash160(account_hash: H160) -> Result<Self, TransactionError> {
+		#[cfg(feature = "protocol")]
+		{
+			let account = neo_protocol::Account::from_address(account_hash.to_address().as_str()).unwrap();
+			Ok(Self::none(&account)?)
+		}
+		
+		#[cfg(not(feature = "protocol"))]
+		{
+			let wallet = Wallet::new(account_hash.to_address());
+			Ok(Self {
+				signer_hash: account_hash,
+				scopes: vec![WitnessScope::None],
+				allowed_contracts: vec![],
+				allowed_groups: vec![],
+				rules: vec![],
+				account: wallet,
+			})
 		}
 	}
 
-	pub fn none_hash160(account_hash: H160) -> Result<Self, TransactionError> {
-		let account = Account::from_address(account_hash.to_address().as_str()).unwrap();
-		Ok(Self::new(&account, WitnessScope::None))
-	}
-
 	pub fn called_by_entry_hash160(account_hash: H160) -> Result<Self, TransactionError> {
-		let account = Account::from_address(account_hash.to_address().as_str()).unwrap();
-		Ok(Self::new(&account, WitnessScope::CalledByEntry))
+		#[cfg(feature = "protocol")]
+		{
+			let account = neo_protocol::Account::from_address(account_hash.to_address().as_str()).unwrap();
+			Ok(Self::called_by_entry(&account)?)
+		}
+
+		#[cfg(not(feature = "protocol"))]
+		{
+			let wallet = Wallet::new(account_hash.to_address());
+			Ok(Self {
+				signer_hash: account_hash,
+				scopes: vec![WitnessScope::CalledByEntry],
+				allowed_contracts: vec![],
+				allowed_groups: vec![],
+				rules: vec![],
+				account: wallet,
+			})
+		}
 	}
 
 	pub fn global_hash160(account_hash: H160) -> Result<Self, TransactionError> {
-		let account = Account::from_address(account_hash.to_address().as_str()).unwrap();
-		Ok(Self::new(&account, WitnessScope::Global))
+		#[cfg(feature = "protocol")]
+		{
+			let account = neo_protocol::Account::from_address(account_hash.to_address().as_str()).unwrap();
+			Ok(Self::global(&account)?)
+		}
+
+		#[cfg(not(feature = "protocol"))]
+		{
+			let wallet = Wallet::new(account_hash.to_address());
+			Ok(Self {
+				signer_hash: account_hash,
+				scopes: vec![WitnessScope::Global],
+				allowed_contracts: vec![],
+				allowed_groups: vec![],
+				rules: vec![],
+				account: wallet,
+			})
+		}
 	}
 }

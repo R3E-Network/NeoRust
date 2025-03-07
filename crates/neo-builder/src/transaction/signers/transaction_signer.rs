@@ -8,6 +8,7 @@ use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
 use neo_config::NeoConstants;
 use neo_crypto::Secp256r1PublicKey;
 use neo_common::WitnessScope;
+use neo_common::h160_utils::{serialize_h160, deserialize_h160};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
@@ -18,8 +19,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Default, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct TransactionSigner {
 	#[serde(rename = "account")]
-	#[serde(serialize_with = "neo_common::serialize_h160")]
-	#[serde(deserialize_with = "neo_common::deserialize_h160")]
+	#[serde(serialize_with = "serialize_h160")]
+	#[serde(deserialize_with = "deserialize_h160")]
 	pub account: H160,
 
 #[serde(rename = "scopes")]

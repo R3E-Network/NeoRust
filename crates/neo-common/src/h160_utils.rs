@@ -3,7 +3,7 @@
 //! This module provides utilities for serializing and deserializing H160 types.
 
 use primitive_types::H160;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serializer};
 use std::str::FromStr;
 
 /// Serializes a H160 as a hex string.

@@ -84,11 +84,12 @@ pub struct CliState {
 	pub wallet: Option<Wallet>,
 	pub rpc_client: Option<RpcClient<HttpProvider>>,
 	pub network_type: Option<String>,
+	pub is_neo_x: bool,
 }
 
 impl Default for CliState {
 	fn default() -> Self {
-		Self { wallet: None, rpc_client: None, network_type: None }
+		Self { wallet: None, rpc_client: None, network_type: None, is_neo_x: false }
 	}
 }
 
@@ -98,7 +99,18 @@ impl CliState {
 	}
 
 	pub fn set_network_type(&mut self, network: String) {
+		// Check if this is a Neo X network
+		let network_lower = network.to_lowercase();
+		if network_lower.contains("neox") || network_lower.contains("neo-x") {
+			self.is_neo_x = true;
+		} else {
+			self.is_neo_x = false;
+		}
 		self.network_type = Some(network);
+	}
+
+	pub fn is_neo_x(&self) -> bool {
+		self.is_neo_x
 	}
 
 	pub fn get_rpc_client(&self) -> Result<&RpcClient<HttpProvider>, CliError> {

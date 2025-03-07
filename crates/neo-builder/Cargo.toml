@@ -61,5 +61,5 @@ base64 = { version = "0.21.7" }
 
 [features]
 futures = []
-default = ["protocol"]
+default = []
 protocol = ["neo-protocol"]

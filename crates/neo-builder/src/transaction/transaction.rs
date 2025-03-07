@@ -12,8 +12,23 @@ use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
 use neo_config::NeoConstants;
 use neo_crypto::HashableForVec;
 use neo_common::JsonRpcProvider;
+#[cfg(feature = "protocol")]
 use neo_protocol::{ApplicationLog, RawTransaction};
 use neo_types::{NameOrAddress, Bytes};
+use neo_common::rpc_client_trait::RpcClient;
+use neo_crypto::Secp256r1PublicKey;
+use primitive_types::{H160, H256};
+use rustc_serialize::hex::FromHex;
+use std::{
+	collections::{BTreeSet, HashMap, HashSet},
+	fmt,
+	str::FromStr,
+	time::{SystemTime, UNIX_EPOCH},
+};
+
+// Type aliases to resolve missing types
+type RawTransaction = String;
+type ApplicationLog = serde_json::Value;
 
 /// A Neo N3 blockchain transaction.
 ///
@@ -156,7 +171,7 @@ impl<'de, 'a> Deserialize<'de> for Transaction<'a> {
 		let script: Bytes = script_vec.into();
 
 		// For optional fields
-		let block_time = value["blocktime"].as_i64().map(|v| v as i32);
+		let _block_time = value["blocktime"].as_i64().map(|v| v as i32);
 
 		Ok(Transaction {
 			network: None,

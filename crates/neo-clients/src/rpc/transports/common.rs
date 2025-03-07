@@ -122,7 +122,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for Response<'a> {
 		impl<'de: 'a, 'a> Visitor<'de> for ResponseVisitor<'a> {
 			type Value = Response<'a>;
 
-			fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+			fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
 				formatter.write_str("a valid jsonrpc 2.0 response object")
 			}
 
@@ -196,7 +196,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for Response<'a> {
 								return Err(de::Error::duplicate_field("params"));
 							}
 
-							let value: Params = map.next_value()?;
+							let value: Params<'_> = map.next_value()?;
 							params = Some(value);
 						},
 						key =>

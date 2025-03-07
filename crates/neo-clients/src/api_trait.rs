@@ -1,20 +1,28 @@
 use std::{collections::HashMap, error::Error, fmt::Debug};
 
 #[cfg(feature = "builder")]
-use neo_builder::{Signer, Transaction, TransactionBuilder, TransactionSendToken};
+use neo_builder::{Transaction, TransactionBuilder};
+#[cfg(feature = "builder")]
+use neo_builder::transaction::transaction_send_token::TransactionSendToken;
 #[cfg(not(feature = "builder"))]
-use neo_common::transaction_types::{Signer, TransactionSendToken};
+pub struct TransactionSendToken {
+	pub token_hash: primitive_types::H160,
+	pub to: primitive_types::H160,
+	pub value: u32,
+}
+
+use neo_common::transaction_signer::TransactionSigner;
+use neo_common::Signer;
 
 use neo_config::NEOCONFIG;
-use crate::{JsonRpcProvider, ProviderError, RpcClient};
-use neo_protocol::{
+use crate::{
+	JsonRpcProvider, ProviderError, RpcClient,
 	ApplicationLog, Balance, MemPoolDetails, NeoAddress, NeoBlock, NeoNetworkFee, NeoVersion,
 	Nep11Balances, Nep11Transfers, Nep17Balances, Nep17Transfers, Peers, Plugin, RTransaction,
 	RawTransaction, StateHeight, StateRoot, States, SubmitBlock, UnclaimedGas, ValidateAddress,
-	Validator,
+	Validator, WitnessCondition, VMState
 };
-use neo_types::{ContractManifest, ContractParameter, ContractState, InvocationResult, NativeContractState,
-	NefFile, StackItem};
+use neo_types::{ContractParameter, ContractState, InvocationResult, NativeContractState, StackItem};
 use async_trait::async_trait;
 use auto_impl::auto_impl;
 use primitive_types::{H160, H256};
@@ -161,13 +169,13 @@ pub trait APITrait: Sync + Send + Debug {
 		contract_hash: &H160,
 		method: String,
 		params: Vec<ContractParameter>,
-		signers: Option<Vec<Signer>>,
+		signers: Option<Vec<TransactionSigner>>,
 	) -> Result<InvocationResult, Self::Error>;
 
 	async fn invoke_script(
 		&self,
 		hex: String,
-		signers: Vec<Signer>,
+		signers: Vec<TransactionSigner>,
 	) -> Result<InvocationResult, Self::Error>;
 
 	// More smart contract methods
@@ -318,7 +326,7 @@ pub trait APITrait: Sync + Send + Debug {
 		&self,
 		nef: NefFile,
 		manifest: ContractManifest,
-		signers: Vec<Signer>,
+		signers: Vec<Box<dyn Signer>>,
 	) -> Result<TransactionBuilder<Self::Provider>, Self::Error>;
 
 	#[cfg(feature = "builder")]
@@ -327,7 +335,7 @@ pub trait APITrait: Sync + Send + Debug {
 		contract_hash: H160,
 		nef: NefFile,
 		manifest: ContractManifest,
-		signers: Vec<Signer>,
+		signers: Vec<Box<dyn Signer>>,
 	) -> Result<TransactionBuilder<Self::Provider>, Self::Error>;
 
 	#[cfg(feature = "builder")]
@@ -336,7 +344,7 @@ pub trait APITrait: Sync + Send + Debug {
 		contract_hash: H160,
 		method: &str,
 		params: Vec<ContractParameter>,
-		signers: Vec<Signer>,
+		signers: Vec<Box<dyn Signer>>,
 	) -> Result<TransactionBuilder<Self::Provider>, Self::Error>;
 
 	async fn get_block_by_index(&self, index: u32, full_tx: bool) -> Result<NeoBlock, Self::Error>;
@@ -348,13 +356,13 @@ pub trait APITrait: Sync + Send + Debug {
 		contract_hash: H160,
 		name: String,
 		params: Vec<ContractParameter>,
-		signers: Vec<Signer>,
+		signers: Vec<Box<dyn Signer>>,
 	) -> Result<InvocationResult, Self::Error>;
 
 	async fn invoke_script_diagnostics(
 		&self,
 		hex: String,
-		signers: Vec<Signer>,
+		signers: Vec<TransactionSigner>,
 	) -> Result<InvocationResult, Self::Error>;
 
 	async fn traverse_iterator(
@@ -370,7 +378,7 @@ pub trait APITrait: Sync + Send + Debug {
 		&self,
 		hash: H160,
 		params: Vec<ContractParameter>,
-		signers: Vec<Signer>,
+		signers: Vec<TransactionSigner>,
 	) -> Result<InvocationResult, Self::Error>;
 
 	async fn get_raw_mempool(&self) -> Result<MemPoolDetails, Self::Error>;

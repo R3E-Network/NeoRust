@@ -3,7 +3,7 @@
 //! This module provides cryptographic utilities for the NeoRust SDK.
 
 use sha2::{Digest, Sha256};
-use primitive_types::{H160, H256};
+use primitive_types::H160;
 use ripemd::Ripemd160;
 
 /// Computes the SHA-256 hash of the input data.

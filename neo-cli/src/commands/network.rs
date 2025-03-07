@@ -53,6 +53,30 @@ impl Default for CliState {
 	}
 }
 
+impl CliState {
+	/// Get the network type string
+	pub fn get_network_type_string(&self) -> String {
+		self.network_type.clone().unwrap_or_else(|| "MainNet".to_string())
+	}
+
+	/// Check if the current network is a Neo X network
+	pub fn is_neo_x(&self) -> bool {
+		let network_str = self.get_network_type_string().to_lowercase();
+		network_str.contains("neox") || network_str.contains("neo-x")
+	}
+
+	/// Check if the current network is a testnet
+	pub fn is_testnet(&self) -> bool {
+		let network_str = self.get_network_type_string().to_lowercase();
+		network_str.contains("test")
+	}
+
+	/// Check if the current network is a mainnet
+	pub fn is_mainnet(&self) -> bool {
+		!self.is_testnet()
+	}
+}
+
 /// Handle the network command
 pub async fn handle_network_command(
 	args: NetworkArgs,

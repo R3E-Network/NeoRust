@@ -8,6 +8,7 @@ use neo_common::witness_scope::WitnessScope;
 use neo_codec::{Decoder, Encoder, NeoSerializable};
 use neo_config::NeoConstants;
 use neo_crypto::Secp256r1PublicKey;
+#[cfg(feature = "protocol")]
 use neo_protocol::AccountTrait;
 use elliptic_curve::pkcs8::der::Encode;
 use primitive_types::H160;
@@ -405,13 +406,21 @@ impl Into<AccountSigner> for Signer {
 impl Into<TransactionSigner> for Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::AccountSigner(account_signer) => TransactionSigner::new_full(
-				account_signer.account.get_script_hash(),
-				account_signer.get_scopes().to_vec(),
-				account_signer.get_allowed_contracts().to_vec(),
-				account_signer.get_allowed_groups().to_vec(),
-				account_signer.get_rules().to_vec(),
-			),
+			Signer::AccountSigner(account_signer) => {
+				#[cfg(feature = "protocol")]
+				let script_hash = account_signer.account.get_script_hash();
+				
+				#[cfg(not(feature = "protocol"))]
+				let script_hash = account_signer.signer_hash;
+				
+				TransactionSigner::new_full(
+					script_hash,
+					account_signer.get_scopes().to_vec(),
+					account_signer.get_allowed_contracts().to_vec(),
+					account_signer.get_allowed_groups().to_vec(),
+					account_signer.get_rules().to_vec(),
+				)
+			},
 			Signer::ContractSigner(contract_signer) => TransactionSigner::new_full(
 				*contract_signer.get_signer_hash(),
 				contract_signer.get_scopes().to_vec(),
@@ -427,13 +436,21 @@ impl Into<TransactionSigner> for Signer {
 impl Into<TransactionSigner> for &Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::AccountSigner(account_signer) => TransactionSigner::new_full(
-				account_signer.account.get_script_hash(),
-				account_signer.get_scopes().to_vec(),
-				account_signer.get_allowed_contracts().to_vec(),
-				account_signer.get_allowed_groups().to_vec(),
-				account_signer.get_rules().to_vec(),
-			),
+			Signer::AccountSigner(account_signer) => {
+				#[cfg(feature = "protocol")]
+				let script_hash = account_signer.account.get_script_hash();
+				
+				#[cfg(not(feature = "protocol"))]
+				let script_hash = account_signer.signer_hash;
+				
+				TransactionSigner::new_full(
+					script_hash,
+					account_signer.get_scopes().to_vec(),
+					account_signer.get_allowed_contracts().to_vec(),
+					account_signer.get_allowed_groups().to_vec(),
+					account_signer.get_rules().to_vec(),
+				)
+			},
 			Signer::ContractSigner(contract_signer) => TransactionSigner::new_full(
 				*contract_signer.get_signer_hash(),
 				contract_signer.get_scopes().to_vec(),
@@ -441,10 +458,6 @@ impl Into<TransactionSigner> for &Signer {
 				contract_signer.get_allowed_groups().to_vec(),
 				contract_signer.get_rules().to_vec(),
 			),
-			// Signer::Account(_account_signer) =>
-			// 	panic!("Cannot convert AccountSigner into TransactionSigner"),
-			// Signer::Contract(_contract_signer) =>
-			// 	panic!("Cannot convert ContractSigner into AccountSigner"),
 			Signer::TransactionSigner(transaction_signer) => transaction_signer.clone(),
 		}
 	}
@@ -839,7 +852,7 @@ mod tests {
 		signer.set_rules(vec![rule]).expect("");
 
 		let expected = format!(
-			"{}{}{}{}{}{}{}{}{}{}{}{}",
+			"{}{}{}{}{}{}{}{}{}{}{}{}{}{}",
 			SCRIPT_HASH.as_bytes().to_hex(),
 			"71",
 			"02",

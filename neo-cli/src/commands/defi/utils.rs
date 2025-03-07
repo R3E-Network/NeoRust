@@ -40,11 +40,12 @@ impl NetworkType {
 /// Network type for CLI operations compatible with wallet module
 ///
 /// This provides compatibility with the network types used in the wallet module
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NetworkTypeCli {
-	MainNet, // Updated to match the Network enum in wallet module
-	TestNet, // Updated to match the Network enum in wallet module
-	NeoX,
+	MainNet,  // Neo N3 MainNet
+	TestNet,  // Neo N3 TestNet
+	NeoXMain, // Neo X MainNet
+	NeoXTest, // Neo X TestNet
 }
 
 impl NetworkTypeCli {
@@ -54,21 +55,25 @@ impl NetworkTypeCli {
 	/// * `magic` - The network magic number
 	pub fn from_magic(magic: u32) -> Self {
 		match magic {
-			769 => NetworkTypeCli::MainNet,
-			894 => NetworkTypeCli::TestNet,
-			_ => NetworkTypeCli::NeoX,
+			769 => NetworkTypeCli::MainNet,  // Neo N3 MainNet
+			894 => NetworkTypeCli::TestNet,  // Neo N3 TestNet
+			245 => NetworkTypeCli::NeoXMain, // Neo X MainNet magic number
+			422 => NetworkTypeCli::NeoXTest, // Neo X TestNet magic number
+			_ => NetworkTypeCli::TestNet,    // Default to TestNet for safety
 		}
 	}
 
 	/// Create NetworkTypeCli from a network string
 	///
 	/// # Arguments
-	/// * `network` - Network name string ("MainNet", "TestNet", etc.)
+	/// * `network` - Network name string ("MainNet", "TestNet", "NeoX-MainNet", etc.)
 	pub fn from_network_string(network: &str) -> Self {
 		match network.to_lowercase().as_str() {
 			"mainnet" => NetworkTypeCli::MainNet,
 			"testnet" => NetworkTypeCli::TestNet,
-			_ => NetworkTypeCli::TestNet, // Default to TestNet
+			"neox" | "neo-x" | "neox-mainnet" => NetworkTypeCli::NeoXMain,
+			"neox-testnet" => NetworkTypeCli::NeoXTest,
+			_ => NetworkTypeCli::TestNet, // Default to TestNet for safety
 		}
 	}
 
@@ -77,8 +82,29 @@ impl NetworkTypeCli {
 		match self {
 			NetworkTypeCli::MainNet => "MainNet".to_string(),
 			NetworkTypeCli::TestNet => "TestNet".to_string(),
-			NetworkTypeCli::NeoX => "NeoX".to_string(),
+			NetworkTypeCli::NeoXMain => "NeoX-MainNet".to_string(),
+			NetworkTypeCli::NeoXTest => "NeoX-TestNet".to_string(),
 		}
+	}
+	
+	/// Check if this network type is a Neo X network
+	pub fn is_neox(&self) -> bool {
+		matches!(self, NetworkTypeCli::NeoXMain | NetworkTypeCli::NeoXTest)
+	}
+	
+	/// Check if this network type is a Neo N3 network
+	pub fn is_neo_n3(&self) -> bool {
+		matches!(self, NetworkTypeCli::MainNet | NetworkTypeCli::TestNet)
+	}
+	
+	/// Check if this network type is a mainnet
+	pub fn is_mainnet(&self) -> bool {
+		matches!(self, NetworkTypeCli::MainNet | NetworkTypeCli::NeoXMain)
+	}
+	
+	/// Check if this network type is a testnet
+	pub fn is_testnet(&self) -> bool {
+		matches!(self, NetworkTypeCli::TestNet | NetworkTypeCli::NeoXTest)
 	}
 }
 
@@ -136,28 +162,23 @@ pub fn get_token_address_for_network(
 	// Uppercase the token symbol for consistent matching
 	let token_symbol = token_symbol.to_uppercase();
 
+	// Use centralized constants for token addresses
 	match network_type {
 		NetworkTypeCli::MainNet => {
 			// Token addresses for Neo N3 Mainnet
-			match token_symbol.as_str() {
-				"NEO" => ScriptHash::from_str("ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").ok(),
-				"GAS" => ScriptHash::from_str("d2a4cff31913016155e38e474a2c06d08be276cf").ok(),
-				"FLM" => ScriptHash::from_str("f0151f528127558851b39c2cd8aa47da7418ab28").ok(),
-				_ => None,
-			}
+			constants::neo_n3_mainnet::get_script_hash(&token_symbol)
 		},
 		NetworkTypeCli::TestNet => {
 			// Token addresses for Neo N3 Testnet
-			match token_symbol.as_str() {
-				"NEO" => ScriptHash::from_str("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5").ok(),
-				"GAS" => ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").ok(),
-				_ => None,
-			}
+			constants::neo_n3_testnet::get_script_hash(&token_symbol)
 		},
-		NetworkTypeCli::NeoX => {
-			// Placeholder for NeoX token addresses
-			// Will be updated when available
-			None
+		NetworkTypeCli::NeoXMain => {
+			// Token addresses for Neo X Mainnet
+			constants::neo_x_mainnet::get_script_hash(&token_symbol)
+		},
+		NetworkTypeCli::NeoXTest => {
+			// Token addresses for Neo X Testnet
+			constants::neo_x_testnet::get_script_hash(&token_symbol)
 		},
 	}
 }
@@ -193,26 +214,54 @@ pub async fn get_token_decimals(
 	rpc_client: &RpcClient<HttpProvider>,
 	network_type: NetworkTypeCli,
 ) -> Result<u8, CliError> {
-	// Check for well-known tokens first
-	match network_type {
-		NetworkTypeCli::MainNet | NetworkTypeCli::TestNet => {
-			// Try to convert token_hash to string for comparison
-			let token_hash_str = token_hash.to_string();
+	// Get token hash as string for comparison
+	let token_hash_str = token_hash.to_string();
 
-			// Check Neo and Gas based on ScriptHash for N3
-			if token_hash_str == "ef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"
-				|| token_hash_str == "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"
-			{
-				return Ok(0); // NEO has 0 decimals
-			} else if token_hash_str == "d2a4cff31913016155e38e474a2c06d08be276cf"
-				|| token_hash_str == "0xd2a4cff31913016155e38e474a2c06d08be276cf"
-			{
-				return Ok(8); // GAS has 8 decimals
+	// Check for well-known tokens first based on network type
+	if network_type.is_neo_n3() {
+		// Neo N3 tokens (MainNet and TestNet share same decimals)
+		if token_hash_str == constants::neo_n3_mainnet::NEO 
+			|| token_hash_str == format!("0x{}", constants::neo_n3_mainnet::NEO) {
+			return Ok(0); // NEO has 0 decimals
+		} else if token_hash_str == constants::neo_n3_mainnet::GAS 
+			|| token_hash_str == format!("0x{}", constants::neo_n3_mainnet::GAS) {
+			return Ok(8); // GAS has 8 decimals
+		} else if token_hash_str == constants::neo_n3_mainnet::FLM 
+			|| token_hash_str == format!("0x{}", constants::neo_n3_mainnet::FLM) {
+			return Ok(8); // FLM has 8 decimals
+		} else if token_hash_str == constants::neo_n3_mainnet::BNEO 
+			|| token_hash_str == format!("0x{}", constants::neo_n3_mainnet::BNEO) {
+			return Ok(8); // bNEO has 8 decimals
+		}
+		// If on testnet, also check testnet-specific tokens
+		if network_type.is_testnet() {
+			if token_hash_str == constants::neo_n3_testnet::TEST 
+				|| token_hash_str == format!("0x{}", constants::neo_n3_testnet::TEST) {
+				return Ok(8); // TEST token has 8 decimals
+			} else if token_hash_str == constants::neo_n3_testnet::USDT 
+				|| token_hash_str == format!("0x{}", constants::neo_n3_testnet::USDT) {
+				return Ok(6); // USDT has 6 decimals
 			}
-		},
-		NetworkTypeCli::NeoX => {
-			// Will be updated when NeoX info is available
-		},
+		}
+	} else if network_type.is_neox() {
+		// Neo X tokens
+		if network_type == NetworkTypeCli::NeoXMain {
+			// NeoX MainNet tokens
+			if token_hash_str == constants::neo_x_mainnet::NEO {
+				return Ok(0); // NEO has 0 decimals
+			} else if token_hash_str == constants::neo_x_mainnet::GAS 
+				|| token_hash_str == constants::neo_x_mainnet::NEOX {
+				return Ok(18); // GAS/NEOX on Neo X has 18 decimals
+			}
+		} else {
+			// NeoX TestNet tokens
+			if token_hash_str == constants::neo_x_testnet::NEO {
+				return Ok(0); // NEO has 0 decimals
+			} else if token_hash_str == constants::neo_x_testnet::GAS 
+				|| token_hash_str == constants::neo_x_testnet::NEOX {
+				return Ok(18); // GAS/NEOX on Neo X has 18 decimals
+			}
+		}
 	}
 
 	// Call the decimals method on the token contract
@@ -263,7 +312,7 @@ pub fn format_token_amount(raw_amount: i64, decimals: u8) -> String {
 /// Resolve token symbol or address to a script hash
 pub async fn resolve_token_to_scripthash_with_network(
 	token: &str,
-	_rpc_client: &RpcClient<HttpProvider>,
+	rpc_client: &RpcClient<HttpProvider>,
 	network_type: NetworkTypeCli,
 ) -> Result<ScriptHash, CliError> {
 	// Check if the input is a valid script hash
@@ -284,9 +333,44 @@ pub async fn resolve_token_to_scripthash_with_network(
 		Err(_) => {},
 	}
 
-	// Check if it's a well-known token symbol
+	// Check if it's a well-known token symbol using our centralized constants
 	if let Some(script_hash) = get_token_address_for_network(token, network_type) {
 		return Ok(script_hash);
+	}
+
+	// For Neo X networks, use appropriate contract registry based on network type
+	if network_type.is_neox() {
+		// Get the appropriate registry contract hash for the network
+		let contract_registry = if network_type == NetworkTypeCli::NeoXMain {
+			// MainNet registry
+			ScriptHash::from_str(&constants::contracts::neo_x_mainnet::TOKEN_REGISTRY)
+		} else {
+			// TestNet registry
+			ScriptHash::from_str(&constants::contracts::neo_x_testnet::TOKEN_REGISTRY)
+		};
+
+		// If we have a valid registry contract, try to resolve the token
+		if let Ok(registry) = contract_registry {
+			let token_upper = token.to_uppercase();
+			let params = vec![ContractParameter::string(token_upper)];
+			
+			match rpc_client.invoke_function_diagnostics(registry, "getTokenAddress".to_string(), params, vec![]).await {
+				Ok(result) => {
+					if let Some(item) = result.stack.first() {
+						if let Some(bytes) = item.as_bytes() {
+							if !bytes.is_empty() {
+								let address = String::from_utf8_lossy(&bytes);
+								if let Ok(hash) = ScriptHash::from_str(&address) {
+									return Ok(hash);
+								}
+							}
+							}
+						}
+					}
+				},
+				Err(_) => {}
+			}
+		}
 	}
 
 	// If we get here, we couldn't resolve the token
@@ -315,4 +399,21 @@ pub fn load_wallet_from_state(
 		return Err(CliError::NoWallet);
 	}
 	Ok(state.wallet.as_mut().unwrap())
+}
+
+/// Get the bridge contract hash for a specific network type
+pub fn get_bridge_contract_hash(network_type: NetworkTypeCli) -> Result<ScriptHash, CliError> {
+	// Use centralized constants for contract addresses
+	if network_type.is_neox() {
+		return Err(CliError::InvalidArgument(
+			"Cannot get bridge contract for Neo X network".to_string(),
+			"Bridge contract must be called from Neo N3 network".to_string(),
+		));
+	}
+
+	// Get the bridge contract hash from constants
+	let is_testnet = network_type.is_testnet();
+	constants::bridge::get_contract_hash(is_testnet)
+		.ok_or_else(|| CliError::InvalidInput("Failed to parse bridge contract hash".to_string()))
+}
 }

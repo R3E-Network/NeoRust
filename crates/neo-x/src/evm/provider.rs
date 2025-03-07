@@ -12,6 +12,7 @@ pub struct NeoXProvider<'a, P: JsonRpcProvider> {
 	rpc_url: String,
 	#[serde(skip)]
 	provider: Option<&'a RpcClient<P>>,
+	is_testnet: bool,
 }
 
 impl<'a, P: JsonRpcProvider + 'static> NeoXProvider<'a, P> {
@@ -21,12 +22,17 @@ impl<'a, P: JsonRpcProvider + 'static> NeoXProvider<'a, P> {
 	///
 	/// * `rpc_url` - The RPC URL for the Neo X chain
 	/// * `provider` - An optional reference to an RPC client
+	/// * `is_testnet` - Flag indicating whether to use testnet configuration
 	///
 	/// # Returns
 	///
 	/// A new NeoXProvider instance
-	pub fn new(rpc_url: &str, provider: Option<&'a RpcClient<P>>) -> Self {
-		Self { rpc_url: rpc_url.to_string(), provider }
+	pub fn new(rpc_url: &str, provider: Option<&'a RpcClient<P>>, is_testnet: bool) -> Self {
+		Self { 
+			rpc_url: rpc_url.to_string(), 
+			provider,
+			is_testnet,
+		}
 	}
 
 	/// Gets the RPC URL for the Neo X chain
@@ -53,8 +59,20 @@ impl<'a, P: JsonRpcProvider + 'static> NeoXProvider<'a, P> {
 	///
 	/// The chain ID as a u64
 	pub async fn chain_id(&self) -> Result<u64, ContractError> {
-		// Implementation to get the chain ID from the Neo X RPC
-		// This is a placeholder and should be implemented with actual RPC calls
-		Ok(1) // Default chain ID for Neo X
+		// Return appropriate chain ID based on network
+		if self.is_testnet {
+			Ok(11571) // Neo X Testnet Chain ID
+		} else {
+			Ok(11570) // Neo X Mainnet Chain ID 
+		}
+	}
+
+	/// Gets whether this provider is connected to testnet
+	///
+	/// # Returns
+	///
+	/// Boolean indicating if this is a testnet connection
+	pub fn is_testnet(&self) -> bool {
+		self.is_testnet
 	}
 }

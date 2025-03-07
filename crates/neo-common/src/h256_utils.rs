@@ -3,7 +3,7 @@
 //! This module provides utilities for serializing and deserializing H256 types.
 
 use primitive_types::H256;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serializer};
 use std::str::FromStr;
 
 /// Serializes a H256 as a hex string.
