@@ -1,8 +1,8 @@
-use neo::{
-	neo_clients::{HttpProvider, JsonRpcProvider},
+use neo3::{
+	clients::{HttpProvider, JsonRpcProvider},
 	prelude::RpcClient,
 };
-use neo3 as neo;
+
 
 /// This example demonstrates how to connect to a Neo N3 node and retrieve basic blockchain information.
 /// It shows different connection methods and how to query node status.

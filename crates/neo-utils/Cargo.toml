@@ -1,0 +1,36 @@
+[package]
+name = "neo-utils"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Utility functions and helpers for the NeoRust SDK"
+documentation = "https://docs.rs/neo-utils"
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+neo-common = { path = "../neo-common", version = "0.1.9" }
+# Internal crates
+neo-error = { path = "../neo-error", version = "0.1.9" }
+neo-types = { path = "../neo-types", version = "0.1.9" }
+neo-crypto = { path = "../neo-crypto", version = "0.1.9" }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+hex = { workspace = true }
+
+# Async
+tokio = { workspace = true }
+futures = { workspace = true }
+
+# Misc
+thiserror = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+chrono = { workspace = true }
+rand = { workspace = true }

@@ -1,12 +1,10 @@
 use std::str::FromStr;
 
-use neo::{
-	neo_clients::{HttpProvider, JsonRpcProvider},
-	neo_contract::famous::GrandShareContract,
-	neo_protocol::account::Account,
-	neo_types::script_hash::ScriptHash,
-	prelude::RpcClient,
-};
+use neo3::prelude::*;
+use neo_clients::{HttpProvider, JsonRpcProvider};
+use neo_contract::famous::GrandShareContract;
+use neo_protocol::account::Account;
+use neo_types::ScriptHash;
 
 /// This example demonstrates how to interact with the GrandShare contract on Neo N3.
 /// It shows how to submit proposals, vote on proposals, fund projects, and claim funds.

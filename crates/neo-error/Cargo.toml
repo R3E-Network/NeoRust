@@ -1,0 +1,32 @@
+[package]
+name = "neo-error"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Error types and handling for the NeoRust SDK"
+documentation = "https://docs.rs/neo-error"
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+neo-common = { path = "../neo-common", version = "0.1.9" }
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["raw_value"] }
+
+# Error handling
+thiserror = { version = "1.0" }
+anyhow = { version = "1.0", optional = true }
+
+# Misc
+tracing = { version = "0.1.37" }
+hex = { package = "const-hex", version = "1.6", features = ["hex"] }
+url = { version = "2.4", default-features = false }
+
+[features]
+default = []
+with-anyhow = ["anyhow"]

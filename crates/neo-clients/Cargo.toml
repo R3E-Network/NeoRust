@@ -1,0 +1,84 @@
+[package]
+name = "neo-clients"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Client implementations for interacting with Neo N3 blockchain nodes"
+documentation = "https://docs.rs/neo-clients"
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+neo-common = { path = "../neo-common", version = "0.1.9" }
+# Internal crates
+neo-config = { path = "../neo-config", version = "0.1.9" }
+neo-types = { path = "../neo-types", version = "0.1.9" }
+neo-crypto = { path = "../neo-crypto", version = "0.1.9" }
+neo-error = { path = "../neo-error", version = "0.1.9" }
+neo-utils = { path = "../neo-utils", version = "0.1.9" }
+neo-codec = { path = "../neo-codec", version = "0.1.9" }
+neo-protocol = { path = "../neo-protocol", version = "0.1.9", optional = true }
+neo-builder = { path = "../neo-builder", version = "0.1.9", optional = true }
+
+# Async
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
+futures = { workspace = true }
+futures-core = { workspace = true }
+futures-util = { workspace = true }
+futures-channel = { workspace = true }
+async-trait = { workspace = true }
+pin-project = { workspace = true }
+
+# HTTP/WebSocket
+reqwest = { workspace = true }
+url = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_with = { workspace = true }
+rustc-serialize = { version = "0.3.24" }
+
+# Additional dependencies
+getset = { version = "0.1.2" }
+auto_impl = { version = "1.1.0" }
+regex = { version = "1.10.3" }
+lazy_static = { version = "1.4.0" }
+hex = { workspace = true }
+bs58 = { version = "0.5.1" }
+jsonwebtoken = { version = "9.2.0" }
+rand = { workspace = true }
+instant = { version = "0.1.12" }
+base64 = { version = "0.21.7" }
+log = { version = "0.4.21" }
+primitive-types = { workspace = true }
+wiremock = { version = "0.6.3" }
+
+# Tracing
+tracing = { workspace = true }
+tracing-futures = { workspace = true }
+
+# Misc
+thiserror = { workspace = true }
+bytes = { workspace = true }
+once_cell = { workspace = true }
+http = { workspace = true }
+async-stream = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
+
+[features]
+futures = ["futures/std"]
+default = ["neo-protocol"]
+builder = ["neo-builder"]
+dev-rpc = []
+ipc = []
+ws = []
+legacy-ws = []
+mock = []

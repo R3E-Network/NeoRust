@@ -44,28 +44,28 @@
 //!
 //! ## Core Modules
 //!
-//! NeoRust is organized into specialized modules, each handling specific aspects of Neo N3:
+//! NeoRust is organized into specialized crates, each handling specific aspects of Neo N3:
 //!
-//! - [**neo_builder**](neo_builder): Transaction construction and script building
-//! - [**neo_clients**](neo_clients): Neo node interaction and RPC client implementations
-//! - [**neo_codec**](neo_codec): Serialization and deserialization of Neo data structures
-//! - [**neo_config**](neo_config): Configuration for networks and client settings
-//! - [**neo_contract**](neo_contract): Smart contract interaction and token standards
-//! - [**neo_crypto**](neo_crypto): Cryptographic primitives and operations
-//! - [**neo_error**](neo_error): Unified error handling
-//! - [**neo_fs**](neo_fs): NeoFS distributed storage system integration
-//! - [**neo_protocol**](neo_protocol): Core blockchain protocol implementations
-//! - [**neo_types**](neo_types): Core data types and primitives for Neo N3
-//! - [**neo_utils**](neo_utils): General utility functions
-//! - [**neo_wallets**](neo_wallets): Wallet management for Neo N3
-//! - [**neo_x**](neo_x): Neo X EVM compatibility layer
+//! - [**neo-builder**](https://docs.rs/neo-builder): Transaction construction and script building
+//! - [**neo-clients**](https://docs.rs/neo-clients): Neo node interaction and RPC client implementations
+//! - [**neo-codec**](https://docs.rs/neo-codec): Serialization and deserialization of Neo data structures
+//! - [**neo-config**](https://docs.rs/neo-config): Configuration for networks and client settings
+//! - [**neo-contract**](https://docs.rs/neo-contract): Smart contract interaction and token standards
+//! - [**neo-crypto**](https://docs.rs/neo-crypto): Cryptographic primitives and operations
+//! - [**neo-error**](https://docs.rs/neo-error): Unified error handling
+//! - [**neo-fs**](https://docs.rs/neo-fs): NeoFS distributed storage system integration
+//! - [**neo-protocol**](https://docs.rs/neo-protocol): Core blockchain protocol implementations
+//! - [**neo-types**](https://docs.rs/neo-types): Core data types and primitives for Neo N3
+//! - [**neo-utils**](https://docs.rs/neo-utils): General utility functions
+//! - [**neo-wallets**](https://docs.rs/neo-wallets): Wallet management for Neo N3
+//! - [**neo-x**](https://docs.rs/neo-x): Neo X EVM compatibility layer
 //!
 //! ## Quick Start
 //!
 //! Import all essential types and traits using the `prelude`:
 //!
 //! ```rust
-//! use neo_rust::prelude::*;
+//! use neo3::prelude::*;
 //! ```
 //!
 //! ## Complete Example
@@ -73,10 +73,7 @@
 //! Here's a comprehensive example showcasing common operations with the NeoRust SDK:
 //!
 //! ```no_run
-//! use neo_rust::prelude::*;
-//! use neo_rust::neo_protocol::account::Account;
-//! use neo_rust::neo_contract::{NeoToken, GasToken};
-//! use neo_rust::neo_builder::{TransactionBuilder, ScriptBuilder};
+//! use neo3::prelude::*;
 //! use std::str::FromStr;
 //!
 //! async fn neo_example() -> Result<(), Box<dyn std::error::Error>> {
@@ -172,7 +169,7 @@
 //! ### Connecting to a Neo N3 node
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -194,7 +191,7 @@
 //! ### Creating and sending a transaction
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //! use std::str::FromStr;
 //!
 //! #[tokio::main]
@@ -255,7 +252,7 @@
 //! ### Interacting with a smart contract
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //! use std::str::FromStr;
 //!
 //! #[tokio::main]
@@ -286,7 +283,7 @@
 //! ### Working with NEP-17 tokens
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //! use std::str::FromStr;
 //!
 //! #[tokio::main]
@@ -323,7 +320,7 @@
 //! ### Using the Neo Name Service (NNS)
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -361,64 +358,87 @@
 //! │   ├── neo_wallets        - Examples for wallet management
 //! │   ├── neo_nep17_tokens   - Examples for working with NEP-17 tokens
 //! │   └── neo_nns            - Examples for using the Neo Name Service
-//! └── src
-//!     ├── neo_builder        - Transaction and script building utilities
-//!     ├── neo_clients        - Neo node interaction clients (RPC and WebSocket)
-//!     ├── neo_codec          - Encoding and decoding for Neo-specific data structures
-//!     ├── neo_config         - Network and client configuration management
-//!     ├── neo_contract       - Smart contract interaction abstractions
-//!     ├── neo_crypto         - Neo-specific cryptographic operations
-//!     ├── neo_protocol       - Neo network protocol implementation
-//!     ├── neo_types          - Core Neo ecosystem data types
-//!     └── neo_wallets        - Neo asset and account management
+//! └── crates
+//!     ├── neo-builder        - Transaction and script building utilities
+//!     ├── neo-clients        - Neo node interaction clients (RPC and WebSocket)
+//!     ├── neo-codec          - Encoding and decoding for Neo-specific data structures
+//!     ├── neo-config         - Network and client configuration management
+//!     ├── neo-contract       - Smart contract interaction abstractions
+//!     ├── neo-crypto         - Neo-specific cryptographic operations
+//!     ├── neo-error          - Unified error handling
+//!     ├── neo-fs             - NeoFS distributed storage system integration
+//!     ├── neo-protocol       - Neo network protocol implementation
+//!     ├── neo-types          - Core Neo ecosystem data types
+//!     ├── neo-utils          - General utility functions
+//!     ├── neo-wallets        - Neo asset and account management
+//!     └── neo-x              - Neo X EVM compatibility layer
 //! ```
 //!
 //! ## Module Overview
 //!
-//! - **neo_builder**: Transaction and script building utilities.
+//! - **neo-builder**: Transaction and script building utilities.
 //!   - Transaction construction and signing
 //!   - Script building for contract calls
 //!   - Network fee calculation
 //!
-//! - **neo_clients**: Neo node interaction clients.
+//! - **neo-clients**: Neo node interaction clients.
 //!   - HTTP, WebSocket, and IPC providers
 //!   - JSON-RPC client implementation
 //!   - Event subscription and notification handling
 //!
-//! - **neo_codec**: Encoding and decoding for Neo-specific data structures.
+//! - **neo-codec**: Encoding and decoding for Neo-specific data structures.
 //!   - Binary serialization and deserialization
 //!   - Neo VM script encoding
 //!
-//! - **neo_config**: Network and client configuration management.
+//! - **neo-config**: Network and client configuration management.
 //!   - Network magic numbers
 //!   - Client settings
 //!
-//! - **neo_contract**: Smart contract interaction abstractions.
+//! - **neo-contract**: Smart contract interaction abstractions.
 //!   - Contract invocation and deployment
 //!   - NEP-17 token standard implementation
 //!   - Native contracts (GAS, NEO, etc.)
 //!   - Neo Name Service (NNS) support
 //!
-//! - **neo_crypto**: Neo-specific cryptographic operations.
+//! - **neo-crypto**: Neo-specific cryptographic operations.
 //!   - Key generation and management
 //!   - Signing and verification
 //!   - Hashing functions
 //!
-//! - **neo_protocol**: Neo network protocol implementation.
+//! - **neo-error**: Unified error handling.
+//!   - Error types for all SDK components
+//!   - Error conversion and propagation
+//!
+//! - **neo-fs**: NeoFS distributed storage system integration.
+//!   - File storage and retrieval
+//!   - Container management
+//!   - Access control
+//!
+//! - **neo-protocol**: Neo network protocol implementation.
 //!   - Account management
 //!   - Address formats and conversions
 //!
-//! - **neo_types**: Core Neo ecosystem data types.
+//! - **neo-types**: Core Neo ecosystem data types.
 //!   - Script hashes
 //!   - Contract parameters
 //!   - Block and transaction types
 //!   - NNS name types
 //!
-//! - **neo_wallets**: Neo asset and account management.
+//! - **neo-utils**: General utility functions.
+//!   - Conversion utilities
+//!   - Formatting helpers
+//!   - Validation functions
+//!
+//! - **neo-wallets**: Neo asset and account management.
 //!   - Wallet creation and management
 //!   - NEP-6 wallet standard support
 //!   - Account import/export
 //!   - Wallet backup and recovery
+//!
+//! - **neo-x**: Neo X EVM compatibility layer.
+//!   - EVM compatibility layer
+//!   - Cross-chain bridges
+//!   - Interoperability with other blockchains
 //!
 //! For detailed information, consult the documentation of each module.
 
@@ -431,246 +451,28 @@
 // For macro expansions only, not public API.
 #[doc(hidden)]
 #[allow(unused_extern_crates)]
-extern crate self as neo;
+extern crate self as neo3;
 
-// Core modules - always available
-pub mod neo_error;
-pub mod neo_types;
-pub mod neo_utils;
-
-// All modules unconditionally available
-pub mod neo_builder;
-pub mod neo_clients;
-pub mod neo_codec;
-pub mod neo_config;
-pub mod neo_contract;
-pub mod neo_crypto;
-pub mod neo_fs;
-pub mod neo_protocol;
-pub mod neo_wallets;
-pub mod neo_x;
-
-// Re-exports for convenience
-#[doc(inline)]
+// Re-export all crates
 pub use neo_builder as builder;
-#[doc(inline)]
-pub use neo_clients as providers;
-#[doc(inline)]
+pub use neo_clients as clients;
 pub use neo_codec as codec;
-#[doc(inline)]
 pub use neo_config as config;
-#[doc(inline)]
+pub use neo_contract as contract;
 pub use neo_crypto as crypto;
-#[doc(inline)]
+pub use neo_error;
+pub use neo_fs as fs;
 pub use neo_protocol as protocol;
-#[doc(inline)]
+pub use neo_types as types;
+pub use neo_utils as utils;
 pub use neo_wallets as wallets;
-#[doc(inline)]
 pub use neo_x as x;
-// No need to re-export specialized modules as they're already public with their full names
 
-// Re-export common types directly in lib.rs for easy access
-pub use crate::neo_types::{
-	deserialize_address_or_script_hash,
-	deserialize_h256,
-	deserialize_h256_option,
-	deserialize_hash_map_h160_account,
-	deserialize_script_hash,
-	deserialize_script_hash_option,
-	deserialize_url_option,
-	serialize_address_or_script_hash,
-	serialize_h256,
-	serialize_h256_option,
-	serialize_hash_map_h160_account,
-	// Serialization/deserialization helpers
-	serialize_script_hash,
-	serialize_script_hash_option,
-	serialize_url_option,
-	var_size,
-	vec_to_array32,
-	Address,
-	AddressOrScriptHash,
-	// Additional types
-	Base64Encode,
-	Bytes,
-	ContractIdentifiers,
-	// Contract types
-	ContractManifest,
-	ContractParameter,
-	ContractParameterType,
-	ContractState,
-	InvocationResult,
-	// NNS types
-	NNSName,
-	NefFile,
-	OpCode,
-	OperandSize,
-	ParameterValue,
-	ScriptHash,
-	ScriptHashExtension,
-	// Additional types
-	ScryptParamsDef,
-	StackItem,
-	StringExt,
-	TypeError,
-	VMState,
+// Re-export common types directly for easy access
+pub use neo_types::{
+    Address, ScriptHash, ContractParameter, ContractParameterType, StackItem, VMState,
+    Bytes, ScriptHashExtension, AddressExtension, Base64Encode, Base64Decode,
 };
 
-// Add direct re-exports for commonly used serde utils
-pub use crate::neo_types::serde_with_utils::{
-	deserialize_boolean_expression, deserialize_bytes, deserialize_h160, deserialize_hardforks,
-	deserialize_hashmap_address_u256, deserialize_hashmap_u256_hashset_h256,
-	deserialize_hashmap_u256_hashset_u256, deserialize_hashmap_u256_vec_u256,
-	deserialize_hashset_u256, deserialize_map, deserialize_private_key, deserialize_public_key,
-	deserialize_public_key_option, deserialize_scopes, deserialize_vec_script_hash,
-	deserialize_vec_script_hash_option, deserialize_wildcard, serialize_boolean_expression,
-	serialize_bytes, serialize_h160, serialize_hashmap_address_u256,
-	serialize_hashmap_u256_hashset_h256, serialize_hashmap_u256_hashset_u256,
-	serialize_hashmap_u256_vec_u256, serialize_hashset_u256, serialize_map, serialize_private_key,
-	serialize_public_key, serialize_public_key_option, serialize_scopes, serialize_vec_script_hash,
-	serialize_vec_script_hash_option, serialize_wildcard,
-};
-
-// Re-export additional contract types
-pub use crate::neo_types::contract::{
-	ContractMethodToken, ContractNef, NativeContractState, NeoVMStateType,
-};
-
-// Re-export value extension trait
-pub use crate::neo_types::serde_value::ValueExtension;
-
-/// Convenient imports for commonly used types and traits.
-///
-/// This prelude module provides a single import to access the most commonly used
-/// components of the NeoRust SDK. Import it with:
-///
-/// ```rust
-/// use neo::prelude::*;
-/// ```
+// Include the prelude module
 pub mod prelude;
-
-#[cfg(all(test))]
-mod tests {
-	use super::prelude::*;
-	use primitive_types::H160;
-	use std::str::FromStr;
-
-	use tokio;
-
-	use crate::{
-		builder::{AccountSigner, ScriptBuilder, TransactionBuilder},
-		neo_clients::{APITrait, HttpProvider, RpcClient},
-		neo_protocol::{Account, AccountTrait},
-	};
-	use url::Url;
-
-	#[cfg(all(test))]
-	#[tokio::test]
-	#[ignore] // Ignoring this test as it requires a live Neo N3 node and real tokens
-	async fn test_create_and_send_transaction() -> Result<(), Box<dyn std::error::Error>> {
-		// Initialize the JSON-RPC provider - using TestNet for safer testing
-		let http_provider = HttpProvider::new("https://testnet1.neo.org:443")?;
-		let rpc_client = RpcClient::new(http_provider);
-
-		// Create accounts for the sender and recipient
-		let sender = Account::from_wif("L1WMhxazScMhUrdv34JqQb1HFSQmWeN2Kpc1R9JGKwL7CDNP21uR")?;
-		let recipient = Account::from_address("NbTiM6h8r99kpRtb428XcsUk1TzKed2gTc")?;
-
-		// Use the correct GAS token hash for Neo N3 TestNet
-		let gas_token_hash = "d2a4cff31913016155e38e474a2c06d08be276cf"; // GAS token on Neo N3
-
-		// Create a new TransactionBuilder
-		let mut tx_builder = TransactionBuilder::with_client(&rpc_client);
-
-		// Build the transaction
-		tx_builder
-			.set_script(Some(
-				ScriptBuilder::new()
-					.contract_call(
-						&H160::from_str(gas_token_hash)?,
-						"transfer",
-						&[
-							ContractParameter::h160(&sender.get_script_hash()),
-							ContractParameter::h160(&recipient.get_script_hash()),
-							ContractParameter::integer(1_0000_0000), // 1 GAS (8 decimals)
-							ContractParameter::any(),
-						],
-						None,
-					)
-					.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?
-					.to_bytes(),
-			))
-			.set_signers(vec![AccountSigner::called_by_entry(&sender)?.into()])
-			.map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?
-			.valid_until_block(rpc_client.get_block_count().await? + 5760)?; // Valid for ~1 day
-
-		// Sign the transaction
-		let mut signed_tx = tx_builder.sign().await?;
-
-		// For testing purposes, we'll just verify that we can create and sign the transaction
-		// without actually sending it to the network
-		println!("Transaction created and signed successfully");
-		println!("Transaction size: {} bytes", signed_tx.size());
-		println!("System fee: {} GAS", signed_tx.sys_fee as f64 / 100_000_000.0);
-		println!("Network fee: {} GAS", signed_tx.net_fee as f64 / 100_000_000.0);
-
-		Ok(())
-	}
-}
-
-// Adding trait implementations for serde JSON serialization
-// These extensions will be used by the http-client feature
-pub mod extensions {
-	use serde_json::{Result as JsonResult, Value};
-
-	pub trait ToValue {
-		fn to_value(&self) -> Value;
-	}
-
-	impl ToValue for String {
-		fn to_value(&self) -> Value {
-			serde_json::Value::String(self.clone())
-		}
-	}
-
-	impl ToValue for &str {
-		fn to_value(&self) -> Value {
-			serde_json::Value::String((*self).to_string())
-		}
-	}
-
-	impl ToValue for u32 {
-		fn to_value(&self) -> Value {
-			serde_json::Value::Number(serde_json::Number::from(*self))
-		}
-	}
-
-	impl ToValue for i32 {
-		fn to_value(&self) -> Value {
-			serde_json::Value::Number(serde_json::Number::from(*self))
-		}
-	}
-
-	impl ToValue for bool {
-		fn to_value(&self) -> Value {
-			serde_json::Value::Bool(*self)
-		}
-	}
-}
-
-// Explicitly mark external dependencies with cfg_attr for docs.rs
-#[cfg(feature = "futures")]
-#[cfg_attr(docsrs, doc(cfg(feature = "futures")))]
-pub use futures;
-
-#[cfg(feature = "ledger")]
-#[cfg_attr(docsrs, doc(cfg(feature = "ledger")))]
-pub use coins_ledger;
-
-#[cfg(feature = "aws")]
-#[cfg_attr(docsrs, doc(cfg(feature = "aws")))]
-pub use rusoto_core;
-
-#[cfg(feature = "aws")]
-#[cfg_attr(docsrs, doc(cfg(feature = "aws")))]
-pub use rusoto_kms;

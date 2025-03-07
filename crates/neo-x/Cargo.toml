@@ -1,0 +1,52 @@
+[package]
+name = "neo-x"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Cross-chain and extension functionality for the NeoRust SDK"
+documentation = "https://docs.rs/neo-x"
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+neo-common = { path = "../neo-common", version = "0.1.9" }
+# Internal crates
+neo-error = { path = "../neo-error", version = "0.1.9" }
+neo-types = { path = "../neo-types", version = "0.1.9" }
+neo-crypto = { path = "../neo-crypto", version = "0.1.9" }
+neo-protocol = { path = "../neo-protocol", version = "0.1.9" }
+neo-clients = { path = "../neo-clients", version = "0.1.9" }
+neo-builder = { path = "../neo-builder", version = "0.1.9" }
+neo-contract = { path = "../neo-contract", version = "0.1.9" }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+hex = { workspace = true }
+rustc-serialize = { workspace = true }
+
+# Async
+tokio = { workspace = true }
+futures = { workspace = true }
+
+# Crypto
+primitive-types = { workspace = true }
+signature = { workspace = true }
+rand = { workspace = true }
+
+# Misc
+thiserror = { workspace = true }
+getset = { workspace = true }
+chrono = { workspace = true }
+lazy_static = { workspace = true }
+once_cell = { workspace = true }
+tracing = { workspace = true }
+
+[features]
+default = []
+evm = []
+bridge = []

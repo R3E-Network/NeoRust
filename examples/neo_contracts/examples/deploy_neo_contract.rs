@@ -1,15 +1,13 @@
 use std::str::FromStr;
 
-use neo::{
-	neo_clients::JsonRpcProvider,
-	neo_contract::{ContractManagement, SmartContractTrait},
-	neo_protocol::account::Account,
-	neo_types::{
-		contract::{ContractParameter, NefFile},
-		script_hash::ScriptHash,
-	},
-	prelude::{HttpProvider, RpcClient},
+use neo_clients::JsonRpcProvider;
+use neo_contract::{ContractManagement, SmartContractTrait};
+use neo_protocol::account::Account;
+use neo_types::{
+    contract::{ContractParameter, NefFile},
+    script_hash::ScriptHash,
 };
+use neo3::prelude::{HttpProvider, RpcClient};
 
 /// This example demonstrates how to deploy a smart contract to the Neo N3 blockchain.
 /// It uses the ContractManagement native contract to deploy a NEF file with a contract manifest.

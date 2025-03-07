@@ -1,0 +1,48 @@
+[package]
+name = "neo-contract"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Smart contract interaction utilities for the NeoRust SDK"
+documentation = "https://docs.rs/neo-contract"
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+neo-common = { path = "../neo-common", version = "0.1.9" }
+# Internal crates
+neo-builder = { path = "../neo-builder", version = "0.1.9" }
+neo-clients = { path = "../neo-clients", version = "0.1.9" }
+neo-codec = { path = "../neo-codec", version = "0.1.9" }
+neo-config = { path = "../neo-config", version = "0.1.9" }
+neo-crypto = { path = "../neo-crypto", version = "0.1.9" }
+neo-error = { path = "../neo-error", version = "0.1.9" }
+neo-protocol = { path = "../neo-protocol", version = "0.1.9" }
+neo-types = { path = "../neo-types", version = "0.1.9" }
+neo-utils = { path = "../neo-utils", version = "0.1.9" }
+
+# Async
+tokio = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Misc
+thiserror = { workspace = true }
+tracing = { workspace = true }
+primitive-types = { workspace = true }
+url = { workspace = true }
+hex = { workspace = true }
+once_cell = { workspace = true }
+lazy_static = { workspace = true }
+
+[features]
+futures = ["neo-clients/futures"]
+default = []

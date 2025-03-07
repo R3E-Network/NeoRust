@@ -1,0 +1,42 @@
+[package]
+name = "neo-common"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Common types and utilities shared across NeoRust SDK crates"
+documentation = "https://docs.rs/neo-common"
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_with = { workspace = true }
+hex = { workspace = true }
+
+# Crypto
+primitive-types = { workspace = true }
+base64 = { version = "0.21.7" }
+aes = { version = "0.8.3", features = ["zeroize"] }
+rustc-serialize = { version = "0.3.24" }
+
+# Crypto
+sha2 = { version = "0.10.7" }
+ripemd = { version = "0.1.3" }
+bs58 = { version = "0.5.1" }
+
+# Misc
+thiserror = { workspace = true }
+getset = { workspace = true }
+strum = { version = "0.26.1", features = ["derive"] }
+strum_macros = { version = "0.26.1" }
+async-trait = { version = "0.1.77" }
+
+[features]
+default = []
+with-crypto = []

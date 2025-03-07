@@ -1,12 +1,10 @@
 use std::str::FromStr;
 
-use neo::{
-	neo_clients::{HttpProvider, JsonRpcProvider},
-	neo_contract::famous::NeoCompoundContract,
-	neo_protocol::account::Account,
-	neo_types::script_hash::ScriptHash,
-	prelude::RpcClient,
-};
+use neo3::prelude::*;
+use neo_clients::{HttpProvider, JsonRpcProvider};
+use neo_contract::famous::NeoCompoundContract;
+use neo_protocol::account::Account;
+use neo_types::script_hash::ScriptHash;
 
 /// This example demonstrates how to interact with the NeoCompound contract on Neo N3.
 /// It shows how to deposit tokens, withdraw tokens, compound interest, and get the APY.

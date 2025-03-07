@@ -1,0 +1,35 @@
+[package]
+name = "neo-config"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Configuration utilities for the NeoRust SDK"
+documentation = "https://docs.rs/neo-config"
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+neo-common = { path = "../neo-common", version = "0.1.9" }
+# Internal crates
+neo-types = { path = "../neo-types", version = "0.1.9" }
+
+# Serialization
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+serde_with = { workspace = true }
+hex = { package = "const-hex", version = "1.6", features = ["hex"] }
+
+# Async
+tokio = { version = "1.32", features = ["full"] }
+
+# Misc
+once_cell = { workspace = true }
+lazy_static = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+primitive-types = { workspace = true, features = ["serde"] }
