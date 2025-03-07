@@ -189,10 +189,13 @@ impl<'a, P: JsonRpcProvider + 'static> GrandShareContract<'a, P> {
 	/// # Returns
 	///
 	/// A transaction builder that can be used to build and sign the transaction
-	pub async fn claim_gas(
+	pub async fn claim_gas<W>(
 		&self,
-		account: &Account,
-	) -> Result<TransactionBuilder<'_>, ContractError> {
+		account: &Account<W>,
+	) -> Result<TransactionBuilder<'_>, ContractError>
+	where
+		W: Clone + Debug + Send + Sync,
+	{
 		let params = vec![];
 
 		let mut builder = self.invoke_function(Self::CLAIM_GAS, params).await?;
