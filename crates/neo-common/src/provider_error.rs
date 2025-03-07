@@ -5,7 +5,7 @@
 use thiserror::Error;
 
 /// Errors that can occur when using a provider.
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone, PartialEq)]
 pub enum ProviderError {
     /// Method not implemented
     #[error("Method not implemented: {0}")]
@@ -34,6 +34,42 @@ pub enum ProviderError {
     /// Request timeout
     #[error("Request timeout")]
     Timeout,
+    
+    /// Custom error with message
+    #[error("Custom error: {0}")]
+    CustomError(String),
+    
+    /// Illegal state error
+    #[error("Illegal state: {0}")]
+    IllegalState(String),
+    
+    /// Crypto error
+    #[error("Crypto error: {0}")]
+    CryptoError(String),
+    
+    /// Invalid address error
+    #[error("Invalid address")]
+    InvalidAddress,
+    
+    /// RPC error
+    #[error("RPC error: {0}")]
+    RpcError(String),
+    
+    /// Lock error
+    #[error("Lock error")]
+    LockError,
+    
+    /// Protocol not found
+    #[error("Protocol not found")]
+    ProtocolNotFound,
+    
+    /// Network not found
+    #[error("Network not found")]
+    NetworkNotFound,
+    
+    /// Network error
+    #[error("Network error: {0}")]
+    NetworkError(String),
     
     /// Other error
     #[error("Provider error: {0}")]

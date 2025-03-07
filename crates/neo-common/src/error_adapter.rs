@@ -33,6 +33,15 @@ pub fn provider_error_to_string(error: &ProviderError) -> String {
         ProviderError::Timeout => "Request timeout".to_string(),
         ProviderError::NotImplemented(s) => format!("Not implemented: {}", s),
         ProviderError::SerializationError(s) => format!("Serialization error: {}", s),
+        ProviderError::CustomError(s) => format!("Custom error: {}", s),
+        ProviderError::IllegalState(s) => format!("Illegal state: {}", s),
+        ProviderError::CryptoError(s) => format!("Crypto error: {}", s),
+        ProviderError::InvalidAddress => "Invalid address".to_string(),
+        ProviderError::RpcError(s) => format!("RPC error: {}", s),
+        ProviderError::LockError => "Lock error".to_string(),
+        ProviderError::ProtocolNotFound => "Protocol not found".to_string(),
+        ProviderError::NetworkNotFound => "Network not found".to_string(),
+        ProviderError::NetworkError(s) => format!("Network error: {}", s),
         ProviderError::Other(s) => format!("Other error: {}", s),
     }
 }
