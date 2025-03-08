@@ -1,10 +1,8 @@
-#[cfg(feature = "neo-protocol")]
-use neo_protocol::NeoBlock;
+use crate::neo_protocol::NeoBlock;
 use futures::stream::Stream;
 use std::{error::Error, pin::Pin};
 
 /// The JSON-RPC client event API for Neo.
-#[cfg(feature = "neo-protocol")]
 pub trait NeoRustRxTrait {
 	/// Create a stream that emits newly created blocks on the blockchain.
 	///
@@ -106,6 +104,3 @@ pub trait NeoRustRxTrait {
 		full_transaction_objects: bool,
 	) -> Pin<Box<dyn Stream<Item = Result<NeoBlock, Box<dyn Error>>> + Send>>;
 }
-
-#[cfg(not(feature = "neo-protocol"))]
-pub trait NeoRustRxTrait {}

@@ -1,0 +1,19 @@
+[package]
+name = "constants"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Neo constants module for the NeoRust SDK"
+documentation = "https://docs.rs/constants"
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+# Add dependencies as needed
+
+[features]
+default = []

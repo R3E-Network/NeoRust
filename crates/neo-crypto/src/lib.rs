@@ -40,9 +40,6 @@
 
 mod base58_helper;
 pub mod crypto_adapter_impl;
-mod error;
-mod hash;
-mod hashable;
 mod key_pair;
 mod keys;
 mod utils;
@@ -50,15 +47,83 @@ mod wif;
 
 // Re-export all public items
 pub use base58_helper::*;
+pub use neo_error::crypto_error::CryptoError;
+pub use neo_error::codec_error::CodecError;
+pub use neo_error::nep2_error::Nep2Error;
+pub use neo_error::sign_error::SignError;
 pub use crypto_adapter_impl::*;
-pub use error::*;
-// Re-export specific items to avoid ambiguity
-pub use hash::HashableForString;
-pub use hash::HashableForVec as HashVec;
-pub use hashable::HashableForBytes;
-pub use hashable::HashableForVec;
-pub use hashable::HashableForVecToVec;
 pub use key_pair::*;
+
+// Import HashableForVec from neo-common
+pub use neo_common::hashable::HashableForVec;
+
+use sha2::Digest;
+
+/// Trait for computing hash values from byte slices
+pub trait HashableForBytes {
+    /// Computes the SHA256 hash of the data
+    fn hash256_bytes(&self) -> [u8; 32];
+    
+    /// Computes the RIPEMD160 hash of the SHA256 hash of the data
+    fn hash160_bytes(&self) -> [u8; 20];
+}
+
+impl HashableForBytes for [u8] {
+    fn hash256_bytes(&self) -> [u8; 32] {
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(self);
+        let first_hash = hasher.finalize();
+        
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(first_hash);
+        let mut result = [0u8; 32];
+        result.copy_from_slice(&hasher.finalize());
+        result
+    }
+    
+    fn hash160_bytes(&self) -> [u8; 20] {
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(self);
+        let sha256_hash = hasher.finalize();
+        
+        let mut hasher = ripemd::Ripemd160::new();
+        hasher.update(sha256_hash);
+        let mut result = [0u8; 20];
+        result.copy_from_slice(&hasher.finalize());
+        result
+    }
+}
+
+impl HashableForBytes for [u8; 20] {
+    fn hash256_bytes(&self) -> [u8; 32] {
+        self.as_slice().hash256_bytes()
+    }
+    
+    fn hash160_bytes(&self) -> [u8; 20] {
+        self.as_slice().hash160_bytes()
+    }
+}
+
+/// Trait for computing hash values from vectors
+pub trait HashableForVecToVec {
+    /// Computes the SHA256 hash of the data and returns it as a Vec<u8>
+    fn hash256_vec(&self) -> Vec<u8>;
+    
+    /// Computes the RIPEMD160 hash of the SHA256 hash of the data and returns it as a Vec<u8>
+    fn hash160_vec(&self) -> Vec<u8>;
+}
+
+impl HashableForVecToVec for Vec<u8> {
+    fn hash256_vec(&self) -> Vec<u8> {
+        self.as_slice().hash256_bytes().to_vec()
+    }
+    
+    fn hash160_vec(&self) -> Vec<u8> {
+        self.as_slice().hash160_bytes().to_vec()
+    }
+}
+
+// Re-export specific types and functions
 pub use keys::*;
 pub use utils::*;
 pub use wif::*;

@@ -6,15 +6,16 @@
 // where such conversions and encodings are frequently required.
 
 use primitive_types::{H160, H256, U256};
-
-use crate::{ScriptHash, TypeError};
+use neo_error::TypeError;
+use crate::ScriptHash;
+use neo_common::base64;
 
 /// Parses a string into a `u64`, supporting both decimal and hexadecimal (prefixed with "0x") formats.
 ///
 /// # Examples
 ///
 /// ```
-/// use NeoRust::prelude::parse_string_u64;
+/// use neo_types::parse_string_u64;
 /// let decimal = "12345";
 /// assert_eq!(parse_string_u64(decimal), 12345);
 ///
@@ -404,8 +405,7 @@ pub trait ToBase64 {
 
 impl ToBase64 for [u8] {
 	fn to_base64(&self) -> String {
-		use base64::Engine;
-		base64::engine::general_purpose::STANDARD.encode(self)
+		base64::encode(self)
 	}
 }
 

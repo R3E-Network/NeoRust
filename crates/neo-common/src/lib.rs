@@ -26,7 +26,6 @@ pub mod hashable;
 pub mod invocation_script;
 pub mod nep17_provider;
 pub mod oracle_response_code;
-pub mod provider_error;
 pub mod public_key_utils;
 pub mod role;
 pub mod rpc_client_trait;
@@ -42,6 +41,19 @@ pub mod wallet;
 pub mod witness;
 pub mod witness_rule;
 pub mod witness_scope;
+// pub mod account_signer;
+
+// Re-export key types from neo-error
+pub use neo_error::provider_error::{
+    ProviderError, 
+    to_provider_error, 
+    to_serialization_error, 
+    to_network_error, 
+    to_rpc_error
+};
+
+// Re-export HashableForVec trait from hashable module
+pub use hashable::HashableForVec;
 
 // Re-export specific types to avoid ambiguity
 pub use address_conversion::{PublicKey, public_key_to_address, public_key_to_script_hash, secp256r1_public_key_to_script_hash};
@@ -49,16 +61,17 @@ pub use address_or_scripthash_utils::{deserialize_address_or_script_hash, serial
 pub use contract_parameter_type::ContractParameterType;
 pub use crypto_adapter::{EncodablePublicKey, common_to_external_public_key, external_to_common_public_key};
 pub use crypto_utils::{hash160, hash256, ripemd160, sha256};
-pub use error_adapter::{provider_error_to_string, to_provider_error, ErrorAdapter};
+pub use error_adapter::{
+    provider_error_to_string, 
+    ErrorAdapter,
+};
 pub use error_conversion::ProviderErrorConversion;
 pub use h256_utils::{deserialize_h256, deserialize_h256_option, serialize_h256, serialize_h256_option};
 pub use h256_vec_utils::{deserialize_vec_h256, serialize_vec_h256};
 pub use hard_forks::HardForks;
 pub use hard_forks_utils::deserialize_hardforks;
-pub use hashable::HashableForVec;
 pub use nep17_provider::Nep17BalanceProvider;
 pub use oracle_response_code::OracleResponseCode;
-pub use provider_error::ProviderError;
 pub use rpc_client_trait::RpcClient;
 pub use rpc_types::{BasicJsonRpcProvider, JsonRpcProvider};
 pub use script_hash_utils::{deserialize_script_hash, serialize_script_hash};

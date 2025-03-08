@@ -1,12 +1,12 @@
 use serde_json::Value;
 
 use crate::{
-	ScriptBuilder, Signer, TransactionAttribute, 
-	transaction::transaction_send_token::TransactionSendToken,
-	transaction::signers::TransactionSigner,
+	builder::{
+		ScriptBuilder, Signer, TransactionAttribute, TransactionSendToken, TransactionSigner,
+	},
+	crypto::Secp256r1PublicKey,
 };
-use neo_crypto::Secp256r1PublicKey;
-use neo_types::{ScriptHash, ValueExtension, ScriptHashExtension};
+use neo::prelude::*;
 // pub type ScriptHash = H160;
 
 /// Converts a list of public keys to a script hash using a given threshold.
@@ -46,13 +46,13 @@ pub trait VecValueExtension {
 	fn to_value(&self) -> Value;
 }
 
-impl crate::utils::VecValueExtension for TransactionAttribute {
+impl ValueExtension for TransactionAttribute {
 	fn to_value(&self) -> Value {
 		Value::String(self.to_json())
 	}
 }
 
-impl crate::utils::VecValueExtension for TransactionSendToken {
+impl ValueExtension for TransactionSendToken {
 	fn to_value(&self) -> Value {
 		Value::String(serde_json::to_string(self).unwrap())
 	}
@@ -69,7 +69,7 @@ impl VecValueExtension for Vec<TransactionAttribute> {
 		self.iter().map(|x| x.to_value()).collect()
 	}
 }
-impl crate::utils::VecValueExtension for Signer {
+impl ValueExtension for Signer {
 	fn to_value(&self) -> Value {
 		Value::String(serde_json::to_string(self).unwrap())
 	}
@@ -81,7 +81,7 @@ impl VecValueExtension for Vec<Signer> {
 	}
 }
 
-impl crate::utils::VecValueExtension for TransactionSigner {
+impl ValueExtension for TransactionSigner {
 	fn to_value(&self) -> Value {
 		Value::String(serde_json::to_string(self).unwrap())
 	}

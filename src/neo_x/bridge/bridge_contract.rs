@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 use crate::{
+	constants::{NeoNetworkType, BridgeConstants},
 	neo_builder::{AccountSigner, TransactionBuilder},
 	neo_clients::{JsonRpcProvider, RpcClient},
 	neo_contract::{ContractError, SmartContractTrait},
@@ -23,12 +24,11 @@ pub struct NeoXBridgeContract<'a, P: JsonRpcProvider> {
 	script_hash: ScriptHash,
 	#[serde(skip)]
 	provider: Option<&'a RpcClient<P>>,
+	#[serde(skip)]
+	network_type: NeoNetworkType,
 }
 
 impl<'a, P: JsonRpcProvider + 'static> NeoXBridgeContract<'a, P> {
-	/// The script hash of the Neo X Bridge contract on Neo N3 MainNet
-	pub const CONTRACT_HASH: &'static str = "74f2dc36a68fdc4682034178eb2220729231db76"; // Placeholder, replace with actual hash
-
 	// Method constants
 	/// Method name for depositing tokens from Neo N3 to Neo X
 	pub const DEPOSIT: &'static str = "deposit";
@@ -44,16 +44,19 @@ impl<'a, P: JsonRpcProvider + 'static> NeoXBridgeContract<'a, P> {
 	/// # Arguments
 	///
 	/// * `provider` - An optional reference to an RPC client
+	/// * `network_type` - The network type (defaults to N3TestNet if None)
 	///
 	/// # Returns
 	///
 	/// A Result containing a new NeoXBridgeContract instance or an error
-	pub fn new(provider: Option<&'a RpcClient<P>>) -> Result<Self, ContractError> {
+	pub fn new(provider: Option<&'a RpcClient<P>>, network_type: Option<NeoNetworkType>) -> Result<Self, ContractError> {
+		let network = network_type.unwrap_or(NeoNetworkType::N3TestNet);
+		let script_hash = BridgeConstants::get_bridge_hash(network);
+		
 		Ok(Self {
-			script_hash: ScriptHash::from_str(Self::CONTRACT_HASH).map_err(|e| {
-				ContractError::InvalidScriptHash(format!("Invalid contract hash: {}", e))
-			})?,
+			script_hash,
 			provider,
+			network_type: network,
 		})
 	}
 
@@ -63,12 +66,21 @@ impl<'a, P: JsonRpcProvider + 'static> NeoXBridgeContract<'a, P> {
 	///
 	/// * `script_hash` - The script hash of the Neo X Bridge contract
 	/// * `provider` - An optional reference to an RPC client
+	/// * `network_type` - The network type
 	///
 	/// # Returns
 	///
 	/// A new NeoXBridgeContract instance
-	pub fn with_script_hash(script_hash: ScriptHash, provider: Option<&'a RpcClient<P>>) -> Self {
-		Self { script_hash, provider }
+	pub fn with_script_hash(
+		script_hash: ScriptHash, 
+		provider: Option<&'a RpcClient<P>>,
+		network_type: NeoNetworkType
+	) -> Self {
+		Self { 
+			script_hash, 
+			provider,
+			network_type,
+		}
 	}
 
 	/// Deposits tokens from Neo N3 to Neo X
@@ -167,6 +179,17 @@ impl<'a, P: JsonRpcProvider + 'static> NeoXBridgeContract<'a, P> {
 	pub async fn get_cap(&self, token: &ScriptHash) -> Result<u64, ContractError> {
 		let result = self.call_function_returning_int(Self::GET_CAP, vec![token.into()]).await?;
 		Ok(result as u64)
+	}
+	
+	/// Gets the current network type
+	pub fn get_network_type(&self) -> NeoNetworkType {
+		self.network_type
+	}
+	
+	/// Sets the network type and updates the script hash accordingly
+	pub fn set_network_type(&mut self, network_type: NeoNetworkType) {
+		self.network_type = network_type;
+		self.script_hash = BridgeConstants::get_bridge_hash(network_type);
 	}
 }
 

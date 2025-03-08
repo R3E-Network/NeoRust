@@ -453,14 +453,15 @@
 #[allow(unused_extern_crates)]
 extern crate self as neo3;
 
-// Re-export all crates
+// Re-export all components from their respective crates
 pub use neo_builder as builder;
 pub use neo_clients as clients;
 pub use neo_codec as codec;
+pub use neo_common as common;
 pub use neo_config as config;
 pub use neo_contract as contract;
 pub use neo_crypto as crypto;
-pub use neo_error;
+pub use neo_error as error;
 pub use neo_fs as fs;
 pub use neo_protocol as protocol;
 pub use neo_types as types;
@@ -468,11 +469,93 @@ pub use neo_utils as utils;
 pub use neo_wallets as wallets;
 pub use neo_x as x;
 
-// Re-export common types directly for easy access
+// Constants that may not be crate-specific yet
+pub mod constants;
+
+// Export common types at the root level for convenience
 pub use neo_types::{
-    Address, ScriptHash, ContractParameter, ContractParameterType, StackItem, VMState,
-    Bytes, ScriptHashExtension, AddressExtension, Base64Encode, Base64Decode,
+    address::Address,
+    block::{Block, BlockHeader},
+    contract::ContractParameter,
+    hash::ScriptHash,
+    transaction::{Transaction, Signer, Witness},
+    wallet::Account,
 };
+
+pub use neo_clients::{HttpProvider, RpcClient};
+pub use neo_contract::{
+    nep17::{Nep17Contract, NeoToken, GasToken},
+    ContractCall, ContractInvocation,
+};
+pub use neo_wallets::Wallet;
+pub use neo_builder::{TransactionBuilder, ScriptBuilder};
 
 // Include the prelude module
 pub mod prelude;
+
+// For backward compatibility, legacy modules will be phased out
+// These will be deprecated in future releases
+#[deprecated(since = "0.1.9", note = "use neo_error crate instead")]
+pub mod neo_error {
+    pub use neo_error::*;
+}
+
+#[deprecated(since = "0.1.9", note = "use crypto module instead")]
+pub mod neo_crypto {
+    pub use neo_crypto::*;
+}
+
+#[deprecated(since = "0.1.9", note = "use builder module instead")]
+pub mod neo_builder {
+    pub use neo_builder::*;
+}
+
+#[deprecated(since = "0.1.9", note = "use clients module instead")]
+pub mod neo_clients {
+    pub use neo_clients::*;
+}
+
+#[deprecated(since = "0.1.9", note = "use codec module instead")]
+pub mod neo_codec {
+    pub use neo_codec::*;
+}
+
+#[deprecated(since = "0.1.9", note = "use config module instead")]
+pub mod neo_config {
+    pub use neo_config::*;
+}
+
+#[deprecated(since = "0.1.9", note = "use contract module instead")]
+pub mod neo_contract {
+    pub use neo_contract::*;
+}
+
+#[deprecated(since = "0.1.9", note = "use fs module instead")]
+pub mod neo_fs {
+    pub use neo_fs::*;
+}
+
+#[deprecated(since = "0.1.9", note = "use protocol module instead")]
+pub mod neo_protocol {
+    pub use neo_protocol::*;
+}
+
+#[deprecated(since = "0.1.9", note = "use types module instead")]
+pub mod neo_types {
+    pub use neo_types::*;
+}
+
+#[deprecated(since = "0.1.9", note = "use utils module instead")]
+pub mod neo_utils {
+    pub use neo_utils::*;
+}
+
+#[deprecated(since = "0.1.9", note = "use wallets module instead")]
+pub mod neo_wallets {
+    pub use neo_wallets::*;
+}
+
+#[deprecated(since = "0.1.9", note = "use x module instead")]
+pub mod neo_x {
+    pub use neo_x::*;
+}

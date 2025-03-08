@@ -1,14 +1,12 @@
 use std::hash::Hash;
 
-use neo_codec::{Decoder, Encoder, NeoSerializable};
-use neo_crypto::{KeyPair, Secp256r1Signature};
-use crate::{
-    BuilderError,
-    ScriptBuilder,
-};
-use neo_codec::{OpCode, VarSizeTrait as var_size};
 use getset::{Getters, Setters};
 use serde_derive::{Deserialize, Serialize};
+use neo_codec::{Decoder, Encoder, NeoSerializable, OpCode};
+use neo_crypto::{KeyPair, Secp256r1Signature};
+use neo_error::BuilderError;
+use neo_types::var_size;
+use crate::ScriptBuilder;
 // #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Setters, Serialize, Deserialize)]
 // #[getset(get_copy, set)]
 // #[derive(educe::Educe)]
@@ -38,7 +36,7 @@ use serde_derive::{Deserialize, Serialize};
 // 		builder
 // 			.push_data(signature.to_bytes().into())
 // 			.expect("TODO: panic message");
-// 		Self { script: builder.to_bytes().to_vec() }
+// 		Self { script: builder.to_bytes() }
 // 	}
 //
 // 	pub fn from_message_and_key_pair(
@@ -60,7 +58,7 @@ use serde_derive::{Deserialize, Serialize};
 // 			let mut signature_bytes = signature.to_bytes();
 // 			builder.push_data(signature_bytes.to_vec()).expect("Incorrect signature length");
 // 		}
-// 		Self { script: builder.to_bytes().to_vec() }
+// 		Self { script: builder.to_bytes() }
 // 	}
 // }
 
@@ -112,7 +110,7 @@ impl InvocationScript {
 		let mut script = ScriptBuilder::new();
 		let signature_bytes = signature.to_bytes();
 		script.push_data(signature_bytes.to_vec());
-		Self { script: script.to_bytes().to_vec() }
+		Self { script: script.to_bytes() }
 	}
 
 	/// Creates an invocation script from the signature of the given message signed with the given key pair.
@@ -148,7 +146,7 @@ impl InvocationScript {
 			let signature_bytes = signature.to_bytes();
 			builder.push_data(signature_bytes.to_vec());
 		}
-		Self { script: builder.to_bytes().to_vec() }
+		Self { script: builder.to_bytes() }
 	}
 }
 
@@ -175,14 +173,14 @@ impl NeoSerializable for InvocationScript {
 	type Error = BuilderError;
 
 	fn size(&self) -> usize {
-		return <Vec<u8> as neo_codec::VarSizeTrait>::get_var_size(self.script.len()) + self.script.len();
+		return var_size(self.script.len()) + self.script.len();
 	}
 
 	fn encode(&self, writer: &mut Encoder) {
 		writer.write_var_bytes(&self.script);
 	}
 
-	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error> {
+	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
 		let script = reader.read_var_bytes()?;
 		Ok(Self { script })
 	}

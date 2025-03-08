@@ -1,7 +1,16 @@
-use neo_common::OracleResponseCode;
-use neo_common::TransactionAttributeType;
-use serde::{Deserialize, Deserializer, Serialize};
+use crate::builder::OracleResponseCode;
 use primitive_types::H256;
+use serde::{Deserialize, Deserializer, Serialize};
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TransactionAttributeType {
+	HighPriority,
+	OracleResponse,
+	NotValidBefore,
+	Conflicts,
+	// Add other types as needed
+}
 
 // pub trait TransactionAttribute {
 //     fn get_type(&self) -> TransactionAttributeType;

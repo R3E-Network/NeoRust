@@ -1,19 +1,12 @@
-use crate::{
-	BuilderError, TransactionError, WitnessCondition, WitnessRule
-};
-use crate::transaction::signers::account_signer::AccountSigner;
-use crate::transaction::signers::contract_signer::ContractSigner;
-use crate::transaction::signers::transaction_signer::TransactionSigner;
-use neo_common::witness_scope::WitnessScope;
-use neo_codec::{Decoder, Encoder, NeoSerializable};
-use neo_config::NeoConstants;
-use neo_crypto::Secp256r1PublicKey;
-#[cfg(feature = "protocol")]
-use neo_protocol::AccountTrait;
 use elliptic_curve::pkcs8::der::Encode;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize, Serializer};
 use std::hash::{Hash, Hasher};
+use neo_codec::Decoder;
+use neo_config::NeoConstants;
+use neo_crypto::Secp256r1PublicKey;
+use neo_error::{BuilderError, TransactionError};
+use crate::{AccountSigner, ContractSigner, TransactionSigner, WitnessCondition, WitnessRule, WitnessScope};
 
 /// Represents the type of signer in the NEO blockchain.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -180,16 +173,6 @@ pub enum Signer {
 	AccountSigner(AccountSigner),
 	ContractSigner(ContractSigner),
 	TransactionSigner(TransactionSigner),
-}
-
-impl std::fmt::Display for Signer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Signer::AccountSigner(signer) => write!(f, "AccountSigner:{}", signer.get_signer_hash()),
-            Signer::ContractSigner(signer) => write!(f, "ContractSigner:{}", signer.get_signer_hash()),
-            Signer::TransactionSigner(signer) => write!(f, "TransactionSigner:{}", signer.get_signer_hash()),
-        }
-    }
 }
 
 impl PartialEq for Signer {
@@ -406,21 +389,13 @@ impl Into<AccountSigner> for Signer {
 impl Into<TransactionSigner> for Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::AccountSigner(account_signer) => {
-				#[cfg(feature = "protocol")]
-				let script_hash = account_signer.account.get_script_hash();
-				
-				#[cfg(not(feature = "protocol"))]
-				let script_hash = account_signer.signer_hash;
-				
-				TransactionSigner::new_full(
-					script_hash,
-					account_signer.get_scopes().to_vec(),
-					account_signer.get_allowed_contracts().to_vec(),
-					account_signer.get_allowed_groups().to_vec(),
-					account_signer.get_rules().to_vec(),
-				)
-			},
+			Signer::AccountSigner(account_signer) => TransactionSigner::new_full(
+				account_signer.account.get_script_hash(),
+				account_signer.get_scopes().to_vec(),
+				account_signer.get_allowed_contracts().to_vec(),
+				account_signer.get_allowed_groups().to_vec(),
+				account_signer.get_rules().to_vec(),
+			),
 			Signer::ContractSigner(contract_signer) => TransactionSigner::new_full(
 				*contract_signer.get_signer_hash(),
 				contract_signer.get_scopes().to_vec(),
@@ -436,21 +411,13 @@ impl Into<TransactionSigner> for Signer {
 impl Into<TransactionSigner> for &Signer {
 	fn into(self) -> TransactionSigner {
 		match self {
-			Signer::AccountSigner(account_signer) => {
-				#[cfg(feature = "protocol")]
-				let script_hash = account_signer.account.get_script_hash();
-				
-				#[cfg(not(feature = "protocol"))]
-				let script_hash = account_signer.signer_hash;
-				
-				TransactionSigner::new_full(
-					script_hash,
-					account_signer.get_scopes().to_vec(),
-					account_signer.get_allowed_contracts().to_vec(),
-					account_signer.get_allowed_groups().to_vec(),
-					account_signer.get_rules().to_vec(),
-				)
-			},
+			Signer::AccountSigner(account_signer) => TransactionSigner::new_full(
+				account_signer.account.get_script_hash(),
+				account_signer.get_scopes().to_vec(),
+				account_signer.get_allowed_contracts().to_vec(),
+				account_signer.get_allowed_groups().to_vec(),
+				account_signer.get_rules().to_vec(),
+			),
 			Signer::ContractSigner(contract_signer) => TransactionSigner::new_full(
 				*contract_signer.get_signer_hash(),
 				contract_signer.get_scopes().to_vec(),
@@ -458,6 +425,10 @@ impl Into<TransactionSigner> for &Signer {
 				contract_signer.get_allowed_groups().to_vec(),
 				contract_signer.get_rules().to_vec(),
 			),
+			// Signer::Account(_account_signer) =>
+			// 	panic!("Cannot convert AccountSigner into TransactionSigner"),
+			// Signer::Contract(_contract_signer) =>
+			// 	panic!("Cannot convert ContractSigner into AccountSigner"),
 			Signer::TransactionSigner(transaction_signer) => transaction_signer.clone(),
 		}
 	}
@@ -546,7 +517,7 @@ impl NeoSerializable for Signer {
 		}
 	}
 
-	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error>
+	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error>
 	where
 		Self: Sized,
 	{
@@ -576,18 +547,15 @@ mod tests {
 	use primitive_types::H160;
 	use rustc_serialize::hex::{FromHex, ToHex};
 
-	use crate::{
-		builder::{
-			AccountSigner, BuilderError, ContractSigner, SignerTrait, WitnessAction,
-			WitnessCondition, WitnessRule, WitnessScope,
-		},
-		codec::{Encoder, NeoSerializable},
-		config::NeoConstants,
-		crypto::Secp256r1PublicKey,
-		neo_protocol::{Account, AccountTrait},
-		ScriptHash, ScriptHashExtension,
-	};
+	use crate::{builder::{
+		AccountSigner, BuilderError, ContractSigner, SignerTrait, WitnessAction,
+		WitnessCondition, WitnessRule, WitnessScope,
+	}, codec::{Encoder, NeoSerializable}, config::NeoConstants, crypto::Secp256r1PublicKey, neo_protocol::{Account, AccountTrait}, AccountSigner, ScriptHash, ScriptHashExtension, Signer, WitnessScope};
 	use neo::builder::Signer;
+	use neo_codec::Encoder;
+	use neo_config::NeoConstants;
+	use neo_crypto::Secp256r1PublicKey;
+	use neo_error::BuilderError;
 
 	lazy_static! {
 		pub static ref SCRIPT_HASH: ScriptHash = {
@@ -852,7 +820,7 @@ mod tests {
 		signer.set_rules(vec![rule]).expect("");
 
 		let expected = format!(
-			"{}{}{}{}{}{}{}{}{}{}{}{}{}{}",
+			"{}{}{}{}{}{}{}{}{}{}{}{}",
 			SCRIPT_HASH.as_bytes().to_hex(),
 			"71",
 			"02",

@@ -1,14 +1,9 @@
+use serde::{Deserialize, Serialize};
 use neo_codec::{Decoder, Encoder, NeoSerializable};
 use neo_crypto::{KeyPair, Secp256r1PublicKey, Secp256r1Signature};
+use neo_error::BuilderError;
 use neo_types::{Bytes, ContractParameter};
-
-use crate::{
-    BuilderError,
-    InvocationScript,
-    ScriptBuilder,
-    VerificationScript,
-};
-use serde::{Deserialize, Serialize};
+use crate::{InvocationScript, ScriptBuilder, VerificationScript};
 
 #[derive(Hash, Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct Witness {
@@ -21,10 +16,10 @@ impl Witness {
 		Self { invocation: InvocationScript::new(), verification: VerificationScript::new() }
 	}
 
-	pub fn from_scripts(invocation_script: impl Into<Bytes>, verification_script: impl Into<Bytes>) -> Self {
+	pub fn from_scripts(invocation_script: Bytes, verification_script: Bytes) -> Self {
 		Self {
-			invocation: InvocationScript::new_with_script(invocation_script.into().to_vec()),
-			verification: VerificationScript::from(verification_script.into()),
+			invocation: InvocationScript::new_with_script(invocation_script),
+			verification: VerificationScript::from(verification_script),
 		}
 	}
 
@@ -37,7 +32,7 @@ impl Witness {
 
 	pub fn create(message_to_sign: Bytes, key_pair: &KeyPair) -> Result<Self, BuilderError> {
 		let invocation_script =
-			InvocationScript::from_message_and_key_pair(message_to_sign.to_vec(), key_pair)?;
+			InvocationScript::from_message_and_key_pair(message_to_sign, key_pair).unwrap();
 		let verification_script = VerificationScript::from_public_key(&key_pair.public_key());
 		Ok(Self { invocation: invocation_script, verification: verification_script })
 	}
@@ -82,7 +77,7 @@ impl Witness {
 		let invocation_script = builder.to_bytes();
 
 		Ok(Self {
-			invocation: InvocationScript::new_with_script(invocation_script.to_vec()),
+			invocation: InvocationScript::new_with_script(invocation_script),
 			verification: VerificationScript::new(),
 		})
 	}
@@ -92,7 +87,7 @@ impl NeoSerializable for Witness {
 	type Error = BuilderError;
 
 	fn size(&self) -> usize {
-		self.invocation.size() + self.verification.size()
+		(self.invocation.size() + self.verification.size()) as usize
 	}
 
 	fn encode(&self, writer: &mut Encoder) {
@@ -100,7 +95,7 @@ impl NeoSerializable for Witness {
 		self.verification.encode(writer);
 	}
 
-	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error> {
+	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
 		let invocation = InvocationScript::decode(reader)?;
 		let verification = VerificationScript::decode(reader)?;
 		Ok(Self { invocation, verification })

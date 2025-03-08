@@ -2,7 +2,6 @@ use std::hash::{Hash, Hasher};
 
 use num_enum::TryFromPrimitive;
 use serde::{Deserialize, Serialize};
-
 use crate::StackItem;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]

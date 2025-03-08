@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::ProviderError;
+use crate::neo_clients::ProviderError;
 use async_trait::async_trait;
 use auto_impl::auto_impl;
 use serde::{de::DeserializeOwned, Serialize};

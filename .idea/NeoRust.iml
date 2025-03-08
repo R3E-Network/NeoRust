@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="EMPTY_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/crates/neo-builder/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/neo-clients/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/neo-codec/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/neo-common/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/neo-config/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/neo-contract/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/neo-crypto/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/neo-error/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/neo-fs/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/neo-protocol/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/neo-types/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/neo-utils/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/neo-wallets/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/neo-x/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/test-hash/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/big-numbers/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/contracts/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/events/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/middleware/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/neo_contracts/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/neo_famous_contracts/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/neo_nep17_tokens/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/neo_nns/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/neo_nodes/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/neo_smart_contracts/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/neo_transactions/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/neo_wallets/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/neo_x/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/providers/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/queries/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/subscriptions/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/transactions/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/examples/wallets/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/neo-cli/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/neo-cli/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

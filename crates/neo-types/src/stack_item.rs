@@ -10,8 +10,11 @@ use serde::{
 	Deserialize, Deserializer, Serialize,
 };
 
-use crate::serde_value::Secp256r1PublicKey;
 use crate::{Address, ScriptHashExtension};
+use crate::serde_with_utils::Secp256r1PublicKey;
+
+// Import neo-common base64 utilities
+use neo_common::base64;
 
 /// The `StackItem` enum represents an item on the Neo virtual machine stack.
 #[derive(Clone, Debug, Hash, Eq, PartialEq, Serialize, Deserialize)]
@@ -80,7 +83,7 @@ where
 	impl<'de> Visitor<'de> for StringOrIntVisitor {
 		type Value = i64;
 
-		fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+		fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 			formatter.write_str("a string or integer")
 		}
 
@@ -185,8 +188,7 @@ impl StackItem {
 	pub const INTEROP_INTERFACE_BYTE: u8 = 0x60;
 
 	pub fn new_byte_string(byte_array: Vec<u8>) -> Self {
-		use base64::Engine;
-		let byte_string = base64::engine::general_purpose::STANDARD.encode(byte_array);
+		let byte_string = neo_common::base64::encode(&byte_array);
 		StackItem::ByteString { value: byte_string }
 	}
 
@@ -202,11 +204,8 @@ impl StackItem {
 	/// Returns the string value of a `StackItem::ByteString`, `StackItem::Buffer`, `StackItem::Integer`, or `StackItem::Boolean`.
 	pub fn as_string(&self) -> Option<String> {
 		match self {
-			StackItem::ByteString { value } | StackItem::Buffer { value } => {
-				use base64::Engine;
-				let decoded = base64::engine::general_purpose::STANDARD.decode(value).ok()?;
-				Some(String::from_utf8_lossy(&decoded).to_string())
-			},
+			StackItem::ByteString { value } | StackItem::Buffer { value } =>
+				Some(String::from_utf8_lossy(&neo_common::base64::decode(value).unwrap()).to_string()),
 			StackItem::Integer { value } => Some(value.to_string()),
 			StackItem::Boolean { value } => Some(value.to_string()),
 			_ => None,
@@ -253,12 +252,13 @@ impl StackItem {
 	/// Returns the byte representation of a `StackItem::ByteString`, `StackItem::Buffer`, or `StackItem::Integer`.
 	pub fn as_bytes(&self) -> Option<Vec<u8>> {
 		match self {
-			StackItem::ByteString { value } | StackItem::Buffer { value } => {
-				use base64::Engine;
-				base64::engine::general_purpose::STANDARD.decode(value.trim_end())
-					.map_err(|_| format!("Failed to decode the string: {}", value))
-					.ok()
-			},
+			StackItem::ByteString { value } | StackItem::Buffer { value } =>
+			// Some(hex::decode(value).unwrap()),
+				Some(
+					neo_common::base64::decode(value.trim_end())
+						.expect(&format!("Failed to decode the string: {}", value)),
+				),
+			//Some(value.trim_end().as_bytes().to_vec()),
 			StackItem::Integer { value } => {
 				let mut bytes = value.to_be_bytes().to_vec();
 				bytes.reverse();

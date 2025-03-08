@@ -1,25 +1,9 @@
-use super::{Bytes, ScriptHashExtension};
+use super::ScriptHashExtension;
+use crate::{Bytes};
 use primitive_types::{H160, H256};
 use serde_json::Value;
-
-// Temporarily define a stub for Secp256r1PublicKey until we properly integrate neo-crypto
-#[derive(Debug, Clone)]
-pub struct Secp256r1PublicKey {
-    encoded: Vec<u8>,
-}
-
-impl Secp256r1PublicKey {
-    pub fn get_encoded(&self, _compressed: bool) -> Vec<u8> {
-        self.encoded.clone()
-    }
-    
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
-        if bytes.len() != 33 && bytes.len() != 65 {
-            return Err("Invalid public key length");
-        }
-        Ok(Self { encoded: bytes.to_vec() })
-    }
-}
+use crate::serde_with_utils::Secp256r1PublicKey;
+use neo_common::EncodablePublicKey;
 
 pub trait ValueExtension {
 	fn to_value(&self) -> Value;
@@ -27,7 +11,7 @@ pub trait ValueExtension {
 
 impl ValueExtension for Bytes {
 	fn to_value(&self) -> Value {
-		Value::String(hex::encode(&self.to_vec()))
+		Value::String(hex::encode(self.as_ref()))
 	}
 }
 

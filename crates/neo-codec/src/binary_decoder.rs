@@ -1,11 +1,15 @@
-use crate::{CodecError, NeoSerializable, OpCode};
+use crate::{
+	error::CodecError,
+	encode::NeoSerializable,
+	opcode::OpCode,
+};
 /// This module provides a binary decoder that can read various types of data from a byte slice.
 ///
 /// # Examples
 ///
 /// ```rust
 ///
-/// use NeoRust::prelude::Decoder;
+/// use neo_codec::binary_decoder::Decoder;
 /// let data = [0x01, 0x02, 0x03, 0x04];
 /// let mut decoder = Decoder::new(&data);
 ///
@@ -203,14 +207,15 @@ impl<'a> Decoder<'a> {
 	/// Reads a push byte slice from the byte slice.
 	pub fn read_push_bytes(&mut self) -> Result<Vec<u8>, CodecError> {
 		let opcode = self.read_u8();
-		let len = match opcode {
-				0x4c => self.read_u8() as usize, // PushData1
-				0x4d => self.read_i16().map_err(|e| {
+		let len =
+			match OpCode::try_from(opcode)? {
+				OpCode::PushData1 => self.read_u8() as usize,
+				OpCode::PushData2 => self.read_i16().map_err(|e| {
 					CodecError::InvalidEncoding(format!("Failed to read i16: {}", e))
-				})? as usize, // PushData2
-				0x4e => self.read_i32().map_err(|e| {
+				})? as usize,
+				OpCode::PushData4 => self.read_i32().map_err(|e| {
 					CodecError::InvalidEncoding(format!("Failed to read i32: {}", e))
-				})? as usize, // PushData4
+				})? as usize,
 				_ => return Err(CodecError::InvalidOpCode),
 			};
 
@@ -225,7 +230,7 @@ impl<'a> Decoder<'a> {
 			return Ok(BigInt::from(byte as i8 - OpCode::Push0 as i8));
 		}
 
-		let count = match OpCode::try_from(byte).map_err(|_| CodecError::InvalidOpCode)? {
+		let count = match OpCode::try_from(byte)? {
 			OpCode::PushInt8 => 1,
 			OpCode::PushInt16 => 2,
 			OpCode::PushInt32 => 4,
@@ -311,7 +316,7 @@ impl<'a> Decoder<'a> {
 
 #[cfg(test)]
 mod tests {
-	use crate::Decoder;
+	use crate::binary_decoder::Decoder;
 	use num_bigint::BigInt;
 
 	#[test]

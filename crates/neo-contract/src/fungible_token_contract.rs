@@ -1,11 +1,13 @@
 use async_trait::async_trait;
 use primitive_types::H160;
 
-use neo_clients::{JsonRpcProvider, RpcClient};
-use neo_types::NNSName;
 use crate::{
-	traits::{FungibleTokenTrait, SmartContractTrait, TokenTrait},
-	ContractError,
+	neo_clients::{JsonRpcProvider, RpcClient},
+	neo_contract::{
+		traits::{FungibleTokenTrait, SmartContractTrait, TokenTrait},
+		ContractError,
+	},
+	neo_types::NNSName,
 };
 
 #[derive(Debug)]

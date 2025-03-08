@@ -5,7 +5,6 @@ use serde::{
 	de::{self, Deserializer, Visitor},
 	Deserialize, Serialize,
 };
-
 use crate::Address;
 
 /// Transaction summary as found in the Txpool Inspection property.
@@ -27,7 +26,7 @@ struct TxPoolInspectSummaryVisitor;
 impl<'de> Visitor<'de> for TxPoolInspectSummaryVisitor {
 	type Value = TxPoolInspectSummary;
 
-	fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 		formatter.write_str("to: value wei + gasLimit gas × gas_price wei")
 	}
 

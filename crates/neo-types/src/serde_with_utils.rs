@@ -5,9 +5,9 @@ use std::{
 	collections::{HashMap, HashSet},
 	convert::TryInto,
 	fmt,
+	str::FromStr,
 };
 
-use elliptic_curve::sec1::ToEncodedPoint;
 use hex;
 use primitive_types::{H160, H256, U256};
 use reqwest::Url;
@@ -20,154 +20,119 @@ use serde::{
 #[cfg(feature = "substrate")]
 use serde_big_array_substrate::big_array;
 
-use crate::{
-	Address, AddressOrScriptHash, ContractParameter, ScriptHash, ScriptHashExtension,
-};
+use crate::{ContractParameter, Address, ScriptHash, AddressOrScriptHash};
+// Import from neo_common instead of internal modules
+use neo_common::{WitnessScope, HardForks, EncodablePublicKey};
+// Remove references to neo_crypto since we can't use it (circular dependency)
+// use neo_crypto::{
+//     Secp256r1PublicKey,
+//     Secp256r1PrivateKey,
+// };
 
-// Define WitnessScope enum here since it was previously imported from builder
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum WitnessScope {
-    None = 0,
-    CalledByEntry = 1,
-    CustomContracts = 16,
-    CustomGroups = 32,
-    Global = 128,
-}
-
-impl std::fmt::Display for WitnessScope {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            WitnessScope::None => write!(f, "None"),
-            WitnessScope::CalledByEntry => write!(f, "CalledByEntry"),
-            WitnessScope::CustomContracts => write!(f, "CustomContracts"),
-            WitnessScope::CustomGroups => write!(f, "CustomGroups"),
-            WitnessScope::Global => write!(f, "Global"),
-        }
-    }
-}
-
-impl std::str::FromStr for WitnessScope {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "None" => Ok(WitnessScope::None),
-            "CalledByEntry" => Ok(WitnessScope::CalledByEntry),
-            "CustomContracts" => Ok(WitnessScope::CustomContracts),
-            "CustomGroups" => Ok(WitnessScope::CustomGroups),
-            "Global" => Ok(WitnessScope::Global),
-            _ => Err(format!("Unknown WitnessScope: {}", s)),
-        }
-    }
-}
-
-// Define HardForks enum here since it was previously imported from neo_protocol
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub enum HardForks {
-    Aspidochelone = 0,
-    Basilisk = 1,
-    Cockatrice = 2,
-    Dippel = 3,
-}
-
-// Temporarily define stubs for Secp256r1PrivateKey and Secp256r1PublicKey
-#[derive(Debug, Clone)]
-pub struct Secp256r1PrivateKey {
-    data: Vec<u8>,
-}
-
+// Define our own simplified key structs to avoid circular dependency
+// This is temporary and would need to be properly integrated later
 #[derive(Debug, Clone)]
 pub struct Secp256r1PublicKey {
-    data: Vec<u8>,
-}
-
-impl Secp256r1PrivateKey {
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
-        Ok(Self { data: bytes.to_vec() })
-    }
-    
-    pub fn to_raw_bytes(&self) -> &[u8] {
-        &self.data
-    }
+	pub data: Vec<u8>,
 }
 
 impl Secp256r1PublicKey {
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
-        Ok(Self { data: bytes.to_vec() })
-    }
-    
-    pub fn get_encoded(&self, _compressed: bool) -> Vec<u8> {
+	pub fn from_bytes(data: &[u8]) -> Result<Self, String> {
+		Ok(Self { data: data.to_vec() })
+	}
+	
+	pub fn to_bytes(&self) -> Vec<u8> {
+		self.data.clone()
+	}
+}
+
+// Implement EncodablePublicKey for Secp256r1PublicKey
+impl EncodablePublicKey for Secp256r1PublicKey {
+    fn get_encoded(&self, _compressed: bool) -> Vec<u8> {
         self.data.clone()
     }
-    
+}
+
+// Add a helper method for get_encoded_compressed_hex
+impl Secp256r1PublicKey {
     pub fn get_encoded_compressed_hex(&self) -> String {
-        hex::encode(&self.data)
+        hex::encode(self.get_encoded(true))
     }
 }
 
-// Helper functions for string encoding/decoding
-pub fn encode_string_h160(h: &H160) -> String {
-    format!("0x{:x}", h)
+#[derive(Debug, Clone)]
+pub struct Secp256r1PrivateKey {
+	pub data: Vec<u8>,
 }
 
-pub fn encode_string_h256(h: &H256) -> String {
-    format!("0x{:x}", h)
+impl Secp256r1PrivateKey {
+	pub fn from_bytes(data: &[u8]) -> Result<Self, String> {
+		Ok(Self { data: data.to_vec() })
+	}
+	
+	pub fn to_bytes(&self) -> Vec<u8> {
+		self.data.clone()
+	}
+	
+	pub fn to_raw_bytes(&self) -> Vec<u8> {
+		self.data.clone()
+	}
 }
 
-pub fn encode_string_u256(u: &U256) -> String {
-    format!("{}", u)
+// Add these functions from the removed neo_types module
+fn encode_string_h160(h: &H160) -> String {
+	format!("0x{}", hex::encode(h.as_bytes()))
 }
 
-pub fn parse_address(s: &str) -> Result<H160, String> {
-    parse_string_h160(s)
+fn encode_string_h256(h: &H256) -> String {
+	format!("0x{}", hex::encode(h.as_bytes()))
 }
 
-pub fn parse_string_h160(s: &str) -> Result<H160, String> {
-    if s.starts_with("0x") {
-        let s = &s[2..];
-        if s.len() != 40 {
-            return Err(format!("Invalid H160 length: {}", s.len()));
-        }
-        let bytes = hex::decode(s).map_err(|e| format!("Invalid hex: {}", e))?;
-        Ok(H160::from_slice(&bytes))
-    } else {
-        Err(format!("Invalid H160 format: {}", s))
-    }
+fn encode_string_u256(u: &U256) -> String {
+	format!("0x{:x}", u)
 }
 
-pub fn parse_string_h256(s: &str) -> Result<H256, String> {
-    if s.starts_with("0x") {
-        let s = &s[2..];
-        if s.len() != 64 {
-            return Err(format!("Invalid H256 length: {}", s.len()));
-        }
-        let bytes = hex::decode(s).map_err(|e| format!("Invalid hex: {}", e))?;
-        Ok(H256::from_slice(&bytes))
-    } else {
-        Err(format!("Invalid H256 format: {}", s))
-    }
+fn parse_address(addr: &str) -> Result<Address, String> {
+	Ok(addr.to_string())
 }
 
-pub fn parse_string_u256(s: &str) -> Result<U256, String> {
-    if s.starts_with("0x") {
-        let s = &s[2..];
-        let bytes = hex::decode(s).map_err(|e| format!("Invalid hex: {}", e))?;
-        Ok(U256::from_big_endian(&bytes))
-    } else {
-        s.parse::<U256>().map_err(|e| format!("Invalid U256: {}", e))
-    }
+fn parse_string_h160(s: &str) -> Result<H160, String> {
+	let s = s.trim_start_matches("0x");
+	let bytes = hex::decode(s).map_err(|e| e.to_string())?;
+	if bytes.len() != 20 {
+		return Err("Invalid H160 length".to_string());
+	}
+	let mut array = [0u8; 20];
+	array.copy_from_slice(&bytes);
+	Ok(H160::from(array))
 }
 
-pub fn parse_string_u64(s: &str) -> Result<u64, String> {
-    if s.starts_with("0x") {
-        let s = &s[2..];
-        u64::from_str_radix(s, 16).map_err(|e| format!("Invalid hex u64: {}", e))
-    } else {
-        s.parse::<u64>().map_err(|e| format!("Invalid u64: {}", e))
-    }
+fn parse_string_h256(s: &str) -> Result<H256, String> {
+	let s = s.trim_start_matches("0x");
+	let bytes = hex::decode(s).map_err(|e| e.to_string())?;
+	if bytes.len() != 32 {
+		return Err("Invalid H256 length".to_string());
+	}
+	let mut array = [0u8; 32];
+	array.copy_from_slice(&bytes);
+	Ok(H256::from(array))
 }
-#[cfg(feature = "substrate")]
-use serde_substrate as serde;
+
+fn parse_string_u256(s: &str) -> Result<U256, String> {
+	if s.starts_with("0x") {
+		Ok(U256::from_str_radix(&s[2..], 16).map_err(|e| e.to_string())?)
+	} else {
+		Ok(U256::from_dec_str(s).map_err(|e| e.to_string())?)
+	}
+}
+
+fn parse_string_u64(s: &str) -> Result<u64, String> {
+	if s.starts_with("0x") {
+		u64::from_str_radix(&s[2..], 16).map_err(|e| e.to_string())
+	} else {
+		s.parse::<u64>().map_err(|e| e.to_string())
+	}
+}
 
 pub fn serialize_h160_without_0x<S>(h160: &H160, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -1168,7 +1133,7 @@ where
 	impl<'de> Visitor<'de> for StringOrVec {
 		type Value = Vec<String>;
 
-		fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+		fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 			formatter.write_str("a string or a sequence of strings")
 		}
 
@@ -1204,7 +1169,7 @@ where
 	impl<'de> Visitor<'de> for HardforksVisitor {
 		type Value = Vec<HardForks>;
 
-		fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+		fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 			formatter.write_str("a list or a single Hardforks value")
 		}
 

@@ -27,7 +27,7 @@ use tokio::{
 
 use hashers::fx_hash::FxHasher64;
 
-use crate::{ProviderError, JsonRpcClient, PubsubClient};
+use crate::{errors::ProviderError, JsonRpcClient, PubsubClient};
 
 use super::common::{JsonRpcError, Params, Request, Response};
 

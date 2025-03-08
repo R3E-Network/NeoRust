@@ -1,10 +1,12 @@
 use std::hash::{Hash, Hasher};
 
-use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
-use neo_crypto::Secp256r1PublicKey;
-use neo_types::ScriptHashExtension;
-
-use crate::transaction::TransactionError;
+use crate::{
+	builder::TransactionError,
+	codec::{Decoder, Encoder, NeoSerializable},
+	crypto::Secp256r1PublicKey,
+	neo_codec::VarSizeTrait,
+	ScriptHashExtension,
+};
 use primitive_types::H160;
 use rustc_serialize::hex::{FromHex, ToHex};
 use serde::{ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer};
@@ -59,8 +61,15 @@ impl Serialize for WitnessCondition {
 				state.serialize_field("type", "ScriptHash")?;
 				state.serialize_field("hash", &hash.to_hex())?;
 			},
-			WitnessCondition::Group(ref key) => {
-				state.serialize_field("type", "Group")?;
+			WitnessCondition::Group(ref key) | WitnessCondition::CalledByGroup(ref key) => {
+				state.serialize_field(
+					"type",
+					if matches!(self, WitnessCondition::Group(_)) {
+						"Group"
+					} else {
+						"CalledByGroup"
+					},
+				)?;
 				state.serialize_field("group", &key.get_encoded(true).to_hex())?;
 			},
 			WitnessCondition::CalledByEntry => {
@@ -72,7 +81,7 @@ impl Serialize for WitnessCondition {
 			},
 			WitnessCondition::CalledByGroup(ref key) => {
 				state.serialize_field("type", "CalledByGroup")?;
-				state.serialize_field("group", &key.get_encoded(true).to_hex())?;
+				state.serialize_field("group", &key.get_encoded_compressed_hex())?;
 			},
 		}
 		state.end()
@@ -347,7 +356,7 @@ impl NeoSerializable for WitnessCondition {
 		}
 	}
 
-	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error> {
+	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
 		let byte = reader.read_u8();
 		match byte {
 			WitnessCondition::BOOLEAN_BYTE => {

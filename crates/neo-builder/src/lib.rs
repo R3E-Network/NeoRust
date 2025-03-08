@@ -51,9 +51,8 @@
 #![warn(missing_debug_implementations, missing_docs, rust_2018_idioms, unreachable_pub)]
 #![deny(rustdoc::broken_intra_doc_links)]
 
-mod error;
-mod script;
-mod transaction;
+pub mod script;
+pub mod transaction;
 mod utils;
 
 // Create a builder module to fix import issues
@@ -70,7 +69,6 @@ pub mod builder {
 }
 
 // Re-export all public items
-pub use error::*;
 
 /// Initialize the logger for the neo-builder crate
 pub fn init_logger() {
@@ -91,4 +89,3 @@ pub use builder::{
     TransactionError, VerificationScript, Witness, WitnessRule, WitnessAction, WitnessCondition,
     ScriptBuilder, InteropService
 };
-pub use error::BuilderError;

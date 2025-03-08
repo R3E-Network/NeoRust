@@ -1,6 +1,6 @@
 use sha2::{Digest, Sha256};
-
-use crate::{CryptoError, Secp256r1PrivateKey};
+use neo_error::crypto_error::CryptoError;
+use crate::keys::Secp256r1PrivateKey;
 
 /// Converts a WIF (Wallet Import Format) string into a `Secp256r1PrivateKey`.
 ///
@@ -57,53 +57,10 @@ pub fn wif_from_private_key(private_key: &Secp256r1PrivateKey) -> String {
 	bs58::encode(extended_key).into_string()
 }
 
-/// Wallet Import Format (WIF) utilities for Neo private keys.
-pub struct WIF;
-
-impl WIF {
-    /// Encodes a private key to WIF format.
-    ///
-    /// # Arguments
-    ///
-    /// * `private_key` - The private key to encode.
-    /// * `compressed` - Whether to use the compressed format.
-    ///
-    /// # Returns
-    ///
-    /// The WIF-encoded private key as a string.
-    pub fn encode(private_key: &Secp256r1PrivateKey, compressed: bool) -> String {
-        let mut data = vec![0x80];
-        data.extend_from_slice(&private_key.to_raw_bytes());
-        if compressed {
-            data.push(0x01);
-        }
-
-        let hash = Sha256::digest(&Sha256::digest(&data));
-        let checksum = &hash[0..4];
-        data.extend_from_slice(checksum);
-
-        bs58::encode(data).into_string()
-    }
-
-    /// Decodes a WIF string to a private key.
-    ///
-    /// # Arguments
-    ///
-    /// * `wif` - The WIF-encoded private key string.
-    ///
-    /// # Returns
-    ///
-    /// The decoded private key, or an error if the WIF string is invalid.
-    pub fn decode(wif: &str) -> Result<Secp256r1PrivateKey, CryptoError> {
-        private_key_from_wif(wif)
-    }
-}
-
 #[cfg(test)]
 mod tests {
-	use crate::{
-		private_key_from_wif, wif_from_private_key, PrivateKeyExtension, Secp256r1PrivateKey, WIF,
-	};
+	use super::*;
+	use crate::keys::PrivateKeyExtension;
 
 	#[test]
 	fn test_valid_wif_to_private_key() {
@@ -162,17 +119,5 @@ mod tests {
 
 		// wif_from_private_key(&
 		assert!(Secp256r1PrivateKey::from_slice(&invalid_len).is_err());
-	}
-	
-	#[test]
-	fn test_wif_encode_decode() {
-		let pk = hex::decode("9117f4bf9be717c9a90994326897f4243503accd06712162267e77f18b49c3a3")
-			.unwrap();
-		let private_key = Secp256r1PrivateKey::from_slice(&pk).unwrap();
-		
-		let wif = WIF::encode(&private_key, true);
-		let decoded = WIF::decode(&wif).unwrap();
-		
-		assert_eq!(private_key.to_raw_bytes(), decoded.to_raw_bytes());
 	}
 }

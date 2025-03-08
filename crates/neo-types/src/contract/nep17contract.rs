@@ -1,7 +1,9 @@
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
-
-use crate::serde_utils::{deserialize_h160 as deserialize_script_hash, serialize_h160 as serialize_script_hash};
+use crate::{
+	serde_with_utils::{deserialize_script_hash, serialize_script_hash},
+	script_hash::ScriptHash,
+};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Debug, Clone)]
 pub struct Nep17Contract {

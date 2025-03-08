@@ -23,8 +23,7 @@
 //! ### Creating a key pair
 //!
 //! ```rust
-//! use neo_types::*;
-use neo_common::*;
+//! use neo::prelude::*;
 //!
 //! // Generate a new random key pair
 //! let key_pair = KeyPair::new_random().unwrap();
@@ -39,8 +38,7 @@ use neo_common::*;
 //! ### Signing and verifying data
 //!
 //! ```rust
-//! use neo_types::*;
-use neo_common::*;
+//! use neo::prelude::*;
 //!
 //! // Generate a key pair
 //! let key_pair = KeyPair::new_random().unwrap();
@@ -59,8 +57,7 @@ use neo_common::*;
 //! ### Working with WIF format
 //!
 //! ```rust
-//! use neo_types::*;
-use neo_common::*;
+//! use neo::prelude::*;
 //! use std::str::FromStr;
 //!
 //! // Import a private key from WIF format

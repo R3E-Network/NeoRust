@@ -1,20 +1,20 @@
 use async_trait::async_trait;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
-use futures::StreamExt;
-use std::str::FromStr;
 
-use neo_builder::{AccountSigner, TransactionBuilder};
-use neo_clients::{APITrait, JsonRpcProvider, RpcClient};
 use crate::{
-	traits::{FungibleTokenTrait, SmartContractTrait, TokenTrait},
-	ContractError,
-};
-use neo_crypto::Secp256r1PublicKey;
-use neo_protocol::Account;
-use neo_common::{deserialize_script_hash, serialize_script_hash};
-use neo_types::{
-	ContractParameter, ContractParameterType, NNSName, ScriptHash, StackItem, Bytes, ContractParameterBuilder
+	neo_builder::TransactionBuilder,
+	neo_clients::{JsonRpcProvider, RpcClient},
+	neo_contract::{
+		traits::{FungibleTokenTrait, SmartContractTrait, TokenTrait},
+		ContractError,
+	},
+	neo_crypto::Secp256r1PublicKey,
+	neo_protocol::Account,
+	neo_types::{
+		serde_with_utils::{deserialize_script_hash, serialize_script_hash},
+		ContractParameter, ContractParameterType, NNSName, ScriptHash, StackItem,
+	},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,7 +37,6 @@ impl<'a, P: JsonRpcProvider + 'static> NeoToken<'a, P> {
 	pub const DECIMALS: u8 = 0;
 	pub const SYMBOL: &'static str = "NEO";
 	pub const TOTAL_SUPPLY: u64 = 100_000_000;
-	pub const UNCLAIMED_GAS: &'static str = "unclaimedGas";
 
 	pub(crate) fn new(provider: Option<&'a RpcClient<P>>) -> Self {
 		Self {
@@ -51,18 +50,12 @@ impl<'a, P: JsonRpcProvider + 'static> NeoToken<'a, P> {
 
 	// Unclaimed Gas
 
-	async fn unclaimed_gas<W: Clone + Debug + Send + Sync>(
+	async fn unclaimed_gas(
 		&self,
-		account: &Account<W>,
+		account: &Account,
 		block_height: i32,
 	) -> Result<i64, ContractError> {
-		let params = vec![
-			account.get_script_hash().into(),
-			ContractParameterBuilder::number(block_height),
-		];
-
-		let result = self.call_function_returning_int(Self::UNCLAIMED_GAS, params).await?;
-		Ok(result as i64)
+		self.unclaimed_gas_contract(&account.get_script_hash(), block_height).await
 	}
 
 	async fn unclaimed_gas_contract(
@@ -84,21 +77,15 @@ impl<'a, P: JsonRpcProvider + 'static> NeoToken<'a, P> {
 	async fn register_candidate(
 		&self,
 		candidate_key: &Secp256r1PublicKey,
-	) -> Result<TransactionBuilder<'_>, ContractError> {
-		let key_bytes = candidate_key.get_encoded(true);
-		let type_key = neo_types::serde_value::Secp256r1PublicKey::from_bytes(&key_bytes).unwrap();
-		let key_param = ContractParameter::from(&type_key);
-		self.invoke_function("registerCandidate", vec![key_param]).await
+	) -> Result<TransactionBuilder<P>, ContractError> {
+		self.invoke_function("registerCandidate", vec![candidate_key.into()]).await
 	}
 
 	async fn unregister_candidate(
 		&self,
 		candidate_key: &Secp256r1PublicKey,
-	) -> Result<TransactionBuilder<'_>, ContractError> {
-		let key_bytes = candidate_key.get_encoded(true);
-		let type_key = neo_types::serde_value::Secp256r1PublicKey::from_bytes(&key_bytes).unwrap();
-		let key_param = ContractParameter::from(&type_key);
-		self.invoke_function("unregisterCandidate", vec![key_param]).await
+	) -> Result<TransactionBuilder<P>, ContractError> {
+		self.invoke_function("unregisterCandidate", vec![candidate_key.into()]).await
 	}
 
 	// Committee and Candidates Information
@@ -130,15 +117,12 @@ impl<'a, P: JsonRpcProvider + 'static> NeoToken<'a, P> {
 	}
 
 	async fn is_candidate(&self, public_key: &Secp256r1PublicKey) -> Result<bool, ContractError> {
-		let candidates = self.get_candidates().await?;
-		
-		// Convert the target public key to a string for comparison
-		let target_key_str = format!("{:?}", public_key);
-		
-		// Check if any candidate's public key matches the target key
-		Ok(candidates
+		Ok(self
+			.get_candidates()
+			.await
+			.unwrap()
 			.into_iter()
-			.any(|c| format!("{:?}", c.public_key) == target_key_str))
+			.any(|c| c.public_key == *public_key))
 	}
 
 	// Voting
@@ -147,20 +131,16 @@ impl<'a, P: JsonRpcProvider + 'static> NeoToken<'a, P> {
 		&self,
 		voter: &H160,
 		candidate: Option<&Secp256r1PublicKey>,
-	) -> Result<TransactionBuilder<'_>, ContractError> {
+	) -> Result<TransactionBuilder<P>, ContractError> {
 		let params = match candidate {
-			Some(key) => {
-				let key_bytes = key.get_encoded(true);
-				let type_key = neo_types::serde_value::Secp256r1PublicKey::from_bytes(&key_bytes).unwrap();
-				vec![voter.into(), ContractParameter::from(&type_key)]
-			},
-			None => vec![voter.into(), ContractParameter::bool(false)],
+			Some(key) => vec![voter.into(), key.into()],
+			None => vec![voter.into(), ContractParameter::new(ContractParameterType::Any)],
 		};
 
 		self.invoke_function("vote", params).await
 	}
 
-	async fn cancel_vote(&self, voter: &H160) -> Result<TransactionBuilder<'_>, ContractError> {
+	async fn cancel_vote(&self, voter: &H160) -> Result<TransactionBuilder<P>, ContractError> {
 		self.vote(voter, None).await
 	}
 
@@ -168,14 +148,10 @@ impl<'a, P: JsonRpcProvider + 'static> NeoToken<'a, P> {
 		&self,
 		voter: &H160,
 		candidate: Option<&Secp256r1PublicKey>,
-	) -> Result<Bytes, ContractError> {
+	) -> Result<Vec<u8>, ContractError> {
 		let params = match candidate {
-			Some(key) => {
-				let key_bytes = key.get_encoded(true);
-				let type_key = neo_types::serde_value::Secp256r1PublicKey::from_bytes(&key_bytes).unwrap();
-				vec![voter.into(), ContractParameter::from(&type_key)]
-			},
-			None => vec![voter.into(), ContractParameter::bool(false)],
+			Some(key) => vec![voter.into(), key.into()],
+			None => vec![voter.into(), ContractParameter::new(ContractParameterType::Any)],
 		};
 
 		self.build_invoke_function_script("vote", params).await
@@ -190,7 +166,7 @@ impl<'a, P: JsonRpcProvider + 'static> NeoToken<'a, P> {
 	async fn set_gas_per_block(
 		&self,
 		gas_per_block: i32,
-	) -> Result<TransactionBuilder<'_>, ContractError> {
+	) -> Result<TransactionBuilder<P>, ContractError> {
 		self.invoke_function("setGasPerBlock", vec![gas_per_block.into()]).await
 	}
 
@@ -201,7 +177,7 @@ impl<'a, P: JsonRpcProvider + 'static> NeoToken<'a, P> {
 	async fn set_register_price(
 		&self,
 		register_price: i32,
-	) -> Result<TransactionBuilder<'_>, ContractError> {
+	) -> Result<TransactionBuilder<P>, ContractError> {
 		self.invoke_function("setRegisterPrice", vec![register_price.into()]).await
 	}
 
@@ -321,14 +297,14 @@ impl<'a, P: JsonRpcProvider> SmartContractTrait<'a> for NeoToken<'a, P> {
 impl<'a, P: JsonRpcProvider> FungibleTokenTrait<'a, P> for NeoToken<'a, P> {}
 
 pub struct Candidate {
-	pub public_key: neo_types::serde_value::Secp256r1PublicKey,
-	pub votes: i64,
+	pub public_key: Secp256r1PublicKey,
+	pub votes: i32,
 }
 
 impl Candidate {
 	fn from(items: Vec<StackItem>) -> Result<Self, ContractError> {
 		let key = items[0].as_public_key().unwrap();
-		let votes = items[1].as_int().unwrap() as i64;
+		let votes = items[1].as_int().unwrap() as i32;
 		Ok(Self { public_key: key, votes })
 	}
 }
@@ -342,23 +318,5 @@ pub struct AccountState {
 impl AccountState {
 	pub fn with_no_balance() -> Self {
 		Self { balance: 0, balance_height: None, public_key: None }
-	}
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CandidateJson {
-	#[serde(rename = "publicKey")]
-	pub public_key: String,
-	pub votes: String,
-}
-
-impl Candidate {
-	pub fn from_json(json: CandidateJson) -> Result<Self, ContractError> {
-		let votes = json.votes.parse::<i64>().map_err(|e| ContractError::ParseError(e.to_string()))?;
-		let key = neo_types::serde_value::Secp256r1PublicKey::from_str(&json.public_key)
-			.map_err(|e| ContractError::ParseError(e.to_string()))?;
-		
-		Ok(Self { public_key: key, votes })
 	}
 }

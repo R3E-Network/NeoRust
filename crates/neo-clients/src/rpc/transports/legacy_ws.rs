@@ -20,7 +20,7 @@ use thiserror::Error;
 use tracing::trace;
 
 use crate::{
-	ProviderError,
+	errors::ProviderError,
 	rpc::transports::common::{JsonRpcError, Params, Request, Response},
 	JsonRpcClient, PubsubClient,
 };

@@ -1,41 +1,74 @@
-use neo_codec::NeoSerializable;
-use crate::serde_value::Secp256r1PublicKey;
 use crate::{
-	serde_utils::{serialize_map, deserialize_map}, 
-	ContractParameterType, NNSName, NefFile, ValueExtension, 
-	ScriptHashExtension,
+	script_hash::ScriptHashExtension,
+	address::Address,
+	ScriptHash, 
+	deserialize_map, 
+	serialize_map, 
+	serialize_script_hash, 
+	deserialize_script_hash
 };
-
-// Define Role enum here since it was previously imported from neo_contract
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Role {
-    StateValidator = 4,
-    Oracle = 8,
-    NeoFSAlphabetNode = 16,
-}
-
-use getset::Getters;
-use primitive_types::{H160, H256};
-use rustc_serialize::{
-	base64::FromBase64,
-	hex::{FromHex, ToHex},
-};
+use neo_common::EncodablePublicKey;
 use serde::{
-	de,
-	de::{MapAccess, Visitor},
+	de::{self, MapAccess, Visitor, DeserializeOwned, Error, SeqAccess},
 	ser::{SerializeMap, SerializeSeq, SerializeStruct, Serializer},
 	Deserialize, Deserializer, Serialize,
 };
-use serde_json::Value;
-use sha3::Digest;
 use std::{
 	collections::HashMap,
 	fmt,
 	hash::{Hash, Hasher},
+	str::FromStr,
 };
+use neo_codec::{NeoSerializable, Encoder, Decoder};
+use crate::bytes::Bytes;
+use crate::StackItem;
+use sha2::Digest;
+use getset::Getters;
 use strum_macros::{Display, EnumString};
+use ::base64::{Engine, DecodeError, engine::general_purpose::STANDARD};
+use serde_json::Value;
+use primitive_types::{H160, H256};
+use crate::serde_with_utils::Secp256r1PublicKey;
 
-#[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Clone)]
+// Add the ValueExtension trait
+pub trait ValueExtension {
+	fn to_value(&self) -> Value;
+}
+
+// Define missing types
+struct NNSName0;
+
+// Define Role enum
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Display, EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum Role {
+	#[strum(serialize = "1")]
+	StateValidator = 1,
+	#[strum(serialize = "4")]
+	Oracle = 4,
+	#[strum(serialize = "8")]
+	NeoFSAlphabetNode = 8,
+}
+
+// Define ContractParameterType enum
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub enum ContractParameterType {
+	Any,
+	Boolean,
+	Integer,
+	ByteArray,
+	String,
+	H160,
+	H256,
+	PublicKey,
+	Signature,
+	Array,
+	Map,
+	InteropInterface,
+	Void,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ContractParameter2 {
 	pub name: String,
 	#[serde(rename = "type")]
@@ -44,7 +77,7 @@ pub struct ContractParameter2 {
 
 impl ContractParameter2 {
 	pub fn new(name: String, typ: ContractParameterType) -> Self {
-		Self { name, typ }
+		ContractParameter2 { name, typ }
 	}
 }
 
@@ -80,7 +113,7 @@ impl<'de> Deserialize<'de> for ContractParameter {
 		impl<'de> Visitor<'de> for ContractParameterVisitor {
 			type Value = ContractParameter;
 
-			fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+			fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 				formatter.write_str("struct ContractParameter")
 			}
 
@@ -239,7 +272,7 @@ impl From<u64> for ContractParameter {
 
 impl From<&Role> for ContractParameter {
 	fn from(value: &Role) -> Self {
-		Self::integer(value.clone() as i64)
+		Self::role(value.clone())
 	}
 }
 
@@ -400,22 +433,25 @@ impl ContractParameter {
 
 impl Into<Value> for ContractParameter {
 	fn into(self) -> Value {
-		match self.value {
-			Some(ParameterValue::Boolean(b)) => Value::Bool(b),
-			Some(ParameterValue::Integer(i)) => Value::Number(serde_json::Number::from(i)),
-			Some(ParameterValue::ByteArray(b)) => Value::String(b),
-			Some(ParameterValue::String(s)) => Value::String(s),
-			Some(ParameterValue::H160(h)) => Value::String(h),
-			Some(ParameterValue::H256(h)) => Value::String(h),
-			Some(ParameterValue::PublicKey(p)) => Value::String(p),
-			Some(ParameterValue::Signature(s)) => Value::String(s),
-			Some(ParameterValue::Array(a)) =>
-				Value::Array(a.into_iter().map(|v| v.into()).collect()),
-			Some(ParameterValue::Map(m)) => Value::Array(
-				m.0.iter()
+		match self.value.as_ref() {
+			Some(ParameterValue::String(s)) => Value::String(s.clone()),
+			Some(ParameterValue::Integer(i)) => Value::Number((*i).into()),
+			Some(ParameterValue::Boolean(b)) => Value::Bool(*b),
+			Some(ParameterValue::ByteArray(b)) => Value::String(b.clone()),
+			Some(ParameterValue::Array(arr)) => {
+				let values: Vec<Value> = arr.iter().map(|p| p.to_value()).collect();
+				Value::Array(values)
+			}
+			Some(ParameterValue::Map(m)) => {
+				let values: Vec<Value> = m.0.iter()
 					.flat_map(|(key, value)| vec![key.clone().into(), value.clone().into()])
-					.collect(),
-			),
+					.collect();
+				Value::Array(values)
+			}
+			Some(ParameterValue::H160(h)) => Value::String(h.clone()),
+			Some(ParameterValue::H256(h)) => Value::String(h.clone()),
+			Some(ParameterValue::PublicKey(p)) => Value::String(p.clone()),
+			Some(ParameterValue::Signature(s)) => Value::String(s.clone()),
 			Some(ParameterValue::Any) => Value::Null,
 			None => Value::Null, // Handle the case where value is None
 		}
@@ -536,16 +572,17 @@ impl ContractParameter {
 	}
 
 	pub fn byte_array(value: Vec<u8>) -> Self {
-		let encoded = crate::base64_utils::encode(&value);
-		Self::with_value(ContractParameterType::ByteArray, ParameterValue::ByteArray(encoded))
+		Self::with_value(
+			ContractParameterType::ByteArray,
+			ParameterValue::ByteArray(STANDARD.encode(&value)),
+		)
 	}
 
-	pub fn to_byte_array(&self) -> Result<Vec<u8>, String> {
+	pub fn to_byte_array(&self) -> Result<Vec<u8>, base64::DecodeError> {
 		match self.value.as_ref() {
-			Some(ParameterValue::ByteArray(b)) => crate::base64_utils::decode(b.as_bytes())
-				.map_err(|e| format!("Failed to decode base64: {}", e)),
-			Some(other) => Err(format!("Cannot convert {:?} to Vec<u8>", other)),
-			None => Err("Parameter value is None".to_string()),
+			Some(ParameterValue::ByteArray(b)) => STANDARD.decode(b.as_bytes()),
+			Some(other) => Err(base64::DecodeError::InvalidByte(0, 0)),
+			None => Err(base64::DecodeError::InvalidByte(0, 0)),
 		}
 	}
 
@@ -566,25 +603,44 @@ impl ContractParameter {
 
 	pub fn to_h160(&self) -> Result<H160, String> {
 		match self.value.as_ref() {
-			Some(ParameterValue::H160(h)) => h
-				.from_hex()
-				.map(|bytes| H160::from_slice(&bytes))
-				.map_err(|e| format!("Failed to decode hex: {}", e)),
+			Some(ParameterValue::H160(h)) => {
+				let bytes = hex::decode(h)
+					.map_err(|e| format!("Failed to decode hex: {}", e))?;
+				
+				if bytes.len() != 20 {
+					return Err(format!("Invalid H160 length: {}", bytes.len()));
+				}
+				
+				let mut arr = [0u8; 20];
+				arr.copy_from_slice(&bytes);
+				Ok(H160(arr))
+			}
 			Some(other) => Err(format!("Cannot convert {:?} to H160", other)),
 			None => Err("Parameter value is None".to_string()),
 		}
 	}
 
 	pub fn h256(value: &H256) -> Self {
-		Self::with_value(ContractParameterType::H256, ParameterValue::H256(value.0.to_hex()))
+		Self::with_value(
+			ContractParameterType::H256, 
+			ParameterValue::H256(hex::encode(value.as_bytes()))
+		)
 	}
 
 	pub fn to_h256(&self) -> Result<H256, String> {
 		match self.value.as_ref() {
-			Some(ParameterValue::H256(h)) => h
-				.from_hex()
-				.map(|bytes| H256::from_slice(&bytes))
-				.map_err(|e| format!("Failed to decode hex: {}", e)),
+			Some(ParameterValue::H256(h)) => {
+				let bytes = hex::decode(h)
+					.map_err(|e| format!("Failed to decode hex: {}", e))?;
+				
+				if bytes.len() != 32 {
+					return Err(format!("Invalid H256 length: {}", bytes.len()));
+				}
+				
+				let mut arr = [0u8; 32];
+				arr.copy_from_slice(&bytes);
+				Ok(H256(arr))
+			}
 			Some(other) => Err(format!("Cannot convert {:?} to H256", other)),
 			None => Err("Parameter value is None".to_string()),
 		}
@@ -661,6 +717,15 @@ impl ContractParameter {
 		Hash::hash(&self, &mut hasher);
 		hasher.finish().to_be_bytes().to_vec()
 	}
+
+	pub fn role(value: Role) -> Self {
+		let role_value = match value {
+			Role::StateValidator => 1i64,
+			Role::Oracle => 4i64,
+			Role::NeoFSAlphabetNode => 8i64,
+		};
+		Self::integer(role_value)
+	}
 }
 
 #[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
@@ -698,11 +763,10 @@ impl ParameterValue {
 		}
 	}
 
-	pub fn to_byte_array(&self) -> Result<Vec<u8>, String> {
+	pub fn to_byte_array(&self) -> Result<Vec<u8>, base64::DecodeError> {
 		match self {
-			ParameterValue::ByteArray(b) => crate::base64_utils::decode(b.as_bytes())
-				.map_err(|e| format!("Failed to decode base64: {}", e)),
-			_ => Err(format!("Cannot convert {:?} to Vec<u8>", self)),
+			ParameterValue::ByteArray(b) => STANDARD.decode(b.as_bytes()),
+			_ => Err(base64::DecodeError::InvalidByte(0, 0)),
 		}
 	}
 
@@ -715,20 +779,36 @@ impl ParameterValue {
 
 	pub fn to_h160(&self) -> Result<H160, String> {
 		match self {
-			ParameterValue::H160(h) => h
-				.from_hex()
-				.map(|bytes| H160::from_slice(&bytes))
-				.map_err(|e| format!("Failed to decode hex: {}", e)),
+			ParameterValue::H160(h) => {
+				let bytes = hex::decode(h)
+					.map_err(|e| format!("Failed to decode hex: {}", e))?;
+				
+				if bytes.len() != 20 {
+					return Err(format!("Invalid H160 length: {}", bytes.len()));
+				}
+				
+				let mut arr = [0u8; 20];
+				arr.copy_from_slice(&bytes);
+				Ok(H160(arr))
+			}
 			_ => Err(format!("Cannot convert {:?} to H160", self)),
 		}
 	}
 
 	pub fn to_h256(&self) -> Result<H256, String> {
 		match self {
-			ParameterValue::H256(h) => h
-				.from_hex()
-				.map(|bytes| H256::from_slice(&bytes))
-				.map_err(|e| format!("Failed to decode hex: {}", e)),
+			ParameterValue::H256(h) => {
+				let bytes = hex::decode(h)
+					.map_err(|e| format!("Failed to decode hex: {}", e))?;
+				
+				if bytes.len() != 32 {
+					return Err(format!("Invalid H256 length: {}", bytes.len()));
+				}
+				
+				let mut arr = [0u8; 32];
+				arr.copy_from_slice(&bytes);
+				Ok(H256(arr))
+			}
 			_ => Err(format!("Cannot convert {:?} to H256", self)),
 		}
 	}
@@ -781,8 +861,7 @@ mod tests {
 	use primitive_types::{H160, H256};
 	use rustc_serialize::hex::FromHex;
 
-	use neo_crypto::Secp256r1PublicKey;
-	use crate::ContractParameterMap;
+	use crate::contract::contract_parameter::ContractParameterMap;
 	use crate::{ContractParameter, ContractParameterType};
 
 	#[test]
@@ -1238,4 +1317,45 @@ mod tests {
 	// 	assert!(result.is_err());
 	// 	assert_eq!(result.err(), Some(InvalidTypeError));
 	// }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct NefFile {
+	pub data: Vec<u8>,
+}
+
+impl NeoSerializable for NefFile {
+	type Error = String;
+
+	fn size(&self) -> usize {
+		self.data.len()
+	}
+
+	fn encode(&self, writer: &mut Encoder) {
+		writer.write_bytes(&self.data);
+	}
+
+	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error> {
+		let data = reader.read_var_bytes().map_err(|e| e.to_string())?;
+		Ok(NefFile { data })
+	}
+
+	fn to_array(&self) -> Vec<u8> {
+		self.data.clone()
+	}
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct NNSName(String);
+
+impl NNSName {
+	pub fn new(name: String) -> Self {
+		NNSName(name)
+	}
+}
+
+impl fmt::Display for NNSName {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", self.0)
+	}
 }

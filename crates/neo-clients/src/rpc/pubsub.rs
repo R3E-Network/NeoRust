@@ -5,7 +5,7 @@ use std::{
 	task::{Context, Poll},
 };
 
-use crate::{JsonRpcProvider, RpcClient};
+use crate::neo_clients::{JsonRpcProvider, RpcClient};
 use futures_util::stream::Stream;
 use pin_project::{pin_project, pinned_drop};
 use primitive_types::U256;
@@ -82,7 +82,7 @@ where
 {
 	type Item = R;
 
-	fn poll_next(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+	fn poll_next(self: Pin<&mut Self>, ctx: &mut Context) -> Poll<Option<Self::Item>> {
 		if !self.loaded_elements.is_empty() {
 			let next_element = self.get_mut().loaded_elements.pop_front();
 			return Poll::Ready(next_element);

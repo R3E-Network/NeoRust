@@ -1,11 +1,13 @@
 use std::{future::Future, pin::Pin, str::FromStr, sync::Arc};
 
-#[cfg(feature = "builder")]
-use neo_builder::VerificationScript;
-use neo_config::DEFAULT_ADDRESS_VERSION;
-use neo_crypto::{private_key_to_public_key, HashableForVec, HashableForBytes, Secp256r1PrivateKey, Secp256r1PublicKey};
-use neo_types::{ScriptHash, ScriptHashExtension};
-use crate::ProviderError;
+use crate::{
+	builder::VerificationScript,
+	config::DEFAULT_ADDRESS_VERSION,
+	crypto::{private_key_to_public_key, HashableForVec, Secp256r1PrivateKey, Secp256r1PublicKey},
+	neo_clients::ProviderError,
+	ScriptHash, ScriptHashExtension,
+};
+use futures_timer::Delay;
 use futures_util::{stream, FutureExt, StreamExt};
 use primitive_types::{H160, U256};
 use regex::Regex;
@@ -37,12 +39,7 @@ where
 pub fn interval(
 	duration: instant::Duration,
 ) -> impl futures_core::stream::Stream<Item = ()> + Send + Unpin {
-	stream::unfold((), move |_| {
-		async move {
-			tokio::time::sleep(tokio::time::Duration::from_millis(duration.as_millis() as u64)).await;
-			Some(((), ()))
-		}.boxed()
-	}).map(drop)
+	stream::unfold((), move |_| Delay::new(duration).map(|_| Some(((), ())))).map(drop)
 }
 
 // A generic function to serialize any data structure that implements Serialize trait
@@ -51,9 +48,8 @@ pub fn serialize<T: serde::Serialize>(t: &T) -> serde_json::Value {
 }
 
 /// Convert a script to a script hash.
-#[cfg(feature = "builder")]
 pub fn script_hash_from_script(script: &[u8]) -> ScriptHash {
-	let hash = HashableForBytes::sha256_ripemd160(script);
+	let hash = script.sha256_ripemd160();
 	H160::from_slice(&hash)
 }
 
@@ -64,23 +60,9 @@ pub fn public_key_to_address(public_key: &Secp256r1PublicKey) -> String {
 }
 
 /// Convert a public key to a script hash.
-#[cfg(feature = "builder")]
 pub fn public_key_to_script_hash(public_key: &Secp256r1PublicKey) -> ScriptHash {
 	let script = VerificationScript::from_public_key(public_key);
 	ScriptHash::from_script(&script.script())
-}
-
-#[cfg(not(feature = "builder"))]
-pub fn public_key_to_script_hash(public_key: &Secp256r1PublicKey) -> ScriptHash {
-	// This is a simplified implementation that doesn't require VerificationScript
-	// It directly computes the script hash from the public key
-	let mut data = vec![0x21]; // Push bytes (0x21 = 33 bytes for compressed public key)
-	data.extend_from_slice(&public_key.to_bytes());
-	data.push(0xac); // CHECKSIG opcode
-	
-	// Convert Vec<u8> to &[u8] for sha256_ripemd160
-	let hash = HashableForBytes::sha256_ripemd160(&data[..]);
-	H160::from_slice(&hash)
 }
 
 /// Convert a private key to a script hash.
@@ -90,7 +72,6 @@ pub fn private_key_to_script_hash(private_key: &Secp256r1PrivateKey) -> ScriptHa
 }
 
 /// Convert a private key to an address.
-#[cfg(feature = "builder")]
 pub fn private_key_to_address(private_key: &Secp256r1PrivateKey) -> String {
 	let script_hash = private_key_to_script_hash(private_key);
 	script_hash_to_address(&script_hash)
@@ -102,9 +83,8 @@ pub fn script_hash_to_address(script_hash: &ScriptHash) -> String {
 	let mut script_hash_bytes = script_hash.clone().as_bytes().to_vec();
 	script_hash_bytes.reverse();
 	data.extend_from_slice(&script_hash_bytes);
-	let hash1 = HashableForVec::hash256(&data);
-	let hash2 = HashableForVec::hash256(&hash1.to_vec());
-	data.extend_from_slice(&hash2[..4]);
+	let sha = &data.hash256().hash256();
+	data.extend_from_slice(&sha[..4]);
 	bs58::encode(data).into_string()
 }
 
@@ -117,9 +97,8 @@ pub fn address_to_script_hash(address: &str) -> Result<ScriptHash, ProviderError
 	let _salt = bytes[0];
 	let hash = &bytes[1..21];
 	let checksum = &bytes[21..25];
-	let hash1 = HashableForBytes::hash256(&bytes[..21]);
-	let hash2 = HashableForVec::hash256(&hash1.to_vec());
-	let check = &hash2[..4];
+	let sha = &bytes[..21].hash256().hash256();
+	let check = &sha[..4];
 	if checksum != check {
 		return Err(ProviderError::InvalidAddress);
 	}

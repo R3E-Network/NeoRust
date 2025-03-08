@@ -2,10 +2,11 @@
 //!
 //! This module provides common types and traits for RPC communication.
 
-use crate::provider_error::ProviderError;
+use neo_error::provider_error::ProviderError;
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt::Debug;
+use primitive_types::{H160, H256};
 
 /// A trait for JSON-RPC providers.
 #[async_trait]

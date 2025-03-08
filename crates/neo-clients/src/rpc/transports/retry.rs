@@ -8,7 +8,7 @@ use std::{
 };
 
 use super::{common::JsonRpcError, http_provider::ClientError};
-use crate::{JsonRpcProvider, ProviderError};
+use crate::neo_clients::{JsonRpcProvider, ProviderError};
 use async_trait::async_trait;
 use reqwest::StatusCode;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};

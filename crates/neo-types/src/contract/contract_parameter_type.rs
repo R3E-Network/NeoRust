@@ -48,6 +48,12 @@ pub enum ContractParameterType {
 	Void = 0xff,
 }
 
+impl Default for ContractParameterType {
+	fn default() -> Self {
+		Self::Any
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;

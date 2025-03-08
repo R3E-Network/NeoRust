@@ -1,4 +1,4 @@
-use neo_types::{ContractParameter, ContractParameterType};
+use crate::prelude::{ContractParameter, ContractParameterType};
 use ethereum_types::H160;
 use std::str::FromStr;
 

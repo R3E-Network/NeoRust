@@ -24,6 +24,7 @@ exclude = [
 
 [lib]
 doctest = false
+path = "src/lib.rs"
 
 # https://docs.rs/about/metadata
 [metadata.docs.rs]
@@ -41,6 +42,7 @@ all-features = true
 neo-builder = { path = "crates/neo-builder", version = "0.1.9" }
 neo-clients = { path = "crates/neo-clients", version = "0.1.9" }
 neo-codec = { path = "crates/neo-codec", version = "0.1.9" }
+neo-common = { path = "crates/neo-common", version = "0.1.9" }
 neo-config = { path = "crates/neo-config", version = "0.1.9" }
 neo-contract = { path = "crates/neo-contract", version = "0.1.9" }
 neo-crypto = { path = "crates/neo-crypto", version = "0.1.9" }
@@ -54,7 +56,9 @@ neo-x = { path = "crates/neo-x", version = "0.1.9" }
 
 # Core dependencies
 tokio = { version = "1.32", features = ["full"] }
-futures = { version = "0.3.28", default-features = false, features = ["std"] }
+futures = { version = "0.3.28", default-features = false, features = ["std", "thread-pool"] }
+pin-project-lite = "0.2.13"
+pin-project = "1.1.3"
 url = { version = "2.4", default-features = false }
 
 # Serialization
@@ -111,7 +115,7 @@ members = [
     "examples/neo_nep17_tokens",
     "examples/queries",
     "examples/neo_wallets"
-]
+, "crates/test-hash"]
 resolver = "2"
 
 [workspace.package]
@@ -168,7 +172,7 @@ bytes = "1.4"
 criterion = "0.5"
 dunce = "1.0"
 eyre = "0.6"
-hex = { package = "const-hex", version = "1.6", features = ["hex"] }
+hex = { package = "const-hex", version = "1.12.0", features = ["hex"] }
 hex-literal = "0.4"
 home = "0.5.5"
 once_cell = "1.18"

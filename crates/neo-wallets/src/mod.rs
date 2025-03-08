@@ -28,8 +28,7 @@
 //! ### Creating and using a wallet
 //!
 //! ```rust
-//! use neo_types::{Wallet, Account};
-//! use neo_common::ScriptHash;
+//! use neo::prelude::*;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -60,7 +59,7 @@
 //! ### Using a wallet to sign a transaction
 //!
 //! ```rust
-//! use neo_types::{Wallet, ScriptHash, ContractParameter, HttpProvider, RpcClient, TransactionBuilder, WalletSigner, Signer, ScriptBuilder};
+//! use neo::prelude::*;
 //! use std::str::FromStr;
 //!
 //! #[tokio::main]
@@ -113,7 +112,7 @@ use p256::NistP256;
 #[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
 pub use yubihsm;
 
-use neo_protocol::Account;
+use crate::neo_protocol::Account;
 pub use error::*;
 pub use wallet::*;
 pub use wallet_signer::WalletSigner;

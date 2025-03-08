@@ -18,7 +18,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::types::{Attributes, ContainerId, OwnerId, PlacementPolicy};
+use crate::neo_fs::types::{Attributes, ContainerId, OwnerId, PlacementPolicy};
 
 /// Versioning information for a container
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,7 +1,7 @@
 //! Types for `neo_syncing` RPC call
 
-use ethereum_types::U64;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use primitive_types::U256 as U64;
 
 /// Structure used in `neo_syncing` RPC
 #[derive(Clone, Debug, Eq, PartialEq)]

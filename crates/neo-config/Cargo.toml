@@ -13,15 +13,12 @@ categories.workspace = true
 keywords.workspace = true
 
 [dependencies]
-neo-common = { path = "../neo-common", version = "0.1.9" }
-# Internal crates
-neo-types = { path = "../neo-types", version = "0.1.9" }
 
 # Serialization
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde_with = { workspace = true }
-hex = { package = "const-hex", version = "1.6", features = ["hex"] }
+hex = { package = "const-hex", version = "1.12.0", features = ["hex"] }
 
 # Async
 tokio = { version = "1.32", features = ["full"] }

@@ -7,8 +7,7 @@ use serde_json::value::{to_raw_value, RawValue};
 
 pub use aliases::*;
 
-use super::common::Request;
-use crate::JsonRpcError;
+use crate::{common::Request, JsonRpcError};
 
 // Normal JSON-RPC response
 pub type Response = Result<Box<RawValue>, JsonRpcError>;

@@ -12,7 +12,10 @@ use serde::{
 use strum;
 use strum_macros::{AsRefStr, Display, EnumString};
 
-use crate::{TypeError, ContractParameter, StackItem};
+use crate::TypeError;
+use crate::contract::contract_parameter::ContractParameter;
+use crate::script_hash::ScriptHash;
+use crate::stack_item::StackItem;
 use crate::serde_with_utils::{deserialize_script_hash, serialize_script_hash};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]

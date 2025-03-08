@@ -1,4 +1,5 @@
-// Temporarily comment out to avoid circular dependency
+use neo::prelude::{deserialize_h256, serialize_h256};
+use primitive_types::H256;
 use serde_derive::{Deserialize, Serialize};
 
 // #[derive(Serialize, Deserialize, Debug, Clone, Hash)]

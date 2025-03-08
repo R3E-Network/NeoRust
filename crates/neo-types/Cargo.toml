@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "Core Neo ecosystem data types for the NeoRust SDK"
+description = "Types for the NeoRust SDK"
 documentation = "https://docs.rs/neo-types"
 repository.workspace = true
 homepage.workspace = true
@@ -13,53 +13,54 @@ categories.workspace = true
 keywords.workspace = true
 
 [dependencies]
-neo-common = { path = "../neo-common", version = "0.1.9" }
 # Internal crates
+neo-crypto = { path = "../neo-crypto", version = "0.1.9" }
 neo-error = { path = "../neo-error", version = "0.1.9" }
 neo-codec = { path = "../neo-codec", version = "0.1.9" }
+neo-config = { path = "../neo-config", version = "0.1.9" }
+neo-common = { path = "../neo-common", version = "0.1.9" }
 
 # Serialization
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0", features = ["raw_value"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+serde_with = { version = "3.3.0" }
 serde_derive = { version = "1.0.188" }
-serde_with = { version = "3.4.0" }
-serde_bytes = { version = "0.11.12" }
-hex = { package = "const-hex", version = "1.6", features = ["hex"] }
-rustc-serialize = { version = "0.3.24" }
+hex = { workspace = true }
 base64 = { version = "0.22.1" }
 
-# Numeric types
-primitive-types = { version = "0.13.0", features = ["serde"] }
-ethereum-types = { version = "0.14.1" }
-num-bigint = { version = "0.4" }
-num-traits = { version = "0.2.16" }
-num_enum = { version = "0.7.0" }
-
-# Cryptography
-bs58 = { version = "0.5.1" }
-sha2 = { version = "0.10.7" }
-sha3 = { version = "0.10.8" }
-rand = { version = "0.8" }
-elliptic-curve = { version = "0.13.5", features = ["sec1"] }
-
-# Async
-tokio = { version = "1.32", features = ["full"] }
-reqwest = { version = "0.11", features = ["json"] }
-
-# Enums
-strum = { version = "0.25", features = ["derive"] }
-strum_macros = { version = "0.25" }
+# Crypto
+p256 = { workspace = true }
+primitive-types = { workspace = true }
+sha2 = { workspace = true }
+ripemd = { workspace = true }
+bs58 = { workspace = true }
 
 # Misc
-thiserror = { version = "1.0" }
-getset = { version = "0.1.2" }
+thiserror = { workspace = true }
+num-traits = { workspace = true }
+num-bigint = { workspace = true }
+num-integer = { workspace = true }
+rustc-serialize = { workspace = true }
+getset = { workspace = true }
+derive_more = { version = "1.0.0", features = ["full"] }
+strum = { workspace = true, features = ["derive"] }
+strum_macros = { workspace = true }
+regex = { workspace = true }
+once_cell = { workspace = true }
+lazy_static = { workspace = true }
+uuid = { version = "1.6.1", features = ["v4"] }
+paste = { version = "1.0.14" }
+bytes = { workspace = true }
+byte-slice-cast = { workspace = true }
+num_enum = { version = "0.7.0" }
 chrono = { version = "0.4.31", features = ["serde"] }
-lazy_static = { version = "1.4.0" }
-once_cell = { version = "1.18" }
-url = { version = "2.4", default-features = false }
-derive_more = { version = "0.99.17", features = ["as_ref", "deref", "index", "index_mut", "into_iterator"] }
-byte-slice-cast = { version = "1.2.2" }
-ripemd.workspace = true
+tokio = { version = "1.32.0", features = ["fs", "io-util", "time", "sync", "rt"] }
+reqwest = { version = "0.12.5", default-features = false, features = ["json"] }
+
+[dev-dependencies]
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+rand = { workspace = true }
 
 [features]
 default = []

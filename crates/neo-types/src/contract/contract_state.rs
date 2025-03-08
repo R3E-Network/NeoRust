@@ -1,21 +1,41 @@
+use std::collections::HashMap;
+
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ContractNef, ContractManifest, InvocationResult, StackItem,
-    serde_with_utils::{deserialize_script_hash, serialize_script_hash}
+	contract::{contract_manifest::ContractManifest, contract_nef::ContractNef, nef_file::NefFile},
+	serde_with_utils::{deserialize_h160, serialize_h160},
 };
 
-#[derive(Clone, Debug, Hash, Serialize, Deserialize, PartialEq)]
-pub struct ContractState {
-	#[serde(default)]
+use crate::{
+	deserialize_script_hash, serialize_script_hash, InvocationResult, StackItem,
+};
+
+// Define ContractIdentifiers here instead of importing it
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub struct ContractIdentifiers {
 	pub id: i32,
-	pub nef: ContractNef,
-	#[serde(rename = "updatecounter", default)]
-	pub update_counter: i32,
-#[serde(serialize_with = "crate::serde_utils::serialize_h160", deserialize_with = "crate::serde_utils::deserialize_h160", default)]
+	#[serde(deserialize_with = "deserialize_script_hash")]
+	#[serde(serialize_with = "serialize_script_hash")]
 	pub hash: H160,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ContractState {
+	#[serde(rename = "id")]
+	pub id: i32,
+	#[serde(rename = "updatecounter")]
+	pub update_counter: i32,
+	#[serde(rename = "hash")]
+	#[serde(serialize_with = "serialize_h160", deserialize_with = "deserialize_h160", default)]
+	pub hash: H160,
+	#[serde(rename = "nef")]
+	pub nef: NefFile,
+	#[serde(rename = "manifest")]
 	pub manifest: ContractManifest,
+	#[serde(rename = "updatehistory", default)]
+	pub update_history: Vec<i32>,
 }
 
 impl ContractState {
@@ -23,10 +43,10 @@ impl ContractState {
 		id: i32,
 		update_counter: i32,
 		hash: H160,
-		nef: ContractNef,
+		nef: NefFile,
 		manifest: ContractManifest,
 	) -> Self {
-		Self { id, nef, update_counter, hash, manifest }
+		Self { id, update_counter, hash, nef, manifest, update_history: Vec::new() }
 	}
 
 	pub fn contract_identifiers(
@@ -49,14 +69,6 @@ impl ContractState {
 			_ => Err("Could not deserialize ContractIdentifiers from stack item"),
 		}
 	}
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub struct ContractIdentifiers {
-	pub id: i32,
-#[serde(deserialize_with = "crate::serde_with_utils::deserialize_script_hash")]
-	#[serde(serialize_with = "crate::serde_with_utils::serialize_script_hash")]
-	pub hash: H160,
 }
 
 impl From<InvocationResult> for ContractIdentifiers {

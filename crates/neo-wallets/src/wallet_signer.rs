@@ -5,11 +5,13 @@ use primitive_types::{H160, H256};
 use serde_derive::{Deserialize, Serialize};
 use signature::hazmat::{PrehashSigner, PrehashVerifier};
 
-use neo_builder::{AccountSigner, Transaction, TransactionError};
-use neo_clients::JsonRpcProvider;
-use neo_crypto::HashableForVec;
-use neo_types::Address;
-use crate::wallet::WalletError;
+use crate::{
+	neo_builder::{AccountSigner, Transaction, TransactionError},
+	neo_clients::JsonRpcProvider,
+	neo_crypto::HashableForVec,
+	neo_types::Address,
+	neo_wallets::WalletError,
+};
 
 /// A Neo private-public key pair which can be used for signing messages.
 ///
@@ -121,8 +123,20 @@ impl<D: Sync + Send + PrehashSigner<Signature>> WalletSigner<D> {
 	///
 	/// A `Result` containing the `p256::NistP256` of the message, or a `WalletError` on failure.
 	pub async fn sign_message(&self, message: &[u8]) -> Result<Signature, WalletError> {
-		let hash = message.hash256();
-		self.sign_hash(H256::from_slice(hash.as_slice()))
+		let hash = self.hash256(message);
+		self.sign_hash(H256::from_slice(&hash))
+	}
+
+	/// Helper function to compute SHA-256 hash of a message
+	fn hash256(&self, data: &[u8]) -> Vec<u8> {
+		use crypto::digest::Digest;
+		use crypto::sha2::Sha256;
+		
+		let mut hasher = Sha256::new();
+		hasher.input(data);
+		let mut res = vec![0u8; 32];
+		hasher.result(&mut res);
+		res
 	}
 
 	/// Returns a reference to the wallet's signer.

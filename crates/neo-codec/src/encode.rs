@@ -1,6 +1,11 @@
 use std::fmt::Debug;
 
-use crate::{CodecError, Decoder, Encoder, NeoConstants};
+use crate::{
+	error::CodecError,
+	binary_decoder::Decoder,
+	binary_encoder::Encoder,
+	constants::NeoConstants,
+};
 use primitive_types::{H160, H256};
 
 pub trait NeoSerializable {
@@ -44,7 +49,7 @@ impl NeoSerializable for H256 {
 		H256::len_bytes()
 	}
 	fn encode(&self, writer: &mut Encoder) {
-		writer.write_bytes(&self.as_bytes());
+		writer.write_bytes(self.as_bytes());
 	}
 
 	fn decode(reader: &mut Decoder<'_>) -> Result<Self, CodecError>
@@ -112,7 +117,24 @@ impl<T: NeoSerializable> VarSizeTrait for &[T] {
 	}
 }
 
-// fn var_size_of_serializables<T: NeoSerializable>(elements: &[T]) -> usize {
-// 	let count_var_size = elements.len();
-// 	count_var_size + elements.iter().map(|item| item.size()).sum::<usize>()
-// }
+// Implement NeoSerializable for Vec<u8> to handle byte arrays
+impl NeoSerializable for Vec<u8> {
+	type Error = CodecError;
+
+	fn size(&self) -> usize {
+		self.len()
+	}
+
+	fn encode(&self, writer: &mut Encoder) {
+		writer.write_bytes(self);
+	}
+
+	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error> {
+		let length = reader.read_var_int()? as usize;
+		reader.read_bytes(length)
+	}
+
+	fn to_array(&self) -> Vec<u8> {
+		self.clone()
+	}
+}

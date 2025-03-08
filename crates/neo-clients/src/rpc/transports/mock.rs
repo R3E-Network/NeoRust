@@ -9,7 +9,7 @@
 // use serde_json::Value;
 // use thiserror::Error;
 //
-// use neo_types::{JsonRpcClient, ProviderError, RpcError};
+// use neo::prelude::{JsonRpcClient, ProviderError, RpcError};
 //
 // /// Helper type that can be used to pass through the `params` value.
 // /// This is necessary because the wrapper provider is supposed to skip the `params` if it's of
@@ -161,10 +161,9 @@
 // #[cfg(test)]
 // #[cfg(not(target_arch = "wasm32"))]
 // mod tests {
-// 	use neo_types::{JsonRpcError, Provider};
+// 	use neo::prelude::{JsonRpcError, Provider};
 //
-// 	use neo_config::NeoNetwork;
-// 	use crate::middleware::Middleware;
+// 	use crate::{config::NeoNetwork, neo_clients::middleware::Middleware};
 //
 // 	use super::*;
 //

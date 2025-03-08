@@ -3,13 +3,16 @@ use num_enum::TryFromPrimitive;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
-use neo_builder::TransactionBuilder;
-use neo_clients::{APITrait, JsonRpcProvider, RpcClient};
-use crate::{traits::SmartContractTrait, ContractError};
-use neo_crypto::Secp256r1PublicKey;
-use neo_types::{
-	serde_with_utils::{deserialize_script_hash, serialize_script_hash},
-	ContractParameter, ScriptHash, StackItem, ValueExtension,
+use crate::{
+	neo_builder::TransactionBuilder,
+	neo_clients::{APITrait, JsonRpcProvider, RpcClient},
+	neo_contract::{traits::SmartContractTrait, ContractError},
+	neo_crypto::Secp256r1PublicKey,
+	neo_types::{
+		serde_with_utils::{deserialize_script_hash, serialize_script_hash},
+		ContractParameter, ScriptHash, StackItem,
+	},
+	ValueExtension,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -78,22 +81,16 @@ impl<'a, P: JsonRpcProvider + 'static> RoleManagement<'a, P> {
 		&self,
 		role: Role,
 		pub_keys: Vec<Secp256r1PublicKey>,
-	) -> Result<TransactionBuilder<'_>, ContractError> {
+	) -> Result<TransactionBuilder<P>, ContractError> {
 		if pub_keys.is_empty() {
 			return Err(ContractError::InvalidNeoName(
 				"At least 1 public key is required".to_string(),
 			));
 		}
 
-		let params: Vec<ContractParameter> = pub_keys
-			.iter()
-			.map(|key| {
-				let key_bytes = key.to_bytes();
-				ContractParameter::byte_array(key_bytes)
-			})
-			.collect();
+		let params: Vec<_> = pub_keys.into_iter().map(|key| key.to_value()).collect();
 
-		self.invoke_function("designateAsRole", vec![role.into(), ContractParameter::array(params)]).await
+		self.invoke_function("designateAsRole", vec![role.into(), params.into()]).await
 	}
 }
 

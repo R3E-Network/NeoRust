@@ -3,7 +3,7 @@
 //! This module provides utilities for converting between different error types
 //! in the NeoRust SDK.
 
-use crate::provider_error::ProviderError;
+use neo_error::provider_error::ProviderError;
 use std::fmt::Display;
 
 /// A trait for adapting errors from one type to another.

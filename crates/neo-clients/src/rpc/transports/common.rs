@@ -12,7 +12,7 @@ use serde::{
 use serde_json::{value::RawValue, Value};
 use thiserror::Error;
 
-use neo_types::Bytes;
+use neo::prelude::Bytes;
 
 /// A JSON-RPC 2.0 error
 #[derive(Deserialize, Debug, Clone, Error, PartialEq)]
@@ -31,7 +31,7 @@ pub struct JsonRpcError {
 /// <https://github.com/neo-io/neo.js/blob/9f990c57f0486728902d4b8e049536f2bb3487ee/packages/providers/src.ts/json-rpc-provider.ts#L25-L53>
 fn spelunk_revert(value: &Value) -> Option<Bytes> {
 	match value {
-		Value::String(s) => Some(s.as_bytes().to_vec().into()),
+		Value::String(s) => Some(s.as_bytes().to_vec()),
 		Value::Object(o) => o.values().flat_map(spelunk_revert).next(),
 		_ => None,
 	}
@@ -122,7 +122,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for Response<'a> {
 		impl<'de: 'a, 'a> Visitor<'de> for ResponseVisitor<'a> {
 			type Value = Response<'a>;
 
-			fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+			fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 				formatter.write_str("a valid jsonrpc 2.0 response object")
 			}
 
@@ -196,7 +196,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for Response<'a> {
 								return Err(de::Error::duplicate_field("params"));
 							}
 
-							let value: Params<'_> = map.next_value()?;
+							let value: Params = map.next_value()?;
 							params = Some(value);
 						},
 						key =>

@@ -7,10 +7,12 @@ use yubihsm::{
 	Client, Connector, Credentials, Domain,
 };
 
-use neo_clients::public_key_to_address;
-use neo_crypto::{HashableForVec, Secp256r1PublicKey};
-use neo_types::Address;
-use crate::{WalletError, WalletSigner};
+use crate::{
+	neo_clients::public_key_to_address,
+	neo_crypto::{HashableForVec, Secp256r1PublicKey},
+	neo_types::Address,
+	neo_wallets::{WalletError, WalletSigner},
+};
 
 impl WalletSigner<YubiSigner<NistP256>> {
 	/// Connects to a yubi key's ECDSA account at the provided id

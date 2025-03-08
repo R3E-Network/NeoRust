@@ -1,18 +1,20 @@
 #[cfg(test)]
 mod tests {
-	use crate::builder::{
-		init_logger, AccountSigner, BuilderError, ContractSigner, ScriptBuilder, Signer,
-		TransactionAttribute, TransactionBuilder, TransactionError, Witness,
+	use crate::{
+		builder::{
+			init_logger, AccountSigner, BuilderError, ContractSigner, ScriptBuilder, Signer,
+			TransactionAttribute, TransactionBuilder, TransactionError, Witness,
+		},
+		config::{NeoConstants, TestConstants},
+		crypto::{KeyPair, Secp256r1PrivateKey},
+		neo_builder::GAS_TOKEN_HASH,
+		neo_clients::{APITrait, HttpProvider, MockClient, RpcClient},
+		neo_protocol::{
+			Account, AccountTrait, ApplicationLog, NeoProtocol, NeoVersion, RawTransaction,
+		},
+		neo_types::ScriptHashExtension,
+		ContractParameter, InvocationResult,
 	};
-	use neo_config::{NeoConstants, TestConstants};
-	use neo_crypto::{KeyPair, Secp256r1PrivateKey};
-	use crate::GAS_TOKEN_HASH;
-	use neo_clients::{APITrait, HttpProvider, MockClient, RpcClient};
-	use neo_protocol::{
-		Account, AccountTrait, ApplicationLog, NeoProtocol, NeoVersion, RawTransaction,
-	};
-	use neo_types::ScriptHashExtension;
-	use neo_types::{ContractParameter, InvocationResult};
 	use lazy_static::lazy_static;
 	use log::info;
 	use neo::{

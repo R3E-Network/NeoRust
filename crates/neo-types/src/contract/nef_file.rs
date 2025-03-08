@@ -1,12 +1,13 @@
-use std::hash::Hasher;
+use std::fmt;
 
+use neo_codec::{Decoder, Encoder, NeoSerializable, CodecError};
+use neo_common::HashableForVec;
+use neo_error::TypeError;
 use primitive_types::H160;
-use tokio::io::AsyncReadExt;
+use serde::{Deserialize, Serialize};
 
-use neo_codec::{CodecError, Decoder, Encoder, NeoSerializable};
-use sha2::Digest;
-use crate::TypeError;
-use crate::{Bytes, ContractParameter, StackItem};
+use crate::{contract::contract_method_token::ContractMethodToken, StackItem, bytes::Bytes};
+
 /*
 ┌───────────────────────────────────────────────────────────────────────┐
 │                    NEO Executable Format 3 (NEF3)                     │
@@ -26,23 +27,32 @@ use crate::{Bytes, ContractParameter, StackItem};
 └──────────┴───────────────┴────────────────────────────────────────────┘
  */
 
-#[derive(Debug, Clone)]
+/// NEF file format for Neo N3 smart contracts
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct NefFile {
-	pub(crate) compiler: Option<String>,
-	source_url: String,
-	method_tokens: Vec<MethodToken>,
-	pub(crate) script: Vec<u8>,
-	pub(crate) checksum: Vec<u8>,
+	pub magic: u32,
+	pub compiler: String,
+	pub source: Option<String>,
+	pub tokens: Vec<ContractMethodToken>,
+	pub script: Vec<u8>,
+	pub checksum: u32,
+}
+
+// Forward declare ContractParameter to be implemented later
+#[derive(Debug, Clone)]
+pub struct ContractParameter {
+	pub value: String,
 }
 
 impl Into<ContractParameter> for NefFile {
 	fn into(self) -> ContractParameter {
-		ContractParameter::byte_array(self.to_array())
+		ContractParameter { value: self.to_array().into_iter().map(|b| b as char).collect() }
 	}
 }
 
 impl NefFile {
-	const MAGIC: u32 = 0x3346454E;
+	/// Magic number for NEF files: "NEF3" in ASCII
+	pub const MAGIC: u32 = 0x3346454E;
 	const MAGIC_SIZE: usize = 4;
 	const COMPILER_SIZE: usize = 64;
 	const MAX_SOURCE_URL_SIZE: usize = 256;
@@ -50,35 +60,23 @@ impl NefFile {
 	const CHECKSUM_SIZE: usize = 4;
 	pub const HEADER_SIZE: usize = Self::MAGIC_SIZE + Self::COMPILER_SIZE;
 
-	fn get_checksum_as_integer(bytes: &[u8]) -> Result<i32, TypeError> {
-		let mut bytes_clone = bytes.to_vec();
-		bytes_clone.reverse();
-		if bytes_clone.len() != 4 {
-			return Err(TypeError::InvalidEncoding("Checksum must be 4 bytes".to_string()));
-		}
-		let mut array = [0u8; 4];
-		array.copy_from_slice(&bytes_clone);
-		Ok(i32::from_be_bytes(array))
+	// Reference to StackItem constants
+	const BYTE_STRING_VALUE: &'static str = "ByteString";
+
+	fn get_checksum_as_integer(bytes: &Vec<u8>) -> Result<i32, TypeError> {
+		let mut bytes = bytes.clone();
+		bytes.reverse();
+		bytes.try_into().map(i32::from_be_bytes).map_err(|_| {
+			TypeError::InvalidEncoding(String::from("Failed to convert checksum bytes to i32"))
+		})
 	}
 
-	fn compute_checksum(file: &NefFile) -> Result<Vec<u8>, TypeError> {
-		Self::compute_checksum_from_bytes(&file.to_array())
-	}
-
-	fn compute_checksum_from_bytes(bytes: &[u8]) -> Result<Vec<u8>, TypeError> {
-		let mut file_bytes = bytes.to_vec();
+	fn compute_checksum_from_bytes(bytes: Vec<u8>) -> Result<Vec<u8>, TypeError> {
+		let mut file_bytes = bytes.clone();
 		file_bytes.truncate(bytes.len() - Self::CHECKSUM_SIZE);
-		
-		// Calculate SHA256 hash twice
-		let mut hasher = sha2::Sha256::new();
-		hasher.update(&file_bytes);
-		let first_hash = hasher.finalize();
-		
-		let mut hasher = sha2::Sha256::new();
-		hasher.update(&first_hash);
-		let second_hash = hasher.finalize();
-		
-		Ok(second_hash[..Self::CHECKSUM_SIZE].to_vec())
+		file_bytes.hash256()[..Self::CHECKSUM_SIZE].try_into().map_err(|_| {
+			TypeError::InvalidEncoding(String::from("Failed to extract checksum from hash"))
+		})
 	}
 
 	fn read_from_file(file: &str) -> Result<Self, TypeError> {
@@ -86,7 +84,7 @@ impl NefFile {
 			.map_err(|e| TypeError::InvalidArgError(format!("Failed to read NEF file: {}", e)))?;
 
 		if file_bytes.len() > 0x100000 {
-			return Err(TypeError::InvalidArgError("NEF file is too large".to_string()));
+			return Err(TypeError::InvalidArgError(String::from("NEF file is too large")));
 		}
 
 		let mut reader = Decoder::new(&file_bytes);
@@ -106,7 +104,7 @@ impl NefFile {
 	/// A `Result` containing the deserialized NEF file or a `TypeError`
 	pub fn deserialize(bytes: &[u8]) -> Result<Self, TypeError> {
 		if bytes.len() > 0x100000 {
-			return Err(TypeError::InvalidArgError("NEF file is too large".to_string()));
+			return Err(TypeError::InvalidArgError(String::from("NEF file is too large")));
 		}
 
 		let mut reader = Decoder::new(bytes);
@@ -115,22 +113,17 @@ impl NefFile {
 		})
 	}
 
-	fn read_from_stack_item(item: StackItem) -> Result<Self, TypeError> {
-		if let StackItem::ByteString { value: bytes } = item {
-			let mut reader = Decoder::new(&bytes.as_bytes());
-			reader.read_serializable().map_err(|e| {
-				TypeError::InvalidEncoding(format!(
-					"Failed to deserialize NEF from stack item: {}",
-					e
-				))
-			})
-		} else {
-			let item_str = serde_json::to_string(&item).map_err(|e| {
-				TypeError::InvalidFormat(format!("Failed to serialize stack item: {}", e))
-			})?;
+	fn read_from_stack_item(_item: StackItem) -> Result<Self, TypeError> {
+		// This would need to be implemented properly
+		Err(TypeError::InvalidEncoding(String::from("Not implemented")))
+	}
 
-			Err(TypeError::UnexpectedReturnType(item_str + StackItem::BYTE_STRING_VALUE))
-		}
+	// Add a public method to compute checksum
+	pub fn compute_checksum(&self) -> Result<Vec<u8>, TypeError> {
+		let file_bytes = self.to_array();
+		file_bytes.hash256()[..Self::CHECKSUM_SIZE].try_into().map_err(|_| {
+			TypeError::InvalidEncoding(String::from("Failed to convert hash to checksum"))
+		})
 	}
 }
 
@@ -139,8 +132,8 @@ impl NeoSerializable for NefFile {
 
 	fn size(&self) -> usize {
 		let mut size = Self::HEADER_SIZE;
-		size += self.source_url.len() + 1;
-		size += self.method_tokens.len() + 2;
+		size += self.source.as_ref().map_or(0, |s| s.len() + 1);
+		size += self.tokens.len() + 2;
 		size += self.script.len();
 		size += Self::CHECKSUM_SIZE;
 
@@ -150,120 +143,89 @@ impl NeoSerializable for NefFile {
 	fn encode(&self, writer: &mut Encoder) {
 		writer.write_u32(Self::MAGIC);
 		writer
-			.write_fixed_string(&self.compiler, Self::COMPILER_SIZE)
+			.write_fixed_string(&Some(self.compiler.clone()), Self::COMPILER_SIZE)
 			.expect("Failed to serialize compiler");
-		writer.write_var_string(&self.source_url);
+		writer.write_var_string(self.source.as_deref().unwrap_or_default());
 		writer.write_u8(0);
-		writer.write_serializable_variable_list(&self.method_tokens);
+		writer.write_serializable_variable_list(&self.tokens);
 		writer.write_u16(0);
 		writer.write_var_bytes(&self.script);
-		writer.write_bytes(&self.checksum);
+		writer.write_bytes(&self.checksum.to_be_bytes());
 	}
 
-	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
+	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error> {
 		let magic = reader
 			.read_u32()
 			.map_err(|e| TypeError::InvalidEncoding(format!("Failed to read magic: {}", e)))?;
 
 		if magic != Self::MAGIC {
-			return Err(TypeError::InvalidEncoding("Invalid magic".to_string()));
+			return Err(TypeError::InvalidEncoding(String::from("Invalid magic")));
 		}
 
 		let compiler_bytes = reader.read_bytes(Self::COMPILER_SIZE)?;
 		let compiler = String::from_utf8(compiler_bytes.to_vec())
-			.map_err(|_| CodecError::InvalidEncoding("Invalid compiler".to_string()))?;
+			.map_err(|_| CodecError::InvalidEncoding(String::from("Invalid compiler")))?;
 
-		let source_url = reader.read_var_string()?;
-		if source_url.len() > Self::MAX_SOURCE_URL_SIZE {
-			return Err(TypeError::InvalidEncoding("Invalid source url".to_string()));
+		let source = reader.read_var_string()?;
+		if source.len() > Self::MAX_SOURCE_URL_SIZE {
+			return Err(TypeError::InvalidEncoding(String::from("Invalid source url")));
 		}
 
 		if reader.read_u8() != 0 {
-			return Err(TypeError::InvalidEncoding("Invalid reserve bytes".to_string()));
+			return Err(TypeError::InvalidEncoding(String::from("Invalid reserve bytes")));
 		}
 
-		let method_tokens = reader.read_serializable_list()?;
+		let tokens = reader.read_serializable_list()?;
 
 		if reader.read_u16().map_err(|e| {
 			TypeError::InvalidEncoding(format!("Failed to read reserve bytes: {}", e))
 		})? != 0
 		{
-			return Err(TypeError::InvalidEncoding("Invalid reserve bytes".to_string()));
+			return Err(TypeError::InvalidEncoding(String::from("Invalid reserve bytes")));
 		}
 
 		let script = reader.read_var_bytes()?;
 		if script.is_empty() {
-			return Err(TypeError::InvalidEncoding("Invalid script".to_string()));
+			return Err(TypeError::InvalidEncoding(String::from("Invalid script")));
 		}
 
-		let file =
-			Self { compiler: Some(compiler), source_url, method_tokens, script, checksum: vec![] };
+		let checksum_bytes = reader.read_bytes(Self::CHECKSUM_SIZE)?;
+		let checksum = u32::from_be_bytes(checksum_bytes.try_into().map_err(|_| {
+			TypeError::InvalidEncoding(String::from("Failed to convert checksum bytes to u32"))
+		})?);
+		
+		// Create a NefFile instance
+		let nef_file = NefFile {
+			magic,
+			compiler,
+			source: Some(source),
+			tokens,
+			script,
+			checksum,
+		};
+		
+		// Compute checksum from the encoded data
+		let mut encoder = Encoder::new();
+		// Encode everything except the checksum
+		encoder.write_u32(nef_file.magic);
+		encoder.write_fixed_string(&Some(nef_file.compiler.clone()), Self::COMPILER_SIZE)
+			.expect("Failed to serialize compiler");
+		encoder.write_var_string(nef_file.source.as_deref().unwrap_or_default());
+		encoder.write_u8(0);
+		encoder.write_serializable_variable_list(&nef_file.tokens);
+		encoder.write_u16(0);
+		encoder.write_var_bytes(&nef_file.script);
+		
+		let computed_checksum = Self::compute_checksum_from_bytes(encoder.to_bytes())?;
+		let computed_checksum_u32 = u32::from_be_bytes(computed_checksum.try_into().map_err(|_| {
+			TypeError::InvalidEncoding(String::from("Failed to convert computed checksum bytes to u32"))
+		})?);
 
-		let checksum = reader.read_bytes(Self::CHECKSUM_SIZE)?;
-		let computed_checksum = Self::compute_checksum(&file)?;
-		if checksum != computed_checksum {
-			return Err(TypeError::InvalidEncoding("Invalid checksum".to_string()));
+		if checksum != computed_checksum_u32 {
+			return Err(TypeError::InvalidEncoding(String::from("Invalid checksum")));
 		}
 
-		Ok(file)
-	}
-
-	fn to_array(&self) -> Vec<u8> {
-		let mut writer = Encoder::new();
-		self.encode(&mut writer);
-		writer.to_bytes()
-	}
-}
-
-#[derive(Debug, Clone)]
-pub struct MethodToken {
-	hash: H160,
-	method: String,
-	params_count: u16,
-	has_return_value: bool,
-	call_flags: u8,
-}
-
-impl MethodToken {
-	const PARAMS_COUNT_SIZE: usize = 2;
-	const HAS_RETURN_VALUE_SIZE: usize = 1;
-	const CALL_FLAGS_SIZE: usize = 1;
-}
-
-impl NeoSerializable for MethodToken {
-	type Error = TypeError;
-
-	fn size(&self) -> usize {
-		let mut size = H160::len_bytes();
-		size += self.method.len();
-		size += MethodToken::PARAMS_COUNT_SIZE;
-		size += MethodToken::HAS_RETURN_VALUE_SIZE;
-		size += MethodToken::CALL_FLAGS_SIZE;
-
-		size
-	}
-
-	fn encode(&self, writer: &mut Encoder) {
-		writer.write_serializable_fixed(&self.hash);
-		writer.write_var_string(&self.method);
-		writer.write_u16(self.params_count);
-		writer.write_bool(self.has_return_value);
-		writer.write_u8(self.call_flags);
-	}
-
-	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error>
-	where
-		Self: Sized,
-	{
-		let hash = reader.read_serializable()?;
-		let method = reader.read_var_string()?;
-		let params_count = reader.read_u16().map_err(|e| {
-			TypeError::InvalidEncoding(format!("Failed to read params_count: {}", e))
-		})?;
-		let has_return_value = reader.read_bool();
-		let call_flags = reader.read_u8();
-
-		Ok(Self { hash, method, params_count, has_return_value, call_flags })
+		Ok(nef_file)
 	}
 
 	fn to_array(&self) -> Vec<u8> {

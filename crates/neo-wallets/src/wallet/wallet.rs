@@ -3,22 +3,24 @@ use std::{collections::HashMap, fs::File, io::Write, path::PathBuf};
 use primitive_types::H160;
 use serde_derive::{Deserialize, Serialize};
 
-use neo_builder::{AccountSigner, Transaction, TransactionBuilder, VerificationScript, Witness};
-use neo_clients::{APITrait, JsonRpcProvider, ProviderError, RpcClient};
-use neo_config::NeoConstants;
-use neo_contract::ContractError;
-use neo_crypto::{CryptoError, HashableForVec, KeyPair, Secp256r1Signature};
-use neo_protocol::{Account, AccountTrait, UnclaimedGas};
-use neo_types::{
-	contract::ContractMethodToken,
-	script_hash::ScriptHashExtension,
-	serde_with_utils::{
-		deserialize_hash_map_h160_account, deserialize_script_hash,
-		serialize_hash_map_h160_account, serialize_script_hash,
+use crate::{
+	neo_builder::{AccountSigner, Transaction, TransactionBuilder, VerificationScript, Witness},
+	neo_clients::{APITrait, JsonRpcProvider, ProviderError, RpcClient},
+	neo_config::NeoConstants,
+	neo_contract::ContractError,
+	neo_crypto::{CryptoError, HashableForVec, KeyPair, Secp256r1Signature},
+	neo_protocol::{Account, AccountTrait, UnclaimedGas},
+	neo_types::{
+		contract::ContractMethodToken,
+		script_hash::ScriptHashExtension,
+		serde_with_utils::{
+			deserialize_hash_map_h160_account, deserialize_script_hash,
+			serialize_hash_map_h160_account, serialize_script_hash,
+		},
+		AddressExtension, ScryptParamsDef,
 	},
-	AddressExtension, ScryptParamsDef,
+	neo_wallets::{NEP6Account, NEP6Contract, NEP6Parameter, Nep6Wallet, WalletError, WalletTrait},
 };
-use crate::{NEP6Account, NEP6Contract, NEP6Parameter, Nep6Wallet, WalletError, WalletTrait};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wallet {

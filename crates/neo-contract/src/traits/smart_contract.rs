@@ -5,11 +5,14 @@ use num_bigint::BigInt;
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
 
-use neo_builder::{CallFlags, ScriptBuilder, Signer, TransactionBuilder};
-use neo_clients::{APITrait, JsonRpcProvider, RpcClient};
-use crate::{ContractError, NeoIterator};
-use neo_types::{
-	Bytes, ContractManifest, ContractParameter, InvocationResult, OpCode, ScriptHash, StackItem,
+// Replace prelude imports with specific types
+use crate::{
+	neo_builder::{CallFlags, ScriptBuilder, Signer, TransactionBuilder},
+	neo_clients::{APITrait, JsonRpcProvider, RpcClient},
+	neo_contract::{ContractError, NeoIterator},
+	neo_types::{
+		Bytes, ContractManifest, ContractParameter, InvocationResult, OpCode, ScriptHash, StackItem,
+	},
 	ScriptHashExtension,
 };
 

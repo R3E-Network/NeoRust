@@ -6,11 +6,21 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-	ContractParameter2,
-	serde_with_utils::{deserialize_wildcard, serialize_wildcard},
+	// Remove neo_types import as it doesn't exist
+	// neo_types::ContractParameter2,
+	// prelude is not defined in this crate
+	// prelude::{deserialize_wildcard, serialize_wildcard},
 	TypeError,
+	// Import directly from the serde_with_utils module
+	serde_with_utils::{deserialize_wildcard, serialize_wildcard},
 };
-use crate::{ContractParameter, ContractParameterType};
+
+// Import from crate instead of neo crate
+use crate::contract::{
+	ContractParameter,
+	ContractParameterType,
+	contract_parameter2::ContractParameter2,
+};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ContractManifest {
@@ -232,10 +242,16 @@ impl ContractMethod {
 	}
 }
 
-#[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub struct ContractEvent {
 	pub name: String,
 	pub parameters: Vec<ContractParameter>,
+}
+
+impl ContractEvent {
+	pub fn new(name: String, parameters: Option<Vec<ContractParameter>>) -> Self {
+		Self { name, parameters: parameters.unwrap_or_default() }
+	}
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Debug, Clone)]
@@ -249,5 +265,32 @@ pub struct ContractPermission {
 impl ContractPermission {
 	pub fn new(contract: String, methods: Vec<String>) -> Self {
 		Self { contract, methods }
+	}
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct ContractMethodDescriptor {
+	pub name: String,
+	pub offset: i32,
+	pub return_type: ContractParameterType,
+	pub parameters: Vec<ContractParameter>,
+	pub safe: bool,
+}
+
+impl ContractMethodDescriptor {
+	pub fn new(
+		name: String,
+		offset: i32,
+		return_type: ContractParameterType,
+		parameters: Option<Vec<ContractParameter>>,
+		safe: bool,
+	) -> Self {
+		Self {
+			name,
+			offset,
+			return_type,
+			parameters: parameters.unwrap_or_default(),
+			safe,
+		}
 	}
 }

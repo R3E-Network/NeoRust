@@ -1,12 +1,12 @@
-use crate::{BuilderError, TransactionError};
-use crate::transaction::signers::signer::{SignerTrait, SignerType};
-use crate::transaction::witness_rule::witness_rule::WitnessRule;
-use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
-use neo_config::NeoConstants;
-use neo_crypto::Secp256r1PublicKey;
-use neo_common::WitnessScope;
-use neo_types::ContractParameter;
-use neo_common::h160_utils::{serialize_h160, deserialize_h160, serialize_vec_h160, deserialize_vec_h160};
+use crate::{
+	builder::{BuilderError, SignerTrait, SignerType, TransactionError, WitnessRule, WitnessScope},
+	codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait},
+	config::NeoConstants,
+	crypto::Secp256r1PublicKey,
+	deserialize_script_hash, deserialize_vec_script_hash,
+	neo_types::{deserialize_vec_public_key, serialize_vec_public_key},
+	serialize_script_hash, serialize_vec_script_hash, ContractParameter,
+};
 use getset::{Getters, Setters};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
@@ -18,24 +18,28 @@ use std::hash::{Hash, Hasher};
 /// the signer hash, scopes, allowed contracts, allowed groups, and witness rules.
 #[derive(Debug, Clone, Serialize, PartialEq, Deserialize, Getters, Setters)]
 pub struct ContractSigner {
-#[serde(
-		serialize_with = "serialize_h160",
-		deserialize_with = "deserialize_h160"
+	#[serde(
+		serialize_with = "serialize_script_hash",
+		deserialize_with = "deserialize_script_hash"
 	)]
 	signer_hash: H160,
 	scopes: Vec<WitnessScope>,
-#[serde(
-		serialize_with = "serialize_vec_h160",
-		deserialize_with = "deserialize_vec_h160"
+	#[serde(
+		serialize_with = "serialize_vec_script_hash",
+		deserialize_with = "deserialize_vec_script_hash"
 	)]
 	allowed_contracts: Vec<H160>,
+	#[serde(
+		serialize_with = "serialize_vec_public_key",
+		deserialize_with = "deserialize_vec_public_key"
+	)]
 	allowed_groups: Vec<Secp256r1PublicKey>,
 	rules: Vec<WitnessRule>,
 	#[getset(get = "pub")]
 	verify_params: Vec<ContractParameter>,
-#[serde(
-		serialize_with = "serialize_h160",
-		deserialize_with = "deserialize_h160"
+	#[serde(
+		serialize_with = "serialize_script_hash",
+		deserialize_with = "deserialize_script_hash"
 	)]
 	#[serde(skip_deserializing)]
 	contract_hash: H160,
@@ -175,7 +179,7 @@ impl NeoSerializable for ContractSigner {
 		}
 	}
 
-	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error>
+	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error>
 	where
 		Self: Sized,
 	{

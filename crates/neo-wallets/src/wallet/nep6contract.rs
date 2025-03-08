@@ -1,7 +1,7 @@
 use getset::Getters;
 use serde::{Deserialize, Serialize};
 
-use neo_common::ContractParameterType;
+use neo::prelude::ContractParameterType;
 
 /// Represents a NEP-6 contract.
 #[derive(Clone, Debug, Serialize, Deserialize, Getters)]

@@ -2,13 +2,13 @@
 // and trait implementations to provide a seamless interface for converting and working with these two fundamental types.
 
 use std::hash::{Hash, Hasher};
-use std::fmt;
-use std::str::FromStr;
 
 use primitive_types::H160;
 use serde_derive::{Deserialize, Serialize};
 
-use crate::{Address, ScriptHashExtension};
+use crate::address::Address;
+use crate::bytes::Bytes;
+use crate::script_hash::ScriptHashExtension;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// An enum that can represent either a blockchain `Address` or a `ScriptHash`,
@@ -61,18 +61,18 @@ impl From<Address> for AddressOrScriptHash {
 	}
 }
 
-impl From<Vec<u8>> for AddressOrScriptHash {
-	/// Allows creating an `AddressOrScriptHash` from a byte vector, automatically converting it into a `ScriptHash`.
+impl From<Bytes> for AddressOrScriptHash {
+	/// Allows creating an `AddressOrScriptHash` from a `Bytes` array, automatically converting it into a `ScriptHash`.
 	///
 	/// # Examples
 	///
 	/// ```
-	/// use NeoRust::prelude::{AddressOrScriptHash};
-	/// let bytes: Vec<u8> = vec![0xdeu8, 0xadu8, 0xbeu8, 0xefu8];
+	/// use NeoRust::prelude::{AddressOrScriptHash, Bytes};
+	/// let bytes: Bytes = vec![0xdeu8, 0xadu8, 0xbeu8, 0xefu8];
 	/// let from_bytes = AddressOrScriptHash::from(bytes);
 	/// assert!(matches!(from_bytes, AddressOrScriptHash::ScriptHash(_)));
 	/// ```
-	fn from(s: Vec<u8>) -> Self {
+	fn from(s: Bytes) -> Self {
 		Self::ScriptHash(H160::from_slice(&s))
 	}
 }
@@ -114,34 +114,3 @@ impl AddressOrScriptHash {
 		}
 	}
 }
-
-impl fmt::Display for AddressOrScriptHash {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            AddressOrScriptHash::Address(addr) => write!(f, "{}", addr),
-            AddressOrScriptHash::ScriptHash(script_hash) => {
-                write!(f, "{}", script_hash.to_address())
-            }
-        }
-    }
-}
-
-impl FromStr for AddressOrScriptHash {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.starts_with("0x") || s.len() == 40 {
-            // Assume it's a script hash
-            let script_hash = H160::from_str(s)
-                .map_err(|e| format!("Invalid script hash format: {}", e))?;
-            Ok(AddressOrScriptHash::ScriptHash(script_hash))
-        } else if s.starts_with('N') {
-            // Assume it's an address
-            Ok(AddressOrScriptHash::Address(s.to_string()))
-        } else {
-            Err(format!("Invalid address or script hash format: {}", s))
-        }
-    }
-}
-
-// ToString is automatically implemented for types that implement Display

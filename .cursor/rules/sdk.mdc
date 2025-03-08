@@ -1,0 +1,27 @@
+---
+description: this is for NeoRust SDK.
+globs: 
+alwaysApply: false
+---
+
+# Your rule content
+
+ignore target folders.
+
+ensure the sdk works for neo N3 and Neo X.
+
+ensures the contract address and network type are correct.
+
+1. this is a Neo SDK in Rust.
+2. this sdk should work for both Neo N3 and Neo X networks.
+3. this SDK should support both mainnet and testnet for both Neo N3 and Neo X.
+4. this SDK should support famous DeFi contracts on Neo N3 and Neo X.
+5. this SDK should support Neo X bridge contracts.
+6. this SDK should support Neo N3 token bridge contracts.
+7. all contacts addressed, token hashes should be put in the config/constent file.
+8. sdk should support neo fs
+9. sdk should be easy to integrate new famous DeFi contracts.
+10. sdk should provide standard and formal rustdocs.
+11. should have a easy to use cli interface.
+12. convert this sdk to crates based.
+13. for missing files in the crates, try to find them in the src folder.

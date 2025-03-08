@@ -37,8 +37,7 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use thiserror::Error;
 
-use crate::{Middleware, MiddlewareError};
-use neo_error::ProviderError;
+use crate::{Middleware, MiddlewareError, ProviderError};
 
 /// `DevRpcMiddleware`
 #[derive(Clone, Debug)]

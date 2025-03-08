@@ -1,12 +1,12 @@
 use std::vec;
 
-use neo_codec::{Decoder, Encoder, NeoSerializable};
-use neo_config::NeoConstants;
-use neo_crypto::{HashableForVec, Secp256r1PublicKey, Secp256r1Signature};
-use neo_types::{Bytes, OpCode};
-use neo_codec::VarSizeTrait as var_size;
-
-use crate::{BuilderError, InteropService, ScriptBuilder};
+use crate::{
+	builder::{BuilderError, InteropService, ScriptBuilder},
+	codec::{Decoder, Encoder, NeoSerializable},
+	config::NeoConstants,
+	crypto::{HashableForVec, Secp256r1PublicKey, Secp256r1Signature},
+	var_size, Bytes, OpCode,
+};
 use getset::{Getters, Setters};
 use num_bigint::BigInt;
 use num_traits::{ToPrimitive, Zero};
@@ -23,11 +23,11 @@ pub struct VerificationScript {
 
 impl VerificationScript {
 	pub fn new() -> Self {
-		Self { script: Bytes::new(Vec::new()) }
+		Self { script: Bytes::new() }
 	}
 
 	pub fn from(script: Bytes) -> Self {
-		Self { script }
+		Self { script: script.to_vec() }
 	}
 
 	pub fn from_public_key(public_key: &Secp256r1PublicKey) -> Self {
@@ -65,7 +65,7 @@ impl VerificationScript {
 
 		self.script[0] == OpCode::PushData1.opcode()
 			&& self.script[1] == 33
-			&& self.script[35] == OpCode::SysCall.opcode()
+			&& self.script[35] == OpCode::Syscall.opcode()
 			&& interop_service_hex == InteropService::SystemCryptoCheckSig.hash() // Assuming `hash` returns a hex string
 	}
 
@@ -109,7 +109,7 @@ impl VerificationScript {
 		reader.reset();
 
 		if BigInt::from(reader.read_push_int().unwrap()) != m
-			|| reader.read_u8() != OpCode::SysCall.opcode()
+			|| reader.read_u8() != OpCode::Syscall.opcode()
 		{
 			return false;
 		}
@@ -213,16 +213,16 @@ impl NeoSerializable for VerificationScript {
 	type Error = BuilderError;
 
 	fn size(&self) -> usize {
-		<Vec<u8> as neo_codec::VarSizeTrait>::get_var_size(self.script.len()) + self.script.len()
+		var_size(self.script.len()) + self.script.len()
 	}
 
 	fn encode(&self, writer: &mut Encoder) {
 		writer.write_var_bytes(&self.script);
 	}
 
-	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error> {
+	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error> {
 		let script = reader.read_var_bytes()?;
-		Ok(Self { script: script.into() })
+		Ok(Self { script })
 	}
 	fn to_array(&self) -> Vec<u8> {
 		let mut writer = Encoder::new();

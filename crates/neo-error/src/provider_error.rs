@@ -75,3 +75,23 @@ pub enum ProviderError {
     #[error("Provider error: {0}")]
     Other(String),
 }
+
+/// Utility function to create a custom provider error
+pub fn to_provider_error(message: &str) -> ProviderError {
+    ProviderError::CustomError(message.to_string())
+}
+
+/// Utility function to create a serialization provider error
+pub fn to_serialization_error(message: &str) -> ProviderError {
+    ProviderError::SerializationError(message.to_string())
+}
+
+/// Utility function to create a network provider error
+pub fn to_network_error(message: &str) -> ProviderError {
+    ProviderError::NetworkError(message.to_string())
+}
+
+/// Utility function to create an RPC provider error
+pub fn to_rpc_error(message: &str) -> ProviderError {
+    ProviderError::RpcError(message.to_string())
+}

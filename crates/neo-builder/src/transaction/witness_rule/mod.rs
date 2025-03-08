@@ -46,4 +46,4 @@ pub use witness_rule::*;
 
 mod witness_action;
 mod witness_condition;
-pub mod witness_rule;
+mod witness_rule;

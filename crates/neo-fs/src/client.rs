@@ -14,11 +14,13 @@
 //! Client for interacting with NeoFS.
 
 use crate::{
-	AccessPermission, BearerToken, Container, ContainerId, MultipartUpload,
-	MultipartUploadResult, NeoFSError, NeoFSResult, NeoFSService, Object, ObjectId, OwnerId,
-	Part, SessionToken,
+	neo_fs::{
+		AccessPermission, BearerToken, Container, ContainerId, MultipartUpload,
+		MultipartUploadResult, NeoFSError, NeoFSResult, NeoFSService, Object, ObjectId, OwnerId,
+		Part, SessionToken,
+	},
+	neo_protocol::Account,
 };
-use neo_protocol::Account;
 use async_trait::async_trait;
 use std::fmt::Debug;
 

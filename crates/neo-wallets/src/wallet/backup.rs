@@ -1,4 +1,4 @@
-use crate::{Wallet, WalletError};
+use crate::neo_wallets::{Wallet, WalletError};
 use std::{fs::File, io::Write, path::PathBuf};
 
 /// Provides functionality for backing up and recovering Neo wallets.
@@ -83,8 +83,10 @@ impl WalletBackup {
 mod tests {
 	use std::{fs, path::PathBuf};
 
-	use neo_protocol::{Account, AccountTrait};
-	use crate::{Wallet, WalletBackup, WalletTrait};
+	use crate::{
+		neo_protocol::{Account, AccountTrait},
+		neo_wallets::{Wallet, WalletBackup, WalletTrait},
+	};
 
 	#[test]
 	fn test_backup_and_recover() {

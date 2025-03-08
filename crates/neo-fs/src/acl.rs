@@ -18,7 +18,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::types::{AccessPermission, ContainerId, OwnerId};
+use crate::neo_fs::types::{AccessPermission, ContainerId, OwnerId};
 
 /// Operation that can be performed on an object or container
 #[derive(Debug, Clone, Serialize, Deserialize)]

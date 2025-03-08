@@ -1,22 +1,15 @@
 use std::hash::{Hash, Hasher};
 
-// Local imports
-use crate::{BuilderError, TransactionError};
-use crate::transaction::signers::signer::{SignerTrait, SignerType};
-use crate::transaction::witness_rule::witness_rule::WitnessRule;
-
-// External crate imports
-use neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait};
-use neo_config::NeoConstants;
-use neo_crypto::{PublicKeyExtension, Secp256r1PublicKey};
-#[cfg(feature = "protocol")]
-use neo_protocol::AccountTrait;
-#[cfg(feature = "protocol")]
-use neo_protocol::account::Account;
-use neo_common::Wallet;
-use neo_common::WitnessScope;
-use neo_types::ScriptHashExtension;
-use neo_common::h160_utils::{serialize_h160, deserialize_h160, serialize_vec_h160, deserialize_vec_h160};
+use crate::{
+	builder::{BuilderError, SignerTrait, SignerType, TransactionError, WitnessRule, WitnessScope},
+	codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait},
+	config::NeoConstants,
+	crypto::{PublicKeyExtension, Secp256r1PublicKey},
+	deserialize_script_hash, deserialize_vec_script_hash,
+	neo_protocol::{Account, AccountTrait},
+	neo_types::{deserialize_vec_public_key, serialize_vec_public_key},
+	serialize_script_hash, serialize_vec_script_hash, ScriptHashExtension,
+};
 use getset::{Getters, Setters};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
@@ -27,52 +20,34 @@ use serde::{Deserialize, Serialize};
 /// the signer hash, scopes, allowed contracts, allowed groups, and witness rules.
 #[derive(Debug, Clone, Serialize, Deserialize, Getters, Setters)]
 pub struct AccountSigner {
-#[serde(
-		serialize_with = "serialize_h160",
-		deserialize_with = "deserialize_h160"
+	#[serde(
+		serialize_with = "serialize_script_hash",
+		deserialize_with = "deserialize_script_hash"
 	)]
 	pub(crate) signer_hash: H160,
 	pub(crate) scopes: Vec<WitnessScope>,
-#[serde(
-		serialize_with = "serialize_vec_h160",
-		deserialize_with = "deserialize_vec_h160"
+	#[serde(
+		serialize_with = "serialize_vec_script_hash",
+		deserialize_with = "deserialize_vec_script_hash"
 	)]
 	pub(crate) allowed_contracts: Vec<H160>,
+	#[serde(
+		serialize_with = "serialize_vec_public_key",
+		deserialize_with = "deserialize_vec_public_key"
+	)]
 	pub(crate) allowed_groups: Vec<Secp256r1PublicKey>,
 	rules: Vec<WitnessRule>,
 	#[getset(get = "pub")]
-	#[cfg(feature = "protocol")]
-	pub account: Account<Wallet>,
-	#[cfg(not(feature = "protocol"))]
-	pub account: Wallet,
+	pub account: Account,
 }
 
 impl AccountSigner {
-	/// Creates a new `AccountSigner` with the specified scope.
-	///
-	/// # Arguments
-	///
-	/// * `account` - The account to create the signer for.
-	/// * `scope` - The witness scope to use.
-	#[cfg(feature = "protocol")]
-	pub fn new(account: &Account<Wallet>, scope: WitnessScope) -> Self {
-		Self {
-			signer_hash: account.get_script_hash().clone(),
-			scopes: vec![scope],
-			allowed_contracts: vec![],
-			allowed_groups: vec![],
-			rules: vec![],
-			account: account.clone(),
-		}
-	}
-
 	/// Creates a new `AccountSigner` with no scope.
 	///
 	/// # Arguments
 	///
 	/// * `account` - The account to create the signer for.
-	#[cfg(feature = "protocol")]
-	pub fn none(account: &Account<Wallet>) -> Result<Self, TransactionError> {
+	pub fn none(account: &Account) -> Result<Self, TransactionError> {
 		Ok(Self::new(account, WitnessScope::None))
 	}
 
@@ -81,8 +56,7 @@ impl AccountSigner {
 	/// # Arguments
 	///
 	/// * `account` - The account to create the signer for.
-	#[cfg(feature = "protocol")]
-	pub fn called_by_entry(account: &Account<Wallet>) -> Result<Self, TransactionError> {
+	pub fn called_by_entry(account: &Account) -> Result<Self, TransactionError> {
 		Ok(Self::new(account, WitnessScope::CalledByEntry))
 	}
 
@@ -91,31 +65,18 @@ impl AccountSigner {
 	/// # Arguments
 	///
 	/// * `account` - The account to create the signer for.
-	#[cfg(feature = "protocol")]
-	pub fn global(account: &Account<Wallet>) -> Result<Self, TransactionError> {
+	pub fn global(account: &Account) -> Result<Self, TransactionError> {
 		Ok(Self::new(account, WitnessScope::Global))
 	}
 
 	/// Checks if the account is a multi-signature account.
-	#[cfg(feature = "protocol")]
 	pub fn is_multi_sig(&self) -> bool {
 		matches!(&self.account.verification_script(), Some(script) if script.is_multi_sig())
 	}
 
-	#[cfg(not(feature = "protocol"))]
-	pub fn is_multi_sig(&self) -> bool {
-		false // Default implementation when protocol feature is not enabled
-	}
-
 	/// Returns the script hash of the account.
-	#[cfg(feature = "protocol")]
 	pub fn get_script_hash(&self) -> H160 {
 		self.account.get_script_hash().clone()
-	}
-
-	#[cfg(not(feature = "protocol"))]
-	pub fn get_script_hash(&self) -> H160 {
-		self.signer_hash.clone()
 	}
 }
 
@@ -150,7 +111,7 @@ impl NeoSerializable for AccountSigner {
 		}
 	}
 
-	fn decode(reader: &mut Decoder<'_>) -> Result<Self, Self::Error>
+	fn decode(reader: &mut Decoder) -> Result<Self, Self::Error>
 	where
 		Self: Sized,
 	{
@@ -192,32 +153,14 @@ impl NeoSerializable for AccountSigner {
                     .into());
 			}
 		}
-
-		#[cfg(feature = "protocol")]
-		{
-			let account = Account::from_address(signer_hash.to_address().as_str()).unwrap();
-			Ok(Self {
-				signer_hash,
-				scopes,
-				allowed_contracts,
-				allowed_groups,
-				rules,
-				account,
-			})
-		}
-
-		#[cfg(not(feature = "protocol"))]
-		{
-			let wallet = Wallet::new("NeoRustDefaultAddress".to_string());
-			Ok(Self {
-				signer_hash,
-				scopes,
-				allowed_contracts,
-				allowed_groups,
-				rules,
-				account: wallet,
-			})
-		}
+		Ok(Self {
+			signer_hash,
+			scopes,
+			allowed_contracts,
+			allowed_groups,
+			rules,
+			account: Account::from_address(signer_hash.to_address().as_str()).unwrap(),
+		})
 	}
 
 	fn to_array(&self) -> Vec<u8> {
@@ -294,78 +237,39 @@ impl SignerTrait for AccountSigner {
 		&mut self.allowed_groups
 	}
 
-	fn get_rules(&self) -> &Vec<crate::transaction::witness_rule::witness_rule::WitnessRule> {
-		// This is a temporary solution until we fully migrate to neo-common
-		unsafe { std::mem::transmute(&self.rules) }
+	fn get_rules(&self) -> &Vec<WitnessRule> {
+		&self.rules
 	}
 
-	fn get_rules_mut(&mut self) -> &mut Vec<crate::transaction::witness_rule::witness_rule::WitnessRule> {
-		// This is a temporary solution until we fully migrate to neo-common
-		unsafe { std::mem::transmute(&mut self.rules) }
+	fn get_rules_mut(&mut self) -> &mut Vec<WitnessRule> {
+		&mut self.rules
 	}
 }
 
 impl AccountSigner {
+	pub fn new(account: &Account, scope: WitnessScope) -> Self {
+		Self {
+			signer_hash: account.get_script_hash().clone(),
+			scopes: vec![scope],
+			allowed_contracts: vec![],
+			allowed_groups: vec![],
+			rules: vec![],
+			account: account.clone(),
+		}
+	}
+
 	pub fn none_hash160(account_hash: H160) -> Result<Self, TransactionError> {
-		#[cfg(feature = "protocol")]
-		{
-			let account = neo_protocol::Account::from_address(account_hash.to_address().as_str()).unwrap();
-			Ok(Self::none(&account)?)
-		}
-		
-		#[cfg(not(feature = "protocol"))]
-		{
-			let wallet = Wallet::new(account_hash.to_address());
-			Ok(Self {
-				signer_hash: account_hash,
-				scopes: vec![WitnessScope::None],
-				allowed_contracts: vec![],
-				allowed_groups: vec![],
-				rules: vec![],
-				account: wallet,
-			})
-		}
+		let account = Account::from_address(account_hash.to_address().as_str()).unwrap();
+		Ok(Self::new(&account, WitnessScope::None))
 	}
 
 	pub fn called_by_entry_hash160(account_hash: H160) -> Result<Self, TransactionError> {
-		#[cfg(feature = "protocol")]
-		{
-			let account = neo_protocol::Account::from_address(account_hash.to_address().as_str()).unwrap();
-			Ok(Self::called_by_entry(&account)?)
-		}
-
-		#[cfg(not(feature = "protocol"))]
-		{
-			let wallet = Wallet::new(account_hash.to_address());
-			Ok(Self {
-				signer_hash: account_hash,
-				scopes: vec![WitnessScope::CalledByEntry],
-				allowed_contracts: vec![],
-				allowed_groups: vec![],
-				rules: vec![],
-				account: wallet,
-			})
-		}
+		let account = Account::from_address(account_hash.to_address().as_str()).unwrap();
+		Ok(Self::new(&account, WitnessScope::CalledByEntry))
 	}
 
 	pub fn global_hash160(account_hash: H160) -> Result<Self, TransactionError> {
-		#[cfg(feature = "protocol")]
-		{
-			let account = neo_protocol::Account::from_address(account_hash.to_address().as_str()).unwrap();
-			Ok(Self::global(&account)?)
-		}
-
-		#[cfg(not(feature = "protocol"))]
-		{
-			let wallet = Wallet::new(account_hash.to_address());
-			Ok(Self {
-				signer_hash: account_hash,
-				scopes: vec![WitnessScope::Global],
-				allowed_contracts: vec![],
-				allowed_groups: vec![],
-				rules: vec![],
-				account: wallet,
-			})
-		}
+		let account = Account::from_address(account_hash.to_address().as_str()).unwrap();
+		Ok(Self::new(&account, WitnessScope::Global))
 	}
 }

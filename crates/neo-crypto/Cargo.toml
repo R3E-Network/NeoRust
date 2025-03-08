@@ -17,7 +17,6 @@ keywords.workspace = true
 neo-error = { path = "../neo-error", version = "0.1.9" }
 neo-config = { path = "../neo-config", version = "0.1.9" }
 neo-common = { path = "../neo-common", version = "0.1.9" }
-neo-codec = { path = "../neo-codec", version = "0.1.9" }
 
 # Cryptography
 p256 = { version = "0.13.2" }
@@ -51,3 +50,4 @@ lazy_static = { workspace = true }
 
 [features]
 default = []
+with-common = []

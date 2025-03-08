@@ -4,23 +4,14 @@ use std::{
 };
 
 use super::{RTransactionSigner, TransactionAttributeEnum};
-// Temporarily comment out to avoid circular dependency
-// use neo_clients::JsonRpcProvider;
-use neo_types::TypeError;
-use crate::NeoWitness;
+use crate::{neo_clients::JsonRpcProvider, neo_protocol::NeoWitness, TypeError};
 use futures_util::TryFutureExt;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
-// Temporarily comment out to avoid circular dependency
-// use neo::VMState;
-// Define a local enum for VMState to avoid dependency
-// Use the VMState from the vm_state module
-use crate::vm_state::VMState;
+use neo::VMState;
 use primitive_types::{H256, U256};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
-// Temporarily comment out to avoid circular dependency
-// use serde_with::__private__::DeError;
-use serde::de::Error as DeError;
+use serde_with::__private__::DeError;
 
 #[derive(Serialize, Deserialize, Getters, Setters, MutGetters, CopyGetters, Debug, Clone)]
 pub struct RTransaction {

@@ -20,7 +20,7 @@
 //! ### Connecting to Neo X and getting chain information
 //!
 //! ```rust
-//! use neo_types::{HttpProvider, RpcClient, NeoXProvider};
+//! use neo::prelude::*;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -46,7 +46,7 @@
 //! ### Using the bridge to transfer tokens between Neo N3 and Neo X
 //!
 //! ```rust
-//! use neo_types::{HttpProvider, RpcClient, Account, ScriptHash, NeoXBridgeContract};
+//! use neo::prelude::*;
 //! use std::str::FromStr;
 //!
 //! #[tokio::main]

@@ -1,4 +1,4 @@
-use futures::pin_mut;
+use ethereum_types::H256;
 /// A builder for constructing and configuring NEO blockchain transactions.
 ///
 /// The `TransactionBuilder` provides a fluent interface for setting various transaction parameters
@@ -30,74 +30,70 @@ use futures::pin_mut;
 ///           .valid_until_block(100)
 ///           .extend_script(vec![0x01, 0x02, 0x03]);
 ///
-/// let unsigned_tx = tx_builder.get_unsigned_tx().unwrap();
+/// let unsigned_tx = tx_builder.get_unsigned_tx().await.unwrap();
 /// ```
 ///
 /// # Note
 ///
 /// This builder implements `Debug`, `Clone`, `Eq`, `PartialEq`, and `Hash` traits.
 /// It uses generics to allow for different types of JSON-RPC providers.
-use futures::executor::block_on;
+use futures_util::TryFutureExt;
 use std::{
 	cell::RefCell,
 	collections::HashSet,
+	default,
 	fmt::Debug,
 	hash::{Hash, Hasher},
 	iter::Iterator,
 	str::FromStr,
 };
 
-
-
+use crate::builder::SignerTrait;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
 use once_cell::sync::Lazy;
 use primitive_types::H160;
 use rustc_serialize::hex::ToHex;
-use base64;
-#[cfg(feature = "protocol")]
-use neo_clients::mock_client;
-
-// Import from neo_common for shared types
-// Import from transaction module
-use crate::transaction::signers::signer::SignerTrait;
-
 // Import from neo_types
-use neo_types::{
-	Bytes, ContractParameter, InvocationResult, ScriptHash, StackItem,
+use crate::neo_types::{
+	Bytes, ContractParameter, InvocationResult, NameOrAddress, ScriptHash, ScriptHashExtension,
 };
 
 // Import transaction types from neo_builder
-use crate::{
+use crate::neo_builder::{
 	transaction::{
 		Signer, SignerType, Transaction, TransactionAttribute, TransactionError,
-		VerificationScript, Witness,
+		VerificationScript, Witness, WitnessScope,
 	},
 	BuilderError,
 };
 
-// Import from neo-common
-use neo_common::WitnessScope;
-use neo_config::{NeoConstants, NEOCONFIG};
-use neo_crypto::Secp256r1PublicKey;
-use neo_codec::{NeoSerializable, Encoder};
+// Import other modules
+use crate::{
+	neo_clients::{APITrait, JsonRpcProvider, RpcClient},
+	neo_codec::{Decoder, Encoder, NeoSerializable, VarSizeTrait},
+	neo_config::{NeoConstants, NEOCONFIG},
+	neo_crypto::{HashableForVec, Secp256r1PublicKey},
+	neo_protocol::{AccountTrait, NeoNetworkFee},
+};
 
-// Import protocol types when feature is enabled
-#[cfg(feature = "protocol")]
-use neo_protocol::{Account, AccountTrait};
-use neo_common::wallet::Wallet;
+// Helper functions
+use crate::neo_clients::public_key_to_script_hash;
+
+// Import Account from neo_protocol
+use crate::neo_protocol::Account;
 
 // Special module for initialization - conditionally include
-#[cfg(feature = "protocol")]
-// Removed unused import
+#[cfg(feature = "init")]
+use crate::prelude::init_logger;
 // Define a local replacement for when init feature is not enabled
-#[cfg(not(feature = "protocol"))]
+#[cfg(not(feature = "init"))]
 fn init_logger() {
 	// No-op when feature is not enabled
 }
 
-#[derive(Getters, Setters, MutGetters, CopyGetters)]
-pub struct TransactionBuilder<'a> {
-	pub(crate) client: Option<&'a (dyn neo_common::RpcClient + 'a)>,
+#[derive(Getters, Setters, MutGetters, CopyGetters, Default)]
+pub struct TransactionBuilder<'a, P: JsonRpcProvider + 'static> {
+	pub(crate) client: Option<&'a RpcClient<P>>,
 	version: u8,
 	nonce: u32,
 	valid_until_block: Option<u32>,
@@ -116,25 +112,7 @@ pub struct TransactionBuilder<'a> {
 	fee_error: Option<TransactionError>,
 }
 
-impl<'a> Default for TransactionBuilder<'a> {
-    fn default() -> Self {
-        Self {
-            client: None,
-            version: 0,
-            nonce: 0,
-            valid_until_block: None,
-            signers: Vec::new(),
-            additional_network_fee: 0,
-            additional_system_fee: 0,
-            attributes: Vec::new(),
-            script: None,
-            fee_consumer: None,
-            fee_error: None,
-        }
-    }
-}
-
-impl<'a> Debug for TransactionBuilder<'a> {
+impl<'a, P: JsonRpcProvider + 'static> Debug for TransactionBuilder<'a, P> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("TransactionBuilder")
 			.field("version", &self.version)
@@ -151,7 +129,7 @@ impl<'a> Debug for TransactionBuilder<'a> {
 	}
 }
 
-impl<'a> Clone for TransactionBuilder<'a> {
+impl<'a, P: JsonRpcProvider + 'static> Clone for TransactionBuilder<'a, P> {
 	fn clone(&self) -> Self {
 		Self {
 			client: self.client,
@@ -170,9 +148,9 @@ impl<'a> Clone for TransactionBuilder<'a> {
 	}
 }
 
-impl<'a> Eq for TransactionBuilder<'a> {}
+impl<'a, P: JsonRpcProvider + 'static> Eq for TransactionBuilder<'a, P> {}
 
-impl<'a> PartialEq for TransactionBuilder<'a> {
+impl<'a, P: JsonRpcProvider + 'static> PartialEq for TransactionBuilder<'a, P> {
 	fn eq(&self, other: &Self) -> bool {
 		self.version == other.version
 			&& self.nonce == other.nonce
@@ -185,7 +163,7 @@ impl<'a> PartialEq for TransactionBuilder<'a> {
 	}
 }
 
-impl<'a> Hash for TransactionBuilder<'a> {
+impl<'a, P: JsonRpcProvider + 'static> Hash for TransactionBuilder<'a, P> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.version.hash(state);
 		self.nonce.hash(state);
@@ -203,7 +181,7 @@ pub static GAS_TOKEN_HASH: Lazy<ScriptHash> = Lazy::new(|| {
 		.expect("GAS token hash is a valid script hash")
 });
 
-impl<'a> TransactionBuilder<'a> {
+impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	// const GAS_TOKEN_HASH: ScriptHash = ScriptHash::from_str("d2a4cff31913016155e38e474a2c06d08be276cf").unwrap();
 	pub const BALANCE_OF_FUNCTION: &'static str = "balanceOf";
 	pub const DUMMY_PUB_KEY: &'static str =
@@ -217,10 +195,10 @@ impl<'a> TransactionBuilder<'a> {
 	///
 	/// # Examples
 	///
-/// ```rust
-/// use neo_types::TransactionBuilder;
-///
-/// let tx_builder = TransactionBuilder::new();
+	/// ```rust
+	/// use neo::prelude::*;
+	///
+	/// let tx_builder = TransactionBuilder::new();
 	/// ```
 	pub fn new() -> Self {
 		Self {
@@ -250,14 +228,14 @@ impl<'a> TransactionBuilder<'a> {
 	///
 	/// # Examples
 	///
-/// ```rust
-/// use neo_clients::{HttpProvider, RpcClient};
-///
-/// let provider = HttpProvider::new("https://testnet1.neo.org:443");
-/// let client = RpcClient::new(provider);
+	/// ```rust
+	/// use neo::prelude::*;
+	///
+	/// let provider = HttpProvider::new("https://testnet1.neo.org:443");
+	/// let client = RpcClient::new(provider);
 	/// let tx_builder = TransactionBuilder::with_client(&client);
 	/// ```
-	pub fn with_client(client: &'a (dyn neo_common::RpcClient + 'a)) -> Self {
+	pub fn with_client(client: &'a RpcClient<P>) -> Self {
 		Self {
 			client: Some(client),
 			version: 0,
@@ -286,8 +264,7 @@ impl<'a> TransactionBuilder<'a> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo_types::*;
-	/// 
+	/// use neo::prelude::*;
 	///
 	/// let mut tx_builder = TransactionBuilder::new();
 	/// tx_builder.version(0);
@@ -313,8 +290,7 @@ impl<'a> TransactionBuilder<'a> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo_types::*;
-	/// 
+	/// use neo::prelude::*;
 	///
 	/// let mut tx_builder = TransactionBuilder::new();
 	/// tx_builder.nonce(1234567890).unwrap();
@@ -343,8 +319,7 @@ impl<'a> TransactionBuilder<'a> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo_types::*;
-	/// 
+	/// use neo::prelude::*;
 	///
 	/// #[tokio::main]
 	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -374,10 +349,9 @@ impl<'a> TransactionBuilder<'a> {
 	// 	self
 	// }
 
-#[cfg(feature = "protocol")]
-	pub fn first_signer(&mut self, sender: &neo_protocol::Account<Wallet>) -> Result<&mut Self, TransactionError> {
-	self.first_signer_by_hash(&sender.get_script_hash())
-}
+	pub fn first_signer(&mut self, sender: &Account) -> Result<&mut Self, TransactionError> {
+		self.first_signer_by_hash(&sender.get_script_hash())
+	}
 
 	pub fn first_signer_by_hash(&mut self, sender: &H160) -> Result<&mut Self, TransactionError> {
 		if self.signers.iter().any(|s| s.get_scopes().contains(&WitnessScope::None)) {
@@ -394,46 +368,25 @@ impl<'a> TransactionBuilder<'a> {
 
 	pub fn extend_script(&mut self, script: Vec<u8>) -> &mut Self {
 		if let Some(ref mut existing_script) = self.script {
-			let mut new_bytes = existing_script.to_vec();
-			new_bytes.extend(script);
-			*existing_script = new_bytes.into();
+			existing_script.extend(script);
 		} else {
-			// Convert Vec<u8> to Bytes
-			let bytes: neo_types::Bytes = script.into();
-			self.script = Some(bytes);
+			self.script = Some(script);
 		}
 		self
 	}
 
-pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionError> {
+	pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionError> {
 		if self.script.is_none() || self.script.as_ref().unwrap().is_empty() {
-			return Err(TransactionError::NoScript);
+			return Err((TransactionError::NoScript));
 		}
-		let _client = self.client.ok_or_else(|| TransactionError::IllegalState("Client not set".to_string()))?;
-		
-		// Convert signers to strings - for reference only in the mock implementation
-		let _signer_strings: Vec<String> = self.signers.iter()
-			.map(|s| s.to_string())
-			.collect();
-		
-		// Instead of calling invoke_script with async/await, use a mock response
-		eprintln!("WARNING: Using mock invocation result for script invocation. Replace with actual RPC call in production.");
-		
-		// Create a mock invocation result with a valid state and gas consumption
-		let result = InvocationResult {
-			script: self.script.clone().unwrap().to_hex(),
-			state: neo_types::NeoVMStateType::Halt,  // Success state
-			gas_consumed: "1000000".to_string(),  // 0.01 GAS
-			exception: None,
-			notifications: None,
-			diagnostics: None,
-			stack: vec![],  // Empty stack for simplicity
-			tx: None,
-			pending_signature: None,
-			session_id: None,
-		};
-				
-		Ok(result)
+		let result = self
+			.client
+			.unwrap()
+			.rpc_client()
+			.invoke_script(self.script.clone().unwrap().to_hex(), self.signers.clone())
+			.await
+			.map_err(|e| TransactionError::ProviderError(e))?;
+		Ok((result))
 	}
 
 	/// Builds a transaction from the current builder configuration
@@ -445,8 +398,7 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo_types::*;
-	/// 
+	/// use neo::prelude::*;
 	///
 	/// #[tokio::main]
 	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -463,12 +415,12 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 	///     Ok(())
 	/// }
 	/// ```
-	pub fn build(&mut self) -> Result<Transaction<'_>, TransactionError> {
-		self.get_unsigned_tx()
+	pub async fn build(&mut self) -> Result<Transaction<P>, TransactionError> {
+		self.get_unsigned_tx().await
 	}
 
 	// Get unsigned transaction
-	pub fn get_unsigned_tx(&mut self) -> Result<Transaction<'_>, TransactionError> {
+	pub async fn get_unsigned_tx(&mut self) -> Result<Transaction<P>, TransactionError> {
 		// Validate configuration
 		if self.signers.is_empty() {
 			return Err(TransactionError::NoSigners);
@@ -500,291 +452,37 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 		}
 
 		if self.valid_until_block.is_none() {
-			let client = self.client.unwrap();
-			
-			// Instead of using async/await, use a default block count for development
-			eprintln!("WARNING: Using default block count for valid_until_block calculation. Replace with actual RPC call in production.");
-			
-			// Use a reasonable default block count for testing
-			let block_count = 1000;
-			
 			self.valid_until_block = Some(
-				block_count + client.max_valid_until_block_increment() - 1,
+				self.fetch_current_block_count().await?
+					+ self.client.unwrap().max_valid_until_block_increment()
+					- 1,
 			)
 		}
 
 		// Check committe member
-		if self.attributes.iter().any(|a| matches!(a, TransactionAttribute::HighPriority)) {
-			// Get committee members
-			let client = self.client.unwrap_or_else(|| {
-				// Create a mock RPC client for testing purposes
-				eprintln!("WARNING: Using a mock RPC client for committee checks. Replace with actual client in production.");
-				
-				// Simple mock implementation that doesn't depend on neo-clients
-				#[derive(Debug)]
-				struct MockRpcClient;
-				
-				impl neo_common::RpcClient for MockRpcClient {
-					fn max_valid_until_block_increment(&self) -> u32 {
-						1000
-					}
-					
-					fn invoke_script<'a>(&'a self, _script: String, _signers: Vec<String>) 
-						-> Box<dyn std::future::Future<Output = Result<String, neo_common::ProviderError>> + Send + 'a> {
-						Box::new(std::future::ready(Ok("mock_result".to_string())))
-					}
-					
-					fn calculate_network_fee<'a>(&'a self, _tx_hex: String) 
-						-> Box<dyn std::future::Future<Output = Result<u64, neo_common::ProviderError>> + Send + 'a> {
-						Box::new(std::future::ready(Ok(1000)))
-					}
-					
-					fn get_block_count<'a>(&'a self) 
-						-> Box<dyn std::future::Future<Output = Result<u32, neo_common::ProviderError>> + Send + 'a> {
-						Box::new(std::future::ready(Ok(1000)))
-					}
-					
-					fn invoke_function<'a>(&'a self, _script_hash: String, _operation: String, _params: Vec<String>, _signers: Vec<String>) 
-						-> Box<dyn std::future::Future<Output = Result<String, neo_common::ProviderError>> + Send + 'a> {
-						Box::new(std::future::ready(Ok("mock_result".to_string())))
-					}
-					
-					fn get_committee<'a>(&'a self) 
-						-> Box<dyn std::future::Future<Output = Result<Vec<String>, neo_common::ProviderError>> + Send + 'a> {
-						Box::new(std::future::ready(Ok(vec!["mock_committee".to_string()])))
-					}
-						
-					fn network<'a>(&'a self)
-						-> Box<dyn std::future::Future<Output = Result<u32, neo_common::ProviderError>> + Send + 'a> {
-						Box::new(std::future::ready(Ok(5195086)))
-					}
-						
-					fn get_block_hash<'a>(&'a self, _block_index: u32)
-						-> Box<dyn std::future::Future<Output = Result<String, neo_common::ProviderError>> + Send + 'a> {
-						Box::new(std::future::ready(Ok("mock_hash".to_string())))
-					}
-					
-					fn get_block<'a>(&'a self, _block_hash: String, _full_transactions: bool)
-						-> Box<dyn std::future::Future<Output = Result<String, neo_common::ProviderError>> + Send + 'a> {
-						Box::new(std::future::ready(Ok("mock_block".to_string())))
-					}
-					
-					fn send_raw_transaction<'a>(&'a self, _hex: String)
-						-> Box<dyn std::future::Future<Output = Result<String, neo_common::ProviderError>> + Send + 'a> {
-						Box::new(std::future::ready(Ok("mock_tx_hash".to_string())))
-					}
-					
-					fn get_application_log<'a>(&'a self, _tx_hash: String)
-						-> Box<dyn std::future::Future<Output = Result<String, neo_common::ProviderError>> + Send + 'a> {
-						Box::new(std::future::ready(Ok("mock_log".to_string())))
-					}
-				}
-				
-				&MockRpcClient
-			});
-			
-			// For development and testing purposes, use mock committee data instead of actual RPC calls
-			// This avoids async/await complexity
-			
-			// Log a warning about using mock data
-			eprintln!("WARNING: Using mock committee data for transaction validation. Replace with actual RPC call in production.");
-			
-			// Use mock committee data with representative values
-			let committee_result: Vec<String> = vec![
-				"0x0123456789abcdef0123456789abcdef01234567".to_string(),
-				"0xfedcba9876543210fedcba9876543210fedcba98".to_string(),
-			];
-			
-			// Convert committee members to script hashes
-			let committee: Vec<H160> = committee_result
-				.iter()
-				.filter_map(|s| {
-					let script_hash = H160::from_str(s);
-					if script_hash.is_err() {
-						None
-					} else {
-						Some(script_hash.unwrap())
-					}
-				})
-				.collect();
-			
-			// Check if any signer is a committee member
-			let signers_contain_committee_member = self.signers_contain_multi_sig_with_committee_member(&committee.into_iter().collect());
-			
-			if !signers_contain_committee_member {
-				return Err(TransactionError::IllegalState("This transaction does not have a committee member as signer. Only committee members can send transactions with high priority.".to_string()));
-			}
+		if self.is_high_priority() && !self.is_allowed_for_high_priority().await {
+			return Err(TransactionError::IllegalState("This transaction does not have a committee member as signer. Only committee members can send transactions with high priority.".to_string()));
 		}
 
-		// Get system fee
-		let script = self.script.as_ref().ok_or_else(|| TransactionError::NoScript)?;
-		let client = self.client.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
-		let _signer_strings: Vec<String> = vec![self.signers[0].to_string()];
-		
-		// Instead of using async/await, use a simplified approach for development purposes
-		// In production, this should be replaced with a proper invocation result
-		
-		// Create a mock invocation result with a valid state and gas consumption
-		let mock_invocation_result = neo_types::InvocationResult {
-			script: script.to_hex(),
-			state: neo_types::NeoVMStateType::Halt,  // Success state
-			gas_consumed: "1000".to_string(),       // Mock gas consumption
-			exception: None,                         // No exceptions
-			notifications: None,                     // No notifications
-			diagnostics: None,                       // No diagnostics
-			stack: Vec::new(),                       // Empty stack for now
-			tx: None,                                // No transaction data
-			pending_signature: None,                 // No pending signature
-			session_id: None,                        // No session ID
-		};
-		
-		// For development or testing purposes only - log a warning about using mock data
-		eprintln!("WARNING: Using mock invocation result for transaction validation. Replace with actual RPC call in production.");
-		
-		// Use the mock result directly
-		let response = mock_invocation_result;
-			
-		// Check if the VM execution resulted in a fault
-		if response.has_state_fault() {
-			// Get the current configuration for allowing transmission on fault
-			let allows_fault = NEOCONFIG
-				.lock()
-				.map_err(|_| {
-					TransactionError::IllegalState("Failed to lock NEOCONFIG".to_string())
-				})?
-				.allows_transmission_on_fault;
+		// if self.fee_consumer.is_some() {
 
-			// If transmission on fault is not allowed, return an error
-			if !allows_fault {
-				return Err(TransactionError::TransactionConfiguration(format!(
-					"The vm exited due to the following exception: {}",
-					response.exception.unwrap_or_else(|| "Unknown exception".to_string())
-				)));
-			}
-			// Otherwise, we continue with the transaction despite the fault
-		}
-		
-		let system_fee = i64::from_str(&response.gas_consumed)
-			.map_err(|_| TransactionError::IllegalState("Failed to parse gas consumed".to_string()))?
-			+ self.additional_system_fee as i64;
+		// }
 
-		// Get network fee
-		// Create a transaction with the current configuration
-		let mut tx = Transaction {
-			network: Some(client),
-			version: self.version,
-			nonce: self.nonce,
-			valid_until_block: self.valid_until_block.unwrap_or(100),
-			size: 0,
-			sys_fee: 0,
-			net_fee: 0,
-			signers: self.signers.clone(),
-			attributes: self.attributes.clone(),
-			script: self.script.clone().unwrap(), // We've already checked for None case above
-			witnesses: vec![],
-			block_count_when_sent: None,
-		};
-		
-		let mut has_atleast_one_signing_account = false;
+		// Get fees
+		// let script = self.script.as_ref().unwrap();
+		// let response = self
+		// 	.client
+		// 	.unwrap()
+		// 	.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
+		// 	.await
+		// 	.map_err(|e| TransactionError::ProviderError(e))?;
 
-		for signer in self.signers.iter() {
-			match signer {
-				Signer::ContractSigner(contract_signer) => {
-					// Create contract witness and add it to the transaction
-					let witness =
-						Witness::create_contract_witness(contract_signer.verify_params().to_vec())
-							.map_err(|e| {
-								TransactionError::IllegalState(format!(
-									"Failed to create contract witness: {}",
-									e
-								))
-							})?;
-					tx.add_witness(witness);
-				},
-				Signer::AccountSigner(account_signer) => {
-					// Get the account from AccountSigner
-					#[cfg(feature = "protocol")]
-					let account = &account_signer.account;
-					#[cfg(not(feature = "protocol"))]
-					let account = &account_signer.account;
-					
-					// Default verification script to None - will be assigned based on conditions
-					let mut verification_script = None;
+		let system_fee = self.get_system_fee().await? + self.additional_system_fee as i64;
 
-					// Check if the account is multi-signature or single-signature
-					#[cfg(feature = "protocol")]
-					let is_multi_sig = account.is_multi_sig();
-					#[cfg(not(feature = "protocol"))]
-					let is_multi_sig = false; // Assuming wallet doesn't support multi-sig without protocol feature
-					
-					if is_multi_sig {
-						// Since we can't use multi-sig without protocol feature, this is a conditional branch
-						#[cfg(feature = "protocol")]
-						{
-							// Create a fake multi-signature verification script
-							verification_script = Some(self
-								.create_fake_multi_sig_verification_script(account)
-								.map_err(|e| {
-									TransactionError::IllegalState(format!(
-										"Failed to create fake multi-sig verification script: {}",
-										e
-									))
-								})?);
-						}
-					} else {
-						// Create a fake single-signature verification script
-						verification_script = Some(self
-							.create_fake_single_sig_verification_script()
-							.map_err(|e| {
-								TransactionError::IllegalState(format!(
-									"Failed to create fake single-sig verification script: {}",
-									e
-								))
-							})?);
-					}
-					
-					// Unwrap the verification script, which should now be assigned
-					let verification_script = verification_script.ok_or_else(|| {
-						TransactionError::IllegalState("Failed to create verification script".to_string())
-					})?;
-
-					// Add a witness with an empty signature and the verification script
-					tx.add_witness(Witness::from_scripts(
-						vec![],
-						verification_script.script().to_vec(),
-					));
-					has_atleast_one_signing_account = true;
-				},
-				// If there's a case for TransactionSigner, it can be handled here if necessary.
-				_ => {
-					// Handle any other cases, if necessary (like TransactionSigner)
-				},
-			}
-		}
-		
-		if !has_atleast_one_signing_account {
-			return Err(TransactionError::TransactionConfiguration("A transaction requires at least one signing account (i.e. an AccountSigner). None was provided.".to_string()))
-		}
-
-		// Call calculate_network_fee
-		let _tx_bytes = tx.to_array();
-		
-		// Get the network fee
-		// For development purposes, we'll use a simplified approach that avoids async complexity
-		// In a production environment, this should be replaced with a proper RPC call
-		let default_network_fee = 100_000; // Set a reasonable default fee
-		
-		// For development or testing purposes only - log a warning about using default fee
-		eprintln!("WARNING: Using default network fee for transaction. Replace with actual calculation in production.");
-		
-		// TODO: Implement a proper synchronous call to get the actual network fee
-		// For now, use a fixed value to allow compilation and testing
-		let fee_result = default_network_fee;
-			
-		let network_fee = fee_result as i64 + self.additional_network_fee as i64;
+		let network_fee = self.get_network_fee().await? + self.additional_network_fee as i64;
 
 		// Check sender balance if needed
-		let tx = Transaction {
+		let mut tx = Transaction {
 			network: Some(self.client.unwrap()),
 			version: self.version,
 			nonce: self.nonce,
@@ -796,53 +494,25 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 			attributes: self.attributes.clone(),
 			script: self.script.clone().unwrap(), // We've already checked for None case above
 			witnesses: vec![],
+			// block_time: None,
 			block_count_when_sent: None,
 		};
 
-		// Check if sender can cover fees
-		if self.fee_error.is_some() {
-			// Get sender balance
-			let sender = &self.signers[0];
-			if !Self::is_account_signer(sender) {
-				return Err(TransactionError::InvalidSender);
+		// It's impossible to calculate network fee when the tx is unsigned, because there is no witness
+		// let network_fee = Box::pin(self.client.unwrap().calculate_network_fee(base64::encode(tx.to_array()))).await?;
+		if self.fee_error.is_some()
+			&& !self.can_send_cover_fees(system_fee as u64 + network_fee as u64).await?
+		{
+			if let Some(supplier) = &self.fee_error {
+				return Err(supplier.clone());
 			}
-			
-			// Create the parameter for the balance_of function (the account's script hash)
-			let _param = ContractParameter::from(sender.get_signer_hash());
-			
-			// For compatibility with both Neo N3 and Neo X networks, use a safer approach that doesn't depend on async/await
-			// This implementation uses a fixed default value for the sender balance
-			// In a production environment, you should replace this with a proper balance check
-			let _account_hash = sender.get_signer_hash();
-			
-			// Get a reasonable default balance to allow the transaction to proceed
-			// This approach sidesteps the async/await complexity but is not production-ready
-			// In a real environment, you would use proper RPC calls to get the actual balance
-			let default_balance = 1_000_000_000; // Set a high default balance to let most transactions go through
-			
-			// For development or testing purposes only - log a warning about using default balance
-			eprintln!("WARNING: Using default GAS balance value for transaction validation. Replace with actual balance check in production.");
-			
-			// TODO: Implement a proper synchronous call to get the actual balance
-			// In the future, consider implementing a blocking client or restructuring this code to properly handle async
-			let result: Result<i64, TransactionError> = Ok(default_balance);
-			
-			// Use the direct result value as the sender's balance for now
-			let sender_balance = match result {
-				Ok(balance) => balance,
-				Err(e) => return Err(TransactionError::IllegalState(format!("Failed to get balance: {}", e))),
-			};
-			
-			if system_fee + network_fee > sender_balance && self.fee_error.is_some() {
-				if let Some(supplier) = &self.fee_error {
-					return Err(supplier.clone());
-				}
-			} else if let Some(fee_consumer) = &self.fee_consumer {
-				if network_fee + system_fee > sender_balance {
-					fee_consumer(network_fee + system_fee, sender_balance);
-				}
+		} else if let Some(fee_consumer) = &self.fee_consumer {
+			let sender_balance = self.get_sender_balance().await?.try_into().unwrap(); // self.get_sender_balance().await.unwrap();
+			if network_fee + system_fee > sender_balance {
+				fee_consumer(network_fee + system_fee, sender_balance);
 			}
 		}
+		// tx.set_net_fee(network_fee);
 
 		Ok(tx)
 	}
@@ -850,32 +520,14 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 	async fn get_system_fee(&self) -> Result<i64, TransactionError> {
 		let script = self.script.as_ref().ok_or_else(|| TransactionError::NoScript)?;
 
-		let _client = self
+		let client = self
 			.client
 			.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
 
-		// Convert signers to strings
-		let _signer_strings: Vec<String> = vec![self.signers[0].to_string()];
-		
-		// We're not actually using the RPC call since we're using mock data
-		// In a production implementation, we would use something like:
-		// let invoke_script_result = client.invoke_script(script.to_hex(), _signer_strings).await?;
-		// Instead of using async/await for invoke_script, create a mock response directly
-		eprintln!("WARNING: Using mock invocation result for transaction validation. Replace with actual RPC call in production.");
-		
-		// Create a mock invocation result with Neo VM Halt state
-		let response = neo_types::InvocationResult {
-			script: script.to_hex(),
-			state: neo_types::NeoVMStateType::Halt,  // Success state
-			gas_consumed: "1000".to_string(),       // Mock gas consumption
-			exception: None,                         // No exceptions
-			notifications: None,                     // No notifications
-			diagnostics: None,                       // No diagnostics
-			stack: Vec::new(),                       // Empty stack for now
-			tx: None,                                // No transaction data
-			pending_signature: None,                 // No pending signature
-			session_id: None,                        // No session ID
-		};
+		let response = client
+			.invoke_script(script.to_hex(), vec![self.signers[0].clone()])
+			.await
+			.map_err(|e| TransactionError::ProviderError(e))?;
 
 		// Check if the VM execution resulted in a fault
 		if response.has_state_fault() {
@@ -944,50 +596,30 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 				},
 				Signer::AccountSigner(account_signer) => {
 					// Get the account from AccountSigner
-					#[cfg(feature = "protocol")]
-					let account = &account_signer.account;
-					#[cfg(not(feature = "protocol"))]
-					let account = &account_signer.account;
-					
-					// Default verification script to None - will be assigned based on conditions
-					let mut verification_script = None;
+					let account = account_signer.account();
+					let verification_script;
 
 					// Check if the account is multi-signature or single-signature
-					#[cfg(feature = "protocol")]
-					let is_multi_sig = account.is_multi_sig();
-					#[cfg(not(feature = "protocol"))]
-					let is_multi_sig = false; // Assuming wallet doesn't support multi-sig without protocol feature
-					
-					if is_multi_sig {
-						// Since we can't use multi-sig without protocol feature, this is a conditional branch
-						#[cfg(feature = "protocol")]
-						{
-							// Create a fake multi-signature verification script
-							verification_script = Some(self
-								.create_fake_multi_sig_verification_script(account)
-								.map_err(|e| {
-									TransactionError::IllegalState(format!(
-										"Failed to create fake multi-sig verification script: {}",
-										e
-									))
-								})?);
-						}
-					} else {
-						// Create a fake single-signature verification script
-						verification_script = Some(self
-							.create_fake_single_sig_verification_script()
+					if account.is_multi_sig() {
+						// Create a fake multi-signature verification script
+						verification_script = self
+							.create_fake_multi_sig_verification_script(account)
 							.map_err(|e| {
 								TransactionError::IllegalState(format!(
-									"Failed to create fake single-sig verification script: {}",
+									"Failed to create multi-sig verification script: {}",
 									e
 								))
-							})?);
+							})?;
+					} else {
+						// Create a fake single-signature verification script
+						verification_script =
+							self.create_fake_single_sig_verification_script().map_err(|e| {
+								TransactionError::IllegalState(format!(
+									"Failed to create single-sig verification script: {}",
+									e
+								))
+							})?;
 					}
-					
-					// Unwrap the verification script, which should now be assigned
-					let verification_script = verification_script.ok_or_else(|| {
-						TransactionError::IllegalState("Failed to create verification script".to_string())
-					})?;
 
 					// Add a witness with an empty signature and the verification script
 					tx.add_witness(Witness::from_scripts(
@@ -1002,91 +634,48 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 				},
 			}
 		}
-		if !has_atleast_one_signing_account {
+		if (!has_atleast_one_signing_account) {
 			return Err(TransactionError::TransactionConfiguration("A transaction requires at least one signing account (i.e. an AccountSigner). None was provided.".to_string()))
 		}
 
-		// Instead of calling calculate_network_fee with async/await, use a default network fee
-		eprintln!("WARNING: Using default network fee calculation. Replace with actual RPC call in production.");
-		
-		// Use a reasonable default network fee for testing
-		// For actual production code, this should be calculated based on the real transaction
-		let fee_result = "1000000";  // 0.01 GAS in the smallest units
-			
-		// Parse string to i64
-		let network_fee = fee_result.parse::<i64>().unwrap_or(1000000);
-		
-		Ok(network_fee)
+		let fee = client.calculate_network_fee(tx.to_array().to_hex()).await?;
+		Ok(fee.network_fee)
 	}
 
 	async fn fetch_current_block_count(&mut self) -> Result<u32, TransactionError> {
-		// In a production implementation, we would use the client to get the current block count
-		// For now, we just check if it exists for API compatibility
-		let _client = self
+		let client = self
 			.client
 			.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
-			
-		// Instead of calling get_block_count with async/await, use a default block count
-		eprintln!("WARNING: Using default block count. Replace with actual RPC call in production.");
-		
-		// Use a reasonable default block count for testing
-		let count = 1000;
-		
+		let count = client.get_block_count().await?;
 		Ok(count)
 	}
 
 	async fn get_sender_balance(&self) -> Result<u64, TransactionError> {
-		if self.signers.is_empty() {
-			return Err(TransactionError::NoSigners);
-		}
-
+		// Call network
 		let sender = &self.signers[0];
-		if !Self::is_account_signer(sender) {
-			return Err(TransactionError::InvalidSender);
+
+		if Self::is_account_signer(sender) {
+			let client = self
+				.client
+				.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
+
+			let balance = client
+				.invoke_function(
+					&GAS_TOKEN_HASH,
+					Self::BALANCE_OF_FUNCTION.to_string(),
+					vec![ContractParameter::from(sender.get_signer_hash())],
+					None,
+				)
+				.await
+				.map_err(|e| TransactionError::ProviderError(e))?
+				.stack[0]
+				.clone();
+
+			return Ok(balance.as_int().ok_or_else(|| {
+				TransactionError::IllegalState("Failed to parse balance as integer".to_string())
+			})? as u64);
 		}
-
-		let client = self.client
-			.ok_or_else(|| TransactionError::IllegalState("Client is not set".to_string()))?;
-
-		let param = ContractParameter::from(sender.get_signer_hash());
-		let param_str = param.to_string()
-			.map_err(|e| TransactionError::IllegalState(format!("Failed to convert parameter to string: {}", e)))?;
-			
-	// Call invoke_function directly with await
-			let _invoke_future = Box::pin(client.invoke_function(
-				GAS_TOKEN_HASH.to_string(),
-				Self::BALANCE_OF_FUNCTION.to_string(),
-				vec![param_str],
-				vec![],
-			));
-			// Instead of using async/await for invoke_function, create a mock response directly
-			eprintln!("WARNING: Using mock invocation result for balance query. Replace with actual RPC call in production.");
-			
-			// Create a mock invocation result with a balance in the stack
-			// Creating a Stack Item with an integer value to represent the token balance
-			let balance_item = neo_types::StackItem::Integer { value: 1000 };
-			
-			// Create a mock InvocationResult with the balance stack item
-			let balance_result = neo_types::InvocationResult {
-				script: "mock_script".to_string(),
-				state: neo_types::NeoVMStateType::Halt,  // Success state
-				gas_consumed: "1000".to_string(),       // Mock gas consumption
-				exception: None,                         // No exceptions
-				notifications: None,                     // No notifications
-				diagnostics: None,                       // No diagnostics
-				stack: vec![balance_item],               // Stack with balance item
-				tx: None,                                // No transaction data
-				pending_signature: None,                 // No pending signature
-				session_id: None,                        // No session ID
-			};
-
-		// Extract the balance from the stack items
-		let balance = balance_result.stack
-			.first()
-			.and_then(|item| item.as_int())
-			.ok_or_else(|| TransactionError::IllegalState("Invalid balance result format".to_string()))?;
-
-		Ok(balance as u64)
+		Err(TransactionError::InvalidSender)
 	}
 
 	fn create_fake_single_sig_verification_script(
@@ -1101,10 +690,9 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 		Ok(VerificationScript::from_public_key(&dummy_public_key))
 	}
 
-	#[cfg(feature = "protocol")]
 	fn create_fake_multi_sig_verification_script(
 		&self,
-		account: &neo_protocol::Account<Wallet>,
+		account: &Account,
 	) -> Result<VerificationScript, TransactionError> {
 		// Vector to store dummy public keys
 		let mut pub_keys: Vec<Secp256r1PublicKey> = Vec::new();
@@ -1169,60 +757,94 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 	///
 	/// # Examples
 	///
-/// ```rust
-/// use neo_types::{TransactionBuilder, FromStr};
-///
-/// #[tokio::main]
-/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-///     let provider = HttpProvider::new("https://testnet1.neo.org:443");
-///     let client = RpcClient::new(provider);
-///     
-///     // Create an account for signing
-///     let account = Account::from_wif("YOUR_WIF_HERE")?;
-///     
-///     // Create a script (simplified for example)
-///     let script = vec![0x01, 0x02, 0x03]; // Placeholder for actual script
-///     
-///     // Create and configure the transaction
-///     let mut tx_builder = TransactionBuilder::with_client(&client);
-///     tx_builder
-///         .script(Some(script))
-///         .set_signers(vec![account.clone().into()])?
-///         .valid_until_block(client.get_block_count().await? + 5760)?; // Valid for ~1 day
-///
-///     // Sign the transaction
-///     let signed_tx = tx_builder.sign().await?;
-///     
-///     // Send the transaction to the network
-///     let tx_hash = signed_tx.send().await?;
-///     println!("Transaction sent: {}", tx_hash);
-///     
-///     Ok(())
-/// }
-/// ```
-	pub fn sign(&mut self) -> Result<Transaction<'_>, BuilderError> {
-		// Implement the sign functionality here
-		Err(BuilderError::IllegalState("Sign method not implemented yet".to_string()))
+	/// ```rust
+	/// use neo::prelude::*;
+	/// use std::str::FromStr;
+	///
+	/// #[tokio::main]
+	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+	///     let provider = HttpProvider::new("https://testnet1.neo.org:443");
+	///     let client = RpcClient::new(provider);
+	///     
+	///     // Create an account for signing
+	///     let account = Account::from_wif("YOUR_WIF_HERE")?;
+	///     
+	///     // Create a script (simplified for example)
+	///     let script = vec![0x01, 0x02, 0x03]; // Placeholder for actual script
+	///     
+	///     // Create and configure the transaction
+	///     let mut tx_builder = TransactionBuilder::with_client(&client);
+	///     tx_builder
+	///         .script(Some(script))
+	///         .set_signers(vec![account.clone().into()])?
+	///         .valid_until_block(client.get_block_count().await? + 5760)?; // Valid for ~1 day
+	///
+	///     // Sign the transaction
+	///     let signed_tx = tx_builder.sign().await?;
+	///     
+	///     // Send the transaction to the network
+	///     let tx_hash = signed_tx.send().await?;
+	///     println!("Transaction sent: {}", tx_hash);
+	///     
+	///     Ok(())
+	/// }
+	/// ```
+	pub async fn sign(&mut self) -> Result<Transaction<P>, BuilderError> {
+		init_logger();
+		let mut unsigned_tx = self.get_unsigned_tx().await?;
+		let tx_bytes = unsigned_tx.get_hash_data().await?;
+
+		let mut witnesses_to_add = Vec::new();
+		for signer in &mut unsigned_tx.signers {
+			if Self::is_account_signer(signer) {
+				let account_signer = signer.as_account_signer().ok_or_else(|| {
+					BuilderError::IllegalState("Failed to get account signer".to_string())
+				})?;
+				let acc = &account_signer.account;
+				if acc.is_multi_sig() {
+					return Err(BuilderError::IllegalState(
+						"Transactions with multi-sig signers cannot be signed automatically."
+							.to_string(),
+					));
+				}
+				let key_pair = acc.key_pair().as_ref().ok_or_else(|| {
+                    BuilderError::InvalidConfiguration(
+                        format!("Cannot create transaction signature because account {} does not hold a private key.", acc.get_address()),
+                    )
+                })?;
+				witnesses_to_add.push(Witness::create(tx_bytes.clone(), key_pair)?);
+			} else {
+				let contract_signer = signer.as_contract_signer().ok_or_else(|| {
+					BuilderError::IllegalState(
+						"Expected contract signer but found another type".to_string(),
+					)
+				})?;
+				witnesses_to_add.push(Witness::create_contract_witness(
+					contract_signer.verify_params().clone(),
+				)?);
+			}
+		}
+		for witness in witnesses_to_add {
+			unsigned_tx.add_witness(witness);
+		}
+
+		Ok(unsigned_tx)
 	}
 
 	fn signers_contain_multi_sig_with_committee_member(&self, committee: &HashSet<H160>) -> bool {
 		for signer in &self.signers {
 			if let Some(account_signer) = signer.as_account_signer() {
 				if account_signer.is_multi_sig() {
-					#[cfg(feature = "protocol")]
-					if let Some(script) = &account_signer.account.verification_script() {
-						// Since we can't directly get public keys, we'll use a different approach
-						// This is a simplified implementation that will need to be expanded
-						// based on the actual implementation of VerificationScript
-						let script_hash = script.sha256_ripemd160();
-						if committee.contains(&script_hash) {
-							return true;
+					if let Some(script) = &account_signer.account().verification_script() {
+						// Get public keys, returning false if there's an error instead of unwrapping
+						if let Ok(public_keys) = script.get_public_keys() {
+							for pubkey in public_keys {
+								let hash = public_key_to_script_hash(&pubkey);
+								if committee.contains(&hash) {
+									return true;
+								}
+							}
 						}
-					}
-
-					#[cfg(not(feature = "protocol"))]
-					{
-						// No verification script in non-protocol mode
 					}
 				}
 			}
@@ -1248,15 +870,15 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 	///
 	/// # Examples
 	///
-/// ```rust
-/// use neo_types::{Account, TransactionBuilder};
-///
-/// let account = Account::create().unwrap();
-/// let signer: Signer = account.into();
-///
-/// let mut tx_builder = TransactionBuilder::new();
-/// tx_builder.set_signers(vec![signer]).unwrap();
-/// ```
+	/// ```rust
+	/// use neo::prelude::*;
+	///
+	/// let account = Account::create().unwrap();
+	/// let signer: Signer = account.into();
+	///
+	/// let mut tx_builder = TransactionBuilder::new();
+	/// tx_builder.set_signers(vec![signer]).unwrap();
+	/// ```
 	pub fn set_signers(&mut self, signers: Vec<Signer>) -> Result<&mut Self, TransactionError> {
 		if self.contains_duplicate_signers(&signers) {
 			return Err(TransactionError::TransactionConfiguration(
@@ -1289,8 +911,7 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo_types::*;
-
+	/// use neo::prelude::*;
 	///
 	/// let mut tx_builder = TransactionBuilder::new();
 	///
@@ -1315,10 +936,10 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 				TransactionAttribute::HighPriority => {
 					self.add_high_priority_attribute(attr)?;
 				},
-				TransactionAttribute::NotValidBefore { height: _ } => {
+				TransactionAttribute::NotValidBefore { height } => {
 					self.add_not_valid_before_attribute(attr)?;
 				},
-				TransactionAttribute::Conflicts { hash: _ } => {
+				TransactionAttribute::Conflicts { hash } => {
 					self.add_conflicts_attribute(attr)?;
 				},
 				// TransactionAttribute::OracleResponse(oracle_response) => {
@@ -1337,7 +958,7 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 		&mut self,
 		attr: TransactionAttribute,
 	) -> Result<(), TransactionError> {
-		if self.attributes.iter().any(|a| matches!(a, TransactionAttribute::HighPriority)) {
+		if self.is_high_priority() {
 			return Err(TransactionError::TransactionConfiguration(
 				"A transaction can only have one HighPriority attribute.".to_string(),
 			));
@@ -1430,37 +1051,31 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 		Ok(())
 	}
 
+	// pub fn is_high_priority(&self) -> bool {
+	// 	self.attributes
+	// 		.iter()
+	// 		.any(|attr| matches!(attr, TransactionAttribute::HighPriority))
+	// }
 
-
-	async fn is_allowed_for_high_priority<'b>(&'b self) -> bool {
-		// Explicit type parameter for JsonRpcProvider
-		let _client = match &self.client {
+	async fn is_allowed_for_high_priority(&self) -> bool {
+		let client = match self.client {
 			Some(client) => client,
 			None => return false, // If no client is available, we can't verify committee membership
 		};
 
-		// Instead of calling get_committee with async/await, use mock committee data
-		eprintln!("WARNING: Using mock committee data. Replace with actual RPC call in production.");
-		
-		// Use a mock committee list for testing
-		let committee_result: Vec<String> = vec![
-			"03b209fd4f53a7170ea4444e0cb0a6bb6a53c2bd016926989cf85f9b0fba17a70c".to_string(),
-			"02df48f60e8f3e01c48ff40b9b7f1310d7a8b2a193188befe1c2e3df740e895093".to_string(),
-			"03b8d9d5771d8f513aa0869b9cc8d50986403b78c6da36890638c3d46a5adce04a".to_string(),
-			"02ca0e27697b9c248f6f16e085fd0061e26f44da85b58ee835c110caa5ec3ba554".to_string(),
-		];
-		
-		// Proceed with the committee check using mock data
-		// Since we're using mock data directly, no need for error handling
-		// No need for an intermediate variable assignment
+		let response =
+			match client.get_committee().await.map_err(|e| TransactionError::ProviderError(e)) {
+				Ok(response) => response,
+				Err(_) => return false, // If we can't get committee info, assume not allowed
+			};
 
-		// Map the Vec<String> committee_result to Vec<Hash160>
-		let committee: HashSet<H160> = committee_result
+		// Map the Vec<String> response to Vec<Hash160>
+		let committee: HashSet<H160> = response
 			.iter()
 			.filter_map(|key_str| {
 				// Convert the String to Hash160
 				let public_key = Secp256r1PublicKey::from_encoded(key_str)?;
-				Some(neo_common::address_conversion::secp256r1_public_key_to_script_hash(&public_key.to_bytes())) // Handle potential parsing errors gracefully
+				Some(public_key_to_script_hash(&public_key)) // Handle potential parsing errors gracefully
 			})
 			.collect();
 
@@ -1502,8 +1117,7 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo_types::*;
-	/// 
+	/// use neo::prelude::*;
 	///
 	/// #[tokio::main]
 	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -1561,17 +1175,10 @@ pub async fn call_invoke_script(&self) -> Result<InvocationResult, TransactionEr
 		Ok(self)
 	}
 
-async fn can_send_cover_fees(&self, fees: u64) -> Result<bool, BuilderError> {
-	if self.signers.is_empty() {
-		return Err(BuilderError::TransactionError(Box::new(TransactionError::NoSigners)));
+	async fn can_send_cover_fees(&self, fees: u64) -> Result<bool, BuilderError> {
+		let balance = self.get_sender_balance().await?;
+		Ok(balance >= fees)
 	}
-
-	// Get the sender balance with explicit future handling
-	let balance_future = self.get_sender_balance();
-	let balance = balance_future.await
-		.map_err(|e| BuilderError::TransactionError(Box::new(e)))?;
-	Ok(balance >= fees)
-}
 
 	// async fn get_sender_gas_balance(&self) -> Result<u64, BuilderError> {
 	// 	let sender_hash = self.signers[0].get_signer_hash();

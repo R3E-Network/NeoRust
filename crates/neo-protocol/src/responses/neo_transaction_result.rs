@@ -1,9 +1,9 @@
-use neo_common::{
-    deserialize_h256, deserialize_h256_option, serialize_h256, serialize_h256_option,
-    TransactionAttributeType as TransactionAttribute, TransactionSigner, WitnessRule, WitnessScopeType as WitnessScope
+use crate::{
+	builder::{TransactionAttribute, TransactionSigner, WitnessRule, WitnessScope},
+	deserialize_h256, deserialize_h256_option,
+	neo_protocol::NeoWitness,
+	serialize_h256, serialize_h256_option, NeoVMStateType,
 };
-use neo_types::NeoVMStateType;
-use crate::NeoWitness;
 use primitive_types::{H160, H256};
 use serde::{Deserialize, Serialize};
 

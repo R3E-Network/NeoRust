@@ -13,6 +13,11 @@ categories.workspace = true
 keywords.workspace = true
 
 [dependencies]
+# Internal crates
+# Removing neo-crypto dependency to break circular dependency
+# neo-crypto = { path = "../neo-crypto", version = "0.1.9" }
+neo-error = { path = "../neo-error", version = "0.1.9" }
+
 # Serialization
 serde = { workspace = true }
 serde_json = { workspace = true }

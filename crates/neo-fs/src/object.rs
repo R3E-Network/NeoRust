@@ -19,7 +19,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::types::{Attributes, ContainerId, ObjectId, ObjectType, OwnerId};
+use crate::neo_fs::types::{Attributes, ContainerId, ObjectId, ObjectType, OwnerId};
 
 /// Represents a storage object in NeoFS
 #[derive(Debug, Clone, Serialize, Deserialize)]

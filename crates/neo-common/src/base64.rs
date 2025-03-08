@@ -11,7 +11,7 @@ pub fn encode(data: &[u8]) -> String {
 }
 
 /// Decodes a base64 string to bytes.
-pub fn decode(s: &str) -> Result<Vec<u8>, base64::DecodeError> {
+pub fn decode(s: &str) -> Result<Vec<u8>, ::base64::DecodeError> {
     use base64::Engine;
     base64::engine::general_purpose::STANDARD.decode(s.as_bytes())
 }

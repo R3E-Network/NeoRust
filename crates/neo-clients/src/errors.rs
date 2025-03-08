@@ -1,12 +1,7 @@
 use std::{error::Error, fmt::Debug, sync::Arc};
 
-use neo_crypto::CryptoError;
-use crate::JsonRpcError;
-use neo_types::TypeError;
+use crate::{crypto::CryptoError, neo_clients::JsonRpcError, TypeError};
 use thiserror::Error;
-
-// We'll use the implementation in error_adapter.rs instead
-
 
 #[derive(Debug, Error)]
 /// An error thrown when making a call to the provider
@@ -64,9 +59,6 @@ pub enum ProviderError {
 	/// Network not found
 	#[error("Network not found")]
 	NetworkNotFound,
-	/// Other error
-	#[error("Other error: {0}")]
-	Other(String),
 }
 
 impl PartialEq for ProviderError {
@@ -84,7 +76,6 @@ impl PartialEq for ProviderError {
 			(ProviderError::CryptoError(a), ProviderError::CryptoError(b)) => a == b,
 			(ProviderError::TypeError(a), ProviderError::TypeError(b)) => a == b,
 			(ProviderError::InvalidPassword, ProviderError::InvalidPassword) => true,
-			(ProviderError::Other(a), ProviderError::Other(b)) => a == b,
 			_ => false,
 		}
 	}
@@ -115,7 +106,6 @@ impl Clone for ProviderError {
 			ProviderError::LockError => ProviderError::LockError,
 			ProviderError::ProtocolNotFound => ProviderError::ProtocolNotFound,
 			ProviderError::NetworkNotFound => ProviderError::NetworkNotFound,
-			ProviderError::Other(message) => ProviderError::Other(message.clone()),
 		}
 	}
 }

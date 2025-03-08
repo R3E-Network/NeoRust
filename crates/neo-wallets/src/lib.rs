@@ -46,6 +46,8 @@ mod wallet;
 mod wallet_signer;
 mod wallet_trait;
 mod yubi;
+mod test_hash;
+mod test_hash_usage;
 
 // Re-export all public items
 pub use bip39_account::*;
@@ -55,6 +57,8 @@ pub use wallet::*;
 pub use wallet_signer::*;
 pub use wallet_trait::*;
 pub use yubi::*;
+pub use test_hash::*;
+pub use test_hash_usage::*;
 
 // Type aliases for common wallet types
 pub type LocalWallet = WalletSigner<neo_protocol::Account>;

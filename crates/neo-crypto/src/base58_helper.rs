@@ -10,7 +10,6 @@ use sha2::{Digest, Sha256};
 ///
 /// ```
 ///
-/// use NeoRust::prelude::base58check_encode;
 /// let bytes = [0x01, 0x02, 0x03];
 /// let encoded = base58check_encode(&bytes);
 /// ```

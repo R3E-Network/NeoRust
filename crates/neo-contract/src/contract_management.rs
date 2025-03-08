@@ -3,23 +3,13 @@ use futures::{FutureExt, TryFutureExt};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
-use neo_builder::TransactionBuilder;
-use neo_clients::{APITrait, JsonRpcProvider, RpcClient};
-use crate::contract_error::ContractError;
-use crate::traits::smart_contract::SmartContractTrait;
-use neo_common::{deserialize_script_hash, serialize_script_hash};
-use neo_types::{ScriptHash, ContractState, ContractParameter, NefFile, ContractIdentifiers};
-use neo_types::{ContractManifest, ContractNef};
-use neo_crypto::HashableForVec;
-use neo_protocol::contract_state::{ContractManifest, ContractNef};
-
-use crate::traits::read_only::ReadOnly;
-
-impl From<neo_clients::ProviderError> for ContractError {
-	fn from(err: neo_clients::ProviderError) -> Self {
-		ContractError::ProviderError(err.to_string())
-	}
-}
+use crate::{
+	builder::TransactionBuilder,
+	neo_clients::{APITrait, JsonRpcProvider, RpcClient},
+	neo_contract::{ContractError, SmartContractTrait},
+	ContractIdentifiers,
+};
+use neo::prelude::*;
 
 /// A struct representing contract management functionalities
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,11 +18,11 @@ pub struct ContractManagement<'a, P: JsonRpcProvider> {
 	#[serde(serialize_with = "serialize_script_hash")]
 	script_hash: ScriptHash,
 	#[serde(skip)]
-	provider: Option<&'a P>,
+	provider: Option<&'a RpcClient<P>>,
 }
 
-impl<'a, P: JsonRpcProvider + APITrait + 'static> ContractManagement<'a, P> {
-	pub fn new(script_hash: H160, provider: Option<&'a P>) -> Self {
+impl<'a, P: JsonRpcProvider + 'static> ContractManagement<'a, P> {
+	pub fn new(script_hash: H160, provider: Option<&'a RpcClient<P>>) -> Self {
 		Self { script_hash, provider }
 	}
 
@@ -131,18 +121,10 @@ impl<'a, P: JsonRpcProvider + APITrait + 'static> ContractManagement<'a, P> {
 		nef: &NefFile,
 		manifest: &[u8],
 		data: Option<ContractParameter>,
-	) -> Result<TransactionBuilder<'_>, ContractError> {
+	) -> Result<TransactionBuilder<P>, ContractError> {
 		let params = vec![nef.into(), manifest.into(), data.unwrap()];
 		let tx = self.invoke_function("deploy", params).await;
 		tx
-	}
-
-	pub async fn deploy_contract(
-		&self,
-		nef: ContractNef,
-		manifest: ContractManifest,
-	) -> Result<TransactionBuilder<'_>, ContractError> {
-		// ... existing code ...
 	}
 }
 

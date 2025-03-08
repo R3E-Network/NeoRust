@@ -3,11 +3,10 @@
 //! This module provides script hashes and information about well-known
 //! contracts deployed on Neo N3 networks that developers may want to interact with.
 
-use neo_types::script_hash::ScriptHash;
+use crate::neo_types::script_hash::ScriptHash;
 use std::str::FromStr;
 
-use neo3::prelude::*;
-use crate::ContractError;
+use crate::{neo_contract::ContractError, prelude::*};
 
 /// Enum defining which Neo N3 network a contract is deployed on
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

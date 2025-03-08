@@ -1,7 +1,4 @@
-use neo_builder::BuilderError;
-use neo_crypto::CryptoError;
-use neo_types::TypeError;
-use crate::wallet::WalletError;
+use crate::{builder::BuilderError, crypto::CryptoError, neo_wallets::WalletError, TypeError};
 use hex::FromHexError;
 use thiserror::Error;
 

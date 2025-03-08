@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use getset::{Getters, Setters};
 
 use crate::{
-    crypto_adapter::Secp256r1PublicKey,
     witness_scope::WitnessScope,
     witness_rule::WitnessRule,
     serde_utils::{
