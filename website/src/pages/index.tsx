@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'gatsby';
 import Layout from '../components/Layout';
 import CodeBlock from '../components/CodeBlock';
@@ -7,8 +7,73 @@ import Particles from "react-particles";
 import { loadFull } from 'tsparticles';
 import { useInView } from 'react-intersection-observer';
 import type { Engine } from 'tsparticles-engine';
+import axios from 'axios';
+
+// Interface for blockchain info
+interface BlockchainInfo {
+  blockHeight: number;
+  blockHash: string;
+  timestamp: string;
+  loading: boolean;
+}
 
 const IndexPage: React.FC = () => {
+  // State for blockchain info
+  const [blockchainInfo, setBlockchainInfo] = useState<BlockchainInfo>({
+    blockHeight: 0,
+    blockHash: '',
+    timestamp: '',
+    loading: true
+  });
+
+  // Fetch blockchain info
+  const fetchBlockchainInfo = async () => {
+    try {
+      // Use Neo RPC endpoint
+      const response = await axios.post('https://rpc1.neo.org:443', {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getblockcount', 
+        params: []
+      });
+      
+      const blockCount = response.data.result;
+      
+      // Get the latest block info
+      const blockResponse = await axios.post('https://rpc1.neo.org:443', {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getblock', 
+        params: [blockCount - 1, 1]
+      });
+      
+      const block = blockResponse.data.result;
+      const blockTime = new Date(block.time * 1000).toLocaleString();
+      
+      setBlockchainInfo({
+        blockHeight: blockCount - 1,
+        blockHash: block.hash,
+        timestamp: blockTime,
+        loading: false
+      });
+    } catch (error) {
+      console.error('Error fetching blockchain info:', error);
+      setBlockchainInfo(prev => ({...prev, loading: false}));
+    }
+  };
+
+  // Fetch blockchain info on mount and periodically
+  useEffect(() => {
+    fetchBlockchainInfo();
+    
+    // Update every 30 seconds
+    const interval = setInterval(() => {
+      fetchBlockchainInfo();
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   const exampleCode = `use neo3::prelude::*;
 
 #[tokio::main]
@@ -182,6 +247,61 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                 </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Blockchain Stats Section */}
+      <section className="py-12 bg-gradient-to-r from-slate-900 to-slate-800">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 backdrop-blur-sm">
+            <div className="flex flex-col md:flex-row items-center justify-between">
+              <div className="flex items-center mb-4 md:mb-0">
+                <div className="w-12 h-12 flex-shrink-0 mr-4 bg-green-500/20 rounded-lg flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-white">Neo N3 Blockchain Status</h3>
+                  <p className="text-gray-400 text-sm">Live network statistics</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {blockchainInfo.loading ? (
+                  <div className="flex items-center justify-center col-span-2">
+                    <div className="w-6 h-6 border-2 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="ml-2 text-gray-300">Loading blockchain data...</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-slate-700/50 p-3 rounded-lg">
+                      <div className="text-gray-400 text-sm">Latest Block</div>
+                      <div className="flex items-center">
+                        <span className="text-xl font-bold text-white">{blockchainInfo.blockHeight.toLocaleString()}</span>
+                        <a 
+                          href={`https://neo3.neotube.io/block/${blockchainInfo.blockHash}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="ml-2 text-green-400 hover:text-green-300 transition"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                            <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                          </svg>
+                        </a>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-slate-700/50 p-3 rounded-lg">
+                      <div className="text-gray-400 text-sm">Last Update</div>
+                      <div className="text-xl font-bold text-white">{blockchainInfo.timestamp}</div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
