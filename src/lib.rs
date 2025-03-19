@@ -65,7 +65,7 @@
 //! Import all essential types and traits using the `prelude`:
 //!
 //! ```rust
-//! use neo_rust::prelude::*;
+//! use neo3::prelude::*;
 //! ```
 //!
 //! ## Complete Example
@@ -73,10 +73,10 @@
 //! Here's a comprehensive example showcasing common operations with the NeoRust SDK:
 //!
 //! ```no_run
-//! use neo_rust::prelude::*;
-//! use neo_rust::neo_protocol::account::Account;
-//! use neo_rust::neo_contract::{NeoToken, GasToken};
-//! use neo_rust::neo_builder::{TransactionBuilder, ScriptBuilder};
+//! use neo3::prelude::*;
+//! use neo3::neo_protocol::account::Account;
+//! use neo3::neo_contract::{NeoToken, GasToken};
+//! use neo3::neo_builder::{TransactionBuilder, ScriptBuilder};
 //! use std::str::FromStr;
 //!
 //! async fn neo_example() -> Result<(), Box<dyn std::error::Error>> {

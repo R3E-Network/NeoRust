@@ -15,9 +15,9 @@
 //! ## Example
 //!
 //! ```no_run
-//! use neo_rust::prelude::*;
-//! use neo_rust::neo_clients::rpc::{RpcClient, HttpTransport};
-//! use neo_rust::neo_types::{Address, ScriptHash};
+//! use neo3::prelude::*;
+//! use neo3::neo_clients::rpc::{RpcClient, HttpTransport};
+//! use neo3::neo_types::{Address, ScriptHash};
 //! use std::str::FromStr;
 //!
 //! async fn rpc_examples() -> Result<(), Box<dyn std::error::Error>> {
@@ -69,7 +69,7 @@
 //!     // Use WebSocket for real-time updates (if supported by the node)
 //!     #[cfg(feature = "ws")]
 //!     {
-//!         use neo_rust::neo_clients::rpc::{WebSocketTransport, PubsubClient};
+//!         use neo3::neo_clients::rpc::{WebSocketTransport, PubsubClient};
 //!         
 //!         let ws_transport = WebSocketTransport::new("wss://testnet1.ws.neo.org:443").await?;
 //!         let pubsub = PubsubClient::new(ws_transport);

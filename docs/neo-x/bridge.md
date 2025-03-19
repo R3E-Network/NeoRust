@@ -30,8 +30,8 @@ The bridge supports the following token types:
 When bridging assets from Neo N3 to Neo X:
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_x::bridge::*;
+use neo3::prelude::*;
+use neo3::neo_x::bridge::*;
 
 async fn bridge_to_neox() -> Result<(), Box<dyn std::error::Error>> {
     // Create providers for both chains
@@ -66,8 +66,8 @@ async fn bridge_to_neox() -> Result<(), Box<dyn std::error::Error>> {
 When bridging assets from Neo X to Neo N3:
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_x::bridge::*;
+use neo3::prelude::*;
+use neo3::neo_x::bridge::*;
 
 async fn bridge_to_neo() -> Result<(), Box<dyn std::error::Error>> {
     // Create providers for both chains

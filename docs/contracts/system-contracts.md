@@ -11,8 +11,8 @@ The NeoToken contract manages the NEO governance token, which represents ownersh
 ### Key Functions
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_contract::NeoToken;
+use neo3::prelude::*;
+use neo3::neo_contract::NeoToken;
 
 async fn neo_token_example() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Neo N3
@@ -82,8 +82,8 @@ The GasToken contract manages the GAS utility token, which is used to pay for tr
 ### Key Functions
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_contract::GasToken;
+use neo3::prelude::*;
+use neo3::neo_contract::GasToken;
 
 async fn gas_token_example() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Neo N3
@@ -124,8 +124,8 @@ The PolicyContract manages network policy parameters, which control aspects of t
 ### Key Functions
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_contract::PolicyContract;
+use neo3::prelude::*;
+use neo3::neo_contract::PolicyContract;
 
 async fn policy_contract_example() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Neo N3
@@ -167,9 +167,9 @@ The ContractManagement contract manages the deployment, update, and destruction 
 ### Key Functions
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_contract::ContractManagement;
-use neo_rust::neo_types::{ContractManifest, NefFile};
+use neo3::prelude::*;
+use neo3::neo_contract::ContractManagement;
+use neo3::neo_types::{ContractManifest, NefFile};
 use std::fs;
 
 async fn contract_management_example() -> Result<(), Box<dyn std::error::Error>> {
@@ -220,8 +220,8 @@ The RoleManagement contract manages consensus roles on the Neo N3 blockchain, in
 ### Key Functions
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_contract::RoleManagement;
+use neo3::prelude::*;
+use neo3::neo_contract::RoleManagement;
 
 async fn role_management_example() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Neo N3
@@ -256,8 +256,8 @@ The NameService contract manages domain name registration and resolution on the 
 ### Key Functions
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_contract::NameService;
+use neo3::prelude::*;
+use neo3::neo_contract::NameService;
 
 async fn name_service_example() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Neo N3
@@ -301,8 +301,8 @@ The Oracle contract provides external data to smart contracts on the Neo N3 bloc
 ### Key Functions
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_contract::OracleContract;
+use neo3::prelude::*;
+use neo3::neo_contract::OracleContract;
 
 async fn oracle_contract_example() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Neo N3

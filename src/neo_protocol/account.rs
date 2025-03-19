@@ -16,9 +16,9 @@
 //! ## Example
 //!
 //! ```rust
-//! use neo_rust::prelude::*;
-//! use neo_rust::neo_protocol::{Account, AccountTrait};
-//! use neo_rust::neo_crypto::keys::{Secp256r1PrivateKey, Secp256r1PublicKey};
+//! use neo3::prelude::*;
+//! use neo3::neo_protocol::{Account, AccountTrait};
+//! use neo3::neo_crypto::keys::{Secp256r1PrivateKey, Secp256r1PublicKey};
 //! use std::str::FromStr;
 //!
 //! // Create a new random account

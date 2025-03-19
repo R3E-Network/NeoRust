@@ -1,7 +1,7 @@
 /// This example demonstrates message signing in Neo N3.
-use neo_rust::prelude::*;
-use neo_rust::neo_crypto::KeyPair;
-use neo_rust::neo_wallets::WalletSigner;
+use neo3::prelude::*;
+use neo3::neo_crypto::KeyPair;
+use neo3::neo_wallets::WalletSigner;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

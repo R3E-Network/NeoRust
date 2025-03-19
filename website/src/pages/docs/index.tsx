@@ -6,7 +6,7 @@ import Search from '../../components/Search';
 import CodeBlock from '../../components/CodeBlock';
 
 const DocsIndexPage: React.FC = () => {
-  const basicUsageCode = `use neo_rust::prelude::*;
+  const basicUsageCode = `use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -65,7 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 <CodeBlock 
                   language="toml" 
                   code={`[dependencies]
-neo_rust = "0.1.9"`} 
+neo3 = "0.1.9"`} 
                   filename="Cargo.toml"
                 />
                 
@@ -76,7 +76,7 @@ neo_rust = "0.1.9"`}
                 <CodeBlock 
                   language="toml" 
                   code={`[dependencies]
-neo_rust = { version = "0.1.9", features = ["futures", "ledger"] }`} 
+neo3 = { version = "0.1.9", features = ["futures", "ledger"] }`} 
                   filename="Cargo.toml"
                 />
                 

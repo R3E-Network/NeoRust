@@ -20,7 +20,7 @@ const examples: Example[] = [
     description: 'Connect to a Neo N3 node and get basic blockchain information',
     category: 'Getting Started',
     difficulty: 'beginner',
-    code: `use neo_rust::prelude::*;
+    code: `use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -47,7 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     description: 'Create a new Neo wallet and get information about it',
     category: 'Wallets',
     difficulty: 'beginner',
-    code: `use neo_rust::prelude::*;
+    code: `use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -80,7 +80,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     description: 'Retrieve information about Neo and GAS tokens',
     category: 'Tokens',
     difficulty: 'beginner',
-    code: `use neo_rust::prelude::*;
+    code: `use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -119,7 +119,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     description: 'Create a transaction to transfer GAS tokens to another address',
     category: 'Transactions',
     difficulty: 'intermediate',
-    code: `use neo_rust::prelude::*;
+    code: `use neo3::prelude::*;
 use std::str::FromStr;
 
 #[tokio::main]
@@ -172,9 +172,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     description: 'Deploy a smart contract to the Neo N3 blockchain',
     category: 'Smart Contracts',
     difficulty: 'advanced',
-    code: `use neo_rust::prelude::*;
-use neo_rust::neo_contract::ContractManagement;
-use neo_rust::neo_types::{ContractManifest, NefFile};
+    code: `use neo3::prelude::*;
+use neo3::neo_contract::ContractManagement;
+use neo3::neo_types::{ContractManifest, NefFile};
 use std::fs;
 
 #[tokio::main]
@@ -226,8 +226,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     description: 'Transfer tokens between Neo N3 and Neo X chains',
     category: 'Neo X',
     difficulty: 'advanced',
-    code: `use neo_rust::prelude::*;
-use neo_rust::neo_x::{NeoXBridgeContract, BridgeToken};
+    code: `use neo3::prelude::*;
+use neo3::neo_x::{NeoXBridgeContract, BridgeToken};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

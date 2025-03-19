@@ -31,7 +31,7 @@ The cryptography system in NeoRust includes several key components:
 ## Example Usage
 
 ```rust
-use neo_rust::prelude::*;
+use neo3::prelude::*;
 
 // Create a new random key pair
 let key_pair = KeyPair::new_random()?;

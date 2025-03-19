@@ -11,8 +11,8 @@ Neo X supports Ethereum Virtual Machine (EVM) compatible smart contracts, allowi
 To deploy a new EVM contract on Neo X:
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_x::evm::*;
+use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 
 async fn deploy_contract() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Neo X
@@ -85,8 +85,8 @@ let deploy_data = format!("{}{}", bytecode, encoded_args);
 To call read-only (view/pure) functions:
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_x::evm::*;
+use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 
 async fn read_contract() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Neo X
@@ -128,8 +128,8 @@ async fn read_contract() -> Result<(), Box<dyn std::error::Error>> {
 To call state-changing functions:
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_x::evm::*;
+use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 
 async fn write_contract() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Neo X
@@ -178,8 +178,8 @@ async fn write_contract() -> Result<(), Box<dyn std::error::Error>> {
 To query events emitted by contracts:
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_x::evm::*;
+use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 
 async fn query_events() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Neo X
@@ -218,8 +218,8 @@ async fn query_events() -> Result<(), Box<dyn std::error::Error>> {
 For more robust contract interaction, you can use contract ABIs:
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_x::evm::*;
+use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 
 async fn use_contract_abi() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Neo X

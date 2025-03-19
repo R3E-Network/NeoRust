@@ -1,7 +1,7 @@
 /// This example demonstrates Neo X integration with NeoRust SDK.
-use neo_rust::prelude::*;
-use neo_rust::neo_x::evm::*;
-use neo_rust::neo_x::bridge::*;
+use neo3::prelude::*;
+use neo3::neo_x::evm::*;
+use neo3::neo_x::bridge::*;
 use std::error::Error;
 
 #[tokio::main]

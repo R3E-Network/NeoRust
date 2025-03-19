@@ -21,8 +21,8 @@ NEP-17 is the standard for fungible tokens on Neo N3, similar to Ethereum's ERC-
 ### Usage with NeoRust
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_contract::FungibleTokenContract;
+use neo3::prelude::*;
+use neo3::neo_contract::FungibleTokenContract;
 use std::str::FromStr;
 
 async fn nep17_example() -> Result<(), Box<dyn std::error::Error>> {
@@ -101,8 +101,8 @@ NEP-11 is the standard for non-fungible tokens on Neo N3, similar to Ethereum's 
 ### Usage with NeoRust
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_contract::NftContract;
+use neo3::prelude::*;
+use neo3::neo_contract::NftContract;
 use std::str::FromStr;
 
 async fn nep11_example() -> Result<(), Box<dyn std::error::Error>> {

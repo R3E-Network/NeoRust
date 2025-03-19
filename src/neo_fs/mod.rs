@@ -29,11 +29,11 @@
 //! ## Example
 //!
 //! ```no_run
-//! use neo_rust::prelude::*;
-//! use neo_rust::neo_fs::{NeoFSClient, NeoFSConfig};
-//! use neo_rust::neo_fs::container::{Container, ContainerId};
-//! use neo_rust::neo_fs::object::{Object, ObjectId};
-//! use neo_rust::neo_protocol::account::Account;
+//! use neo3::prelude::*;
+//! use neo3::neo_fs::{NeoFSClient, NeoFSConfig};
+//! use neo3::neo_fs::container::{Container, ContainerId};
+//! use neo3::neo_fs::object::{Object, ObjectId};
+//! use neo3::neo_protocol::account::Account;
 //! use std::path::Path;
 //!
 //! async fn example() -> Result<(), Box<dyn std::error::Error>> {
@@ -43,7 +43,7 @@
 //!     // Configure NeoFS client
 //!     let config = NeoFSConfig {
 //!         endpoint: "grpc+tls://st01.testnet.fs.neo.org:8082".to_string(),
-//!         auth: Some(neo_rust::neo_fs::NeoFSAuth {
+//!         auth: Some(neo3::neo_fs::NeoFSAuth {
 //!             wallet_address: account.get_address(),
 //!             private_key: account.key_pair().as_ref().map(|kp| kp.private_key().to_string()),
 //!         }),

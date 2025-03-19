@@ -4,7 +4,7 @@ import Editor from '../components/playground/Editor';
 import Console from '../components/playground/Console';
 
 // Initial sample code
-const DEFAULT_CODE = `use neo_rust::prelude::*;
+const DEFAULT_CODE = `use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -33,7 +33,7 @@ const EXAMPLES = [
   {
     name: 'Wallet Creation',
     description: 'Create a Neo wallet and get the address',
-    code: `use neo_rust::prelude::*;
+    code: `use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -59,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   {
     name: 'GAS Token Info',
     description: 'Get information about the GAS token',
-    code: `use neo_rust::prelude::*;
+    code: `use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -84,7 +84,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   {
     name: 'NEO Token Info',
     description: 'Get information about the NEO token and governance',
-    code: `use neo_rust::prelude::*;
+    code: `use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

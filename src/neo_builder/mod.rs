@@ -37,10 +37,10 @@
 //! ### Building Transactions and Scripts
 //!
 //! ```no_run
-//! use neo_rust::prelude::*;
-//! use neo_rust::neo_builder::{TransactionBuilder, ScriptBuilder};
-//! use neo_rust::neo_protocol::account::Account;
-//! use neo_rust::neo_types::{ContractParameter, Signer, WitnessScope};
+//! use neo3::prelude::*;
+//! use neo3::neo_builder::{TransactionBuilder, ScriptBuilder};
+//! use neo3::neo_protocol::account::Account;
+//! use neo3::neo_types::{ContractParameter, Signer, WitnessScope};
 //! use std::str::FromStr;
 //!
 //! async fn transaction_example() -> Result<(), Box<dyn std::error::Error>> {

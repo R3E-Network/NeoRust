@@ -25,8 +25,8 @@ Before deploying a contract, you need:
 First, load your contract files:
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_types::{ContractManifest, NefFile};
+use neo3::prelude::*;
+use neo3::neo_types::{ContractManifest, NefFile};
 use std::fs;
 
 // Read NEF and manifest files
@@ -61,7 +61,7 @@ println!("GAS Balance: {}", gas_balance);
 Use the ContractManagement system contract to deploy your contract:
 
 ```rust
-use neo_rust::neo_contract::ContractManagement;
+use neo3::neo_contract::ContractManagement;
 
 // Create contract management instance
 let contract_mgmt = ContractManagement::new(&client);
@@ -100,9 +100,9 @@ println!("Contract Author: {}", contract_state.manifest.author);
 Here's a complete example of contract deployment:
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_contract::ContractManagement;
-use neo_rust::neo_types::{ContractManifest, NefFile};
+use neo3::prelude::*;
+use neo3::neo_contract::ContractManagement;
+use neo3::neo_types::{ContractManifest, NefFile};
 use std::fs;
 
 #[tokio::main]

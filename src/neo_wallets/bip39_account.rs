@@ -15,7 +15,7 @@ use sha2::{Digest, Sha256};
 ///
 /// ## Creating a new account
 /// ```
-/// use neo_rust::prelude::Bip39Account;
+/// use neo3::prelude::Bip39Account;
 ///
 /// // Create a new account with a password
 /// let password = "my secure password";
@@ -27,7 +27,7 @@ use sha2::{Digest, Sha256};
 ///
 /// ## Recovering an existing account
 /// ```
-/// use neo_rust::prelude::Bip39Account;
+/// use neo3::prelude::Bip39Account;
 ///
 /// // Recover an account using an existing mnemonic and password
 /// let mnemonic = "word1 word2 ... word24"; // Your 24 word mnemonic
@@ -60,7 +60,7 @@ impl Bip39Account {
 	///
 	/// # Example
 	/// ```
-	/// use neo_rust::prelude::Bip39Account;
+	/// use neo3::prelude::Bip39Account;
 	///
 	/// let account = Bip39Account::create("my secure password").unwrap();
 	/// // Save the mnemonic securely
@@ -105,7 +105,7 @@ impl Bip39Account {
 	///
 	/// # Example
 	/// ```
-	/// use neo_rust::prelude::Bip39Account;
+	/// use neo3::prelude::Bip39Account;
 	///
 	/// let mnemonic = "word1 word2 ... word24"; // Your saved 24-word mnemonic
 	/// let password = "my secure password";      // Original password used

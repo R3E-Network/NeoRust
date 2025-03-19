@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import CodeBlock from '../components/CodeBlock';
 
 const IndexPage: React.FC = () => {
-  const exampleCode = `use neo_rust::prelude::*;
+  const exampleCode = `use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

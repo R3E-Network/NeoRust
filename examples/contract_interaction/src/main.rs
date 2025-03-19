@@ -1,6 +1,6 @@
 /// This example demonstrates how to interact with smart contracts on the Neo N3 blockchain.
-use neo_rust::prelude::*;
-use neo_rust::neo_contract::{NeoToken, GasToken, FungibleTokenContract};
+use neo3::prelude::*;
+use neo3::neo_contract::{NeoToken, GasToken, FungibleTokenContract};
 use std::str::FromStr;
 use std::error::Error;
 

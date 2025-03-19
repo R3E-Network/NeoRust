@@ -23,8 +23,8 @@ The message signing process in Neo N3 follows these steps:
 NeoRust provides comprehensive support for message signing through the `WalletSigner` struct:
 
 ```rust
-use neo_rust::prelude::*;
-use neo_rust::neo_wallets::WalletSigner;
+use neo3::prelude::*;
+use neo3::neo_wallets::WalletSigner;
 
 async fn sign_and_verify_message() -> Result<(), Box<dyn std::error::Error>> {
     // Create or load a key pair
