@@ -19,3 +19,5 @@ eyre = "0.6.5"
 [dependencies]
 yubihsm = { version = "0.42", features = ["mockhsm", "http", "usb"] }
 tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
+bip39 = { version = "2.0.0", features = ["rand"] }
+rand = "0.8.0"

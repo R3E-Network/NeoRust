@@ -267,9 +267,21 @@ impl From<Nep2Error> for NeoError {
 	fn from(err: Nep2Error) -> Self {
 		match err {
 			Nep2Error::InvalidPassphrase(msg) =>
-				NeoError::IllegalArgument(format!("Invalid NEP-2 passphrase: {}", msg)),
+				NeoError::IllegalArgument(format!("Invalid passphrase: {}", msg)),
 			Nep2Error::InvalidFormat(msg) =>
 				NeoError::InvalidEncoding(format!("Invalid NEP-2 format: {}", msg)),
+			Nep2Error::InvalidPrivateKey(msg) =>
+				NeoError::InvalidPrivateKey,
+			Nep2Error::EncryptionError(msg) =>
+				NeoError::IllegalState(format!("NEP-2 encryption error: {}", msg)),
+			Nep2Error::DecryptionError(msg) =>
+				NeoError::IllegalState(format!("NEP-2 decryption error: {}", msg)),
+			Nep2Error::VerificationFailed(msg) =>
+				NeoError::InvalidSignature,
+			Nep2Error::ScryptError(msg) =>
+				NeoError::IllegalState(format!("NEP-2 scrypt error: {}", msg)),
+			Nep2Error::Base58Error(msg) =>
+				NeoError::InvalidEncoding(format!("NEP-2 Base58 error: {}", msg)),
 		}
 	}
 }

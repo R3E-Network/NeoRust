@@ -1,0 +1,8 @@
+[package]
+name = "contract_interaction_example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+neo_rust = { path = "../.." }
+tokio = { version = "1.0", features = ["full"] }

@@ -1,110 +1,53 @@
-use std::str::FromStr;
-
-use neo::{
-	neo_clients::JsonRpcProvider,
-	neo_contract::{ContractManagement, SmartContractTrait},
-	neo_protocol::account::Account,
-	neo_types::{
-		contract::{ContractParameter, NefFile},
-		script_hash::ScriptHash,
-	},
-	prelude::{HttpProvider, RpcClient},
-};
-
-/// This example demonstrates how to deploy a smart contract to the Neo N3 blockchain.
-/// It uses the ContractManagement native contract to deploy a NEF file with a contract manifest.
-///
-/// Prerequisites:
-/// - A NEF file containing the compiled contract
-/// - A JSON file containing the contract manifest
-/// - An account with sufficient GAS to pay for deployment
+/// This example demonstrates the concept of deploying a smart contract to the Neo N3 blockchain.
+/// 
+/// In a real application, you would:
+/// 1. Connect to a Neo N3 node
+/// 2. Load your account private key
+/// 3. Create or load the NEF file containing the compiled contract
+/// 4. Create or load the contract manifest
+/// 5. Deploy the contract using ContractManagement
+/// 6. Sign and send the transaction
+/// 7. Wait for the transaction to be confirmed
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-	// Connect to a Neo N3 TestNet node
-	let provider = HttpProvider::new("https://testnet1.neo.org:443");
-	let client = RpcClient::new(provider);
-
-	// Load the account that will deploy the contract
-	// Replace with your own WIF or use another method to load the account
-	let account = Account::from_wif("YOUR_PRIVATE_KEY_WIF_HERE")?;
-	println!("Using account: {}", account.get_address());
-
-	// Get the ContractManagement native contract
-	let contract_hash = ScriptHash::from_str("fffdc93764dbaddd97c48f252a53ea4643faa3fd")?;
-	let contract_management = ContractManagement::new(contract_hash, Some(&client));
-
-	// Load the NEF file
-	// In a real application, you would load this from a file
-	// let nef_bytes = std::fs::read("path/to/your/contract.nef")?;
-	// let nef = NefFile::from_bytes(&nef_bytes)?;
-
-	// For this example, we'll create a placeholder NEF file
-	// In a real application, you would load the actual NEF file
-	let nef = create_placeholder_nef();
-
-	// Load the contract manifest
-	// In a real application, you would load this from a file
-	// let manifest_bytes = std::fs::read("path/to/your/contract.manifest.json")?;
-	let manifest_bytes = r#"{
-        "name": "ExampleContract",
-        "groups": [],
-        "features": {},
-        "supportedstandards": [],
-        "abi": {
-            "methods": [
-                {
-                    "name": "main",
-                    "parameters": [],
-                    "returntype": "String",
-                    "offset": 0,
-                    "safe": false
-                }
-            ],
-            "events": []
-        },
-        "permissions": [
-            {
-                "contract": "*",
-                "methods": "*"
-            }
-        ],
-        "trusts": [],
-        "extra": null
-    }"#
-	.as_bytes();
-
-	// Optional data parameter for the deploy method
-	let data = Some(ContractParameter::string("Optional deployment data"));
-
-	// Create a transaction to deploy the contract
-	let tx_builder = contract_management.deploy(&nef, manifest_bytes, data).await?;
-
-	// Add the account as a signer
-	let tx_builder = tx_builder
-		.set_signers(vec![account.into()])
-		.valid_until_block(client.get_block_count().await? + 5760)?;
-
-	// Sign and send the transaction
-	let tx = tx_builder.sign().await?;
-	let result = tx.send_tx().await?;
-
-	println!("Contract deployed successfully!");
-	println!("Transaction hash: {}", result.hash);
-
-	// Wait for the transaction to be confirmed
-	tx.track_tx(10).await?;
-
-	println!("Transaction confirmed!");
-
+	println!("Neo N3 Contract Deployment Workflow");
+	println!("==================================");
+	
+	// In a real application, you would connect to a Neo N3 node
+	println!("\n1. Connect to a Neo N3 node");
+	println!("   For example: https://testnet1.neo.org:443");
+	
+	// In a real application, you would load your account private key
+	println!("\n2. Load your account private key");
+	println!("   Use Account::from_wif(\"YOUR_PRIVATE_KEY_WIF_HERE\")");
+	
+	// In a real application, you would create or load the NEF file
+	println!("\n3. Load or create the NEF file");
+	println!("   NEF (Neo Executable Format) contains the compiled contract");
+	println!("   This would typically be created by the neo-compiler and loaded from disk");
+	
+	// In a real application, you would create or load the contract manifest
+	println!("\n4. Create or load the contract manifest");
+	println!("   The manifest describes your contract's properties, methods, and permissions");
+	println!("   It includes information like ABI, supported standards, and trusted contracts");
+	
+	// In a real application, you would use ContractManagement to deploy
+	println!("\n5. Deploy the contract using ContractManagement");
+	println!("   ContractManagement is a native contract with hash:");
+	println!("   fffdc93764dbaddd97c48f252a53ea4643faa3fd");
+	println!("   You would call contract_management.deploy(nef, manifest, data)");
+	
+	// In a real application, you would sign and send the transaction
+	println!("\n6. Sign and send the transaction");
+	println!("   This requires your account to have sufficient GAS for the deployment fee");
+	
+	// In a real application, you would wait for confirmation
+	println!("\n7. Wait for the transaction to be confirmed");
+	println!("   Once confirmed, your contract is deployed and available on the blockchain");
+	
+	println!("\nFor more details on contract deployment, refer to the Neo N3 documentation:");
+	println!("https://docs.neo.org/docs/en-us/develop/write/deploy.html");
+	
+	println!("\nContract deployment workflow example completed!");
 	Ok(())
-}
-
-/// Creates a placeholder NEF file for demonstration purposes.
-/// In a real application, you would load the actual NEF file from disk.
-fn create_placeholder_nef() -> NefFile {
-	// This is just a placeholder and won't actually work for deployment
-	// In a real application, you would load the actual NEF file
-	unimplemented!(
-		"This is a placeholder. In a real application, you would load the actual NEF file."
-	)
 }

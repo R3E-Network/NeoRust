@@ -5,17 +5,17 @@ This tutorial covers wallet management with the NeoRust SDK, including creating,
 ## Creating a New Wallet
 
 ```rust
-use neo::prelude::*;
+use neo_rust::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a new wallet with a password
     let password = "my-secure-password";
-    let wallet = Wallet::new(password)?;
+    let wallet = Wallet::new("my-wallet", password)?;
     
     // Generate a new account
     let account = wallet.create_account()?;
-    println!("New account address: {}", account.address());
+    println!("New account address: {}", account.get_address());
     
     // Save the wallet to a file
     wallet.save("my-wallet.json")?;
@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Loading an Existing Wallet
 
 ```rust
-use neo::prelude::*;
+use neo_rust::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -35,11 +35,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load a wallet from a file
     let wallet_path = Path::new("my-wallet.json");
     let password = "my-secure-password";
-    let wallet = Wallet::load(wallet_path, password)?;
+    let wallet = Wallet::load(wallet_path, Some(password))?;
     
     // Get the default account
     let account = wallet.default_account()?;
-    println!("Default account address: {}", account.address());
+    println!("Default account address: {}", account.get_address());
     
     Ok(())
 }
@@ -48,18 +48,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Importing a Private Key
 
 ```rust
-use neo::prelude::*;
+use neo_rust::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a new wallet
     let password = "my-secure-password";
-    let mut wallet = Wallet::new(password)?;
+    let mut wallet = Wallet::new("my-wallet", password)?;
     
     // Import a private key
     let private_key = "your-private-key-here";
     let account = wallet.import_private_key(private_key, password)?;
-    println!("Imported account address: {}", account.address());
+    println!("Imported account address: {}", account.get_address());
     
     // Save the wallet
     wallet.save("my-wallet.json")?;
@@ -71,27 +71,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Signing a Message
 
 ```rust
-use neo::prelude::*;
-use std::path::Path;
+use neo_rust::prelude::*;
+use neo_rust::neo_wallets::WalletSigner;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Load a wallet
-    let wallet_path = Path::new("my-wallet.json");
-    let password = "my-secure-password";
-    let wallet = Wallet::load(wallet_path, password)?;
+    // Create a key pair
+    let key_pair = KeyPair::new_random()?;
     
-    // Get the default account
-    let account = wallet.default_account()?;
+    // Create a wallet signer
+    let wallet = WalletSigner::new_with_signer(key_pair.clone(), key_pair.get_address());
     
     // Sign a message
     let message = b"Hello, Neo!";
-    let signature = account.sign_message(message)?;
+    let signature = wallet.sign_message(message).await?;
     println!("Signature: {:?}", signature);
     
-    // Verify the signature
-    let is_valid = account.verify_signature(message, &signature)?;
-    println!("Signature valid: {}", is_valid);
+    // For more information on message signing, see the dedicated documentation
+    // in the /docs/wallets/message-signing.md file
     
     Ok(())
 }
@@ -100,69 +97,70 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Wallet Backup and Recovery
 
 ```rust
-use neo::prelude::*;
+use neo_rust::prelude::*;
+use neo_rust::neo_wallets::bip39_account::create_account_from_mnemonic;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a new wallet
-    let password = "my-secure-password";
-    let wallet = Wallet::new(password)?;
+    // Create a mnemonic phrase for backup
+    let mnemonic = "liberty village rhythm couch december axis barely model flag gym tortoise must";
     
-    // Generate a new account
-    let account = wallet.create_account()?;
+    // Create an account from the mnemonic
+    let account = create_account_from_mnemonic(mnemonic)?;
+    println!("Account address: {}", account.get_address());
     
-    // Get the mnemonic phrase for backup
-    let mnemonic = wallet.export_mnemonic(password)?;
-    println!("Backup phrase: {}", mnemonic);
+    // Later, recover the account from the same mnemonic
+    let recovered_account = create_account_from_mnemonic(mnemonic)?;
+    println!("Recovered account address: {}", recovered_account.get_address());
     
-    // Later, recover the wallet from the mnemonic
-    let recovered_wallet = Wallet::from_mnemonic(&mnemonic, password)?;
-    
-    // Verify the recovered wallet has the same account
-    let recovered_account = recovered_wallet.default_account()?;
-    println!("Recovered account address: {}", recovered_account.address());
-    
-    assert_eq!(account.address(), recovered_account.address());
+    assert_eq!(account.get_address(), recovered_account.get_address());
     
     Ok(())
 }
 ```
 
-## Using SGX-Protected Wallets
+## Using Hardware Wallets
 
-If you have enabled the SGX feature, you can use SGX-protected wallets for enhanced security:
+If you have enabled the `ledger` feature, you can use hardware wallets for enhanced security:
 
 ```rust
-use neo::prelude::*;
+use neo_rust::prelude::*;
+use neo_rust::neo_wallets::{HDPath, LedgerWallet, WalletSigner};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize the SGX enclave
-    let enclave_path = "path/to/enclave.so";
-    let enclave_manager = SgxEnclaveManager::new(enclave_path)?;
+    // Define an HD derivation path
+    let hd_path = HDPath::new(44, 888, 0, 0, 0)?;
     
-    // Create a wallet with a password
-    let password = "my-secure-password";
-    let wallet = enclave_manager.create_wallet(password)?;
+    // Initialize the Ledger wallet (will prompt the user on the device)
+    let ledger = LedgerWallet::new(hd_path, None).await?;
     
-    // Get the wallet's public key
-    let public_key = wallet.get_public_key();
-    println!("Wallet public key: {:?}", public_key);
+    // Get the address from the hardware wallet
+    let address = ledger.get_address();
+    println!("Ledger wallet address: {}", address);
     
-    // Sign a transaction using the SGX-protected private key
-    let transaction_data = b"Sample transaction data";
-    let signature = wallet.sign_transaction(transaction_data)?;
+    // Create a wallet signer that uses the hardware wallet
+    let signer = WalletSigner::new_with_signer(ledger, address);
+    
+    // Sign a transaction or message using the hardware wallet
+    // (will require physical confirmation on the device)
+    let message = b"Hello, Neo!";
+    let signature = signer.sign_message(message).await?;
     
     Ok(())
 }
 ```
+
+## Advanced Message Signing
+
+For detailed information about message signing capabilities, including use cases and security considerations, please refer to the [Message Signing documentation](../../wallets/message-signing.md).
 
 ## Best Practices
 
 1. **Secure Password Storage**: Never hardcode passwords in your application.
 2. **Regular Backups**: Always backup your wallet's mnemonic phrase or private keys.
 3. **Verify Addresses**: Always verify addresses before sending transactions.
-4. **Use Hardware Wallets**: For production applications, consider using hardware wallets via the Ledger feature.
-5. **SGX Protection**: For high-security applications, use SGX-protected wallets.
+4. **Use Hardware Wallets**: For production applications, consider using hardware wallets via the `ledger` feature.
+5. **Multiple Signers**: Consider using multi-signature setups for high-value wallets.
 
 <!-- toc -->

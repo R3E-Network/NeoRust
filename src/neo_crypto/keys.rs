@@ -242,6 +242,17 @@ impl Secp256r1PublicKey {
 }
 
 impl Secp256r1PrivateKey {
+	
+	/// Generates a new private key using the provided random number generator (RNG).
+	///
+	/// - Parameter rng: A mutable reference to an `OsRng` instance.
+	///
+	/// - Returns: A new instance of the private key.
+	pub fn new_random() -> Self {
+		let mut rng = OsRng;
+		Self::random(&mut rng)
+	}
+
 	/// Generates a new private key using the provided random number generator (RNG).
 	///
 	/// - Parameter rng: A mutable reference to an `OsRng` instance.

@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-slate-900 text-gray-100 scroll-smooth;
+  }
+  
+  body {
+    @apply antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold;
+  }
+  
+  a {
+    @apply transition-colors;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-800;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-600 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-green-500;
+  }
+  
+  /* Code snippets */
+  pre[class*="language-"] {
+    @apply rounded-xl my-6 p-4 overflow-auto;
+  }
+  
+  .token.comment,
+  .token.prolog,
+  .token.doctype,
+  .token.cdata {
+    @apply text-gray-500;
+  }
+  
+  .token.punctuation {
+    @apply text-gray-400;
+  }
+  
+  .token.property,
+  .token.tag,
+  .token.constant,
+  .token.symbol,
+  .token.deleted {
+    @apply text-red-400;
+  }
+  
+  .token.boolean,
+  .token.number {
+    @apply text-purple-400;
+  }
+  
+  .token.selector,
+  .token.attr-name,
+  .token.string,
+  .token.char,
+  .token.builtin,
+  .token.inserted {
+    @apply text-green-400;
+  }
+  
+  .token.operator,
+  .token.entity,
+  .token.url,
+  .language-css .token.string,
+  .style .token.string {
+    @apply text-yellow-400;
+  }
+  
+  .token.atrule,
+  .token.attr-value,
+  .token.keyword {
+    @apply text-blue-400;
+  }
+  
+  .token.function,
+  .token.class-name {
+    @apply text-pink-400;
+  }
+  
+  .token.regex,
+  .token.important,
+  .token.variable {
+    @apply text-yellow-400;
+  }
+  
+  /* Doc page styles */
+  .doc-content {
+    @apply prose prose-lg prose-invert mx-auto;
+  }
+  
+  /* Header anchor links */
+  .autolink-header {
+    @apply ml-2 opacity-0 transition-opacity;
+  }
+  
+  h1:hover .autolink-header,
+  h2:hover .autolink-header,
+  h3:hover .autolink-header,
+  h4:hover .autolink-header,
+  h5:hover .autolink-header,
+  h6:hover .autolink-header {
+    @apply opacity-100;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-6 py-2 rounded-lg font-medium transition-colors;
+  }
+  
+  .btn-primary {
+    @apply bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white shadow-lg;
+  }
+  
+  .btn-secondary {
+    @apply bg-slate-700 hover:bg-slate-600 text-white shadow-lg;
+  }
+  
+  .card {
+    @apply p-6 rounded-xl bg-slate-700/50 backdrop-blur-sm border border-slate-600 hover:border-green-400/50 transition;
+  }
+  
+  .nav-link {
+    @apply text-gray-200 hover:text-green-400 transition;
+  }
+  
+  .nav-link-active {
+    @apply text-green-400 font-medium;
+  }
+  
+  .doc-sidebar-link {
+    @apply block py-2 px-4 rounded-lg hover:bg-slate-700 transition;
+  }
+  
+  .doc-sidebar-link-active {
+    @apply bg-slate-700 text-green-400 font-medium;
+  }
+}
+
+@layer utilities {
+  .glow {
+    text-shadow: 0 0 10px rgba(76, 255, 179, 0.5);
+  }
+  
+  .bg-grid {
+    background-image: 
+      linear-gradient(
+        rgba(255, 255, 255, 0.05) 1px, 
+        transparent 1px
+      ),
+      linear-gradient(
+        90deg, 
+        rgba(255, 255, 255, 0.05) 1px, 
+        transparent 1px
+      );
+    background-size: 30px 30px;
+  }
+}

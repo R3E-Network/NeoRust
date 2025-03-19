@@ -1,80 +1,95 @@
-use std::sync::Arc;
-
-use ethers::{
-	prelude::{abigen, Abigen},
-	providers::{Http, Provider},
-	types::Address,
-};
-use eyre::Result;
-
-/// Abigen is used to generate Rust code to interact with smart contracts on the blockchain.
-/// It provides a way to encode and decode data that is passed to and from smart contracts.
-/// The output of abigen is Rust code, that is bound to the contract's interface, allowing
-/// developers to call its methods to read/write on-chain state and subscribe to realtime events.
+/// This example demonstrates the concept of working with smart contract ABIs in Neo N3.
+/// 
+/// An ABI (Application Binary Interface) is a specification that defines how to 
+/// interact with a smart contract on the blockchain. It describes the contract's
+/// methods, parameters, and return types.
 ///
-/// The abigen tool can be used in two ways, addressing different use-cases scenarios and developer
-/// taste:
-///
-/// 1. **Rust file generation:** takes a smart contract's Application Binary Interface (ABI)
-/// file and generates a Rust file to interact with it. This is useful if the smart contract is
-/// referenced in different places in a project. File generation from ABI can also be easily
-/// included as a build step of your application.
-/// 2. **Rust inline generation:** takes a smart contract's solidity definition and generates inline
-/// Rust code to interact with it. This is useful for fast prototyping and for tight scoped
-/// use-cases of your contracts.
-/// 3. **Rust inline generation from ABI:** similar to the previous point but instead of Solidity
-/// code takes in input a smart contract's Application Binary Interface (ABI) file.
+/// In a real application with Neo N3, you would:
+/// 1. Define or obtain the contract's interface (methods, parameters, return types)
+/// 2. Generate code to interact with the contract
+/// 3. Use the generated code to make contract calls
 #[tokio::main]
-async fn main() -> Result<()> {
-	rust_file_generation()?;
-	rust_inline_generation().await?;
-	rust_inline_generation_from_abi();
-	Ok(())
-}
-
-fn rust_file_generation() -> Result<()> {
-	let abi_source = "./examples/contracts/examples/abi/IERC20.json";
-	let out_file = std::env::temp_dir().join("ierc20.rs");
-	if out_file.exists() {
-		std::fs::remove_file(&out_file)?;
-	}
-	Abigen::new("IERC20", abi_source)?.generate()?.write_to_file(out_file)?;
-	Ok(())
-}
-
-fn rust_inline_generation_from_abi() {
-	abigen!(IERC20, "./examples/contracts/examples/abi/IERC20.json");
-}
-
-async fn rust_inline_generation() -> Result<()> {
-	// The abigen! macro expands the contract's code in the current scope
-	// so that you can interface your Rust program with the blockchain
-	// counterpart of the contract.
-	abigen!(
-		IERC20,
-		r#"[
-            function totalSupply() external view returns (uint256)
-            function balanceOf(address account) external view returns (uint256)
-            function transfer(address recipient, uint256 amount) external returns (bool)
-            function allowance(address owner, address spender) external view returns (uint256)
-            function approve(address spender, uint256 amount) external returns (bool)
-            function transferFrom( address sender, address recipient, uint256 amount) external returns (bool)
-            event Transfer(address indexed from, address indexed to, uint256 value)
-            event Approval(address indexed owner, address indexed spender, uint256 value)
-        ]"#,
-	);
-
-	const RPC_URL: &str = "https://eth.llamarpc.com";
-	const WETH_ADDRESS: &str = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-
-	let provider = Provider::<Http>::try_from(RPC_URL)?;
-	let client = Arc::new(provider);
-	let address: Address = WETH_ADDRESS.parse()?;
-	let contract = IERC20::new(address, client);
-
-	if let Ok(total_supply) = contract.total_supply().call().await {
-		println!("WETH total supply is {total_supply:?}");
-	}
-
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+	println!("Neo N3 Smart Contract ABI Example");
+	println!("================================");
+	
+	// 1. In a real application, you'd define your contract interface
+	println!("\n1. Define your contract interface");
+	println!("   This could be from a manifest.json file or defined in code");
+	println!("   Example of a contract interface for a NEP-17 token:");
+	println!("   {{");
+	println!("     \"methods\": [");
+	println!("       {{");
+	println!("         \"name\": \"symbol\",");
+	println!("         \"parameters\": [],");
+	println!("         \"returntype\": \"String\",");
+	println!("         \"offset\": 0");
+	println!("       }},");
+	println!("       {{");
+	println!("         \"name\": \"decimals\",");
+	println!("         \"parameters\": [],");
+	println!("         \"returntype\": \"Integer\",");
+	println!("         \"offset\": 0");
+	println!("       }},");
+	println!("       {{");
+	println!("         \"name\": \"balanceOf\",");
+	println!("         \"parameters\": [");
+	println!("           {{");
+	println!("             \"name\": \"account\",");
+	println!("             \"type\": \"Hash160\"");
+	println!("           }}");
+	println!("         ],");
+	println!("         \"returntype\": \"Integer\",");
+	println!("         \"offset\": 0");
+	println!("       }},");
+	println!("       {{");
+	println!("         \"name\": \"transfer\",");
+	println!("         \"parameters\": [");
+	println!("           {{");
+	println!("             \"name\": \"from\",");
+	println!("             \"type\": \"Hash160\"");
+	println!("           }},");
+	println!("           {{");
+	println!("             \"name\": \"to\",");
+	println!("             \"type\": \"Hash160\"");
+	println!("           }},");
+	println!("           {{");
+	println!("             \"name\": \"amount\",");
+	println!("             \"type\": \"Integer\"");
+	println!("           }}");
+	println!("         ],");
+	println!("         \"returntype\": \"Boolean\",");
+	println!("         \"offset\": 0");
+	println!("       }}");
+	println!("     ]");
+	println!("   }}");
+	
+	// 2. In a real application, you would generate code from the interface
+	println!("\n2. Generate code to interact with the contract");
+	println!("   In Neo N3, this would be done using SmartContract implementations");
+	println!("   Example of generated code for a NEP-17 token contract:");
+	println!("   ```");
+	println!("   impl NEP17Contract {{");
+	println!("       pub async fn symbol(&self) -> Result<String, ContractError> {{ ... }}");
+	println!("       pub async fn decimals(&self) -> Result<u8, ContractError> {{ ... }}");
+	println!("       pub async fn balance_of(&self, account: &Address) -> Result<u64, ContractError> {{ ... }}");
+	println!("       pub async fn transfer(&self, from: &Address, to: &Address, amount: u64) -> Result<bool, ContractError> {{ ... }}");
+	println!("   }}");
+	println!("   ```");
+	
+	// 3. In a real application, you would use the generated code
+	println!("\n3. Use the generated code to interact with the contract");
+	println!("   Example:");
+	println!("   ```");
+	println!("   let contract = NEP17Contract::new(contract_hash, provider);");
+	println!("   let symbol = contract.symbol().await?;");
+	println!("   let decimals = contract.decimals().await?;");
+	println!("   let balance = contract.balance_of(&my_address).await?;");
+	println!("   ```");
+	
+	println!("\nFor more details on Neo N3 smart contracts, refer to the Neo N3 documentation:");
+	println!("https://docs.neo.org/docs/en-us/develop/write/basics.html");
+	
+	println!("\nSmart Contract ABI example completed!");
 	Ok(())
 }

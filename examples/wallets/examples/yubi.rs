@@ -1,34 +1,33 @@
-extern crate NeoRust;
-
-use yubihsm::ecdsa::NistP256;
+use eyre::Result;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-	use yubihsm::{
-		asymmetric::Algorithm::EcP256,
-		ecdsa::{Signature, Signer as YubiSigner},
-		object,
-		object::Label,
-		Capability, Client, Connector, Credentials, Domain, UsbConfig,
-	};
-	use NeoRust::prelude::*;
-	// Connect over websockets
-	let provider = Provider::new(Ws::connect("ws://localhost:8545").await?);
-
-	// We use USB for the example, but you can connect over HTTP as well. Refer
-	// to the [YubiHSM](https://docs.rs/yubihsm/0.34.0/yubihsm/) docs for more info
-	let connector = Connector::usb(&UsbConfig::default());
-	// Instantiate the connection to the YubiKey. Alternatively, use the
-	// `from_key` method to upload a key you already have, or the `new` method
-	// to generate a new keypair.
-	let wallet = YubiWallet::connect(connector, Credentials::default(), 0);
-	let client = SignerMiddleware::new(provider, wallet);
-
-	// Create and broadcast a transaction (NNS enabled!)
-	let tx = TransactionRequest::new().to("erik.neo").value(parse_ether(10)?);
-	let pending_tx = client.send_transaction(tx, None).await?;
-
-	// Get the receipt
-	// let _receipt = pending_tx.confirmations(3).await?;
+async fn main() -> Result<()> {
+	println!("Neo N3 YubiHSM Integration Example");
+	println!("=================================");
+	
+	println!("\nYubiHSM is a hardware security module (HSM) that provides enhanced");
+	println!("security for cryptographic operations. It can be used with Neo N3 to:");
+	
+	println!("\nKey benefits of YubiHSM with Neo:");
+	println!("- Enterprise-grade security for private keys");
+	println!("- Hardware-based cryptographic operations");
+	println!("- Protection against key extraction");
+	println!("- Support for high-volume transaction signing");
+	println!("- Tamper-evident design");
+	
+	println!("\nTypical usage for YubiHSM with Neo:");
+	println!("1. Store Neo private keys in the secure hardware");
+	println!("2. Sign transactions using the hardware without exposing keys");
+	println!("3. Use in server environments for automated signing");
+	println!("4. Enable multi-party authorization for high-value transactions");
+	
+	println!("\nYubiHSM is ideal for:");
+	println!("- Exchanges and custodial services");
+	println!("- Enterprise wallet solutions");
+	println!("- High-security infrastructure");
+	println!("- Automated transaction systems");
+	
+	println!("\nNote: This example does not actually connect to a YubiHSM device.");
+	
 	Ok(())
 }

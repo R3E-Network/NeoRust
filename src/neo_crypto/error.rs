@@ -34,6 +34,18 @@ pub enum Nep2Error {
 	InvalidPassphrase(String),
 	#[error("Invalid format: {0}")]
 	InvalidFormat(String),
+	#[error("Invalid private key: {0}")]
+	InvalidPrivateKey(String),
+	#[error("Encryption error: {0}")]
+	EncryptionError(String),
+	#[error("Decryption error: {0}")]
+	DecryptionError(String),
+	#[error("Verification failed: {0}")]
+	VerificationFailed(String),
+	#[error("Scrypt error: {0}")]
+	ScryptError(String),
+	#[error("Base58 error: {0}")]
+	Base58Error(String),
 }
 
 #[derive(Error, Debug, PartialEq, Eq, Hash, Clone)]
