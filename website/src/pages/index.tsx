@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'gatsby';
 import Layout from '../components/Layout';
 import CodeBlock from '../components/CodeBlock';
-import { useCallback } from 'react';
 import Particles from "react-particles";
 import { loadFull } from 'tsparticles';
 import { useInView } from 'react-intersection-observer';
@@ -14,7 +13,10 @@ interface BlockchainInfo {
   blockHeight: number;
   blockHash: string;
   timestamp: string;
+  transactions: number;
+  version: string;
   loading: boolean;
+  lastUpdated: number; // timestamp for tracking updates
 }
 
 const IndexPage: React.FC = () => {
@@ -23,11 +25,14 @@ const IndexPage: React.FC = () => {
     blockHeight: 0,
     blockHash: '',
     timestamp: '',
-    loading: true
+    transactions: 0,
+    version: '',
+    loading: true,
+    lastUpdated: 0
   });
 
   // Fetch blockchain info
-  const fetchBlockchainInfo = async () => {
+  const fetchBlockchainInfo = useCallback(async () => {
     try {
       // Use Neo RPC endpoint
       const response = await axios.post('https://rpc1.neo.org:443', {
@@ -50,29 +55,53 @@ const IndexPage: React.FC = () => {
       const block = blockResponse.data.result;
       const blockTime = new Date(block.time * 1000).toLocaleString();
       
+      // Get version info
+      const versionResponse = await axios.post('https://rpc1.neo.org:443', {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getversion', 
+        params: []
+      });
+      
+      const version = versionResponse.data.result.useragent;
+      
       setBlockchainInfo({
         blockHeight: blockCount - 1,
         blockHash: block.hash,
         timestamp: blockTime,
-        loading: false
+        transactions: block.tx ? block.tx.length : 0,
+        version: version,
+        loading: false,
+        lastUpdated: Date.now()
       });
+      
+      console.log('Blockchain data updated:', Date.now());
     } catch (error) {
       console.error('Error fetching blockchain info:', error);
       setBlockchainInfo(prev => ({...prev, loading: false}));
     }
+  }, []);
+
+  // Force refresh function
+  const refreshBlockchainInfo = () => {
+    setBlockchainInfo(prev => ({...prev, loading: true}));
+    fetchBlockchainInfo();
   };
 
   // Fetch blockchain info on mount and periodically
   useEffect(() => {
     fetchBlockchainInfo();
     
-    // Update every 30 seconds
+    // Update every 15 seconds
     const interval = setInterval(() => {
       fetchBlockchainInfo();
-    }, 30000);
+    }, 15000);
     
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearInterval(interval);
+      console.log('Blockchain data interval cleared');
+    };
+  }, [fetchBlockchainInfo]);
 
   const exampleCode = `use neo3::prelude::*;
 
@@ -256,32 +285,61 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
       {/* Blockchain Stats Section */}
       <section className="py-12 bg-gradient-to-r from-slate-900 to-slate-800">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 backdrop-blur-sm">
-            <div className="flex flex-col md:flex-row items-center justify-between">
-              <div className="flex items-center mb-4 md:mb-0">
-                <div className="w-12 h-12 flex-shrink-0 mr-4 bg-green-500/20 rounded-lg flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
+          <div className="max-w-5xl mx-auto bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 backdrop-blur-sm">
+            <div className="flex flex-col space-y-6">
+              <div className="flex flex-col md:flex-row items-center justify-between">
+                <div className="flex items-center mb-4 md:mb-0">
+                  <div className="w-12 h-12 flex-shrink-0 mr-4 bg-green-500/20 rounded-lg flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-white">Neo N3 Blockchain Status</h3>
+                    <p className="text-gray-400 text-sm">Live network statistics</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-medium text-white">Neo N3 Blockchain Status</h3>
-                  <p className="text-gray-400 text-sm">Live network statistics</p>
-                </div>
+                
+                <button 
+                  onClick={refreshBlockchainInfo}
+                  disabled={blockchainInfo.loading}
+                  className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg flex items-center transition-colors"
+                >
+                  {blockchainInfo.loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Refresh
+                    </>
+                  )}
+                </button>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {blockchainInfo.loading ? (
-                  <div className="flex items-center justify-center col-span-2">
-                    <div className="w-6 h-6 border-2 border-green-400 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="ml-2 text-gray-300">Loading blockchain data...</span>
+              {blockchainInfo.loading && !blockchainInfo.blockHeight ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="w-8 h-8 border-2 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="ml-3 text-gray-300">Loading blockchain data...</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-slate-700/50 p-3 rounded-lg">
+                    <div className="text-gray-400 text-sm">Height</div>
+                    <div className="text-xl font-bold text-white">{blockchainInfo.blockHeight.toLocaleString()}</div>
                   </div>
-                ) : (
-                  <>
-                    <div className="bg-slate-700/50 p-3 rounded-lg">
-                      <div className="text-gray-400 text-sm">Latest Block</div>
-                      <div className="flex items-center">
-                        <span className="text-xl font-bold text-white">{blockchainInfo.blockHeight.toLocaleString()}</span>
+                  
+                  <div className="bg-slate-700/50 p-3 rounded-lg">
+                    <div className="text-gray-400 text-sm">Latest Block</div>
+                    <div className="flex items-center">
+                      <span className="text-xl font-bold text-white truncate">
+                        {blockchainInfo.blockHash ? `${blockchainInfo.blockHash.substring(0, 6)}...${blockchainInfo.blockHash.substring(blockchainInfo.blockHash.length - 8)}` : ''}
+                      </span>
+                      {blockchainInfo.blockHash && (
                         <a 
                           href={`https://neo3.neotube.io/block/${blockchainInfo.blockHash}`} 
                           target="_blank" 
@@ -293,16 +351,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
                           </svg>
                         </a>
-                      </div>
+                      )}
                     </div>
-                    
-                    <div className="bg-slate-700/50 p-3 rounded-lg">
-                      <div className="text-gray-400 text-sm">Last Update</div>
-                      <div className="text-xl font-bold text-white">{blockchainInfo.timestamp}</div>
-                    </div>
-                  </>
-                )}
-              </div>
+                  </div>
+                  
+                  <div className="bg-slate-700/50 p-3 rounded-lg">
+                    <div className="text-gray-400 text-sm">Transactions</div>
+                    <div className="text-xl font-bold text-white">{blockchainInfo.transactions}</div>
+                  </div>
+                  
+                  <div className="bg-slate-700/50 p-3 rounded-lg">
+                    <div className="text-gray-400 text-sm">Version</div>
+                    <div className="text-xl font-bold text-white truncate">{blockchainInfo.version}</div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Show last updated time if we have data */}
+              {!blockchainInfo.loading && blockchainInfo.lastUpdated > 0 && (
+                <div className="text-right text-xs text-gray-500">
+                  Last updated: {new Date(blockchainInfo.lastUpdated).toLocaleTimeString()}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -369,7 +369,7 @@ let signed_tx = wallet.sign_transaction(&amp;transaction)?;
 </ul>
 <p>Enable these features in your Cargo.toml:</p>
 <pre><code class="language-toml">[dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "aws", "sgx"] }
+neo3 = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "aws", "sgx"] }
 </code></pre>
 <h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
 <p>The NeoRust SDK uses Rust's <code>Result</code> type for error handling. Most functions return a <code>Result&lt;T, Error&gt;</code> where <code>Error</code> is a custom error type that can represent various error conditions.</p>

@@ -221,11 +221,11 @@
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <p>Add the NeoRust SDK to your Cargo.toml:</p>
 <pre><code class="language-toml">[dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust" }
+neo3 = { git = "https://github.com/R3E-Network/NeoRust" }
 </code></pre>
 <p>Or if you prefer to use a specific version:</p>
 <pre><code class="language-toml">[dependencies]
-neo = "0.1.0"
+neo3 = "0.1.0"
 </code></pre>
 <h2 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h2>
 <p>Here's a simple example of connecting to a Neo N3 node and getting the current block height:</p>
@@ -259,12 +259,12 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <h2 id="standard-installation"><a class="header" href="#standard-installation">Standard Installation</a></h2>
 <p>Add the NeoRust SDK to your Cargo.toml:</p>
 <pre><code class="language-toml">[dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust" }
+neo3 = { git = "https://github.com/R3E-Network/NeoRust" }
 </code></pre>
 <h2 id="feature-flags"><a class="header" href="#feature-flags">Feature Flags</a></h2>
 <p>NeoRust supports various feature flags to enable specific functionality:</p>
 <pre><code class="language-toml">[dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "aws"] }
+neo3 = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "aws"] }
 </code></pre>
 <p>Available features:</p>
 <ul>
@@ -1889,7 +1889,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <h2 id="enabling-sgx-support-in-neorust"><a class="header" href="#enabling-sgx-support-in-neorust">Enabling SGX Support in NeoRust</a></h2>
 <p>To enable SGX support in your project, add the <code>sgx</code> feature to your Cargo.toml:</p>
 <pre><code class="language-toml">[dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust", features = ["sgx"] }
+neo3 = { git = "https://github.com/R3E-Network/NeoRust", features = ["sgx"] }
 </code></pre>
 <p>You also need to uncomment the SGX dependencies in the NeoRust Cargo.toml:</p>
 <pre><code class="language-toml"># SGX dependencies
@@ -2345,7 +2345,7 @@ let signed_tx = wallet.sign_transaction(&amp;transaction)?;
 </ul>
 <p>Enable these features in your Cargo.toml:</p>
 <pre><code class="language-toml">[dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "aws", "sgx"] }
+neo3 = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "aws", "sgx"] }
 </code></pre>
 <h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
 <p>The NeoRust SDK uses Rust's <code>Result</code> type for error handling. Most functions return a <code>Result&lt;T, Error&gt;</code> where <code>Error</code> is a custom error type that can represent various error conditions.</p>

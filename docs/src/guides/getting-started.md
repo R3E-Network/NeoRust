@@ -14,14 +14,14 @@ Add the NeoRust SDK to your Cargo.toml:
 
 ```toml
 [dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust" }
+neo3 = { git = "https://github.com/R3E-Network/NeoRust" }
 ```
 
 Or if you prefer to use a specific version:
 
 ```toml
 [dependencies]
-neo = "0.1.0"
+neo3 = "0.1.0"
 ```
 
 ## Basic Usage

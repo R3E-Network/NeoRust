@@ -223,7 +223,7 @@ Enable these features in your Cargo.toml:
 
 ```toml
 [dependencies]
-neo = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "aws", "sgx"] }
+neo3 = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "aws", "sgx"] }
 ```
 
 ## Error Handling
