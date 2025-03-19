@@ -9,6 +9,7 @@
 </div>
 
 [![Rust](https://github.com/R3E-Network/NeoRust/actions/workflows/rust.yml/badge.svg)](https://github.com/R3E-Network/NeoRust/actions/workflows/rust.yml)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/bb13b046-abdd-4d5e-962c-31c2a3d06090/deploy-status)](https://app.netlify.com/sites/neorust/deploys)
 [![Crates.io](https://img.shields.io/crates/v/neo3.svg)](https://crates.io/crates/neo3)
 [![Documentation](https://docs.rs/neo3/badge.svg)](https://docs.rs/neo3)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
