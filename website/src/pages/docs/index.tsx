@@ -145,7 +145,7 @@ neo3 = { version = "0.1.9", features = ["futures", "ledger"] }`}
                 
                 <ul>
                   <li>Check out the <Link to="/examples" className="text-green-400 hover:underline">examples</Link> for practical use cases</li>
-                  <li>Visit the <a href="https://github.com/neo-project/neo-rust/issues" className="text-green-400 hover:underline">GitHub issues</a> to report bugs or request features</li>
+                  <li>Visit the <a href="https://github.com/R3E-Network/NeoRust/issues" className="text-green-400 hover:underline">GitHub issues</a> to report bugs or request features</li>
                   <li>Join the <a href="https://discord.gg/neo" className="text-green-400 hover:underline">Neo Discord</a> for community support</li>
                 </ul>
               </div>

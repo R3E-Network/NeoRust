@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Neo Rust SDK API Reference - Detailed API documentation for the Neo Rust SDK">
+  <title>API Reference | Neo Rust SDK</title>
+  <link rel="icon" href="/images/neo-logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <!-- Loading animation -->
+  <div class="loading">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <a href="/" class="logo-container">
+          <svg class="logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" fill="transparent"/>
+            <path d="M20 20 L80 20 L80 80 L20 80 Z" fill="none" stroke="#4CFFB3" stroke-width="4"/>
+            <path d="M35 35 L65 35 L65 65 L35 65 Z" fill="#4CFFB3"/>
+          </svg>
+          <div class="logo-text">Neo Rust SDK</div>
+        </a>
+        <button class="mobile-menu-button" aria-label="Toggle mobile menu">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div class="nav-links">
+          <a href="/docs/" class="nav-link">Documentation</a>
+          <a href="/api/" class="nav-link">API Reference</a>
+          <a href="/examples/" class="nav-link">Examples</a>
+          <a href="/playground/" class="nav-link">Playground</a>
+          <a href="https://github.com/neo-project/neo-rust" class="nav-link" target="_blank">GitHub</a>
+        </div>
+        <button class="theme-toggle" aria-label="Toggle dark/light mode">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="dark-icon">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="light-icon" style="display: none;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="api-container">
+        <aside class="api-sidebar">
+          <div class="search-container">
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" class="search-input" placeholder="Search API...">
+            <div class="search-results">
+              <div class="search-result">
+                <div class="search-result-section">neo::wallet</div>
+                <div class="search-result-title">Wallet::new()</div>
+                <div class="search-result-preview">Creates a new empty wallet...</div>
+              </div>
+              <div class="search-result">
+                <div class="search-result-section">neo::transaction</div>
+                <div class="search-result-title">TransactionBuilder</div>
+                <div class="search-result-preview">Builds Neo transactions with fluent API...</div>
+              </div>
+            </div>
+          </div>
+          
+          <nav class="docs-nav">
+            <h3>neo</h3>
+            <ul>
+              <li><a href="/api/prelude/" class="active">prelude</a></li>
+            </ul>
+            
+            <h3>neo::wallet</h3>
+            <ul>
+              <li><a href="/api/wallet/">Wallet</a></li>
+              <li><a href="/api/wallet/account/">Account</a></li>
+              <li><a href="/api/wallet/keypair/">KeyPair</a></li>
+              <li><a href="/api/wallet/nep2/">NEP2</a></li>
+            </ul>
+            
+            <h3>neo::transaction</h3>
+            <ul>
+              <li><a href="/api/transaction/">Transaction</a></li>
+              <li><a href="/api/transaction/builder/">TransactionBuilder</a></li>
+              <li><a href="/api/transaction/signer/">Signer</a></li>
+              <li><a href="/api/transaction/witness/">Witness</a></li>
+            </ul>
+            
+            <h3>neo::contract</h3>
+            <ul>
+              <li><a href="/api/contract/">Contract</a></li>
+              <li><a href="/api/contract/manifest/">ContractManifest</a></li>
+              <li><a href="/api/contract/parameter/">ContractParameter</a></li>
+              <li><a href="/api/contract/nef/">NEF</a></li>
+            </ul>
+            
+            <h3>neo::network</h3>
+            <ul>
+              <li><a href="/api/network/client/">NeoClient</a></li>
+              <li><a href="/api/network/rpc/">RpcClient</a></li>
+              <li><a href="/api/network/p2p/">P2pClient</a></li>
+            </ul>
+            
+            <h3>neo::crypto</h3>
+            <ul>
+              <li><a href="/api/crypto/keys/">Keys</a></li>
+              <li><a href="/api/crypto/hash/">Hash</a></li>
+              <li><a href="/api/crypto/sign/">Signature</a></li>
+              <li><a href="/api/crypto/address/">Address</a></li>
+            </ul>
+            
+            <h3>neo::neo_x</h3>
+            <ul>
+              <li><a href="/api/neo-x/evm/">EvmClient</a></li>
+              <li><a href="/api/neo-x/bridge/">Bridge</a></li>
+            </ul>
+          </nav>
+        </aside>
+        
+        <div class="docs-content">
+          <h1>Neo Rust SDK API Reference</h1>
+          
+          <p>This is the API reference for the Neo Rust SDK, providing detailed information about all modules, types, and functions available in the library.</p>
+          
+          <h2>Modules Overview</h2>
+          
+          <p>The Neo Rust SDK is organized into several modules, each focusing on a specific aspect of Neo blockchain development:</p>
+          
+          <div class="api-section">
+            <h3>neo::prelude</h3>
+            <p>The prelude module re-exports the most commonly used types, traits, and functions from the Neo Rust SDK. Importing this module with <code class="inline-code">use neo::prelude::*;</code> brings all essential components into scope for most applications.</p>
+            
+            <div class="code-container">
+              <div class="code-header">
+                <div class="code-dots">
+                  <div class="code-dot code-dot-red"></div>
+                  <div class="code-dot code-dot-yellow"></div>
+                  <div class="code-dot code-dot-green"></div>
+                </div>
+                <div class="code-title">Prelude Usage</div>
+              </div>
+              <button class="copy-button">Copy</button>
+              <pre><code><span class="code-token-keyword">use</span> neo::prelude::*;
+
+<span class="code-token-keyword">fn</span> <span class="code-token-function">main</span>() -> <span class="code-token-variable">Result</span>&lt;()&gt; {
+    <span class="code-token-keyword">let</span> wallet <span class="code-token-operator">=</span> <span class="code-token-variable">Wallet</span>::new();
+    <span class="code-token-keyword">let</span> tx_builder <span class="code-token-operator">=</span> <span class="code-token-variable">TransactionBuilder</span>::new();
+    <span class="code-token-keyword">let</span> hash <span class="code-token-operator">=</span> <span class="code-token-variable">Hash160</span>::<span class="code-token-function">from_address</span>(<span class="code-token-string">"NbnjKGMBJzJ6j5PHeYhjJDaQ5Vy5UYu4Fv"</span>)?;
+    
+    <span class="code-token-variable">Ok</span>(())
+}</code></pre>
+            </div>
+          </div>
+          
+          <div class="api-module">
+            <h3>neo::wallet</h3>
+            <p>The wallet module provides types and functions for creating, loading, and managing Neo wallets and accounts.</p>
+            
+            <div class="api-class">
+              <h4>Wallet</h4>
+              <p>The <code class="inline-code">Wallet</code> struct represents a Neo wallet, which can contain multiple accounts.</p>
+              
+              <div class="api-method">
+                <div class="api-method-name">Wallet::new()</div>
+                <div class="api-method-signature">pub fn new() -> Wallet</div>
+                <p>Creates a new empty wallet.</p>
+                
+                <div class="api-examples">
+                  <div class="api-example-tabs">
+                    <div class="api-example-tab active" data-tab="example1">Example</div>
+                    <div class="api-example-tab" data-tab="example2">With Password</div>
+                  </div>
+                  <div class="api-example-content active" data-tab="example1">
+                    <pre><code><span class="code-token-keyword">use</span> neo::prelude::*;
+
+<span class="code-token-keyword">fn</span> <span class="code-token-function">main</span>() -> <span class="code-token-variable">Result</span>&lt;()&gt; {
+    <span class="code-token-keyword">let</span> wallet <span class="code-token-operator">=</span> <span class="code-token-variable">Wallet</span>::new();
+    <span class="code-token-function">println!</span>(<span class="code-token-string">"Created new wallet"</span>);
+    <span class="code-token-variable">Ok</span>(())
+}</code></pre>
+                  </div>
+                  <div class="api-example-content" data-tab="example2">
+                    <pre><code><span class="code-token-keyword">use</span> neo::prelude::*;
+
+<span class="code-token-keyword">fn</span> <span class="code-token-function">main</span>() -> <span class="code-token-variable">Result</span>&lt;()&gt; {
+    <span class="code-token-keyword">let</span> <span class="code-token-keyword">mut</span> wallet <span class="code-token-operator">=</span> <span class="code-token-variable">Wallet</span>::new();
+    
+    <span class="code-token-comment">// Create a new account with a password</span>
+    wallet.<span class="code-token-function">create_account</span>(<span class="code-token-variable">Some</span>(<span class="code-token-string">"password123"</span>))?;
+    
+    <span class="code-token-function">println!</span>(<span class="code-token-string">"Created new wallet with password-protected account"</span>);
+    <span class="code-token-variable">Ok</span>(())
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="api-method">
+                <div class="api-method-name">Wallet::load()</div>
+                <div class="api-method-signature">pub fn load(path: &str, password: &str) -> Result&lt;Wallet&gt;</div>
+                <p>Loads a wallet from a file, decrypting it with the provided password.</p>
+                
+                <div class="api-params">
+                  <div class="api-param">
+                    <div class="api-param-name">path</div>
+                    <div class="api-param-desc">Path to the wallet file</div>
+                  </div>
+                  <div class="api-param">
+                    <div class="api-param-name">password</div>
+                    <div class="api-param-desc">Password to decrypt the wallet</div>
+                  </div>
+                </div>
+                
+                <div class="api-examples">
+                  <div class="api-example-tabs">
+                    <div class="api-example-tab active" data-tab="load1">Example</div>
+                  </div>
+                  <div class="api-example-content active" data-tab="load1">
+                    <pre><code><span class="code-token-keyword">use</span> neo::prelude::*;
+
+<span class="code-token-keyword">fn</span> <span class="code-token-function">main</span>() -> <span class="code-token-variable">Result</span>&lt;()&gt; {
+    <span class="code-token-comment">// Load wallet from file</span>
+    <span class="code-token-keyword">let</span> wallet <span class="code-token-operator">=</span> <span class="code-token-variable">Wallet</span>::<span class="code-token-function">load</span>(<span class="code-token-string">"my_wallet.json"</span>, <span class="code-token-string">"password123"</span>)?;
+    
+    <span class="code-token-function">println!</span>(<span class="code-token-string">"Loaded wallet with {} accounts"</span>, wallet.<span class="code-token-function">accounts</span>().len());
+    <span class="code-token-variable">Ok</span>(())
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="api-module">
+            <h3>neo::transaction</h3>
+            <p>The transaction module provides types and functions for building, signing, and sending Neo blockchain transactions.</p>
+            
+            <div class="api-class">
+              <h4>TransactionBuilder</h4>
+              <p>The <code class="inline-code">TransactionBuilder</code> struct provides a fluent API for constructing Neo transactions.</p>
+              
+              <div class="api-method">
+                <div class="api-method-name">TransactionBuilder::new()</div>
+                <div class="api-method-signature">pub fn new() -> TransactionBuilder</div>
+                <p>Creates a new transaction builder with default values.</p>
+                
+                <div class="api-examples">
+                  <div class="api-example-tabs">
+                    <div class="api-example-tab active" data-tab="tx1">Basic Example</div>
+                    <div class="api-example-tab" data-tab="tx2">Complete Transaction</div>
+                  </div>
+                  <div class="api-example-content active" data-tab="tx1">
+                    <pre><code><span class="code-token-keyword">use</span> neo::prelude::*;
+
+<span class="code-token-keyword">fn</span> <span class="code-token-function">main</span>() -> <span class="code-token-variable">Result</span>&lt;()&gt; {
+    <span class="code-token-keyword">let</span> tx_builder <span class="code-token-operator">=</span> <span class="code-token-variable">TransactionBuilder</span>::new();
+    <span class="code-token-function">println!</span>(<span class="code-token-string">"Created transaction builder"</span>);
+    <span class="code-token-variable">Ok</span>(())
+}</code></pre>
+                  </div>
+                  <div class="api-example-content" data-tab="tx2">
+                    <pre><code><span class="code-token-keyword">use</span> neo::prelude::*;
+
+<span class="code-token-keyword">async fn</span> <span class="code-token-function">create_transaction</span>() -> <span class="code-token-variable">Result</span>&lt;()&gt; {
+    <span class="code-token-keyword">let</span> wallet <span class="code-token-operator">=</span> <span class="code-token-variable">Wallet</span>::<span class="code-token-function">load</span>(<span class="code-token-string">"wallet.json"</span>, <span class="code-token-string">"password"</span>)?;
+    <span class="code-token-keyword">let</span> account <span class="code-token-operator">=</span> wallet.<span class="code-token-function">default_account</span>()?;
+    
+    <span class="code-token-keyword">let</span> client <span class="code-token-operator">=</span> <span class="code-token-variable">NeoClient</span>::<span class="code-token-function">connect_to_testnet</span>().<span class="code-token-function">await</span>?;
+    <span class="code-token-keyword">let</span> block_count <span class="code-token-operator">=</span> client.<span class="code-token-function">get_block_count</span>().<span class="code-token-function">await</span>?;
+    
+    <span class="code-token-keyword">let</span> tx <span class="code-token-operator">=</span> <span class="code-token-variable">TransactionBuilder</span>::new()
+        .<span class="code-token-function">version</span>(0)
+        .<span class="code-token-function">nonce</span>(1234)
+        .<span class="code-token-function">valid_until_block</span>(block_count <span class="code-token-operator">+</span> 100)
+        .<span class="code-token-function">sender</span>(account.<span class="code-token-function">address</span>())
+        .<span class="code-token-function">system_fee</span>(0)
+        .<span class="code-token-function">network_fee</span>(0)
+        .<span class="code-token-function">script</span>(vec![<span class="code-token-number">0x01</span>, <span class="code-token-number">0x02</span>, <span class="code-token-number">0x03</span>])
+        .<span class="code-token-function">sign</span>(account)
+        .<span class="code-token-function">build</span>();
+    
+    <span class="code-token-function">println!</span>(<span class="code-token-string">"Transaction hash: {}"</span>, tx.<span class="code-token-function">hash</span>());
+    <span class="code-token-variable">Ok</span>(())
+}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <h2>Using the API Reference</h2>
+          
+          <p>This API reference provides detailed information about:</p>
+          
+          <ul>
+            <li><strong>Modules</strong>: The organizational structure of the SDK</li>
+            <li><strong>Types</strong>: Structs, enums, and type aliases</li>
+            <li><strong>Functions</strong>: Available methods and free functions</li>
+            <li><strong>Examples</strong>: Code snippets demonstrating usage</li>
+          </ul>
+          
+          <p>Use the navigation on the left to explore different modules and types. Each API page includes:</p>
+          
+          <ul>
+            <li>Descriptions of the purpose and behavior</li>
+            <li>Method signatures and parameters</li>
+            <li>Return types and possible errors</li>
+            <li>Usage examples</li>
+          </ul>
+          
+          <p>For more detailed examples and tutorials, refer to the <a href="/docs/">Documentation</a> and <a href="/examples/">Examples</a> sections.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-col">
+          <div class="footer-logo">
+            <svg class="footer-logo-img" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <rect width="100" height="100" fill="transparent"/>
+              <path d="M20 20 L80 20 L80 80 L20 80 Z" fill="none" stroke="#4CFFB3" stroke-width="4"/>
+              <path d="M35 35 L65 35 L65 65 L35 65 Z" fill="#4CFFB3"/>
+            </svg>
+            <div class="footer-logo-text">Neo Rust SDK</div>
+          </div>
+          <p>A comprehensive Rust library for building applications on the Neo N3 blockchain ecosystem.</p>
+          <div class="footer-social">
+            <a href="https://github.com/neo-project/neo-rust" target="_blank" aria-label="GitHub">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+              </svg>
+            </a>
+            <a href="https://discord.gg/G5WEPwDgYG" target="_blank" aria-label="Discord">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 9a5 5 0 0 0-5-5h-2a5 5 0 0 0-5 5v6a5 5 0 0 0 5 5h2a5 5 0 0 0 5-5V9Z"></path>
+                <path d="m8 9 3 3-3 3"></path>
+                <path d="m16 9-3 3 3 3"></path>
+              </svg>
+            </a>
+            <a href="https://twitter.com/neo_blockchain" target="_blank" aria-label="Twitter">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
+              </svg>
+            </a>
+          </div>
+        </div>
+        <div class="footer-col footer-links">
+          <h3>Documentation</h3>
+          <ul>
+            <li><a href="/docs/getting-started/" class="footer-link">Getting Started</a></li>
+            <li><a href="/docs/wallets/" class="footer-link">Wallet Management</a></li>
+            <li><a href="/docs/transactions/" class="footer-link">Transactions</a></li>
+            <li><a href="/docs/contracts/" class="footer-link">Smart Contracts</a></li>
+            <li><a href="/docs/crypto/" class="footer-link">Cryptography</a></li>
+          </ul>
+        </div>
+        <div class="footer-col footer-links">
+          <h3>Resources</h3>
+          <ul>
+            <li><a href="/api/" class="footer-link">API Reference</a></li>
+            <li><a href="/examples/" class="footer-link">Examples</a></li>
+            <li><a href="/playground/" class="footer-link">Playground</a></li>
+            <li><a href="https://github.com/neo-project/neo-rust/releases" class="footer-link" target="_blank">Releases</a></li>
+            <li><a href="https://github.com/neo-project/neo-rust/issues" class="footer-link" target="_blank">Report Issues</a></li>
+          </ul>
+        </div>
+        <div class="footer-col footer-links">
+          <h3>Community</h3>
+          <ul>
+            <li><a href="https://neo.org" class="footer-link" target="_blank">Neo.org</a></li>
+            <li><a href="https://github.com/neo-project" class="footer-link" target="_blank">Neo GitHub</a></li>
+            <li><a href="https://discord.gg/G5WEPwDgYG" class="footer-link" target="_blank">Discord</a></li>
+            <li><a href="https://medium.com/neo-smart-economy" class="footer-link" target="_blank">Medium</a></li>
+            <li><a href="https://twitter.com/neo_blockchain" class="footer-link" target="_blank">Twitter</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copyright">
+          © 2023 Neo Global Development. All rights reserved.
+        </div>
+        <div class="footer-bottom-links">
+          <a href="/privacy-policy/" class="footer-bottom-link">Privacy Policy</a>
+          <a href="/terms-of-service/" class="footer-bottom-link">Terms of Service</a>
+          <a href="/license/" class="footer-bottom-link">License</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+</body>
+</html>

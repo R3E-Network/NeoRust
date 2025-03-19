@@ -58,7 +58,7 @@ const Header: React.FC = () => {
             <Search />
             <ThemeToggle />
             <a 
-              href="https://github.com/neo-project/neo-rust" 
+              href="https://github.com/R3E-Network/NeoRust" 
               target="_blank" 
               rel="noopener noreferrer" 
               className={`transition-transform hover:scale-110 ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
@@ -149,7 +149,7 @@ const Header: React.FC = () => {
               API
             </Link>
             <a 
-              href="https://github.com/neo-project/neo-rust" 
+              href="https://github.com/R3E-Network/NeoRust" 
               target="_blank" 
               rel="noopener noreferrer" 
               className={`mt-6 flex items-center animate-fade-in-up ${

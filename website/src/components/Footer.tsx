@@ -39,7 +39,7 @@ const Footer: React.FC = () => {
               <li><Link to="/playground" className="text-gray-400 hover:text-green-400 transition">Playground</Link></li>
               <li><Link to="/guides" className="text-gray-400 hover:text-green-400 transition">Guides</Link></li>
               <li><a href="https://neo.org" className="text-gray-400 hover:text-green-400 transition">Neo Website</a></li>
-              <li><a href="https://github.com/neo-project/neo-rust" className="text-gray-400 hover:text-green-400 transition">GitHub Repository</a></li>
+              <li><a href="https://github.com/R3E-Network/NeoRust" className="text-gray-400 hover:text-green-400 transition">GitHub Repository</a></li>
             </ul>
           </div>
           

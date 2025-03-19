@@ -365,7 +365,7 @@ const ApiReferencePage: React.FC = () => {
             This API reference is generated from the source code documentation.
           </p>
           <a
-            href="https://github.com/neo-project/neo-rust"
+            href="https://github.com/R3E-Network/NeoRust"
             className="text-green-400 hover:underline inline-flex items-center"
           >
             View Source on GitHub

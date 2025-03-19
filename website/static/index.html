@@ -3,132 +3,344 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neo Rust SDK</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-      line-height: 1.6;
-      color: #f8fafc;
-      background-color: #0f172a;
-      margin: 0;
-      padding: 0;
-    }
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-    header {
-      text-align: center;
-      margin-bottom: 2rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid #334155;
-    }
-    .logo {
-      width: 100px;
-      height: 100px;
-      margin-bottom: 1rem;
-    }
-    h1 {
-      font-size: 2.5rem;
-      color: #4CFFB3;
-      margin: 0;
-    }
-    h2 {
-      font-size: 1.8rem;
-      color: #f1f5f9;
-      margin-top: 2rem;
-    }
-    p {
-      margin: 1rem 0;
-    }
-    code {
-      background-color: #1e293b;
-      color: #4CFFB3;
-      padding: 0.2rem 0.4rem;
-      border-radius: 0.25rem;
-      font-family: monospace;
-    }
-    pre {
-      background-color: #1e293b;
-      color: #f1f5f9;
-      padding: 1rem;
-      border-radius: 0.5rem;
-      overflow-x: auto;
-    }
-    a {
-      color: #4CFFB3;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    .card {
-      background-color: #1e293b;
-      border-radius: 0.5rem;
-      padding: 1.5rem;
-      margin: 1.5rem 0;
-      border: 1px solid #334155;
-    }
-    ul {
-      padding-left: 1.5rem;
-    }
-    li {
-      margin-bottom: 0.5rem;
-    }
-  </style>
+  <meta name="description" content="Neo Rust SDK - A comprehensive Rust library for building applications on the Neo N3 blockchain ecosystem">
+  <meta name="keywords" content="Neo, Rust, Blockchain, SDK, Smart Contracts, N3">
+  <title>Neo Rust SDK - Blockchain Development in Rust</title>
+  <link rel="icon" href="/images/neo-logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.12.0/tsparticles.bundle.min.js"></script>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <svg class="logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100" height="100" fill="#0f172a"/>
-        <path d="M20 20 L80 20 L80 80 L20 80 Z" fill="none" stroke="#4CFFB3" stroke-width="4"/>
-        <path d="M35 35 L65 35 L65 65 L35 65 Z" fill="#4CFFB3"/>
-      </svg>
-      <h1>Neo Rust SDK</h1>
-      <p>A comprehensive Rust library for building applications on the Neo N3 blockchain ecosystem</p>
-    </header>
-
-    <div class="card">
-      <h2>🚧 Website Under Construction</h2>
-      <p>We're currently experiencing some technical difficulties with the website build process. Our development team is working to resolve these issues as quickly as possible.</p>
-      <p>In the meantime, you can access our documentation on GitHub:</p>
-      <p><a href="https://github.com/neo-project/neo-rust" target="_blank">https://github.com/neo-project/neo-rust</a></p>
-    </div>
-
-    <h2>Getting Started</h2>
-    <p>Add the Neo Rust SDK to your Cargo.toml file:</p>
-    <pre><code>[dependencies]
-neo = "0.5.0"</code></pre>
-
-    <h2>Basic Usage</h2>
-    <pre><code>use neo::prelude::*;
-
-fn main() -> Result<()> {
-    // Create a new wallet
-    let wallet = Wallet::new();
-    
-    // Print the wallet address
-    println!("New wallet address: {}", wallet.address());
-    
-    Ok(())
-}</code></pre>
-
-    <h2>Key Features</h2>
-    <ul>
-      <li><strong>Wallet Management</strong>: Create, load, and manage Neo wallets</li>
-      <li><strong>Transaction Building</strong>: Build and sign transactions</li>
-      <li><strong>Smart Contract Interaction</strong>: Deploy and invoke smart contracts</li>
-      <li><strong>NEP-17 Token Support</strong>: Interact with NEP-17 tokens</li>
-      <li><strong>NNS Integration</strong>: Work with the Neo Name Service</li>
-      <li><strong>Famous Contract Support</strong>: Direct interfaces for popular Neo contracts</li>
-      <li><strong>Neo X Support</strong>: EVM compatibility and bridge functionality</li>
-      <li><strong>SGX Support</strong>: Secure operations within Intel SGX enclaves</li>
-    </ul>
-
-    <h2>Contact</h2>
-    <p>For support or questions, please reach out via <a href="https://github.com/neo-project/neo-rust/issues">GitHub Issues</a>.</p>
+  <!-- Loading animation -->
+  <div class="loading">
+    <div class="loading-spinner"></div>
   </div>
+
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <a href="/" class="logo-container">
+          <svg class="logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" fill="transparent"/>
+            <path d="M20 20 L80 20 L80 80 L20 80 Z" fill="none" stroke="#4CFFB3" stroke-width="4"/>
+            <path d="M35 35 L65 35 L65 65 L35 65 Z" fill="#4CFFB3"/>
+          </svg>
+          <div class="logo-text">Neo Rust SDK</div>
+        </a>
+        <button class="mobile-menu-button" aria-label="Toggle mobile menu">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div class="nav-links">
+          <a href="/docs/" class="nav-link">Documentation</a>
+          <a href="/api/" class="nav-link">API Reference</a>
+          <a href="/examples/" class="nav-link">Examples</a>
+          <a href="/playground/" class="nav-link">Playground</a>
+          <a href="https://github.com/neo-project/neo-rust" class="nav-link" target="_blank">GitHub</a>
+        </div>
+        <button class="theme-toggle" aria-label="Toggle dark/light mode">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="dark-icon">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="light-icon" style="display: none;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div id="particles-container"></div>
+      <div class="container">
+        <h1 class="hero-title fade-in">Build with Neo Rust SDK</h1>
+        <p class="hero-subtitle fade-in" style="animation-delay: 0.2s;">A comprehensive Rust library for building applications on the Neo N3 blockchain ecosystem</p>
+        <div class="cta-buttons fade-in" style="animation-delay: 0.4s;">
+          <a href="/docs/getting-started/" class="btn btn-primary">Get Started</a>
+          <a href="https://github.com/neo-project/neo-rust" class="btn btn-secondary" target="_blank">View on GitHub</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="container">
+      <!-- Live Blockchain Status -->
+      <div id="blockchain-status" class="blockchain-status">
+        <div style="text-align: center; width: 100%; padding: 2rem;">
+          <div class="loading-spinner" style="width: 40px; height: 40px; margin: 0 auto;"></div>
+          <p style="margin-top: 1rem;">Loading blockchain data...</p>
+        </div>
+      </div>
+
+      <section id="features" class="section">
+        <h2 class="section-title scroll-animated">Key Features</h2>
+        <div class="cards">
+          <div class="card scroll-animated">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19 11H5M19 11C20.1046 11 21 11.8954 21 13V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V13C3 11.8954 3.89543 11 5 11M19 11V9C19 7.89543 18.1046 7 17 7M5 11V9C5 7.89543 5.89543 7 7 7M7 7V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V7M7 7H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h3 class="card-title">Wallet Management</h3>
+            <p>Create, load, and manage Neo N3 wallets with support for various key formats and storage options.</p>
+          </div>
+          <div class="card scroll-animated">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h3 class="card-title">Transaction Building</h3>
+            <p>Build and sign transactions with a fluent API for all Neo transaction types, including multi-sig support.</p>
+          </div>
+          <div class="card scroll-animated">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 20L14 4M18 8L22 12L18 16M6 16L2 12L6 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h3 class="card-title">Smart Contract Integration</h3>
+            <p>Deploy and invoke smart contracts with automatic parameter type conversion and response handling.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="getting-started" class="section">
+        <h2 class="section-title scroll-animated">Getting Started</h2>
+        <p class="scroll-animated">Add the Neo Rust SDK to your Cargo.toml file:</p>
+        <div class="code-container scroll-animated">
+          <div class="code-header">
+            <div class="code-dots">
+              <div class="code-dot code-dot-red"></div>
+              <div class="code-dot code-dot-yellow"></div>
+              <div class="code-dot code-dot-green"></div>
+            </div>
+            <div class="code-title">Cargo.toml</div>
+          </div>
+          <button class="copy-button">Copy</button>
+          <pre><code><span class="code-token-keyword">[dependencies]</span>
+neo = <span class="code-token-string">"0.5.0"</span></code></pre>
+        </div>
+      </section>
+
+      <section id="code-examples" class="section">
+        <h2 class="section-title scroll-animated">Code Examples</h2>
+        <div class="code-container scroll-animated">
+          <div class="code-header">
+            <div class="code-dots">
+              <div class="code-dot code-dot-red"></div>
+              <div class="code-dot code-dot-yellow"></div>
+              <div class="code-dot code-dot-green"></div>
+            </div>
+            <div class="code-title">main.rs</div>
+          </div>
+          <button class="copy-button">Copy</button>
+          <pre><code><span class="code-token-keyword">use</span> neo::prelude::*;
+
+<span class="code-token-keyword">fn</span> <span class="code-token-function">main</span>() -> <span class="code-token-variable">Result</span>&lt;()&gt; {
+    <span class="code-token-comment">// Create a new wallet</span>
+    <span class="code-token-keyword">let</span> wallet <span class="code-token-operator">=</span> <span class="code-token-variable">Wallet</span>::new();
+    
+    <span class="code-token-comment">// Print the wallet address</span>
+    <span class="code-token-function">println!</span>(<span class="code-token-string">"New wallet address: {}"</span>, wallet.<span class="code-token-function">address</span>());
+    
+    <span class="code-token-variable">Ok</span>(())
+}</code></pre>
+        </div>
+
+        <div class="code-container scroll-animated">
+          <div class="code-header">
+            <div class="code-dots">
+              <div class="code-dot code-dot-red"></div>
+              <div class="code-dot code-dot-yellow"></div>
+              <div class="code-dot code-dot-green"></div>
+            </div>
+            <div class="code-title">contract_example.rs</div>
+          </div>
+          <button class="copy-button">Copy</button>
+          <pre><code><span class="code-token-keyword">use</span> neo::prelude::*;
+
+<span class="code-token-keyword">async fn</span> <span class="code-token-function">invoke_contract</span>() -> <span class="code-token-variable">Result</span>&lt;()&gt; {
+    <span class="code-token-keyword">let</span> wallet <span class="code-token-operator">=</span> <span class="code-token-variable">Wallet</span>::<span class="code-token-function">load</span>(<span class="code-token-string">"wallet.json"</span>, <span class="code-token-string">"password"</span>)?;
+    <span class="code-token-keyword">let</span> account <span class="code-token-operator">=</span> wallet.<span class="code-token-function">default_account</span>()?;
+    
+    <span class="code-token-comment">// Connect to Neo node</span>
+    <span class="code-token-keyword">let</span> client <span class="code-token-operator">=</span> <span class="code-token-variable">NeoClient</span>::<span class="code-token-function">connect_to_testnet</span>().<span class="code-token-function">await</span>?;
+    
+    <span class="code-token-comment">// Invoke contract method</span>
+    <span class="code-token-keyword">let</span> result <span class="code-token-operator">=</span> client
+        .<span class="code-token-function">invoke_function</span>(
+            <span class="code-token-string">"0xd2a4cff31913016155e38e474a2c06d08be276cf"</span>,
+            <span class="code-token-string">"transfer"</span>,
+            [
+                <span class="code-token-variable">ContractParameter</span>::<span class="code-token-function">hash160</span>(account.<span class="code-token-function">address</span>()),
+                <span class="code-token-variable">ContractParameter</span>::<span class="code-token-function">hash160</span>(<span class="code-token-string">"NbnjKGMBJzJ6j5PHeYhjJDaQ5Vy5UYu4Fv"</span>),
+                <span class="code-token-variable">ContractParameter</span>::<span class="code-token-function">integer</span>(100),
+                <span class="code-token-variable">ContractParameter</span>::<span class="code-token-function">any</span>(<span class="code-token-keyword">None</span>)
+            ],
+            account,
+        )
+        .<span class="code-token-function">await</span>?;
+    
+    <span class="code-token-function">println!</span>(<span class="code-token-string">"Transaction: {}"</span>, result.<span class="code-token-variable">tx_id</span>);
+    
+    <span class="code-token-variable">Ok</span>(())
+}</code></pre>
+        </div>
+      </section>
+
+      <!-- Newsletter Signup -->
+      <div class="newsletter scroll-animated">
+        <div class="newsletter-content">
+          <h3 class="newsletter-title">Stay Updated</h3>
+          <p class="newsletter-description">Get the latest Neo Rust SDK updates, tutorials, and community news delivered to your inbox.</p>
+          <form id="newsletter-form" class="newsletter-form">
+            <input type="email" class="newsletter-input" placeholder="Your email address" required>
+            <button type="submit" class="btn btn-primary">Subscribe</button>
+          </form>
+          <div class="newsletter-status"></div>
+        </div>
+      </div>
+
+      <section class="section">
+        <h2 class="section-title scroll-animated">Key Components</h2>
+        <div class="features-grid">
+          <div class="feature-item scroll-animated">
+            <svg class="feature-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 10H21M7 15H8M12 15H13M7 5H17M17 15H18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <div class="feature-text">
+              <h3>NEP-17 Token Support</h3>
+              <p>Interact with NEP-17 tokens directly with built-in support.</p>
+            </div>
+          </div>
+          <div class="feature-item scroll-animated">
+            <svg class="feature-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <div class="feature-text">
+              <h3>NNS Integration</h3>
+              <p>Work with the Neo Name Service for human-readable addresses.</p>
+            </div>
+          </div>
+          <div class="feature-item scroll-animated">
+            <svg class="feature-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="feature-text">
+              <h3>Famous Contract Support</h3>
+              <p>Direct interfaces for Flamingo, NeoburgerNeo, and other popular contracts.</p>
+            </div>
+          </div>
+          <div class="feature-item scroll-animated">
+            <svg class="feature-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 10L19.5528 7.72361C20.2177 7.39116 21 7.87465 21 8.61803V15.382C21 16.1253 20.2177 16.6088 19.5528 16.2764L15 14M5 18H13C14.1046 18 15 17.1046 15 16V8C15 6.89543 14.1046 6 13 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="feature-text">
+              <h3>Neo X Support</h3>
+              <p>EVM compatibility and bridge functionality for cross-chain operations.</p>
+            </div>
+          </div>
+          <div class="feature-item scroll-animated">
+            <svg class="feature-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="feature-text">
+              <h3>SGX Support</h3>
+              <p>Secure operations within Intel SGX enclaves for enhanced security.</p>
+            </div>
+          </div>
+          <div class="feature-item scroll-animated">
+            <svg class="feature-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="feature-text">
+              <h3>Asynchronous API</h3>
+              <p>First-class async/await support for efficient blockchain interactions.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-col">
+          <div class="footer-logo">
+            <svg class="footer-logo-img" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <rect width="100" height="100" fill="transparent"/>
+              <path d="M20 20 L80 20 L80 80 L20 80 Z" fill="none" stroke="#4CFFB3" stroke-width="4"/>
+              <path d="M35 35 L65 35 L65 65 L35 65 Z" fill="#4CFFB3"/>
+            </svg>
+            <div class="footer-logo-text">Neo Rust SDK</div>
+          </div>
+          <p>A comprehensive Rust library for building applications on the Neo N3 blockchain ecosystem.</p>
+          <div class="footer-social">
+            <a href="https://github.com/neo-project/neo-rust" target="_blank" aria-label="GitHub">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+              </svg>
+            </a>
+            <a href="https://discord.gg/G5WEPwDgYG" target="_blank" aria-label="Discord">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 9a5 5 0 0 0-5-5h-2a5 5 0 0 0-5 5v6a5 5 0 0 0 5 5h2a5 5 0 0 0 5-5V9Z"></path>
+                <path d="m8 9 3 3-3 3"></path>
+                <path d="m16 9-3 3 3 3"></path>
+              </svg>
+            </a>
+            <a href="https://twitter.com/neo_blockchain" target="_blank" aria-label="Twitter">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
+              </svg>
+            </a>
+          </div>
+        </div>
+        <div class="footer-col footer-links">
+          <h3>Documentation</h3>
+          <ul>
+            <li><a href="/docs/getting-started/" class="footer-link">Getting Started</a></li>
+            <li><a href="/docs/wallets/" class="footer-link">Wallet Management</a></li>
+            <li><a href="/docs/transactions/" class="footer-link">Transactions</a></li>
+            <li><a href="/docs/contracts/" class="footer-link">Smart Contracts</a></li>
+            <li><a href="/docs/crypto/" class="footer-link">Cryptography</a></li>
+          </ul>
+        </div>
+        <div class="footer-col footer-links">
+          <h3>Resources</h3>
+          <ul>
+            <li><a href="/api/" class="footer-link">API Reference</a></li>
+            <li><a href="/examples/" class="footer-link">Examples</a></li>
+            <li><a href="/playground/" class="footer-link">Playground</a></li>
+            <li><a href="https://github.com/neo-project/neo-rust/releases" class="footer-link" target="_blank">Releases</a></li>
+            <li><a href="https://github.com/neo-project/neo-rust/issues" class="footer-link" target="_blank">Report Issues</a></li>
+          </ul>
+        </div>
+        <div class="footer-col footer-links">
+          <h3>Community</h3>
+          <ul>
+            <li><a href="https://neo.org" class="footer-link" target="_blank">Neo.org</a></li>
+            <li><a href="https://github.com/neo-project" class="footer-link" target="_blank">Neo GitHub</a></li>
+            <li><a href="https://discord.gg/G5WEPwDgYG" class="footer-link" target="_blank">Discord</a></li>
+            <li><a href="https://medium.com/neo-smart-economy" class="footer-link" target="_blank">Medium</a></li>
+            <li><a href="https://twitter.com/neo_blockchain" class="footer-link" target="_blank">Twitter</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copyright">
+          © 2023 Neo Global Development. All rights reserved.
+        </div>
+        <div class="footer-bottom-links">
+          <a href="/privacy-policy/" class="footer-bottom-link">Privacy Policy</a>
+          <a href="/terms-of-service/" class="footer-bottom-link">Terms of Service</a>
+          <a href="/license/" class="footer-bottom-link">License</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
 </body>
 </html>

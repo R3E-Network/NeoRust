@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Not Found | Neo Rust SDK</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4CFFB3;
+      --primary-dark: #34D99A;
+      --bg-dark: #0f172a;
+      --text-dark: #f8fafc;
+      --transition-speed: 0.3s;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: var(--text-dark);
+      background-color: var(--bg-dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .animated-bg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: -1;
+    }
+    
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.4;
+      animation: floatAnimation 20s infinite alternate ease-in-out;
+    }
+    
+    .blob-1 {
+      width: 500px;
+      height: 500px;
+      background: rgba(76, 255, 179, 0.2);
+      left: -200px;
+      top: -200px;
+      animation-delay: 0s;
+    }
+    
+    .blob-2 {
+      width: 400px;
+      height: 400px;
+      background: rgba(96, 165, 250, 0.2);
+      right: -100px;
+      top: 100px;
+      animation-delay: 5s;
+    }
+    
+    @keyframes floatAnimation {
+      0% {
+        transform: translate(0, 0) scale(1);
+      }
+      50% {
+        transform: translate(50px, 50px) scale(1.1);
+      }
+      100% {
+        transform: translate(-30px, -30px) scale(0.9);
+      }
+    }
+    
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 2rem;
+    }
+    
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(to right, var(--primary), #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+      max-width: 600px;
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: none;
+      background-color: var(--primary);
+      color: var(--bg-dark);
+    }
+    
+    .btn:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(76, 255, 179, 0.2);
+    }
+    
+    .error-code {
+      font-size: 8rem;
+      font-weight: 800;
+      opacity: 0.1;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: -1;
+    }
+    
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .error-code {
+        font-size: 5rem;
+      }
+    }
+    
+    /* Animation classes */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeIn 0.6s forwards;
+    }
+    
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+  <meta http-equiv="refresh" content="5;url=/" />
+</head>
+<body>
+  <div class="animated-bg">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+  
+  <div class="error-code">404</div>
+  
+  <svg class="logo fade-in" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="transparent"/>
+    <path d="M20 20 L80 20 L80 80 L20 80 Z" fill="none" stroke="#4CFFB3" stroke-width="4"/>
+    <path d="M35 35 L65 35 L65 65 L35 65 Z" fill="#4CFFB3"/>
+  </svg>
+  
+  <h1 class="fade-in" style="animation-delay: 0.2s;">Page Not Found</h1>
+  <p class="fade-in" style="animation-delay: 0.3s;">Oops! The page you're looking for doesn't exist or has been moved.</p>
+  <a href="/" class="btn fade-in" style="animation-delay: 0.4s;">Return to Home</a>
+  <p class="fade-in" style="animation-delay: 0.5s; margin-top: 2rem; font-size: 0.9rem; opacity: 0.7;">Redirecting you to the homepage in 5 seconds...</p>
+</body>
+</html>
