@@ -1,0 +1,45 @@
+---
+title: Getting Started with Neo Rust SDK
+description: Learn how to install and use the Neo Rust SDK for blockchain development
+slug: /getting-started
+---
+
+# Getting Started with Neo Rust SDK
+
+The Neo Rust SDK provides a comprehensive set of tools for building applications on the Neo N3 blockchain ecosystem.
+
+## Installation
+
+Add the Neo Rust SDK to your Cargo.toml file:
+
+```toml
+[dependencies]
+neo = "0.5.0"
+```
+
+## Basic Usage
+
+Here's a simple example of using the Neo Rust SDK to create a wallet:
+
+```rust
+use neo::prelude::*;
+
+fn main() -> Result<()> {
+    // Create a new wallet
+    let wallet = Wallet::new();
+    
+    // Print the wallet address
+    println!("New wallet address: {}", wallet.address());
+    
+    Ok(())
+}
+```
+
+## Next Steps
+
+Explore the documentation to learn more about:
+
+- [Wallet Management](/docs/wallets)
+- [Smart Contracts](/docs/smart-contracts)
+- [Transactions](/docs/transactions)
+- [Network Communication](/docs/network)

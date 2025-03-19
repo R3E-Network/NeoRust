@@ -1,7 +1,6 @@
 import React from 'react';
 import { graphql } from 'gatsby';
 import { MDXProvider } from '@mdx-js/react';
-import { MDXRenderer } from 'gatsby-plugin-mdx';
 import Layout from '../components/Layout';
 import DocSidebar from '../components/DocSidebar';
 import CodeBlock from '../components/CodeBlock';
@@ -14,9 +13,14 @@ interface DocTemplateProps {
         description: string;
       };
       body: string;
+      // For Gatsby MDX v5+
+      internal: {
+        contentFilePath: string;
+      };
     };
   };
   path: string;
+  children: React.ReactNode;
 }
 
 const components = {
@@ -36,8 +40,8 @@ const components = {
   },
 };
 
-const DocTemplate: React.FC<DocTemplateProps> = ({ data, path }) => {
-  const { frontmatter, body } = data.mdx;
+const DocTemplate: React.FC<DocTemplateProps> = ({ data, path, children }) => {
+  const { frontmatter } = data.mdx;
   
   return (
     <Layout
@@ -54,7 +58,7 @@ const DocTemplate: React.FC<DocTemplateProps> = ({ data, path }) => {
               
               <div className="doc-content">
                 <MDXProvider components={components}>
-                  <MDXRenderer>{body}</MDXRenderer>
+                  {children}
                 </MDXProvider>
               </div>
               
@@ -89,7 +93,9 @@ export const query = graphql`
         title
         description
       }
-      body
+      internal {
+        contentFilePath
+      }
     }
   }
 `;

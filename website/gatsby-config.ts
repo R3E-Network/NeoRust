@@ -50,6 +50,7 @@ const config: GatsbyConfig = {
       options: {
         name: "docs",
         path: "../docs/",
+        ignore: ["**/src/**", "**/book/**", "**/theme/**", "**/assets/**"],
       },
       __key: "docs",
     },
@@ -57,6 +58,10 @@ const config: GatsbyConfig = {
       resolve: "gatsby-plugin-mdx",
       options: {
         extensions: [".mdx", ".md"],
+        mdxOptions: {
+          remarkPlugins: [],
+          rehypePlugins: [],
+        },
         gatsbyRemarkPlugins: [
           {
             resolve: "gatsby-remark-autolink-headers",

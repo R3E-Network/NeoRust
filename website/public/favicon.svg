@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="120" viewBox="0 0 120 120" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient x1="0%" y1="0%" x2="100%" y2="100%" id="neoGradient">
+            <stop stop-color="#4CFFB3" offset="0%"></stop>
+            <stop stop-color="#00E599" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g transform="translate(10, 10)" fill="url(#neoGradient)">
+            <polygon points="0 0 0 100 25 100 25 25 75 25 75 75 50 75 50 50 25 50 25 100 100 100 100 0"></polygon>
+        </g>
+    </g>
+</svg>

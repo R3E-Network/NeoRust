@@ -3,12 +3,30 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --grid-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .light {
+    --grid-color: rgba(0, 0, 0, 0.05);
+  }
+
   html {
     @apply bg-slate-900 text-gray-100 scroll-smooth;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  .light html {
+    @apply bg-white text-gray-800;
   }
   
   body {
-    @apply antialiased;
+    @apply antialiased min-h-screen;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  .light body {
+    @apply bg-gray-50 text-gray-800;
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -28,12 +46,20 @@
     @apply bg-slate-800;
   }
   
+  .light ::-webkit-scrollbar-track {
+    @apply bg-gray-200;
+  }
+  
   ::-webkit-scrollbar-thumb {
     @apply bg-slate-600 rounded-full;
   }
   
+  .light ::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 rounded-full;
+  }
+  
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-green-500;
+    @apply bg-neo-green-500;
   }
   
   /* Code snippets */
@@ -52,6 +78,10 @@
     @apply text-gray-400;
   }
   
+  .light .token.punctuation {
+    @apply text-gray-600;
+  }
+  
   .token.property,
   .token.tag,
   .token.constant,
@@ -60,9 +90,22 @@
     @apply text-red-400;
   }
   
+  .light .token.property,
+  .light .token.tag,
+  .light .token.constant,
+  .light .token.symbol,
+  .light .token.deleted {
+    @apply text-red-600;
+  }
+  
   .token.boolean,
   .token.number {
     @apply text-purple-400;
+  }
+  
+  .light .token.boolean,
+  .light .token.number {
+    @apply text-purple-600;
   }
   
   .token.selector,
@@ -71,7 +114,16 @@
   .token.char,
   .token.builtin,
   .token.inserted {
-    @apply text-green-400;
+    @apply text-neo-green-400;
+  }
+  
+  .light .token.selector,
+  .light .token.attr-name,
+  .light .token.string,
+  .light .token.char,
+  .light .token.builtin,
+  .light .token.inserted {
+    @apply text-neo-green-600;
   }
   
   .token.operator,
@@ -82,15 +134,34 @@
     @apply text-yellow-400;
   }
   
+  .light .token.operator,
+  .light .token.entity,
+  .light .token.url,
+  .light .language-css .token.string,
+  .light .style .token.string {
+    @apply text-yellow-600;
+  }
+  
   .token.atrule,
   .token.attr-value,
   .token.keyword {
     @apply text-blue-400;
   }
   
+  .light .token.atrule,
+  .light .token.attr-value,
+  .light .token.keyword {
+    @apply text-blue-600;
+  }
+  
   .token.function,
   .token.class-name {
     @apply text-pink-400;
+  }
+  
+  .light .token.function,
+  .light .token.class-name {
+    @apply text-pink-600;
   }
   
   .token.regex,
@@ -99,9 +170,19 @@
     @apply text-yellow-400;
   }
   
+  .light .token.regex,
+  .light .token.important,
+  .light .token.variable {
+    @apply text-yellow-600;
+  }
+  
   /* Doc page styles */
   .doc-content {
     @apply prose prose-lg prose-invert mx-auto;
+  }
+  
+  .light .doc-content {
+    @apply prose prose-lg prose-light mx-auto;
   }
   
   /* Header anchor links */
@@ -121,35 +202,89 @@
 
 @layer components {
   .btn {
-    @apply px-6 py-2 rounded-lg font-medium transition-colors;
+    @apply px-6 py-2 rounded-lg font-medium transition-all duration-300 relative overflow-hidden shadow-md;
+  }
+  
+  .btn::before {
+    content: '';
+    @apply absolute inset-0 opacity-0 bg-white transition-opacity duration-300;
+  }
+  
+  .btn:hover::before {
+    @apply opacity-10;
+  }
+  
+  .btn:active {
+    @apply transform scale-95 shadow-inner;
   }
   
   .btn-primary {
-    @apply bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white shadow-lg;
+    @apply bg-gradient-to-r from-neo-green-400 to-neo-green-500 hover:from-neo-green-500 hover:to-neo-green-600 text-white shadow-lg shadow-neo-green-500/20;
+  }
+  
+  .light .btn-primary {
+    @apply shadow-neo-green-500/10;
   }
   
   .btn-secondary {
     @apply bg-slate-700 hover:bg-slate-600 text-white shadow-lg;
   }
   
+  .light .btn-secondary {
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 shadow-gray-200/30;
+  }
+  
   .card {
-    @apply p-6 rounded-xl bg-slate-700/50 backdrop-blur-sm border border-slate-600 hover:border-green-400/50 transition;
+    @apply p-6 rounded-xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-neo-green-400/50 transition-all duration-300 hover:shadow-md hover:shadow-neo-green-400/5;
+  }
+  
+  .light .card {
+    @apply bg-white shadow-lg border-gray-200 hover:border-neo-green-400/50 hover:shadow-neo-green-400/5;
   }
   
   .nav-link {
-    @apply text-gray-200 hover:text-green-400 transition;
+    @apply text-gray-200 hover:text-neo-green-400 transition relative;
+  }
+  
+  .nav-link::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-0 h-0.5 bg-neo-green-400 transition-all duration-300;
+  }
+  
+  .nav-link:hover::after {
+    @apply w-full;
+  }
+  
+  .light .nav-link {
+    @apply text-gray-700 hover:text-neo-green-600;
+  }
+  
+  .light .nav-link::after {
+    @apply bg-neo-green-600;
   }
   
   .nav-link-active {
-    @apply text-green-400 font-medium;
+    @apply text-neo-green-400 font-medium;
+  }
+  
+  .light .nav-link-active {
+    @apply text-neo-green-600;
   }
   
   .doc-sidebar-link {
     @apply block py-2 px-4 rounded-lg hover:bg-slate-700 transition;
   }
   
+  .light .doc-sidebar-link {
+    @apply hover:bg-gray-100;
+  }
+  
   .doc-sidebar-link-active {
-    @apply bg-slate-700 text-green-400 font-medium;
+    @apply bg-slate-700 text-neo-green-400 font-medium;
+  }
+  
+  .light .doc-sidebar-link-active {
+    @apply bg-gray-100 text-neo-green-600;
   }
 }
 
@@ -161,14 +296,30 @@
   .bg-grid {
     background-image: 
       linear-gradient(
-        rgba(255, 255, 255, 0.05) 1px, 
+        var(--grid-color) 1px, 
         transparent 1px
       ),
       linear-gradient(
         90deg, 
-        rgba(255, 255, 255, 0.05) 1px, 
+        var(--grid-color) 1px, 
         transparent 1px
       );
     background-size: 30px 30px;
+  }
+  
+  .glass-effect {
+    @apply bg-opacity-20 backdrop-blur-lg backdrop-filter border border-white/10 shadow-xl;
+  }
+  
+  .light .glass-effect {
+    @apply bg-white bg-opacity-70 border-white/30;
+  }
+  
+  .neo-shadow {
+    box-shadow: 0 10px 40px -10px rgba(16, 185, 129, 0.2);
+  }
+  
+  .light .neo-shadow {
+    box-shadow: 0 10px 40px -10px rgba(16, 185, 129, 0.1);
   }
 }

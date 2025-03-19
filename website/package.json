@@ -15,6 +15,7 @@
     "develop": "gatsby develop",
     "start": "gatsby develop",
     "build": "gatsby build",
+    "build:static": "rm -rf public/* && cp -r static/* public/ && node scripts/generate-static.js",
     "serve": "gatsby serve",
     "clean": "gatsby clean",
     "typecheck": "tsc --noEmit"

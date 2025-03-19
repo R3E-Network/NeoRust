@@ -1,42 +1,14 @@
 [build]
-  command = "npm run build"
-  publish = "public"
-  functions = "netlify/functions"
+  base = "website/"
+  publish = "public/"
+  command = "npm run build:static"
 
-# Redirects and rewrites
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
 
-# Handle 404s
 [[redirects]]
   from = "/*"
   to = "/404/"
   status = 404
-  
-# Production context
-[context.production]
-  environment = { NODE_VERSION = "18" }
-
-# Deploy preview context
-[context.deploy-preview]
-  environment = { NODE_VERSION = "18" }
-
-# Branch deploy context
-[context.branch-deploy]
-  environment = { NODE_VERSION = "18" }
-
-# Asset optimization
-[build.processing]
-  skip_processing = false
-[build.processing.css]
-  bundle = true
-  minify = true
-[build.processing.js]
-  bundle = true
-  minify = true
-[build.processing.html]
-  pretty_urls = true
-[build.processing.images]
-  compress = true
