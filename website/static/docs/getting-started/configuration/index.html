@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Configuration options for Neo Rust SDK - Learn how to configure the SDK for different environments">
+  <title>Configuration | Neo Rust SDK</title>
+  <link rel="icon" href="/images/neo-logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <!-- Loading animation -->
+  <div class="loading">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <a href="/" class="logo-container">
+          <svg class="logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" fill="transparent"/>
+            <path d="M20 20 L80 20 L80 80 L20 80 Z" fill="none" stroke="#4CFFB3" stroke-width="4"/>
+            <path d="M35 35 L65 35 L65 65 L35 65 Z" fill="#4CFFB3"/>
+          </svg>
+          <div class="logo-text">Neo Rust SDK</div>
+        </a>
+        <button class="mobile-menu-button" aria-label="Toggle mobile menu">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div class="nav-links">
+          <a href="/docs/" class="nav-link">Documentation</a>
+          <a href="/api/" class="nav-link">API Reference</a>
+          <a href="/examples/" class="nav-link">Examples</a>
+          <a href="/playground/" class="nav-link">Playground</a>
+          <a href="https://github.com/neo-project/neo-rust" class="nav-link" target="_blank">GitHub</a>
+        </div>
+        <button class="theme-toggle" aria-label="Toggle dark/light mode">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="dark-icon">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="light-icon" style="display: none;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="docs-container">
+        <aside class="docs-sidebar">
+          <div class="docs-nav">
+            <h3>Getting Started</h3>
+            <ul>
+              <li><a href="/docs/getting-started/">Installation</a></li>
+              <li><a href="/docs/getting-started/basic-usage/">Basic Usage</a></li>
+              <li><a href="/docs/getting-started/configuration/" class="active">Configuration</a></li>
+            </ul>
+            
+            <h3>Wallet Management</h3>
+            <ul>
+              <li><a href="/docs/wallets/">Overview</a></li>
+              <li><a href="/docs/wallets/creating-wallets/">Creating Wallets</a></li>
+              <li><a href="/docs/wallets/loading-wallets/">Loading Wallets</a></li>
+              <li><a href="/docs/wallets/accounts/">Accounts</a></li>
+              <li><a href="/docs/wallets/keys-addresses/">Keys & Addresses</a></li>
+            </ul>
+            
+            <h3>Transactions</h3>
+            <ul>
+              <li><a href="/docs/transactions/">Overview</a></li>
+              <li><a href="/docs/transactions/building/">Building Transactions</a></li>
+              <li><a href="/docs/transactions/signing/">Signing Transactions</a></li>
+              <li><a href="/docs/transactions/sending/">Sending Transactions</a></li>
+            </ul>
+            
+            <h3>Smart Contracts</h3>
+            <ul>
+              <li><a href="/docs/contracts/">Overview</a></li>
+              <li><a href="/docs/contracts/invoking/">Invoking Contracts</a></li>
+              <li><a href="/docs/contracts/parameters/">Contract Parameters</a></li>
+              <li><a href="/docs/contracts/nep-17/">NEP-17 Tokens</a></li>
+            </ul>
+            
+            <h3>Cryptography</h3>
+            <ul>
+              <li><a href="/docs/crypto/">Overview</a></li>
+              <li><a href="/docs/crypto/key-pairs/">Key Pairs</a></li>
+              <li><a href="/docs/crypto/signatures/">Signatures</a></li>
+              <li><a href="/docs/crypto/hashing/">Hashing</a></li>
+            </ul>
+          </div>
+        </aside>
+        
+        <div class="docs-content">
+          <h1>Configuring Neo Rust SDK</h1>
+          
+          <p>This guide explains how to configure the Neo Rust SDK for different environments and use cases.</p>
+          
+          <h2 id="network-selection">Network Selection</h2>
+          <p>The Neo Rust SDK provides built-in methods to connect to different Neo networks:</p>
+          
+          <div class="code-container">
+            <div class="code-header">
+              <div class="code-dots">
+                <div class="code-dot code-dot-red"></div>
+                <div class="code-dot code-dot-yellow"></div>
+                <div class="code-dot code-dot-green"></div>
+              </div>
+              <div class="code-title">network_config.rs</div>
+            </div>
+            <button class="copy-button">Copy</button>
+            <pre><code>use neo::prelude::*;
+
+async fn network_examples() -> Result&lt;()&gt; {
+    // Connect to TestNet (for development)
+    let testnet_client = NeoClient::connect_to_testnet().await?;
+    
+    // Connect to MainNet (for production)
+    let mainnet_client = NeoClient::connect_to_mainnet().await?;
+    
+    // Connect to a local PrivateNet (for local development)
+    let local_client = NeoClient::connect("http://localhost:10332").await?;
+    
+    // Connect to a custom RPC node
+    let custom_client = NeoClient::connect("http://seed1.neo.org:10332").await?;
+    
+    Ok(())
+}</code></pre>
+          </div>
+          
+          <h2 id="client-config">Client Configuration</h2>
+          <p>You can configure the NeoClient with custom settings:</p>
+          
+          <div class="code-container">
+            <div class="code-header">
+              <div class="code-dots">
+                <div class="code-dot code-dot-red"></div>
+                <div class="code-dot code-dot-yellow"></div>
+                <div class="code-dot code-dot-green"></div>
+              </div>
+              <div class="code-title">client_config.rs</div>
+            </div>
+            <button class="copy-button">Copy</button>
+            <pre><code>use neo::prelude::*;
+use std::time::Duration;
+
+async fn client_config_example() -> Result&lt;()&gt; {
+    // Create a client with custom configuration
+    let client = NeoClientBuilder::new()
+        .url("http://seed1.neo.org:10332")
+        .timeout(Duration::from_secs(30))
+        .max_retries(3)
+        .build()
+        .await?;
+    
+    Ok(())
+}</code></pre>
+          </div>
+          
+          <h2 id="logging">Logging Configuration</h2>
+          <p>The Neo Rust SDK uses the Rust <code class="inline-code">log</code> crate for logging. You can configure it with various logging implementations such as <code class="inline-code">env_logger</code>:</p>
+          
+          <div class="code-container">
+            <div class="code-header">
+              <div class="code-dots">
+                <div class="code-dot code-dot-red"></div>
+                <div class="code-dot code-dot-yellow"></div>
+                <div class="code-dot code-dot-green"></div>
+              </div>
+              <div class="code-title">Cargo.toml</div>
+            </div>
+            <button class="copy-button">Copy</button>
+            <pre><code>[dependencies]
+neo = "0.5.0"
+log = "0.4"
+env_logger = "0.10"</code></pre>
+          </div>
+          
+          <p>Then initialize the logger in your application:</p>
+          
+          <div class="code-container">
+            <div class="code-header">
+              <div class="code-dots">
+                <div class="code-dot code-dot-red"></div>
+                <div class="code-dot code-dot-yellow"></div>
+                <div class="code-dot code-dot-green"></div>
+              </div>
+              <div class="code-title">main.rs</div>
+            </div>
+            <button class="copy-button">Copy</button>
+            <pre><code>use neo::prelude::*;
+use log::{info, warn, error, debug};
+
+fn main() -> Result&lt;()&gt; {
+    // Initialize logger
+    env_logger::init();
+    
+    // Now SDK operations will log according to the RUST_LOG environment variable
+    // e.g., RUST_LOG=debug,neo=trace
+    
+    info!("Application started");
+    
+    // Your Neo SDK code here
+    
+    Ok(())
+}</code></pre>
+          </div>
+          
+          <h2 id="feature-flags">Feature Flags</h2>
+          <p>The Neo Rust SDK provides several feature flags that can be enabled or disabled to customize functionality:</p>
+          
+          <div class="code-container">
+            <div class="code-header">
+              <div class="code-dots">
+                <div class="code-dot code-dot-red"></div>
+                <div class="code-dot code-dot-yellow"></div>
+                <div class="code-dot code-dot-green"></div>
+              </div>
+              <div class="code-title">Cargo.toml</div>
+            </div>
+            <button class="copy-button">Copy</button>
+            <pre><code>[dependencies]
+neo = { version = "0.5.0", features = ["sgx", "web-socket", "nns"] }
+
+# Available features:
+# - "sgx": Enable Intel SGX secure enclave support
+# - "web-socket": Enable WebSocket support for real-time notifications
+# - "nns": Enable Neo Name Service integration
+# - "extended-keys": Enable extended key derivation (BIP32/44/39)
+# - "default": Includes basic features suitable for most applications</code></pre>
+          </div>
+          
+          <h2 id="custom-storage">Custom Storage Providers</h2>
+          <p>By default, the Neo Rust SDK uses file-based storage for wallets, but you can implement custom storage providers:</p>
+          
+          <div class="code-container">
+            <div class="code-header">
+              <div class="code-dots">
+                <div class="code-dot code-dot-red"></div>
+                <div class="code-dot code-dot-yellow"></div>
+                <div class="code-dot code-dot-green"></div>
+              </div>
+              <div class="code-title">custom_storage.rs</div>
+            </div>
+            <button class="copy-button">Copy</button>
+            <pre><code>use neo::prelude::*;
+use neo::wallet::storage::{StorageProvider, StorageError};
+
+// Implement a custom storage provider (e.g., database-backed)
+struct DatabaseStorage {
+    connection: DbConnection,
+}
+
+impl StorageProvider for DatabaseStorage {
+    fn load(&self, path: &str) -> Result&lt;Vec&lt;u8&gt;&gt; {
+        // Implementation to load wallet data from database
+        // ...
+    }
+    
+    fn save(&self, path: &str, data: &[u8]) -> Result&lt;()&gt; {
+        // Implementation to save wallet data to database
+        // ...
+    }
+}
+
+fn use_custom_storage() -> Result&lt;()&gt; {
+    // Create database storage
+    let db_storage = DatabaseStorage { 
+        connection: DbConnection::new("connection_string"),
+    };
+    
+    // Create wallet with custom storage
+    let wallet = Wallet::new_with_storage(db_storage);
+    
+    Ok(())
+}</code></pre>
+          </div>
+          
+          <h2 id="transaction-settings">Transaction Settings</h2>
+          <p>Configure default transaction settings:</p>
+          
+          <div class="code-container">
+            <div class="code-header">
+              <div class="code-dots">
+                <div class="code-dot code-dot-red"></div>
+                <div class="code-dot code-dot-yellow"></div>
+                <div class="code-dot code-dot-green"></div>
+              </div>
+              <div class="code-title">tx_settings.rs</div>
+            </div>
+            <button class="copy-button">Copy</button>
+            <pre><code>use neo::prelude::*;
+
+async fn transaction_settings() -> Result&lt;()&gt; {
+    // Set up default transaction settings
+    let tx_settings = TransactionSettings::new()
+        .system_fee(1_0000000)  // 0.1 GAS
+        .network_fee(1_0000000) // 0.1 GAS
+        .valid_until_blocks(100) // Valid for next 100 blocks
+        .build();
+    
+    // Create a client with custom transaction settings
+    let client = NeoClientBuilder::new()
+        .url("http://seed1.neo.org:10332")
+        .transaction_settings(tx_settings)
+        .build()
+        .await?;
+    
+    Ok(())
+}</code></pre>
+          </div>
+          
+          <h2 id="environment-vars">Environment Variables</h2>
+          <p>You can use environment variables to configure the Neo Rust SDK for different environments:</p>
+          
+          <div class="code-container">
+            <div class="code-header">
+              <div class="code-dots">
+                <div class="code-dot code-dot-red"></div>
+                <div class="code-dot code-dot-yellow"></div>
+                <div class="code-dot code-dot-green"></div>
+              </div>
+              <div class="code-title">env_config.rs</div>
+            </div>
+            <button class="copy-button">Copy</button>
+            <pre><code>use neo::prelude::*;
+use std::env;
+
+async fn env_config_example() -> Result&lt;()&gt; {
+    // Get config from environment variables
+    let node_url = env::var("NEO_NODE_URL")
+        .unwrap_or_else(|_| "http://seed1.neo.org:10332".to_string());
+    
+    let network_type = match env::var("NEO_NETWORK").unwrap_or_else(|_| "testnet".to_string()).as_str() {
+        "mainnet" => NetworkType::MainNet,
+        "testnet" => NetworkType::TestNet,
+        _ => NetworkType::TestNet, // Default to TestNet
+    };
+    
+    // Connect to the configured network
+    let client = match network_type {
+        NetworkType::MainNet => NeoClient::connect_to_mainnet().await?,
+        NetworkType::TestNet => NeoClient::connect_to_testnet().await?,
+        _ => NeoClient::connect(&node_url).await?,
+    };
+    
+    Ok(())
+}</code></pre>
+          </div>
+          
+          <h2 id="next-steps">Next Steps</h2>
+          <p>Now that you've learned how to configure the Neo Rust SDK, you can explore the following topics:</p>
+          
+          <ul>
+            <li>Learn more about <a href="/docs/wallets/">wallet management</a></li>
+            <li>Discover how to <a href="/docs/transactions/">create and send transactions</a></li>
+            <li>Explore <a href="/docs/contracts/">smart contract interactions</a></li>
+            <li>Check out the <a href="/examples/">example projects</a> for complete applications</li>
+          </ul>
+          
+          <div class="docs-footer">
+            <a href="/docs/getting-started/basic-usage/">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+              Basic Usage
+            </a>
+            <a href="/docs/wallets/">
+              Wallet Management
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+        </div>
+        
+        <aside class="docs-toc">
+          <h3>On This Page</h3>
+          <ul>
+            <li><a href="#network-selection">Network Selection</a></li>
+            <li><a href="#client-config">Client Configuration</a></li>
+            <li><a href="#logging">Logging Configuration</a></li>
+            <li><a href="#feature-flags">Feature Flags</a></li>
+            <li><a href="#custom-storage">Custom Storage Providers</a></li>
+            <li><a href="#transaction-settings">Transaction Settings</a></li>
+            <li><a href="#environment-vars">Environment Variables</a></li>
+            <li><a href="#next-steps">Next Steps</a></li>
+          </ul>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-col">
+          <div class="footer-logo">
+            <svg class="footer-logo-img" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <rect width="100" height="100" fill="transparent"/>
+              <path d="M20 20 L80 20 L80 80 L20 80 Z" fill="none" stroke="#4CFFB3" stroke-width="4"/>
+              <path d="M35 35 L65 35 L65 65 L35 65 Z" fill="#4CFFB3"/>
+            </svg>
+            <div class="footer-logo-text">Neo Rust SDK</div>
+          </div>
+          <p>A comprehensive Rust library for building applications on the Neo N3 blockchain ecosystem.</p>
+          <div class="footer-social">
+            <a href="https://github.com/neo-project/neo-rust" target="_blank" aria-label="GitHub">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+              </svg>
+            </a>
+            <a href="https://discord.gg/G5WEPwDgYG" target="_blank" aria-label="Discord">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 9a5 5 0 0 0-5-5h-2a5 5 0 0 0-5 5v6a5 5 0 0 0 5 5h2a5 5 0 0 0 5-5V9Z"></path>
+                <path d="m8 9 3 3-3 3"></path>
+                <path d="m16 9-3 3 3 3"></path>
+              </svg>
+            </a>
+            <a href="https://twitter.com/neo_blockchain" target="_blank" aria-label="Twitter">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
+              </svg>
+            </a>
+          </div>
+        </div>
+        <div class="footer-col footer-links">
+          <h3>Documentation</h3>
+          <ul>
+            <li><a href="/docs/getting-started/" class="footer-link">Getting Started</a></li>
+            <li><a href="/docs/wallets/" class="footer-link">Wallet Management</a></li>
+            <li><a href="/docs/transactions/" class="footer-link">Transactions</a></li>
+            <li><a href="/docs/contracts/" class="footer-link">Smart Contracts</a></li>
+            <li><a href="/docs/crypto/" class="footer-link">Cryptography</a></li>
+          </ul>
+        </div>
+        <div class="footer-col footer-links">
+          <h3>Resources</h3>
+          <ul>
+            <li><a href="/api/" class="footer-link">API Reference</a></li>
+            <li><a href="/examples/" class="footer-link">Examples</a></li>
+            <li><a href="/playground/" class="footer-link">Playground</a></li>
+            <li><a href="https://github.com/neo-project/neo-rust/releases" class="footer-link" target="_blank">Releases</a></li>
+            <li><a href="https://github.com/neo-project/neo-rust/issues" class="footer-link" target="_blank">Report Issues</a></li>
+          </ul>
+        </div>
+        <div class="footer-col footer-links">
+          <h3>Community</h3>
+          <ul>
+            <li><a href="https://neo.org" class="footer-link" target="_blank">Neo.org</a></li>
+            <li><a href="https://github.com/neo-project" class="footer-link" target="_blank">Neo GitHub</a></li>
+            <li><a href="https://discord.gg/G5WEPwDgYG" class="footer-link" target="_blank">Discord</a></li>
+            <li><a href="https://medium.com/neo-smart-economy" class="footer-link" target="_blank">Medium</a></li>
+            <li><a href="https://twitter.com/neo_blockchain" class="footer-link" target="_blank">Twitter</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copyright">
+          © 2023 Neo Global Development. All rights reserved.
+        </div>
+        <div class="footer-bottom-links">
+          <a href="/privacy-policy/" class="footer-bottom-link">Privacy Policy</a>
+          <a href="/terms-of-service/" class="footer-bottom-link">Terms of Service</a>
+          <a href="/license/" class="footer-bottom-link">License</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+</body>
+</html> 
