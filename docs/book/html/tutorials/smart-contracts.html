@@ -168,7 +168,7 @@
 <p>Neo N3 smart contracts are written in a variety of languages including C#, Python, Go, and TypeScript, and are compiled to NeoVM bytecode. The NeoRust SDK provides tools for deploying and interacting with these contracts.</p>
 <h2 id="deploying-a-smart-contract"><a class="header" href="#deploying-a-smart-contract">Deploying a Smart Contract</a></h2>
 <p>To deploy a smart contract, you need the contract's NEF (Neo Executable Format) file and its manifest:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 use std::fs;
 
@@ -210,7 +210,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="invoking-a-smart-contract"><a class="header" href="#invoking-a-smart-contract">Invoking a Smart Contract</a></h2>
 <p>Once a contract is deployed, you can invoke its methods:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -263,7 +263,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="reading-contract-state"><a class="header" href="#reading-contract-state">Reading Contract State</a></h2>
 <p>You can read the state of a contract without sending a transaction:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -295,7 +295,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="working-with-nep-17-tokens"><a class="header" href="#working-with-nep-17-tokens">Working with NEP-17 Tokens</a></h2>
 <p>NEP-17 is Neo's token standard, similar to Ethereum's ERC-20. The NeoRust SDK provides a convenient way to work with NEP-17 tokens:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -340,7 +340,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="contract-events"><a class="header" href="#contract-events">Contract Events</a></h2>
 <p>Neo smart contracts can emit events that you can listen for:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::time::Duration;
 
 #[tokio::main]

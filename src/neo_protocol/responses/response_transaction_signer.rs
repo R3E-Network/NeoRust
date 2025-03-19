@@ -4,7 +4,7 @@ use crate::{
 	deserialize_scopes, deserialize_script_hash, deserialize_vec_script_hash, serialize_scopes,
 	serialize_script_hash, serialize_vec_script_hash,
 };
-use neo::TypeError;
+use neo3::TypeError;
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};

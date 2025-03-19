@@ -6,7 +6,7 @@ use serde::{
 	Deserialize, Serialize,
 };
 
-use neo::prelude::Address;
+use neo3::prelude::Address;
 
 /// Transaction summary as found in the Txpool Inspection property.
 #[derive(Debug, Clone, PartialEq, Eq)]

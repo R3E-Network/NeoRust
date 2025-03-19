@@ -5,8 +5,8 @@
 /// # Examples
 ///
 /// ```
-/// use neo::prelude::*;
-/// use neo::neo_utils::error::option_to_result;
+/// use neo3::prelude::*;
+/// use neo3::neo_utils::error::option_to_result;
 ///
 /// let value: Option<u32> = Some(42);
 /// let result = option_to_result(value, || NeoError::IllegalState("Value is None".to_string()));
@@ -24,8 +24,8 @@ where
 /// # Examples
 ///
 /// ```
-/// use neo::prelude::*;
-/// use neo::neo_utils::error::with_context;
+/// use neo3::prelude::*;
+/// use neo3::neo_utils::error::with_context;
 ///
 /// let result: Result<u32, NeoError> = Err(NeoError::IllegalState("Original error".to_string()));
 /// let result_with_context = with_context(result, || "Additional context");
@@ -52,8 +52,8 @@ where
 /// # Examples
 ///
 /// ```
-/// use neo::prelude::*;
-/// use neo::neo_utils::error::result_to_option;
+/// use neo3::prelude::*;
+/// use neo3::neo_utils::error::result_to_option;
 ///
 /// let result: Result<u32, NeoError> = Ok(42);
 /// let option = result_to_option(result);
@@ -74,8 +74,8 @@ pub fn result_to_option<T, E: std::fmt::Display>(result: Result<T, E>) -> Option
 /// # Examples
 ///
 /// ```
-/// use neo::prelude::*;
-/// use neo::neo_utils::error::retry;
+/// use neo3::prelude::*;
+/// use neo3::neo_utils::error::retry;
 /// use std::time::Duration;
 ///
 /// async fn fallible_operation() -> Result<u32, NeoError> {

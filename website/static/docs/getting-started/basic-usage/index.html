@@ -144,13 +144,13 @@
             </div>
             <button class="copy-button">Copy</button>
             <pre><code>// Import everything from the prelude module
-use neo::prelude::*;
+use neo3::prelude::*;
 
 // For more selective imports
-// use neo::wallet::Wallet;
-// use neo::tx::Transaction;
-// use neo::network::NeoClient;
-// use neo::crypto::{KeyPair, Hash160};</code></pre>
+// use neo3::wallet::Wallet;
+// use neo3::tx::Transaction;
+// use neo3::network::NeoClient;
+// use neo3::crypto::{KeyPair, Hash160};</code></pre>
           </div>
           
           <h2 id="error-handling">Error Handling</h2>
@@ -166,7 +166,7 @@ use neo::prelude::*;
               <div class="code-title">error_handling.rs</div>
             </div>
             <button class="copy-button">Copy</button>
-            <pre><code>use neo::prelude::*;
+            <pre><code>use neo3::prelude::*;
 
 fn main() -> Result&lt;()&gt; {
     // Using the ? operator with Result
@@ -195,7 +195,7 @@ fn main() -> Result&lt;()&gt; {
               <div class="code-title">async_example.rs</div>
             </div>
             <button class="copy-button">Copy</button>
-            <pre><code>use neo::prelude::*;
+            <pre><code>use neo3::prelude::*;
 
 async fn get_balance(address: &str) -> Result&lt;u64&gt; {
     // Connect to Neo TestNet
@@ -231,7 +231,7 @@ async fn main() -> Result&lt;()&gt; {
               <div class="code-title">wallet_example.rs</div>
             </div>
             <button class="copy-button">Copy</button>
-            <pre><code>use neo::prelude::*;
+            <pre><code>use neo3::prelude::*;
 
 fn wallet_examples() -> Result&lt;()&gt; {
     // Create a new wallet

@@ -9,7 +9,7 @@ use crate::{
 	neo_contract::{ContractError, SmartContractTrait},
 	ContractIdentifiers,
 };
-use neo::prelude::*;
+use neo3::prelude::*;
 
 /// A struct representing contract management functionalities
 #[derive(Debug, Clone, Serialize, Deserialize)]

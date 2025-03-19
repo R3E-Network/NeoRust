@@ -11,7 +11,7 @@ The NeoRust SDK supports connecting to different Neo networks, including MainNet
 The SDK includes predefined configurations for common Neo networks:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 // Connect to Neo N3 MainNet
 let mainnet_provider = Provider::new_http("https://mainnet1.neo.coz.io:443");
@@ -28,7 +28,7 @@ let local_provider = Provider::new_http("http://localhost:10332");
 You can also connect to custom Neo networks by providing the RPC URL:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 // Connect to a custom Neo N3 node
 let custom_provider = Provider::new_http("https://my-custom-neo-node.example.com:10332");
@@ -39,7 +39,7 @@ let custom_provider = Provider::new_http("https://my-custom-neo-node.example.com
 For applications that need real-time updates, you can use WebSocket connections:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -65,7 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 The NeoRust SDK can be configured using the `Config` struct:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 // Create a custom configuration
 let config = Config::new()
@@ -107,7 +107,7 @@ You can set these environment variables in your shell or use a `.env` file with 
 
 ```rust
 use dotenv::dotenv;
-use neo::prelude::*;
+use neo3::prelude::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment variables from .env file
@@ -125,7 +125,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 The NeoRust SDK uses the `tracing` crate for logging. You can configure the logging level and output:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use tracing_subscriber::{fmt, EnvFilter};
 
 fn main() {
@@ -155,7 +155,7 @@ cargo run
 You can configure gas settings for transactions:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -208,7 +208,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 If you're using the SGX features, you can configure the SGX environment:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

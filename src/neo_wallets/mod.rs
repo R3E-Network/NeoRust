@@ -28,7 +28,7 @@
 //! ### Creating and using a wallet
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -59,7 +59,7 @@
 //! ### Using a wallet to sign a transaction
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //! use std::str::FromStr;
 //!
 //! #[tokio::main]

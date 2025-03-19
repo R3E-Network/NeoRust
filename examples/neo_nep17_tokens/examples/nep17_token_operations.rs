@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use neo::{
+use neo3::{
 	neo_clients::{HttpProvider, JsonRpcProvider},
 	neo_contract::{FungibleTokenContract, FungibleTokenTrait},
 	neo_protocol::account::Account,

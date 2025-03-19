@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use neo::{
+use neo3::{
 	neo_protocol::account::Account,
 	neo_wallets::{Wallet, WalletBackup, WalletTrait},
 	prelude::{NeoNetwork, ScryptParamsDef},

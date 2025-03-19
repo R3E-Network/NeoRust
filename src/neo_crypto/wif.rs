@@ -1,7 +1,7 @@
 use sha2::{Digest, Sha256};
 
 use crate::crypto::{CryptoError, Secp256r1PrivateKey};
-use neo::prelude::*;
+use neo3::prelude::*;
 
 /// Converts a WIF (Wallet Import Format) string into a `Secp256r1PrivateKey`.
 ///

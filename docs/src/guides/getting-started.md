@@ -29,7 +29,7 @@ neo = "0.1.0"
 Here's a simple example of connecting to a Neo N3 node and getting the current block height:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

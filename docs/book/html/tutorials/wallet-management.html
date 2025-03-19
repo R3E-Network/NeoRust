@@ -165,7 +165,7 @@
                         <h1 id="wallet-management"><a class="header" href="#wallet-management">Wallet Management</a></h1>
 <p>This tutorial covers wallet management with the NeoRust SDK, including creating, loading, and using wallets.</p>
 <h2 id="creating-a-new-wallet"><a class="header" href="#creating-a-new-wallet">Creating a New Wallet</a></h2>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -183,7 +183,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     Ok(())
 }</code></pre></pre>
 <h2 id="loading-an-existing-wallet"><a class="header" href="#loading-an-existing-wallet">Loading an Existing Wallet</a></h2>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -200,7 +200,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     Ok(())
 }</code></pre></pre>
 <h2 id="importing-a-private-key"><a class="header" href="#importing-a-private-key">Importing a Private Key</a></h2>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -219,7 +219,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     Ok(())
 }</code></pre></pre>
 <h2 id="signing-a-message"><a class="header" href="#signing-a-message">Signing a Message</a></h2>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -244,7 +244,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     Ok(())
 }</code></pre></pre>
 <h2 id="wallet-backup-and-recovery"><a class="header" href="#wallet-backup-and-recovery">Wallet Backup and Recovery</a></h2>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -272,7 +272,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="using-sgx-protected-wallets"><a class="header" href="#using-sgx-protected-wallets">Using SGX-Protected Wallets</a></h2>
 <p>If you have enabled the SGX feature, you can use SGX-protected wallets for enhanced security:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {

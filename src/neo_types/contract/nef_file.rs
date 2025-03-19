@@ -8,7 +8,7 @@ use crate::{
 	crypto::HashableForVec,
 	TypeError,
 };
-use neo::prelude::{Bytes, ContractParameter, StackItem};
+use neo3::prelude::{Bytes, ContractParameter, StackItem};
 /*
 ┌───────────────────────────────────────────────────────────────────────┐
 │                    NEO Executable Format 3 (NEF3)                     │

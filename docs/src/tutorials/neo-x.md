@@ -16,8 +16,8 @@ Neo X is an EVM-compatible chain maintained by the Neo ecosystem. It provides Et
 To interact with Neo X, you first need to create a Neo X provider:
 
 ```rust
-use neo::prelude::*;
-use neo::neo_x::evm::*;
+use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -41,8 +41,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You can create and send transactions on the Neo X chain:
 
 ```rust
-use neo::prelude::*;
-use neo::neo_x::evm::*;
+use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -88,8 +88,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You can interact with EVM smart contracts on Neo X:
 
 ```rust
-use neo::prelude::*;
-use neo::neo_x::evm::*;
+use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -141,8 +141,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 The Neo X Bridge allows you to transfer tokens between Neo N3 and Neo X:
 
 ```rust
-use neo::prelude::*;
-use neo::neo_x::bridge::*;
+use neo3::prelude::*;
+use neo3::neo_x::bridge::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -200,8 +200,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You can also bridge tokens from Neo X back to Neo N3:
 
 ```rust
-use neo::prelude::*;
-use neo::neo_x::bridge::*;
+use neo3::prelude::*;
+use neo3::neo_x::bridge::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -254,8 +254,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You can monitor bridge events to track token transfers between chains:
 
 ```rust
-use neo::prelude::*;
-use neo::neo_x::bridge::*;
+use neo3::prelude::*;
+use neo3::neo_x::bridge::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

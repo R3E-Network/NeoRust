@@ -3,7 +3,7 @@ use std::hash::{Hash, Hasher};
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
-use neo::prelude::{deserialize_script_hash, serialize_script_hash, ScriptHash, StackItem};
+use neo3::prelude::{deserialize_script_hash, serialize_script_hash, ScriptHash, StackItem};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
 pub struct LogNotification {

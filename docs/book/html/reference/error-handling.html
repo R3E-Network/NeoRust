@@ -304,7 +304,7 @@
 <p>The NeoRust SDK uses Rust's <code>?</code> operator for error propagation. This allows for concise error handling code:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 use std::path::Path;
 
 fn load_wallet_and_get_balance(
@@ -350,7 +350,7 @@ impl From&lt;WalletError&gt; for NeoError {
 <p>This allows for easy conversion between error types using the <code>?</code> operator.</p>
 <h2 id="handling-rpc-errors"><a class="header" href="#handling-rpc-errors">Handling RPC Errors</a></h2>
 <p>When working with RPC calls, you may need to handle specific error codes:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -379,7 +379,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <p>When working with wallets, you may need to handle specific wallet errors:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 use std::path::Path;
 
 fn open_wallet(wallet_path: &amp;Path, password: &amp;str) -&gt; Result&lt;Wallet, NeoError&gt; {
@@ -405,7 +405,7 @@ fn open_wallet(wallet_path: &amp;Path, password: &amp;str) -&gt; Result&lt;Walle
 <span class="boring">}</span></code></pre></pre>
 <h2 id="handling-transaction-errors"><a class="header" href="#handling-transaction-errors">Handling Transaction Errors</a></h2>
 <p>When sending transactions, you may need to handle specific transaction errors:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -466,7 +466,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <p>You can create custom error types for your application that wrap the NeoRust SDK errors:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -496,7 +496,7 @@ fn app_function() -&gt; Result&lt;(), AppError&gt; {
 <span class="boring">}</span></code></pre></pre>
 <h2 id="error-logging"><a class="header" href="#error-logging">Error Logging</a></h2>
 <p>The NeoRust SDK uses the <code>tracing</code> crate for logging errors. You can configure the logging level to see more detailed error information:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use tracing_subscriber::{fmt, EnvFilter};
 
 fn main() {
@@ -528,7 +528,7 @@ fn main() {
 }
 <span class="boring">}</span></code></pre></pre>
 <p>Handling SGX errors:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -569,8 +569,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }
 <span class="boring">}</span></code></pre></pre>
 <p>Handling Neo X errors:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-use neo::neo_x::evm::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {

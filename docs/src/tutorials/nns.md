@@ -19,7 +19,7 @@ The Neo Name Service (NNS) is a distributed, open-source naming system based on 
 To interact with the NNS, you first need to create an NNS instance:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -38,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 Before registering a domain, you should check if it's available:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -67,7 +67,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 If a domain is available, you can register it:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -113,7 +113,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 Once you own a domain, you can set various records for it:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -161,7 +161,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You can resolve domain records to get the associated data:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -202,7 +202,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 Domains need to be renewed periodically to maintain ownership:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -252,7 +252,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You can transfer ownership of a domain to another address:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -295,7 +295,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You can integrate NNS resolution into your applications to allow users to use domain names instead of addresses:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]

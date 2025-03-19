@@ -4,7 +4,7 @@ use crate::{
 	builder::{TransactionError, WitnessAction, WitnessCondition},
 	codec::{Decoder, Encoder, NeoSerializable},
 };
-use neo::prelude::*;
+use neo3::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Clone)]
 pub struct WitnessRule {
@@ -54,7 +54,7 @@ mod tests {
 		config::TestConstants,
 		crypto::Secp256r1PublicKey,
 	};
-	use neo::prelude::*;
+	use neo3::prelude::*;
 
 	#[test]
 	fn test_decode_boolean_condition() {

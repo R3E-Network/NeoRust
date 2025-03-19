@@ -12,7 +12,7 @@ use serde::{
 use serde_json::{value::RawValue, Value};
 use thiserror::Error;
 
-use neo::prelude::Bytes;
+use neo3::prelude::Bytes;
 
 /// A JSON-RPC 2.0 error
 #[derive(Deserialize, Debug, Clone, Error, PartialEq)]

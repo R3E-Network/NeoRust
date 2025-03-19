@@ -6,7 +6,7 @@
 /// components of the NeoRust SDK. Import it with:
 ///
 /// ```rust
-/// use neo::prelude::*;
+/// use neo3::prelude::*;
 /// ```
 ///
 /// ## Included Categories

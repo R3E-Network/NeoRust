@@ -174,8 +174,8 @@
 </ul>
 <h2 id="setting-up-neo-x-provider"><a class="header" href="#setting-up-neo-x-provider">Setting Up Neo X Provider</a></h2>
 <p>To interact with Neo X, you first need to create a Neo X provider:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-use neo::neo_x::evm::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -194,8 +194,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="creating-and-sending-neo-x-transactions"><a class="header" href="#creating-and-sending-neo-x-transactions">Creating and Sending Neo X Transactions</a></h2>
 <p>You can create and send transactions on the Neo X chain:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-use neo::neo_x::evm::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -236,8 +236,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="interacting-with-evm-smart-contracts"><a class="header" href="#interacting-with-evm-smart-contracts">Interacting with EVM Smart Contracts</a></h2>
 <p>You can interact with EVM smart contracts on Neo X:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-use neo::neo_x::evm::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -284,8 +284,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="using-the-neo-x-bridge"><a class="header" href="#using-the-neo-x-bridge">Using the Neo X Bridge</a></h2>
 <p>The Neo X Bridge allows you to transfer tokens between Neo N3 and Neo X:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-use neo::neo_x::bridge::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
+use neo3::neo_x::bridge::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -338,8 +338,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="bridging-tokens-from-neo-x-to-neo-n3"><a class="header" href="#bridging-tokens-from-neo-x-to-neo-n3">Bridging Tokens from Neo X to Neo N3</a></h2>
 <p>You can also bridge tokens from Neo X back to Neo N3:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-use neo::neo_x::bridge::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
+use neo3::neo_x::bridge::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -387,8 +387,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="monitoring-bridge-events"><a class="header" href="#monitoring-bridge-events">Monitoring Bridge Events</a></h2>
 <p>You can monitor bridge events to track token transfers between chains:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-use neo::neo_x::bridge::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
+use neo3::neo_x::bridge::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {

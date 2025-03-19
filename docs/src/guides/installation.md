@@ -18,7 +18,7 @@ neo3 = "0.1.9"
 Note: The crate is published as `neo3` but is imported as `neo` in code:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 ```
 
 ## Features
@@ -48,7 +48,7 @@ neo3 = { version = "0.1.9", default-features = false, features = ["futures"] }
 To verify that the SDK is installed correctly, create a simple test program:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 fn main() {
     println!("NeoRust SDK installed successfully!");

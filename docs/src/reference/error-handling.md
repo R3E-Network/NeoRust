@@ -157,7 +157,7 @@ pub enum ContractError {
 The NeoRust SDK uses Rust's `?` operator for error propagation. This allows for concise error handling code:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 fn load_wallet_and_get_balance(
@@ -189,7 +189,7 @@ In this example, if any of the operations fail, the error is propagated up the c
 Sometimes it's useful to add context to errors to make them more informative:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 fn load_wallet_and_get_balance(
@@ -222,7 +222,7 @@ fn load_wallet_and_get_balance(
 The NeoRust SDK provides utility functions for converting `Option` to `Result`:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 fn get_value_from_option<T>(option: Option<T>, error_message: &str) -> Result<T, NeoError> {
     option.ok_or_else(|| NeoError::IllegalState(error_message.to_string()))
@@ -298,7 +298,7 @@ This allows for easy conversion between error types using the `?` operator. When
 When working with RPC calls, you may need to handle specific error codes:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -330,7 +330,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 When working with wallets, you may need to handle specific wallet errors:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 fn open_wallet(wallet_path: &Path, password: &str) -> Result<Wallet, NeoError> {
@@ -360,7 +360,7 @@ fn open_wallet(wallet_path: &Path, password: &str) -> Result<Wallet, NeoError> {
 When sending transactions, you may need to handle specific transaction errors:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -424,7 +424,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You can create custom error types for your application that wrap the NeoRust SDK errors:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -458,7 +458,7 @@ fn app_function() -> Result<(), AppError> {
 The NeoRust SDK uses the `tracing` crate for logging errors. You can configure the logging level to see more detailed error information:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use tracing_subscriber::{fmt, EnvFilter};
 
 fn main() {
@@ -493,8 +493,8 @@ pub enum NeoXError {
 Handling Neo X errors:
 
 ```rust
-use neo::prelude::*;
-use neo::neo_x::evm::*;
+use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

@@ -11,7 +11,7 @@
 // 	Deserialize, Deserializer, Serialize, Serializer,
 // };
 //
-// use neo::prelude::*;
+// use neo3::prelude::*;
 //
 // pub trait TXTrait {
 // 	fn hash(&self) -> H256;

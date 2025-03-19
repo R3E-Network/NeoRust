@@ -105,7 +105,7 @@ impl ScriptReader {
 	///
 	/// ```rust
 	/// use neo_builder::script::ScriptReader;
-	/// use neo::prelude::{Decoder, OperandSize};
+	/// use neo3::prelude::{Decoder, OperandSize};
 	///
 	/// let mut decoder = Decoder::new(&[0x05]); // Example: prefix size of 5
 	/// let operand_size = OperandSize::new(0, 1); // 1-byte prefix

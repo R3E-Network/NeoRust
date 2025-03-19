@@ -176,7 +176,7 @@
 </ul>
 <h2 id="creating-an-nns-instance"><a class="header" href="#creating-an-nns-instance">Creating an NNS Instance</a></h2>
 <p>To interact with the NNS, you first need to create an NNS instance:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -190,7 +190,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="checking-domain-availability"><a class="header" href="#checking-domain-availability">Checking Domain Availability</a></h2>
 <p>Before registering a domain, you should check if it's available:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -214,7 +214,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="registering-a-domain"><a class="header" href="#registering-a-domain">Registering a Domain</a></h2>
 <p>If a domain is available, you can register it:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -255,7 +255,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="setting-domain-records"><a class="header" href="#setting-domain-records">Setting Domain Records</a></h2>
 <p>Once you own a domain, you can set various records for it:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -298,7 +298,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="resolving-domain-records"><a class="header" href="#resolving-domain-records">Resolving Domain Records</a></h2>
 <p>You can resolve domain records to get the associated data:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -334,7 +334,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="renewing-a-domain"><a class="header" href="#renewing-a-domain">Renewing a Domain</a></h2>
 <p>Domains need to be renewed periodically to maintain ownership:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -379,7 +379,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="transferring-domain-ownership"><a class="header" href="#transferring-domain-ownership">Transferring Domain Ownership</a></h2>
 <p>You can transfer ownership of a domain to another address:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -417,7 +417,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="using-nns-in-applications"><a class="header" href="#using-nns-in-applications">Using NNS in Applications</a></h2>
 <p>You can integrate NNS resolution into your applications to allow users to use domain names instead of addresses:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]

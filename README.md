@@ -36,13 +36,13 @@ NeoRust is a comprehensive Rust SDK for interacting with the Neo N3 blockchain. 
 Import all essential types and traits using the `prelude`:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 ```
 
 ### Connect to a Neo N3 Node
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 async fn example() -> Result<(), Box<dyn std::error::Error>> {
    // Connect to a Neo N3 TestNet node
@@ -72,7 +72,7 @@ neo3 = "0.1.9"
 Note: The crate is published as `neo3` but is imported as `neo` in code:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 ```
 
 For the latest development version, you can use the Git repository:
@@ -116,7 +116,7 @@ Comprehensive documentation is available at:
 ### Connecting to Neo Nodes
 
 ```rust
-use neo::{
+use neo3::{
     neo_clients::{HttpProvider, JsonRpcProvider},
     prelude::RpcClient,
 };
@@ -141,7 +141,7 @@ async fn connect_to_nodes() -> Result<(), Box<dyn std::error::Error>> {
 ### Wallet Management
 
 ```rust
-use neo::{
+use neo3::{
     neo_protocol::account::Account,
     neo_wallets::{Wallet, WalletBackup, WalletTrait},
     prelude::{NeoNetwork, ScryptParamsDef},
@@ -175,7 +175,7 @@ async fn manage_wallets() -> Result<(), Box<dyn std::error::Error>> {
 ### Creating and Sending Transactions
 
 ```rust
-use neo::{
+use neo3::{
     neo_clients::{HttpProvider, JsonRpcProvider},
     neo_builder::transaction::{Transaction, TransactionBuilder},
     neo_protocol::account::Account,
@@ -213,7 +213,7 @@ async fn create_transaction() -> Result<(), Box<dyn std::error::Error>> {
 ### Interacting with Smart Contracts
 
 ```rust
-use neo::{
+use neo3::{
     neo_clients::{HttpProvider, JsonRpcProvider},
     neo_contract::{ContractManagement, SmartContract},
     neo_types::contract::{ContractParameter, ContractParameterType},
@@ -254,7 +254,7 @@ async fn interact_with_contract() -> Result<(), Box<dyn std::error::Error>> {
 ### Working with NEP-17 Tokens
 
 ```rust
-use neo::{
+use neo3::{
     neo_clients::{HttpProvider, JsonRpcProvider},
     neo_contract::Nep17Contract,
     neo_protocol::account::Account,
@@ -297,7 +297,7 @@ async fn work_with_nep17_tokens() -> Result<(), Box<dyn std::error::Error>> {
 ### Using Neo Name Service (NNS)
 
 ```rust
-use neo::{
+use neo3::{
     neo_clients::{HttpProvider, JsonRpcProvider},
     neo_contract::NameService,
     prelude::{RpcClient, Signer},
@@ -331,7 +331,7 @@ async fn use_neo_name_service() -> Result<(), Box<dyn std::error::Error>> {
 ### Working with Famous Neo N3 Contracts
 
 ```rust
-use neo::{
+use neo3::{
     neo_clients::{HttpProvider, JsonRpcProvider},
     neo_contract::famous::{FlamingoContract, NeoburgerContract, GrandShareContract, NeoCompoundContract},
     neo_protocol::account::Account,
@@ -392,7 +392,7 @@ async fn interact_with_famous_contracts() -> Result<(), Box<dyn std::error::Erro
 ### Using Neo X EVM Compatibility and Bridge
 
 ```rust
-use neo::{
+use neo3::{
     neo_clients::{HttpProvider, JsonRpcProvider},
     neo_x::{NeoXProvider, NeoXTransaction, NeoXBridgeContract},
     neo_protocol::account::Account,
@@ -467,7 +467,7 @@ async fn use_neo_x() -> Result<(), Box<dyn std::error::Error>> {
 NeoRust provides configuration options for different network environments and blockchain parameters:
 
 ```rust
-use neo::{
+use neo3::{
     neo_config::{NeoConfig, NeoConstants, NEOCONFIG},
     prelude::NeoNetwork,
 };

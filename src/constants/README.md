@@ -7,7 +7,7 @@ This module provides essential constants and reference data for working with the
 The `native_contracts` module provides script hash constants for all native contracts built into the Neo N3 blockchain.
 
 ```rust
-use neo::constants::native_contracts::{NEO_TOKEN, GAS_TOKEN};
+use neo3::constants::native_contracts::{NEO_TOKEN, GAS_TOKEN};
 
 // Use the native contract script hashes directly
 println!("NEO Token: {}", NEO_TOKEN);
@@ -19,7 +19,7 @@ println!("GAS Token: {}", GAS_TOKEN);
 To access information about well-known contracts deployed on Neo N3 mainnet and testnet, use the `neo_contract::famous::contracts` module:
 
 ```rust
-use neo::neo_contract::famous::contracts::{get_famous_contracts, Network};
+use neo3::neo_contract::famous::contracts::{get_famous_contracts, Network};
 
 // Get all mainnet contracts
 let mainnet_contracts = get_famous_contracts(Network::Mainnet);
@@ -34,7 +34,7 @@ println!("Flamingo Finance contract: {}", flamingo.script_hash);
 The NeoFS client provides constants for standard endpoints:
 
 ```rust
-use neo::fs::client::{
+use neo3::fs::client::{
     DEFAULT_MAINNET_ENDPOINT, 
     DEFAULT_TESTNET_ENDPOINT,
     DEFAULT_MAINNET_HTTP_GATEWAY,

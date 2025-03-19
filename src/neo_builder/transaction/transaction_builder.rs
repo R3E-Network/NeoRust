@@ -196,7 +196,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	///
 	/// let tx_builder = TransactionBuilder::new();
 	/// ```
@@ -229,7 +229,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	///
 	/// let provider = HttpProvider::new("https://testnet1.neo.org:443");
 	/// let client = RpcClient::new(provider);
@@ -264,7 +264,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	///
 	/// let mut tx_builder = TransactionBuilder::new();
 	/// tx_builder.version(0);
@@ -290,7 +290,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	///
 	/// let mut tx_builder = TransactionBuilder::new();
 	/// tx_builder.nonce(1234567890).unwrap();
@@ -319,7 +319,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	///
 	/// #[tokio::main]
 	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -398,7 +398,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	///
 	/// #[tokio::main]
 	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -758,7 +758,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	/// use std::str::FromStr;
 	///
 	/// #[tokio::main]
@@ -871,7 +871,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	///
 	/// let account = Account::create().unwrap();
 	/// let signer: Signer = account.into();
@@ -911,7 +911,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	///
 	/// let mut tx_builder = TransactionBuilder::new();
 	///
@@ -1117,7 +1117,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	///
 	/// #[tokio::main]
 	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {

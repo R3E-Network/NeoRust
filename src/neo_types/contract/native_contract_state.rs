@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ContractNef;
 use getset::{CopyGetters, Getters, MutGetters, Setters};
-use neo::prelude::{ContractManifest, *};
+use neo3::prelude::{ContractManifest, *};
 
 #[derive(Serialize, Deserialize, Getters, Setters, Default, Debug, Clone)]
 pub struct NativeContractState {

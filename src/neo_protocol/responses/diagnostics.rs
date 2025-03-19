@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use neo::prelude::{deserialize_script_hash, serialize_script_hash, ScriptHash};
+use neo3::prelude::{deserialize_script_hash, serialize_script_hash, ScriptHash};
 
 #[derive(Serialize, Deserialize, Hash)]
 pub struct Diagnostics {

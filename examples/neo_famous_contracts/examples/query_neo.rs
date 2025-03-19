@@ -1,4 +1,4 @@
-use neo::{
+use neo3::{
     neo_clients::{HttpProvider, JsonRpcProvider, RpcClient},
     neo_contract::SmartContract,
     neo_types::{

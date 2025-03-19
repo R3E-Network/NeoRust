@@ -1,7 +1,7 @@
 use primitive_types::H256;
 use serde::{Deserialize, Serialize};
 
-use neo::prelude::{deserialize_h256, serialize_h256};
+use neo3::prelude::{deserialize_h256, serialize_h256};
 
 use super::NeoWitness;
 

@@ -43,7 +43,7 @@ use crate::{
 /// # Examples
 ///
 /// ```rust
-/// use neo::prelude::*;
+/// use neo3::prelude::*;
 ///
 /// // Create a new transaction
 /// let tx = Transaction::new();
@@ -256,7 +256,7 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	/// use std::str::FromStr;
 	///
 	/// #[tokio::main]
@@ -325,7 +325,7 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	/// use std::str::FromStr;
 	///
 	/// #[tokio::main]
@@ -420,7 +420,7 @@ impl<'a, T: JsonRpcProvider + 'static> Transaction<'a, T> {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	///
 	/// #[tokio::main]
 	/// async fn main() -> Result<(), Box<dyn std::error::Error>> {

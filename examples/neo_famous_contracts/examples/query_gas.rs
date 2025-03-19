@@ -1,4 +1,4 @@
-use neo::{
+use neo3::{
     neo_clients::{HttpProvider, JsonRpcProvider, RpcClient},
     neo_types::{
         script_hash::ScriptHash,
@@ -32,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // GAS token hash on TestNet
     let gas_token_hash = ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf")?;
     
-    use neo::neo_contract::SmartContract;
+    use neo3::neo_contract::SmartContract;
     let gas_contract = SmartContract::new(gas_token_hash, client.clone());
     println!("GAS token contract initialized");
 

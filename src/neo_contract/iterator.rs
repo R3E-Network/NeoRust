@@ -4,7 +4,7 @@ use crate::{
 	neo_clients::{APITrait, JsonRpcProvider, RpcClient},
 	neo_contract::ContractError,
 };
-use neo::prelude::*;
+use neo3::prelude::*;
 
 pub struct NeoIterator<'a, T, P: JsonRpcProvider> {
 	session_id: String,

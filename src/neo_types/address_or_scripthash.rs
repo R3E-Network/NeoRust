@@ -6,7 +6,7 @@ use std::hash::{Hash, Hasher};
 use primitive_types::H160;
 use serde_derive::{Deserialize, Serialize};
 
-use neo::prelude::{Address, Bytes, ScriptHashExtension};
+use neo3::prelude::{Address, Bytes, ScriptHashExtension};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// An enum that can represent either a blockchain `Address` or a `ScriptHash`,

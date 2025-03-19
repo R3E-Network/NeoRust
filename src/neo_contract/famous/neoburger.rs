@@ -9,7 +9,7 @@ use crate::{
 	neo_contract::{ContractError, SmartContractTrait, TokenTrait},
 	neo_protocol::Account,
 };
-use neo::prelude::*;
+use neo3::prelude::*;
 
 /// NeoburgerNeo contract interface for Neo N3
 ///

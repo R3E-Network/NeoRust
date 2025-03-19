@@ -23,7 +23,7 @@
 //! ### Working with Neo N3 addresses and script hashes
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //! use std::str::FromStr;
 //!
 //! // Create a script hash from a string
@@ -41,7 +41,7 @@
 //! ### Working with contract parameters
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //! use std::str::FromStr;
 //!
 //! // Create different types of contract parameters
@@ -56,7 +56,7 @@
 //! ### Working with stack items
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //! use serde_json::json;
 //!
 //! // Create stack items of various types

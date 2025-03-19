@@ -10,7 +10,7 @@ use crate::{
 	prelude::{deserialize_wildcard, serialize_wildcard},
 	TypeError,
 };
-use neo::prelude::{ContractParameter, ContractParameterType};
+use neo3::prelude::{ContractParameter, ContractParameterType};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ContractManifest {

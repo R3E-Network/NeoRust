@@ -170,7 +170,7 @@
 <p>The SDK includes predefined configurations for common Neo networks:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 
 // Connect to Neo N3 MainNet
 let mainnet_provider = Provider::new_http("https://mainnet1.neo.coz.io:443");
@@ -185,14 +185,14 @@ let local_provider = Provider::new_http("http://localhost:10332");
 <p>You can also connect to custom Neo networks by providing the RPC URL:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 
 // Connect to a custom Neo N3 node
 let custom_provider = Provider::new_http("https://my-custom-neo-node.example.com:10332");
 <span class="boring">}</span></code></pre></pre>
 <h3 id="websocket-connections"><a class="header" href="#websocket-connections">WebSocket Connections</a></h3>
 <p>For applications that need real-time updates, you can use WebSocket connections:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -215,7 +215,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <p>The NeoRust SDK can be configured using the <code>Config</code> struct:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 
 // Create a custom configuration
 let config = Config::new()
@@ -250,7 +250,7 @@ let provider = Provider::with_config("https://testnet1.neo.coz.io:443", config);
 </div>
 <p>You can set these environment variables in your shell or use a <code>.env</code> file with the <code>dotenv</code> crate:</p>
 <pre><pre class="playground"><code class="language-rust">use dotenv::dotenv;
-use neo::prelude::*;
+use neo3::prelude::*;
 
 fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     // Load environment variables from .env file
@@ -263,7 +263,7 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="logging-configuration"><a class="header" href="#logging-configuration">Logging Configuration</a></h2>
 <p>The NeoRust SDK uses the <code>tracing</code> crate for logging. You can configure the logging level and output:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use tracing_subscriber::{fmt, EnvFilter};
 
 fn main() {
@@ -285,7 +285,7 @@ cargo run
 </code></pre>
 <h2 id="gas-configuration"><a class="header" href="#gas-configuration">Gas Configuration</a></h2>
 <p>You can configure gas settings for transactions:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -333,7 +333,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="sgx-configuration"><a class="header" href="#sgx-configuration">SGX Configuration</a></h2>
 <p>If you're using the SGX features, you can configure the SGX environment:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {

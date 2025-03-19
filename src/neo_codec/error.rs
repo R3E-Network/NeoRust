@@ -3,7 +3,7 @@ use std::hash::{Hash, Hasher};
 use num_enum::TryFromPrimitiveError;
 use thiserror::Error;
 
-use neo::prelude::OpCode;
+use neo3::prelude::OpCode;
 
 #[derive(Error, Debug, PartialEq, Eq, Clone)]
 pub enum CodecError {

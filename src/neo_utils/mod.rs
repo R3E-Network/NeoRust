@@ -17,7 +17,7 @@
 //! ## Examples
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //!
 //! // Error handling with specific error types
 //! fn example() -> Result<(), NeoError> {

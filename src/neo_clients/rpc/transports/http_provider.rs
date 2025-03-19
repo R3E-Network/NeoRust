@@ -15,7 +15,7 @@ use url::Url;
 
 use super::common::{JsonRpcError, Request, Response};
 use crate::neo_clients::{Authorization, JsonRpcProvider, ProviderError};
-use neo::config::NeoConstants;
+use neo3::config::NeoConstants;
 
 /// A low-level JSON-RPC Client over HTTP.
 ///

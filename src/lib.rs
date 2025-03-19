@@ -172,7 +172,7 @@
 //! ### Connecting to a Neo N3 node
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -194,7 +194,7 @@
 //! ### Creating and sending a transaction
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //! use std::str::FromStr;
 //!
 //! #[tokio::main]
@@ -255,7 +255,7 @@
 //! ### Interacting with a smart contract
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //! use std::str::FromStr;
 //!
 //! #[tokio::main]
@@ -286,7 +286,7 @@
 //! ### Working with NEP-17 tokens
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //! use std::str::FromStr;
 //!
 //! #[tokio::main]
@@ -323,7 +323,7 @@
 //! ### Using the Neo Name Service (NNS)
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -545,7 +545,7 @@ pub use crate::neo_types::serde_value::ValueExtension;
 /// components of the NeoRust SDK. Import it with:
 ///
 /// ```rust
-/// use neo::prelude::*;
+/// use neo3::prelude::*;
 /// ```
 pub mod prelude;
 

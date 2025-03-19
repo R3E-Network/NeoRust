@@ -563,7 +563,7 @@ mod tests {
 		neo_protocol::{Account, AccountTrait},
 		ScriptHash, ScriptHashExtension,
 	};
-	use neo::builder::Signer;
+	use neo3::builder::Signer;
 
 	lazy_static! {
 		pub static ref SCRIPT_HASH: ScriptHash = {

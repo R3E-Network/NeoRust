@@ -775,7 +775,7 @@ mod tests {
 	use rustc_serialize::hex::FromHex;
 
 	use crate::{crypto::Secp256r1PublicKey, neo_types::ContractParameterMap};
-	use neo::prelude::{ContractParameter, ContractParameterType};
+	use neo3::prelude::{ContractParameter, ContractParameterType};
 
 	#[test]
 	fn test_string_from_string() {

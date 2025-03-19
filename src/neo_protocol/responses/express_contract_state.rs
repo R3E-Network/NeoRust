@@ -1,7 +1,7 @@
 use primitive_types::H160;
 use serde::{Deserialize, Serialize};
 
-use neo::prelude::{deserialize_script_hash, serialize_script_hash, ContractManifest, ScriptHash};
+use neo3::prelude::{deserialize_script_hash, serialize_script_hash, ContractManifest, ScriptHash};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Hash)]
 pub struct ExpressContractState {

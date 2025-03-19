@@ -179,7 +179,7 @@
 </ul>
 <h2 id="creating-a-basic-transaction"><a class="header" href="#creating-a-basic-transaction">Creating a Basic Transaction</a></h2>
 <p>Here's how to create a basic transaction using the TransactionBuilder:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -229,7 +229,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="transferring-neo-or-gas"><a class="header" href="#transferring-neo-or-gas">Transferring NEO or GAS</a></h2>
 <p>The NeoRust SDK provides convenient methods for transferring NEO and GAS tokens:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -268,7 +268,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="multi-signature-transactions"><a class="header" href="#multi-signature-transactions">Multi-signature Transactions</a></h2>
 <p>Neo supports multi-signature accounts, which require multiple signatures to authorize a transaction:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -341,7 +341,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <li><strong>Network Fee</strong>: Cost of including the transaction in a block</li>
 </ol>
 <p>You can estimate these fees before sending a transaction:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -405,7 +405,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="checking-transaction-status"><a class="header" href="#checking-transaction-status">Checking Transaction Status</a></h2>
 <p>You can check the status of a transaction after sending it:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {

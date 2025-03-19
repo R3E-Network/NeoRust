@@ -44,7 +44,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::ScriptBuilder;
+	/// use neo3::prelude::ScriptBuilder;
 	///
 	/// let builder = ScriptBuilder::new();
 	/// ```
@@ -65,7 +65,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::{ScriptBuilder, OpCode};
+	/// use neo3::prelude::{ScriptBuilder, OpCode};
 	///
 	/// let mut builder = ScriptBuilder::new();
 	/// builder.op_code(&[OpCode::Push1, OpCode::Push2, OpCode::Add]);
@@ -91,7 +91,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::{ScriptBuilder, OpCode};
+	/// use neo3::prelude::{ScriptBuilder, OpCode};
 	///
 	/// let mut builder = ScriptBuilder::new();
 	/// builder.op_code_with_arg(OpCode::PushData1, vec![0x01, 0x02, 0x03]);
@@ -119,7 +119,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::{ScriptBuilder, H160, ContractParameter, CallFlags};
+	/// use neo3::prelude::{ScriptBuilder, H160, ContractParameter, CallFlags};
 	///
 	/// let mut builder = ScriptBuilder::new();
 	/// let contract_hash = H160::from_slice(&[0; 20]);
@@ -166,7 +166,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::{ScriptBuilder, InteropService};
+	/// use neo3::prelude::{ScriptBuilder, InteropService};
 	///
 	/// let mut builder = ScriptBuilder::new();
 	/// builder.sys_call(InteropService::SystemRuntimeCheckWitness);
@@ -197,7 +197,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::{ScriptBuilder, ContractParameter};
+	/// use neo3::prelude::{ScriptBuilder, ContractParameter};
 	///
 	/// let mut builder = ScriptBuilder::new();
 	/// builder.push_params(&[
@@ -230,7 +230,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::{ScriptBuilder, ContractParameter};
+	/// use neo3::prelude::{ScriptBuilder, ContractParameter};
 	///
 	/// let mut builder = ScriptBuilder::new();
 	/// builder.push_param(&ContractParameter::from("Hello, Neo!")).unwrap();
@@ -283,7 +283,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::ScriptBuilder;
+	/// use neo3::prelude::ScriptBuilder;
 	/// use num_bigint::BigInt;
 	///
 	/// let mut builder = ScriptBuilder::new();
@@ -341,7 +341,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::{ScriptBuilder, OpCode};
+	/// use neo3::prelude::{ScriptBuilder, OpCode};
 	///
 	/// let mut builder = ScriptBuilder::new();
 	/// builder.push_opcode_bytes(OpCode::PushData1, vec![0x01, 0x02, 0x03]);
@@ -377,7 +377,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::ScriptBuilder;
+	/// use neo3::prelude::ScriptBuilder;
 	///
 	/// let mut builder = ScriptBuilder::new();
 	/// builder.push_data("Hello, Neo!".as_bytes().to_vec());
@@ -416,7 +416,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::ScriptBuilder;
+	/// use neo3::prelude::ScriptBuilder;
 	///
 	/// let mut builder = ScriptBuilder::new();
 	/// builder.push_bool(true);
@@ -548,7 +548,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	/// use std::str::FromStr;
 	///
 	/// let sender = ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap();
@@ -598,7 +598,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::*;
+	/// use neo3::prelude::*;
 	/// use std::str::FromStr;
 	///
 	/// // Call a contract method that returns an iterator and collect up to 100 items
@@ -686,7 +686,7 @@ impl ScriptBuilder {
 	/// # Examples
 	///
 	/// ```rust
-	/// use neo::prelude::ScriptBuilder;
+	/// use neo3::prelude::ScriptBuilder;
 	///
 	/// let mut builder = ScriptBuilder::new();
 	/// builder.push_data("Hello, Neo!".as_bytes().to_vec());

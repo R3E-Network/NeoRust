@@ -5,7 +5,7 @@ use crate::{
 	neo_protocol::{Account, AccountTrait, ApplicationLog, NeoVersion, RawTransaction},
 };
 use lazy_static::lazy_static;
-use neo::prelude::*;
+use neo3::prelude::*;
 use primitive_types::{H160, H256};
 use regex::Regex;
 use serde_json::{json, Value};

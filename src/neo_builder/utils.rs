@@ -6,7 +6,7 @@ use crate::{
 	},
 	crypto::Secp256r1PublicKey,
 };
-use neo::prelude::*;
+use neo3::prelude::*;
 // pub type ScriptHash = H160;
 
 /// Converts a list of public keys to a script hash using a given threshold.

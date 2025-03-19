@@ -17,7 +17,7 @@ mod tests {
 	};
 	use lazy_static::lazy_static;
 	use log::info;
-	use neo::{
+	use neo3::{
 		builder::VerificationScript,
 		config::{NeoConfig, NEOCONFIG},
 	};

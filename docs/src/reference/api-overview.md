@@ -11,7 +11,7 @@ The NeoRust SDK is organized into several core modules, each responsible for a s
 The `neo_wallets` module provides functionality for creating, loading, and managing Neo wallets and accounts.
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 // Create a new wallet
 let wallet = Wallet::new("password")?;
@@ -33,7 +33,7 @@ Key components:
 The `neo_clients` module provides clients for interacting with Neo nodes via RPC.
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 // Create a provider connected to a Neo node
 let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
@@ -52,7 +52,7 @@ Key components:
 The `neo_types` module provides fundamental Neo blockchain types.
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 // Create a script hash from a string
 let script_hash = "0xd2a4cff31913016155e38e474a2c06d08be276cf".parse::<ScriptHash>()?;
@@ -75,7 +75,7 @@ Key components:
 The `neo_crypto` module provides cryptographic functionality.
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 // Generate a new key pair
 let key_pair = KeyPair::new()?;
@@ -99,7 +99,7 @@ Key components:
 The `neo_builder` module provides builders for creating transactions and scripts.
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 // Create a transaction
 let transaction = TransactionBuilder::new()
@@ -134,7 +134,7 @@ Key components:
 The `neo_contract` module provides interfaces for interacting with Neo smart contracts.
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 // Create a NEP-17 token instance
 let token = Nep17Contract::new(token_hash, provider.clone());
@@ -159,8 +159,8 @@ Key components:
 The `neo_x` module provides support for Neo X, an EVM-compatible chain maintained by Neo.
 
 ```rust
-use neo::prelude::*;
-use neo::neo_x::evm::*;
+use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 
 // Create a Neo X provider
 let provider = NeoXProvider::new_http("https://rpc.neoX.io");
@@ -184,7 +184,7 @@ Key components:
 The `neo_sgx` module provides support for Intel SGX (Software Guard Extensions) for secure operations.
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 // Initialize the SGX enclave
 let enclave_manager = SgxEnclaveManager::new("path/to/enclave.so")?;
@@ -206,7 +206,7 @@ Key components:
 The `prelude` module re-exports commonly used types and functions for convenience:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 ```
 
 This imports all the essential types and functions you need for most operations with the NeoRust SDK.
@@ -231,7 +231,7 @@ neo = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "a
 The NeoRust SDK uses Rust's `Result` type for error handling. Most functions return a `Result<T, Error>` where `Error` is a custom error type that can represent various error conditions.
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 fn example() -> Result<(), Box<dyn std::error::Error>> {
     // Create a provider

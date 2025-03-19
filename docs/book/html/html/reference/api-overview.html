@@ -170,7 +170,7 @@
 <p>The <code>neo_wallets</code> module provides functionality for creating, loading, and managing Neo wallets and accounts.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 
 // Create a new wallet
 let wallet = Wallet::new("password")?;
@@ -191,7 +191,7 @@ let address = account.address();
 <p>The <code>neo_clients</code> module provides clients for interacting with Neo nodes via RPC.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 
 // Create a provider connected to a Neo node
 let provider = Provider::new_http("https://testnet1.neo.coz.io:443");
@@ -209,7 +209,7 @@ let block_count = provider.get_block_count().await?;
 <p>The <code>neo_types</code> module provides fundamental Neo blockchain types.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 
 // Create a script hash from a string
 let script_hash = "0xd2a4cff31913016155e38e474a2c06d08be276cf".parse::&lt;ScriptHash&gt;()?;
@@ -231,7 +231,7 @@ let tx_hash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcde
 <p>The <code>neo_crypto</code> module provides cryptographic functionality.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 
 // Generate a new key pair
 let key_pair = KeyPair::new()?;
@@ -254,7 +254,7 @@ let is_valid = key_pair.verify_signature(message, &amp;signature)?;
 <p>The <code>neo_builder</code> module provides builders for creating transactions and scripts.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 
 // Create a transaction
 let transaction = TransactionBuilder::new()
@@ -288,7 +288,7 @@ let script = ScriptBuilder::new()
 <p>The <code>neo_contract</code> module provides interfaces for interacting with Neo smart contracts.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 
 // Create a NEP-17 token instance
 let token = Nep17Contract::new(token_hash, provider.clone());
@@ -312,8 +312,8 @@ let balance = token.balance_of(address).await?;
 <p>The <code>neo_x</code> module provides support for Neo X, an EVM-compatible chain maintained by Neo.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
-use neo::neo_x::evm::*;
+</span>use neo3::prelude::*;
+use neo3::neo_x::evm::*;
 
 // Create a Neo X provider
 let provider = NeoXProvider::new_http("https://rpc.neoX.io");
@@ -336,7 +336,7 @@ let transaction = NeoXTransaction::new()
 <p>The <code>neo_sgx</code> module provides support for Intel SGX (Software Guard Extensions) for secure operations.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 
 // Initialize the SGX enclave
 let enclave_manager = SgxEnclaveManager::new("path/to/enclave.so")?;
@@ -357,7 +357,7 @@ let signed_tx = wallet.sign_transaction(&amp;transaction)?;
 <p>The <code>prelude</code> module re-exports commonly used types and functions for convenience:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 <span class="boring">}</span></code></pre></pre>
 <p>This imports all the essential types and functions you need for most operations with the NeoRust SDK.</p>
 <h2 id="feature-flags"><a class="header" href="#feature-flags">Feature Flags</a></h2>
@@ -375,7 +375,7 @@ neo = { git = "https://github.com/R3E-Network/NeoRust", features = ["ledger", "a
 <p>The NeoRust SDK uses Rust's <code>Result</code> type for error handling. Most functions return a <code>Result&lt;T, Error&gt;</code> where <code>Error</code> is a custom error type that can represent various error conditions.</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use neo::prelude::*;
+</span>use neo3::prelude::*;
 
 fn example() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     // Create a provider

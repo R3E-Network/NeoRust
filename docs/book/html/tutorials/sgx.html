@@ -228,7 +228,7 @@ sgx-deps = [
 <p>This will build both the trusted enclave components and the untrusted application components.</p>
 <h2 id="creating-an-sgx-enclave-manager"><a class="header" href="#creating-an-sgx-enclave-manager">Creating an SGX Enclave Manager</a></h2>
 <p>The first step in using SGX features is to create an enclave manager:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -243,7 +243,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="secure-wallet-management-with-sgx"><a class="header" href="#secure-wallet-management-with-sgx">Secure Wallet Management with SGX</a></h2>
 <p>One of the primary use cases for SGX in blockchain applications is secure wallet management:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -268,7 +268,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="signing-transactions-securely"><a class="header" href="#signing-transactions-securely">Signing Transactions Securely</a></h2>
 <p>With SGX, you can sign transactions without exposing private keys:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -318,7 +318,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="secure-rpc-client"><a class="header" href="#secure-rpc-client">Secure RPC Client</a></h2>
 <p>The SGX module also provides a secure RPC client for blockchain interactions:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -343,7 +343,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="secure-storage"><a class="header" href="#secure-storage">Secure Storage</a></h2>
 <p>The SGX module provides secure storage for sensitive data:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -371,7 +371,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="remote-attestation"><a class="header" href="#remote-attestation">Remote Attestation</a></h2>
 <p>Remote attestation allows you to verify that your code is running in a genuine SGX enclave:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -415,7 +415,7 @@ struct VerificationResult {
 make -f Makefile.sgx
 </code></pre>
 <p>In your code, you can check if you're running in simulation mode:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {

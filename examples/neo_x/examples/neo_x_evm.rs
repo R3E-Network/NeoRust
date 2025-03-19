@@ -1,4 +1,4 @@
-use neo::prelude::*;
+use neo3::prelude::*;
 use primitive_types::H160;
 use std::str::FromStr;
 

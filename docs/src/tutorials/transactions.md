@@ -21,7 +21,7 @@ Neo N3 transactions are the fundamental units of work in the Neo blockchain. The
 Here's how to create a basic transaction using the TransactionBuilder:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -76,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 The NeoRust SDK provides convenient methods for transferring NEO and GAS tokens:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -120,7 +120,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 Neo supports multi-signature accounts, which require multiple signatures to authorize a transaction:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -198,7 +198,7 @@ Neo N3 transactions require two types of fees:
 You can estimate these fees before sending a transaction:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -267,7 +267,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You can check the status of a transaction after sending it:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

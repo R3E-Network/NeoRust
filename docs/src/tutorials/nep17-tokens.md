@@ -17,7 +17,7 @@ NEP-17 is Neo's token standard, similar to Ethereum's ERC-20. It defines a stand
 To interact with a NEP-17 token, you first need to create a token instance:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -39,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You can retrieve basic information about a token:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -69,7 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You can check the token balance of an address:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -105,7 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You can transfer tokens from one address to another:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -152,7 +152,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 The NeoRust SDK provides specialized classes for the native NEO and GAS tokens:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -204,7 +204,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You can monitor token transfers by subscribing to the Transfer event:
 
 ```rust
-use neo::prelude::*;
+use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -247,8 +247,8 @@ The NeoRust SDK provides direct support for several famous Neo N3 contracts:
 ### Flamingo Finance
 
 ```rust
-use neo::prelude::*;
-use neo::neo_contract::famous::flamingo::*;
+use neo3::prelude::*;
+use neo3::neo_contract::famous::flamingo::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -296,8 +296,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### NeoburgerNeo
 
 ```rust
-use neo::prelude::*;
-use neo::neo_contract::famous::neoburger::*;
+use neo3::prelude::*;
+use neo3::neo_contract::famous::neoburger::*;
 use std::path::Path;
 
 #[tokio::main]

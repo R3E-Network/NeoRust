@@ -2,7 +2,7 @@ use bs58;
 use hex;
 use sha2::{Digest, Sha256};
 
-use neo::prelude::ScriptHash;
+use neo3::prelude::ScriptHash;
 
 pub trait StringExt {
 	fn bytes_from_hex(&self) -> Result<Vec<u8>, hex::FromHexError>;

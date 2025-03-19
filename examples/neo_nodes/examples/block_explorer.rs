@@ -1,4 +1,4 @@
-use neo::{
+use neo3::{
     neo_clients::{HttpProvider, JsonRpcProvider, RpcClient},
 };
 use neo3 as neo;

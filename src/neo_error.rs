@@ -12,7 +12,7 @@
 //! ## Usage
 //!
 //! ```rust
-//! use neo::prelude::*;
+//! use neo3::prelude::*;
 //! use std::str::FromStr;
 //!
 //! fn example() -> Result<(), NeoError> {

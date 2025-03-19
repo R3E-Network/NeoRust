@@ -175,7 +175,7 @@
 </ul>
 <h2 id="creating-a-nep-17-token-instance"><a class="header" href="#creating-a-nep-17-token-instance">Creating a NEP-17 Token Instance</a></h2>
 <p>To interact with a NEP-17 token, you first need to create a token instance:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -192,7 +192,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="getting-token-information"><a class="header" href="#getting-token-information">Getting Token Information</a></h2>
 <p>You can retrieve basic information about a token:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -217,7 +217,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="checking-token-balance"><a class="header" href="#checking-token-balance">Checking Token Balance</a></h2>
 <p>You can check the token balance of an address:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -248,7 +248,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="transferring-tokens"><a class="header" href="#transferring-tokens">Transferring Tokens</a></h2>
 <p>You can transfer tokens from one address to another:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -290,7 +290,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="working-with-neo-and-gas-tokens"><a class="header" href="#working-with-neo-and-gas-tokens">Working with NEO and GAS Tokens</a></h2>
 <p>The NeoRust SDK provides specialized classes for the native NEO and GAS tokens:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -337,7 +337,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre></pre>
 <h2 id="monitoring-token-transfers"><a class="header" href="#monitoring-token-transfers">Monitoring Token Transfers</a></h2>
 <p>You can monitor token transfers by subscribing to the Transfer event:</p>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
 
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -374,8 +374,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <h2 id="working-with-famous-neo-n3-contracts"><a class="header" href="#working-with-famous-neo-n3-contracts">Working with Famous Neo N3 Contracts</a></h2>
 <p>The NeoRust SDK provides direct support for several famous Neo N3 contracts:</p>
 <h3 id="flamingo-finance"><a class="header" href="#flamingo-finance">Flamingo Finance</a></h3>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-use neo::neo_contract::famous::flamingo::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
+use neo3::neo_contract::famous::flamingo::*;
 use std::path::Path;
 
 #[tokio::main]
@@ -419,8 +419,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     Ok(())
 }</code></pre></pre>
 <h3 id="neoburgerneo"><a class="header" href="#neoburgerneo">NeoburgerNeo</a></h3>
-<pre><pre class="playground"><code class="language-rust">use neo::prelude::*;
-use neo::neo_contract::famous::neoburger::*;
+<pre><pre class="playground"><code class="language-rust">use neo3::prelude::*;
+use neo3::neo_contract::famous::neoburger::*;
 use std::path::Path;
 
 #[tokio::main]
