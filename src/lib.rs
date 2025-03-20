@@ -431,7 +431,7 @@
 // For macro expansions only, not public API.
 #[doc(hidden)]
 #[allow(unused_extern_crates)]
-extern crate self as neo;
+extern crate self as neo3;
 
 // Core modules - always available
 pub mod neo_error;
