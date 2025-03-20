@@ -19,7 +19,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const savedTheme = localStorage.getItem('neoRustTheme') as Theme | null;
       if (savedTheme) {
         setTheme(savedTheme);
-      } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+      } else if (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: light)').matches) {
         setTheme('light');
       }
     }
