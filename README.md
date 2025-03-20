@@ -110,6 +110,7 @@ Comprehensive documentation is available at:
 
 - **API Reference**: [https://docs.rs/neo3](https://docs.rs/neo3)
 - **Online Documentation**: [https://r3e-network.github.io/NeoRust/](https://r3e-network.github.io/NeoRust/)
+- **Website & User Guide**: [https://neorust.netlify.app/](https://neorust.netlify.app/)
 - **Crate Page**: [https://crates.io/crates/neo3](https://crates.io/crates/neo3)
 
 ## Usage Examples
