@@ -79,16 +79,18 @@ pub use yubihsm;
 use crate::neo_protocol::Account;
 pub use bip39_account::*;
 pub use error::*;
-pub use session_key::{derive_session_key, verify_session_proof, CallFlagsWrapper, SessionKeyConfig, SessionSigner};
+pub use session_key::{
+	derive_session_key, verify_session_proof, CallFlagsWrapper, SessionKeyConfig, SessionSigner,
+};
 pub use wallet::*;
 pub use wallet_signer::WalletSigner;
 pub use wallet_trait::WalletTrait;
 
 #[cfg(feature = "ledger")]
 mod ledger;
+pub mod session_key;
 pub mod wallet;
 mod wallet_trait;
-pub mod session_key;
 
 /// A wallet instantiated with a locally stored private key
 pub type LocalWallet = WalletSigner<Account>;

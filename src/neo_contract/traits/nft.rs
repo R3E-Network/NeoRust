@@ -359,12 +359,15 @@ pub trait NonFungibleTokenTrait<'a, P: JsonRpcProvider>: TokenTrait<'a, P> + Sen
 			ContractError::UnexpectedReturnType(stack_item.to_string() + StackItem::MAP_VALUE)
 		})?;
 
-		Ok(map.into_iter().map(|(k, v)| {
-			let key = k
-				.as_string()
-				.ok_or_else(|| ContractError::UnexpectedReturnType("String".to_string()));
-			Ok((key?, v.clone()))
-		}).collect::<Result<HashMap<String, StackItem>, ContractError>>()?)
+		Ok(map
+			.into_iter()
+			.map(|(k, v)| {
+				let key = k
+					.as_string()
+					.ok_or_else(|| ContractError::UnexpectedReturnType("String".to_string()));
+				Ok((key?, v.clone()))
+			})
+			.collect::<Result<HashMap<String, StackItem>, ContractError>>()?)
 	}
 
 	async fn custom_properties(

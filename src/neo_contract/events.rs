@@ -408,7 +408,9 @@ mod tests {
 			.execute(&client)
 			.await
 			.unwrap_err();
-		assert!(matches!(err, ContractError::InvalidArgError(msg) if msg.contains("starting block")));
+		assert!(
+			matches!(err, ContractError::InvalidArgError(msg) if msg.contains("starting block"))
+		);
 
 		// Only the start block configured.
 		let err = ContractEventQuery::new(H160::repeat_byte(0xab))
@@ -431,10 +433,9 @@ mod tests {
 	async fn execute_scans_blocks_and_filters_notifications() {
 		let contract = sample_contract();
 		let other = H160::repeat_byte(0xcd);
-		let tx_hash = H256::from_str(
-			"0x1111111111111111111111111111111111111111111111111111111111111111",
-		)
-		.unwrap();
+		let tx_hash =
+			H256::from_str("0x1111111111111111111111111111111111111111111111111111111111111111")
+				.unwrap();
 
 		// Build a block that contains exactly one transaction.
 		let tx = RTransaction::new(
@@ -512,10 +513,9 @@ mod tests {
 	#[tokio::test]
 	async fn execute_honours_limit() {
 		let contract = sample_contract();
-		let tx_hash = H256::from_str(
-			"0x2222222222222222222222222222222222222222222222222222222222222222",
-		)
-		.unwrap();
+		let tx_hash =
+			H256::from_str("0x2222222222222222222222222222222222222222222222222222222222222222")
+				.unwrap();
 
 		let tx = RTransaction::new(
 			tx_hash,

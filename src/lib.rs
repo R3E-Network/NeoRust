@@ -37,13 +37,13 @@
 //! ```
 //!
 //! Every fallible operation returns
-//! [`neo_error::unified::NeoError`][crate::neo_error::unified::NeoError], which
+//! [`neo_error::unified::NeoError`], which
 //! exposes
 //! [`kind()`][crate::neo_error::unified::NeoError::kind] and
 //! [`is_retryable()`][crate::neo_error::unified::NeoError::is_retryable] for
 //! ergonomic retry/telemetry decisions — the same convention used by the AWS
 //! Rust SDK's `ProvideErrorMetadata` trait. See
-//! [`neo_error::unified::NeoErrorKind`][crate::neo_error::unified::NeoErrorKind]
+//! [`neo_error::unified::NeoErrorKind`]
 //! for the stable error taxonomy.
 //!
 //! ## Choosing an API layer
@@ -485,9 +485,9 @@ pub mod neo_fs;
 pub mod neo_protocol;
 #[cfg(all(feature = "sgx", target_env = "sgx"))]
 pub mod neo_sgx;
-pub mod sgx; // SGX quote verifier (v3.2.0)
 pub mod neo_wallets;
 pub mod neo_x;
+pub mod sgx; // SGX quote verifier (v3.2.0)
 
 // Monitoring infrastructure
 pub mod monitoring;

@@ -20,9 +20,9 @@ jobs:
     timeout-minutes: 15
     steps:
     - uses: actions/checkout@v4
-    - name: Setup Rust 1.91.0
+    - name: Setup Rust 1.95.0
       id: msrv
-      uses: dtolnay/rust-toolchain@1.91.0
+      uses: dtolnay/rust-toolchain@1.95.0
     - name: Check library with MSRV
       run: cargo +${{ steps.msrv.outputs.name }} check -p neo3 --lib --locked --all-features
 
@@ -48,8 +48,10 @@ jobs:
         restore-keys: ${{ runner.os }}-lint-
     - name: Check formatting
       run: cargo fmt --all -- --check
+    - name: Test benchmark tooling
+      run: python3 -m unittest discover -s scripts/tests -v
     - name: Run clippy
-      run: cargo clippy --all-targets --no-default-features -- -D warnings
+      run: cargo clippy --locked --all-targets --no-default-features -- -D warnings
 
   build-test:
     name: Build & Test - ${{ matrix.os }}
@@ -75,9 +77,9 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-cargo-
     - name: Build
-      run: cargo build --no-default-features
+      run: cargo build --locked --no-default-features
     - name: Run tests
-      run: cargo test --lib
+      run: cargo test --locked --lib
 
   docs:
     name: Documentation
@@ -99,7 +101,7 @@ jobs:
         key: ${{ runner.os }}-doc-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-doc-
     - name: Build documentation
-      run: cargo doc --no-deps --no-default-features
+      run: cargo doc --locked --no-deps --no-default-features
 
   security:
     name: Security Audit
@@ -176,7 +178,7 @@ jobs:
         key: ${{ runner.os }}-hd-regression-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-hd-regression-
     - name: Run HD Wallet Regression Tests
-      run: cargo test --test hd_wallet_regression_tests -- --test-threads=1
+      run: cargo test --locked --test hd_wallet_regression_tests -- --test-threads=1
     - name: Verify Branch Coverage
       run: |
         cargo install cargo-llvm-cov --locked || true
@@ -205,4 +207,4 @@ jobs:
         key: ${{ runner.os }}-fuzz-integration-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-fuzz-integration-
     - name: Run Property-Based Tests
-      run: cargo test --all-features --lib
+      run: cargo test --locked --all-features --lib

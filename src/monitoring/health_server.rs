@@ -10,7 +10,7 @@
 //! * `GET /status` — detailed JSON snapshot (all checks, memory, connections,
 //!   uptime) for dashboards and debugging.
 //!
-//! The endpoint reuses the SDK's existing in-process [`health`](super::health)
+//! The endpoint reuses the SDK's existing in-process [`health`]
 //! registry and the ambient tokio runtime, so it adds no HTTP-framework
 //! dependency. It is gated behind the `metrics-prometheus` feature alongside the
 //! other HTTP exporters.
@@ -358,6 +358,7 @@ mod tests {
 	#[test]
 	fn connection_counter_increments_and_decrements() {
 		let start = active_connections();
+		assert_eq!(start, 0);
 		connection_opened();
 		connection_opened();
 		assert_eq!(active_connections(), start + 2);
@@ -367,7 +368,7 @@ mod tests {
 		assert_eq!(active_connections(), start);
 		// Saturates at zero rather than underflowing.
 		connection_closed();
-		assert_eq!(active_connections(), 0.max(start));
+		assert_eq!(active_connections(), 0);
 	}
 
 	#[test]

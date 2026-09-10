@@ -23,9 +23,7 @@
 
 use std::time::Duration;
 
-use criterion::{
-	criterion_group, criterion_main, BenchmarkId, Criterion, Throughput,
-};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use neo3::neo_builder::{GasEstimator, ScriptBuilder};
 use neo3::neo_types::OpCode;
 use num_bigint::BigInt;
@@ -130,19 +128,15 @@ fn bench_script_sizes(c: &mut Criterion) {
 
 	for size in [10u64, 50, 100, 500, 1000, 5000] {
 		group.throughput(Throughput::Elements(size));
-		group.bench_with_input(
-			BenchmarkId::from_parameter(size),
-			&size,
-			|b, &size| {
-				b.iter(|| {
-					let mut builder = ScriptBuilder::new();
-					for i in 0..size {
-						builder.push_integer(std::hint::black_box(BigInt::from(i)));
-					}
-					builder.to_bytes()
-				})
-			},
-		);
+		group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+			b.iter(|| {
+				let mut builder = ScriptBuilder::new();
+				for i in 0..size {
+					builder.push_integer(std::hint::black_box(BigInt::from(i)));
+				}
+				builder.to_bytes()
+			})
+		});
 	}
 
 	group.finish();

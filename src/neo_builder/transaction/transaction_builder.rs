@@ -1037,7 +1037,7 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 	pub async fn sign(&mut self) -> Result<Transaction<'_, P>, BuilderError> {
 		// Collect multi-sig signatures upfront to avoid borrow conflicts
 		let multi_sig_signatures_snapshot = self.multi_sig_signatures.clone();
-		
+
 		let mut unsigned_tx = self.get_unsigned_tx().await?;
 		let tx_bytes = unsigned_tx.get_hash_data().await?;
 
@@ -1050,8 +1050,12 @@ impl<'a, P: JsonRpcProvider + 'static> TransactionBuilder<'a, P> {
 				let acc = &account_signer.account;
 				if acc.is_multi_sig() {
 					let signer_hash = *signer.get_signer_hash();
-					let collected = multi_sig_signatures_snapshot.get(&signer_hash).cloned().unwrap_or_default();
-					witnesses_to_add.push(Self::create_multi_sig_witness_for_account(acc, &collected)?);
+					let collected = multi_sig_signatures_snapshot
+						.get(&signer_hash)
+						.cloned()
+						.unwrap_or_default();
+					witnesses_to_add
+						.push(Self::create_multi_sig_witness_for_account(acc, &collected)?);
 					continue;
 				}
 				let key_pair = acc.key_pair().as_ref().ok_or_else(|| {
@@ -1463,11 +1467,8 @@ mod multisig_tests {
 		let key_pair2 = KeyPair::new_random();
 		let key_pair3 = KeyPair::new_random();
 
-		let mut public_keys = vec![
-			key_pair1.public_key(),
-			key_pair2.public_key(),
-			key_pair3.public_key(),
-		];
+		let mut public_keys =
+			vec![key_pair1.public_key(), key_pair2.public_key(), key_pair3.public_key()];
 
 		// Create a 2-of-3 multisig account
 		let threshold = 2u32;
@@ -1478,10 +1479,7 @@ mod multisig_tests {
 		let sig1 = key_pair1.private_key_ref().unwrap().sign_tx(&message).unwrap();
 		let sig2 = key_pair2.private_key_ref().unwrap().sign_tx(&message).unwrap();
 
-		let collected = vec![
-			(key_pair1.public_key(), sig1),
-			(key_pair2.public_key(), sig2),
-		];
+		let collected = vec![(key_pair1.public_key(), sig1), (key_pair2.public_key(), sig2)];
 
 		// This should succeed
 		let result = TransactionBuilder::<crate::neo_clients::HttpProvider>::create_multi_sig_witness_for_account(
@@ -1502,11 +1500,8 @@ mod multisig_tests {
 		let key_pair2 = KeyPair::new_random();
 		let key_pair3 = KeyPair::new_random();
 
-		let mut public_keys = vec![
-			key_pair1.public_key(),
-			key_pair2.public_key(),
-			key_pair3.public_key(),
-		];
+		let mut public_keys =
+			vec![key_pair1.public_key(), key_pair2.public_key(), key_pair3.public_key()];
 
 		// Create a 2-of-3 multisig account
 		let threshold = 2u32;
@@ -1539,11 +1534,8 @@ mod multisig_tests {
 		// Create an outsider key pair (not a participant)
 		let outsider_key_pair = KeyPair::new_random();
 
-		let mut public_keys = vec![
-			key_pair1.public_key(),
-			key_pair2.public_key(),
-			key_pair3.public_key(),
-		];
+		let mut public_keys =
+			vec![key_pair1.public_key(), key_pair2.public_key(), key_pair3.public_key()];
 
 		// Create a 2-of-3 multisig account
 		let threshold = 2u32;
@@ -1554,10 +1546,8 @@ mod multisig_tests {
 		let sig1 = key_pair1.private_key_ref().unwrap().sign_tx(&message).unwrap();
 		let outsider_sig = outsider_key_pair.private_key_ref().unwrap().sign_tx(&message).unwrap();
 
-		let collected = vec![
-			(key_pair1.public_key(), sig1),
-			(outsider_key_pair.public_key(), outsider_sig),
-		];
+		let collected =
+			vec![(key_pair1.public_key(), sig1), (outsider_key_pair.public_key(), outsider_sig)];
 
 		// This should fail because only 1 valid participant signature (outsider doesn't count)
 		let result = TransactionBuilder::<crate::neo_clients::HttpProvider>::create_multi_sig_witness_for_account(
@@ -1569,24 +1559,25 @@ mod multisig_tests {
 
 	#[test]
 	fn test_add_multi_sig_signature_and_set_multi_sig_signatures() {
-		let mut builder: TransactionBuilder<crate::neo_clients::HttpProvider> = TransactionBuilder::new();
-		
+		let mut builder: TransactionBuilder<crate::neo_clients::HttpProvider> =
+			TransactionBuilder::new();
+
 		let key_pair = KeyPair::new_random();
 		let message = vec![0u8; 32];
 		let signature = key_pair.private_key_ref().unwrap().sign_tx(&message).unwrap();
-		
+
 		let signer_hash = H160::random();
-		
+
 		// Test add_multi_sig_signature
 		builder.add_multi_sig_signature(&signer_hash, key_pair.public_key(), signature.clone());
 		assert_eq!(builder.multi_sig_signatures.get(&signer_hash).unwrap().len(), 1);
-		
+
 		// Add another signature
 		let key_pair2 = KeyPair::new_random();
 		let signature2 = key_pair2.private_key_ref().unwrap().sign_tx(&message).unwrap();
 		builder.add_multi_sig_signature(&signer_hash, key_pair2.public_key(), signature2);
 		assert_eq!(builder.multi_sig_signatures.get(&signer_hash).unwrap().len(), 2);
-		
+
 		// Test set_multi_sig_signatures (should replace)
 		let new_signatures = vec![(key_pair.public_key(), signature)];
 		builder.set_multi_sig_signatures(&signer_hash, new_signatures);

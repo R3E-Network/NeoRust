@@ -6,7 +6,7 @@ rust-version = "1.95"
 authors = ["R3E Network <jimmy@r3e.network> (c) 2020-2026"]
 license = "MIT OR Apache-2.0"
 publish = ["crates-io"]
-description = "Production-ready Rust SDK for Neo N3 blockchain with high-level API, unified error handling, enterprise features, and comprehensive optimization (v3.3.0)"
+description = "Rust SDK for Neo N3 blockchain with high-level APIs and unified error handling"
 documentation = "https://docs.rs/neo3"
 repository = "https://github.com/r3e-network/neo-rust-sdk"
 homepage = "https://github.com/r3e-network/neo-rust-sdk"
@@ -25,6 +25,7 @@ include = [
     "/COPYRIGHT",
     "/assets/**",
     "/benches/**",
+    "/examples/*.rs",
     "/src/**",
     "/tests/**",
 ]
@@ -229,6 +230,7 @@ insta = "1.32"
 proptest-derive = "0.4"
 # Required for SGX certificate chain tests (keygen/signing/verification)
 ring = "0.17"
+x509-cert = { version = "0.2", features = ["builder"] }
 
 [[bench]]
 name = "crypto_benchmarks"

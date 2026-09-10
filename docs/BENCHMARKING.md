@@ -78,10 +78,22 @@ cargo bench --no-run
 
 ```bash
 # Save a named baseline (e.g. before a change)
-cargo bench -- --save-baseline before
+cargo bench \
+  --bench crypto_benchmarks \
+  --bench gas_estimator_benchmarks \
+  --bench script_builder_benchmarks \
+  --bench wallet_benchmarks \
+  --bench production_benchmarks \
+  -- --save-baseline before
 
 # ... make your change, then compare against it
-cargo bench -- --baseline before
+cargo bench \
+  --bench crypto_benchmarks \
+  --bench gas_estimator_benchmarks \
+  --bench script_builder_benchmarks \
+  --bench wallet_benchmarks \
+  --bench production_benchmarks \
+  -- --baseline before
 
 # Side-by-side table across baselines
 critcmp before new
@@ -138,8 +150,10 @@ New benchmarks with no baseline are reported as `🆕 new` and never fail the ga
 On the 1st of every month (cron) it runs the full suite, saves a
 `monthly-YYYY-MM` baseline, and renders a report from
 [`docs/templates/monthly-benchmark-report.md`](templates/monthly-benchmark-report.md)
-into `benchmark-report-YYYY-MM.md` (uploaded as an artifact, retained 400 days).
-Trend alerting fires if p50 rises >10% month-over-month.
+into `benchmark-report-YYYY-MM.md`, uploaded with the repository-configured artifact retention.
+This workflow creates a single-month snapshot; it does not retrieve a prior report or perform an
+automatic month-over-month alert. Preserve reports outside GitHub Actions retention if a longer
+trend history is required.
 
 ---
 

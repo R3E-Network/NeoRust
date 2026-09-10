@@ -54,20 +54,15 @@ const HIGH_MARGIN_PERCENT: u8 = 25;
 /// // 1_000 base fee + 10% margin => 1_100 total.
 /// assert_eq!(FeePriority::Medium.apply(1_000), 1_100);
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub enum FeePriority {
 	/// No margin: pay exactly the base estimated fee.
 	Low,
 	/// A moderate 10% margin — the SDK default.
+	#[default]
 	Medium,
 	/// An aggressive 25% margin for time-sensitive transactions.
 	High,
-}
-
-impl Default for FeePriority {
-	fn default() -> Self {
-		Self::Medium
-	}
 }
 
 impl FeePriority {
@@ -360,8 +355,9 @@ mod tests {
 
 	// ---- Dynamic policy uses GasEstimator ---------------------------------
 
-	async fn mock_client_with_gas(gas_consumed: &str) -> Arc<RpcClient<crate::neo_clients::MockProvider>>
-	{
+	async fn mock_client_with_gas(
+		gas_consumed: &str,
+	) -> Arc<RpcClient<crate::neo_clients::MockProvider>> {
 		let mock = Arc::new(Mutex::new(MockClient::new().await));
 		{
 			let mut guard = mock.lock().await;
@@ -381,7 +377,10 @@ mod tests {
 				.mock_response_with_file_ignore_param("getblockcount", "getblockcount_1000.json")
 				.await;
 			guard
-				.mock_response_with_file_ignore_param("calculatenetworkfee", "calculatenetworkfee.json")
+				.mock_response_with_file_ignore_param(
+					"calculatenetworkfee",
+					"calculatenetworkfee.json",
+				)
 				.await;
 			guard.mount_mocks().await;
 		}
@@ -397,9 +396,13 @@ mod tests {
 		let signer: Signer = AccountSigner::none(&account).unwrap().into();
 		let signers = std::slice::from_ref(&signer);
 
-		let low =
-			resolve_fee_adjustment(client.as_ref(), &[1, 2, 3], signers, &FeePolicy::dynamic(FeePriority::Low))
-				.await;
+		let low = resolve_fee_adjustment(
+			client.as_ref(),
+			&[1, 2, 3],
+			signers,
+			&FeePolicy::dynamic(FeePriority::Low),
+		)
+		.await;
 		assert_eq!(low.additional_system_fee, 0);
 
 		let medium = resolve_fee_adjustment(
@@ -412,9 +415,13 @@ mod tests {
 		// 10% of 30 = 3.
 		assert_eq!(medium.additional_system_fee, 3);
 
-		let high =
-			resolve_fee_adjustment(client.as_ref(), &[1, 2, 3], signers, &FeePolicy::dynamic(FeePriority::High))
-				.await;
+		let high = resolve_fee_adjustment(
+			client.as_ref(),
+			&[1, 2, 3],
+			signers,
+			&FeePolicy::dynamic(FeePriority::High),
+		)
+		.await;
 		// 25% of 30 = 7.5 -> rounds up to 8.
 		assert_eq!(high.additional_system_fee, 8);
 	}

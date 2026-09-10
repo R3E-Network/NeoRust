@@ -386,10 +386,7 @@ mod tests {
 	#[test]
 	fn json_formatter_emits_valid_structured_json() {
 		let buffer = SharedBuffer::default();
-		let subscriber = tracing_subscriber::fmt()
-			.json()
-			.with_writer(buffer.clone())
-			.finish();
+		let subscriber = tracing_subscriber::fmt().json().with_writer(buffer.clone()).finish();
 
 		tracing::subscriber::with_default(subscriber, || {
 			tracing::info!(answer = 42, "json structured event");
@@ -414,10 +411,7 @@ mod tests {
 	#[test]
 	fn json_formatter_captures_correlation_id_field() {
 		let buffer = SharedBuffer::default();
-		let subscriber = tracing_subscriber::fmt()
-			.json()
-			.with_writer(buffer.clone())
-			.finish();
+		let subscriber = tracing_subscriber::fmt().json().with_writer(buffer.clone()).finish();
 
 		tracing::subscriber::with_default(subscriber, || {
 			with_correlation_id("req-abc-123", || {
@@ -575,10 +569,7 @@ mod tests {
 
 	#[test]
 	fn resolve_otlp_endpoint_trims_and_rejects_blank() {
-		assert_eq!(
-			resolve_otlp_endpoint("  http://c:4317  "),
-			Some("http://c:4317".to_string())
-		);
+		assert_eq!(resolve_otlp_endpoint("  http://c:4317  "), Some("http://c:4317".to_string()));
 		// Blank configured + no env var (cleared) => None.
 		std::env::remove_var("OTEL_EXPORTER_OTLP_ENDPOINT");
 		assert_eq!(resolve_otlp_endpoint("   "), None);

@@ -153,10 +153,5 @@ fn bench_batch_signing(c: &mut Criterion) {
 	group.finish();
 }
 
-criterion_group!(
-	production_benches,
-	bench_sign_pipeline,
-	bench_serialization,
-	bench_batch_signing,
-);
+criterion_group!(production_benches, bench_sign_pipeline, bench_serialization, bench_batch_signing,);
 criterion_main!(production_benches);

@@ -48,6 +48,7 @@
 
 use crate::monitoring::metrics::{snapshot, MetricsSnapshot};
 use once_cell::sync::OnceCell;
+use p256::elliptic_curve::subtle::ConstantTimeEq;
 use serde::{Deserialize, Serialize};
 
 /// Runtime configuration for the Prometheus adapter.
@@ -249,14 +250,9 @@ pub fn is_authorized(auth_header: Option<&str>) -> bool {
 		Some(token) => match auth_header {
 			// Constant-time comparison of the full `Bearer <token>` header value
 			// avoids leaking the token through response-timing side channels.
-			// `verify_slices_are_equal` also returns `Err` on length mismatch.
 			Some(header) => {
 				let expected = format!("Bearer {token}");
-				ring::constant_time::verify_slices_are_equal(
-					header.as_bytes(),
-					expected.as_bytes(),
-				)
-				.is_ok()
+				bool::from(header.as_bytes().ct_eq(expected.as_bytes()))
 			},
 			None => false,
 		},
@@ -266,6 +262,7 @@ pub fn is_authorized(auth_header: Option<&str>) -> bool {
 /// Parse the `key=value&...` query string of a `/metrics` request.
 ///
 /// Returns `(namespace, component)` filter values when present.
+#[cfg(any(feature = "metrics-prometheus", test))]
 fn parse_query(query: &str) -> (Option<String>, Option<String>) {
 	let mut namespace = None;
 	let mut component = None;
@@ -349,9 +346,9 @@ fn route(request: &str) -> (&'static str, String, &'static str) {
 	let method = parts.next().unwrap_or("");
 	let target = parts.next().unwrap_or("");
 
-	let auth_header = request
-		.lines()
-		.find_map(|l| l.strip_prefix("Authorization: ").or_else(|| l.strip_prefix("authorization: ")));
+	let auth_header = request.lines().find_map(|l| {
+		l.strip_prefix("Authorization: ").or_else(|| l.strip_prefix("authorization: "))
+	});
 
 	if method != "GET" {
 		return ("405 Method Not Allowed", "method not allowed\n".to_string(), "text/plain");

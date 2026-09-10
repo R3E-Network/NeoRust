@@ -6,8 +6,8 @@
 
 This report is produced automatically on the 1st of each month by the
 **Benchmark Trend Report** workflow. It captures the mean and p50/p95/p99
-latency percentiles for every benchmark in the suite so month-over-month
-performance trends and regressions are visible over time.
+latency percentiles for every benchmark in the suite as a single-month snapshot.
+The workflow does not automatically retrieve or compare a previous report.
 
 ## Results
 
@@ -33,8 +33,8 @@ performance trends and regressions are visible over time.
 
 ## Trend actions
 
-1. Compare this month's means to the previous report (`benchmark-report-*.md`
-   artifacts, retained 400 days).
+1. Export this report before the repository-configured artifact retention expires, then compare
+   it with a separately retained previous report.
 2. If any operation's p50 rose > 10% vs last month, open a performance issue and
    link the two reports.
 3. Attach the Criterion HTML report artifact for the affected benchmark group.
@@ -46,7 +46,13 @@ performance trends and regressions are visible over time.
 cargo criterion
 
 # Save this month's baseline and regenerate the report
-cargo bench --benches -- --save-baseline monthly-{{MONTH}}
+cargo bench \
+  --bench crypto_benchmarks \
+  --bench gas_estimator_benchmarks \
+  --bench script_builder_benchmarks \
+  --bench wallet_benchmarks \
+  --bench production_benchmarks \
+  -- --save-baseline monthly-{{MONTH}}
 python3 scripts/render_monthly_report.py \
   --baseline monthly-{{MONTH}} \
   --template docs/templates/monthly-benchmark-report.md \

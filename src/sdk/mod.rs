@@ -95,9 +95,9 @@ pub mod unified;
 #[cfg(feature = "ws")]
 pub mod websocket;
 
-use crate::sdk::fee::{resolve_fee_adjustment, FeePolicy};
 pub use self::fee::{FeeAdjustment, FeePriority};
 use self::retry::{retry_network, DEFAULT_RETRY_DELAY};
+use crate::sdk::fee::{resolve_fee_adjustment, FeePolicy};
 use crate::{
 	neo_clients::{APITrait, HttpProvider, RpcCache, RpcClient},
 	neo_error::unified::{ErrorRecovery, NeoError},
@@ -1387,13 +1387,8 @@ impl Neo {
 		let signers = vec![signer_obj.into()];
 
 		// Estimate fees dynamically (priority-aware) via GasEstimator before signing.
-		let adjustment = resolve_fee_adjustment(
-			self.client.as_ref(),
-			&script,
-			&signers,
-			&self.fee_policy,
-		)
-		.await;
+		let adjustment =
+			resolve_fee_adjustment(self.client.as_ref(), &script, &signers, &self.fee_policy).await;
 
 		let mut tb = TransactionBuilder::with_client(self.client.as_ref());
 		tb.extend_script(script);
@@ -1587,7 +1582,11 @@ pub struct NeoBuilder {
 
 impl Default for NeoBuilder {
 	fn default() -> Self {
-		Self { network: Network::TestNet, config: SdkConfig::default(), fee_policy: FeePolicy::default() }
+		Self {
+			network: Network::TestNet,
+			config: SdkConfig::default(),
+			fee_policy: FeePolicy::default(),
+		}
 	}
 }
 

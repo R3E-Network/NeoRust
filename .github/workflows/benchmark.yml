@@ -5,10 +5,8 @@ name: Benchmarks
 # the current revision against the previous commit / PR base. A benchmark that
 # regresses by more than the configured threshold (default 5%) fails the job.
 #
-# Local usage mirrors CI:
-#   cargo criterion                         # all suites, HTML reports
-#   cargo bench -- --save-baseline main     # save a named baseline
-#   cargo bench -- --baseline main          # compare against it
+# Local usage mirrors CI; select Criterion targets explicitly whenever passing
+# Criterion-specific arguments so Cargo's built-in library harness is excluded.
 # See docs/BENCHMARKING.md for the full guide.
 
 on:
@@ -63,9 +61,6 @@ jobs:
           key: ${{ runner.os }}-bench-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-bench-
 
-      - name: Install cargo-criterion
-        run: cargo install cargo-criterion --locked || true
-
       - name: Determine baseline commit
         id: baseline
         run: |
@@ -79,20 +74,51 @@ jobs:
           echo "Baseline commit: $BASE_SHA"
 
       - name: Benchmark baseline (previous commit)
+        shell: bash
         run: |
-          set -e
-          CURRENT_SHA="$(git rev-parse HEAD)"
-          echo "::group::Checkout baseline ${{ steps.baseline.outputs.sha }}"
-          git checkout --quiet --detach "${{ steps.baseline.outputs.sha }}"
-          echo "::endgroup::"
-          # If the baseline predates the benches, this is allowed to be empty.
-          cargo bench --benches -- --save-baseline base --noplot || true
-          echo "::group::Restore current $CURRENT_SHA"
-          git checkout --quiet --detach "$CURRENT_SHA"
-          echo "::endgroup::"
+          set -euo pipefail
+          BASELINE_WORKTREE="${RUNNER_TEMP}/neo-rust-sdk-benchmark-base"
+          cleanup() {
+            git worktree remove --force "$BASELINE_WORKTREE" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          git worktree add --quiet --detach "$BASELINE_WORKTREE" "${{ steps.baseline.outputs.sha }}"
+          rm -rf "${GITHUB_WORKSPACE}/target/criterion"
+
+          cd "$BASELINE_WORKTREE"
+          mapfile -t BENCH_TARGETS < <(
+            cargo metadata --locked --no-deps --format-version 1 |
+              jq -r '.packages[] | select(.name == "neo3") | .targets[] | select(.kind == ["bench"]) | .name'
+          )
+          if [ "${#BENCH_TARGETS[@]}" -eq 0 ]; then
+            echo "Baseline commit has no registered Criterion targets; current results will be NEW."
+            exit 0
+          fi
+          BENCH_ARGS=()
+          for target in "${BENCH_TARGETS[@]}"; do
+            BENCH_ARGS+=(--bench "$target")
+          done
+          CARGO_TARGET_DIR="${GITHUB_WORKSPACE}/target" \
+            cargo bench --locked "${BENCH_ARGS[@]}" -- --save-baseline base --noplot
 
       - name: Benchmark current revision
-        run: cargo bench --benches -- --save-baseline current --noplot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t BENCH_TARGETS < <(
+            cargo metadata --locked --no-deps --format-version 1 |
+              jq -r '.packages[] | select(.name == "neo3") | .targets[] | select(.kind == ["bench"]) | .name'
+          )
+          if [ "${#BENCH_TARGETS[@]}" -eq 0 ]; then
+            echo "Error: current commit has no registered Criterion targets"
+            exit 1
+          fi
+          BENCH_ARGS=()
+          for target in "${BENCH_TARGETS[@]}"; do
+            BENCH_ARGS+=(--bench "$target")
+          done
+          cargo bench --locked "${BENCH_ARGS[@]}" -- --save-baseline current --noplot
 
       - name: Regression gate (>${{ env.REGRESSION_THRESHOLD }}% = fail)
         run: |
@@ -112,7 +138,6 @@ jobs:
             target/criterion/**/report/**
             target/criterion/**/*/estimates.json
           if-no-files-found: ignore
-          retention-days: 30
 
   # Monthly scheduled trend report is handled by benchmark-trend.yml (cron).
   # This job intentionally stays PR/push focused for fast regression feedback.

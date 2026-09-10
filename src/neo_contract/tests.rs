@@ -11,7 +11,7 @@ mod tests {
 	#![allow(unused_variables, dead_code, clippy::module_inception)]
 
 	use super::*;
-	use crate::neo_contract::traits::{TokenTrait, NonFungibleTokenTrait};
+	use crate::neo_contract::traits::{NonFungibleTokenTrait, TokenTrait};
 	use base64::Engine;
 
 	// Create a test RPC client (uses mock in fast mode)
@@ -372,12 +372,12 @@ mod tests {
 
 		// Create a MockProvider and set up mock responses
 		let provider = MockProvider::new();
-		
+
 		// Test NFT contract hash
 		let test_nft_hash = "0x0000000000000000000000000000000000000001";
 		let contract_hash = H160::from_str(test_nft_hash).unwrap();
 		let contract_hash_hex = contract_hash.to_hex();
-		
+
 		// 1️⃣ Mock response for decimals check (get_decimals → throws_if_divisible_nft)
 		provider.push_result_with_partial_params(
 			"invokefunction",
@@ -393,11 +393,12 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		// 2️⃣ Mock response for ownerOf query
 		let owner_address = H160::repeat_byte(0xab); // Dummy owner: 0xabab...abab
-		let owner_bytes_base64 = base64::engine::general_purpose::STANDARD.encode(owner_address.as_bytes());
-		
+		let owner_bytes_base64 =
+			base64::engine::general_purpose::STANDARD.encode(owner_address.as_bytes());
+
 		provider.push_result_with_partial_params(
 			"invokefunction",
 			json!([contract_hash_hex, "ownerOf"]),
@@ -412,18 +413,18 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		// Set up RPC client
 		let client = providers::RpcClient::new(provider);
 		let mut nft_contract = NftContract::new(&contract_hash, Some(&client));
-		
+
 		// Execute owner_of with a sample token ID
 		let token_id: Bytes = vec![1, 2, 3];
-		
+
 		let result = nft_contract.owner_of(token_id).await;
-		
+
 		assert!(result.is_ok(), "owner_of should succeed");
-		
+
 		let actual_owner = result.unwrap();
 		assert_eq!(actual_owner, owner_address, "owner_of should return the correct owner");
 	}
@@ -439,7 +440,7 @@ mod tests {
 		let test_nft_hash = "0x0000000000000000000000000000000000000001";
 		let contract_hash = H160::from_str(test_nft_hash).unwrap();
 		let contract_hash_hex = contract_hash.to_hex();
-		
+
 		// Mock decimals response
 		provider.push_result_with_partial_params(
 			"invokefunction",
@@ -451,11 +452,11 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		// Mock response for tokensOf - returns an interop interface with session ID and iterator ID
 		let session_id = "session-abc123".to_string();
 		let iterator_id = "iterator-def456".to_string();
-		
+
 		provider.push_result_with_partial_params(
 			"invokefunction",
 			json!([contract_hash_hex, "tokensOf"]),
@@ -471,50 +472,48 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		// Mock traverseiterator response - return 3 token IDs
 		let token_id_1 = vec![1u8, 2, 3];
 		let token_id_2 = vec![4u8, 5, 6];
 		let token_id_3 = vec![7u8, 8, 9];
-		
+
 		let token_ids_base64: Vec<String> = vec![
 			base64::engine::general_purpose::STANDARD.encode(&token_id_1),
 			base64::engine::general_purpose::STANDARD.encode(&token_id_2),
 			base64::engine::general_purpose::STANDARD.encode(&token_id_3),
 		];
-		
+
 		provider.push_result_with_params(
 			"traverseiterator",
 			json!([session_id, iterator_id, 3]),
-			json!(token_ids_base64.iter().map(|s| json!({
-				"type": "ByteString",
-				"value": s
-			}))
-			.collect::<Vec<_>>()),
+			json!(token_ids_base64
+				.iter()
+				.map(|s| json!({
+					"type": "ByteString",
+					"value": s
+				}))
+				.collect::<Vec<_>>()),
 		);
-		
+
 		let client = providers::RpcClient::new(provider);
 		let mut nft_contract = NftContract::new(&contract_hash, Some(&client));
-		
+
 		// Get tokens of owner
 		let owner_hash = H160::repeat_byte(0xcc);
 		let tokens_result = nft_contract.tokens_of(owner_hash).await;
-		
+
 		assert!(tokens_result.is_ok(), "tokens_of should return an iterator");
-		
+
 		let iterator = tokens_result.unwrap();
-		
+
 		// Traverse to get token IDs
 		let token_list = iterator.traverse(3).await;
-		
+
 		assert!(token_list.is_ok(), "traverse should succeed");
 		let tokens = token_list.unwrap();
-		
-		assert_eq!(
-			tokens.len(),
-			3,
-			"Should have retrieved exactly 3 token IDs"
-		);
+
+		assert_eq!(tokens.len(), 3, "Should have retrieved exactly 3 token IDs");
 	}
 
 	#[tokio::test]
@@ -528,7 +527,7 @@ mod tests {
 		let test_nft_hash = "0x0000000000000000000000000000000000000001";
 		let contract_hash = H160::from_str(test_nft_hash).unwrap();
 		let contract_hash_hex = contract_hash.to_hex();
-		
+
 		// Mock decimals response (divisibility check)
 		provider.push_result_with_partial_params(
 			"invokefunction",
@@ -540,10 +539,10 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		// Mock response for balanceOf
 		let owner_address = H160::repeat_byte(0xdd);
-		
+
 		provider.push_result_with_partial_params(
 			"invokefunction",
 			json!([contract_hash_hex, "balanceOf"]),
@@ -558,12 +557,12 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		let client = providers::RpcClient::new(provider);
 		let mut nft_contract = NftContract::new(&contract_hash, Some(&client));
-		
+
 		let balance = nft_contract.balance_of(owner_address).await;
-		
+
 		assert!(balance.is_ok(), "balance_of should succeed");
 		assert_eq!(balance.unwrap(), 42, "balance_of should return 42");
 	}
@@ -573,20 +572,20 @@ mod tests {
 		//! Tests that `properties` correctly retrieves custom properties for an NFT.
 
 		use crate::neo_clients::MockProvider;
-		use serde_json::json;
 		use base64::Engine;
+		use serde_json::json;
 
 		let provider = MockProvider::new();
 		let test_nft_hash = "0x0000000000000000000000000000000000000001";
 		let contract_hash = H160::from_str(test_nft_hash).unwrap();
 		let contract_hash_hex = contract_hash.to_hex();
-		
+
 		// Mock response for properties - returns a Map of key-value pairs
 		let name_key = base64::engine::general_purpose::STANDARD.encode("name");
 		let name_value = base64::engine::general_purpose::STANDARD.encode("Rare Dragon #007");
 		let rarity_key = base64::engine::general_purpose::STANDARD.encode("rarity");
 		let rarity_value = base64::engine::general_purpose::STANDARD.encode("Legendary");
-		
+
 		provider.push_result_with_partial_params(
 			"invokefunction",
 			json!([contract_hash_hex.clone(), "properties"]),
@@ -603,17 +602,17 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		let client = providers::RpcClient::new(provider);
 		let mut nft_contract = NftContract::new(&contract_hash, Some(&client));
-		
+
 		let token_id: Bytes = vec![9, 8, 7];
 		let properties = nft_contract.properties(token_id).await;
-		
+
 		assert!(properties.is_ok(), "properties should succeed");
-		
+
 		let props = properties.unwrap();
-		
+
 		assert_eq!(props.len(), 2, "Should have 2 properties");
 		let name_value = props.get("name").expect("name should exist");
 		assert_eq!(name_value.as_string().unwrap(), "Rare Dragon #007");
@@ -632,7 +631,7 @@ mod tests {
 		let test_nft_hash = "0x0000000000000000000000000000000000000001";
 		let contract_hash = H160::from_str(test_nft_hash).unwrap();
 		let contract_hash_hex = contract_hash.to_hex();
-		
+
 		// Mock decimals response (throws_if_divisible_nft check)
 		provider.push_result_with_partial_params(
 			"invokefunction",
@@ -644,19 +643,20 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		let client = providers::RpcClient::new(provider);
 		let mut nft_contract = NftContract::new(&contract_hash, Some(&client));
-		
+
 		// Build a transfer script
 		let sender = protocol::Account::create().expect("Failed to create test account");
 		let recipient_hash = H160::repeat_byte(0xee);
 		let token_id: Bytes = vec![1, 0, 0];
-		
-		let tx_builder_result = nft_contract.transfer(&sender, recipient_hash, token_id, None).await;
-		
+
+		let tx_builder_result =
+			nft_contract.transfer(&sender, recipient_hash, token_id, None).await;
+
 		assert!(tx_builder_result.is_ok(), "transfer should succeed");
-		
+
 		let _builder = tx_builder_result.unwrap();
 		// Verify the builder has the required data (script set, signer added)
 		// We don't execute here because we're just testing script construction
@@ -667,14 +667,14 @@ mod tests {
 		//! Tests that basic token metadata (symbol, decimals, total_supply) is accessible.
 
 		use crate::neo_clients::MockProvider;
-		use serde_json::json;
 		use base64::Engine;
+		use serde_json::json;
 
 		let provider = MockProvider::new();
 		let test_nft_hash = "0x0000000000000000000000000000000000000001";
 		let contract_hash = H160::from_str(test_nft_hash).unwrap();
 		let contract_hash_hex = contract_hash.to_hex();
-		
+
 		// Mock symbol response
 		let symbol_base64 = base64::engine::general_purpose::STANDARD.encode("NFT_TEST");
 		provider.push_result_with_partial_params(
@@ -687,8 +687,8 @@ mod tests {
 				]
 			}),
 		);
-		
-		// Mock decimals response  
+
+		// Mock decimals response
 		provider.push_result_with_partial_params(
 			"invokefunction",
 			json!([contract_hash_hex.clone(), "decimals"]),
@@ -699,7 +699,7 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		// Mock totalSupply response
 		provider.push_result_with_partial_params(
 			"invokefunction",
@@ -711,21 +711,21 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		let client = providers::RpcClient::new(provider);
 		let mut nft_contract = NftContract::new(&contract_hash, Some(&client));
-		
+
 		// Test getting token metadata
 		let symbol = nft_contract.get_symbol().await;
 		let decimals = nft_contract.get_decimals().await;
 		let total_supply = nft_contract.get_total_supply().await;
-		
+
 		assert!(symbol.is_ok(), "get_symbol should succeed");
 		assert_eq!(symbol.unwrap(), "NFT_TEST", "Symbol should be NFT_TEST");
-		
+
 		assert!(decimals.is_ok(), "get_decimals should succeed");
 		assert_eq!(decimals.unwrap(), 0, "Decimals should be 0 for NFT");
-		
+
 		assert!(total_supply.is_ok(), "get_total_supply should succeed");
 		assert_eq!(total_supply.unwrap(), 10000, "Total supply should be 10000");
 	}
@@ -739,14 +739,14 @@ mod tests {
 		//! Test owner_of method on NftContract.
 
 		use crate::neo_clients::MockProvider;
-		use serde_json::json;
 		use base64::Engine;
+		use serde_json::json;
 
 		let provider = MockProvider::new();
 		let test_nft_hash = "0x0000000000000000000000000000000000000001";
 		let contract_hash = H160::from_str(test_nft_hash).unwrap();
 		let contract_hash_hex = contract_hash.to_hex();
-		
+
 		// Mock decimals response (divisibility check)
 		provider.push_result_with_partial_params(
 			"invokefunction",
@@ -758,11 +758,12 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		// Mock ownerOf response
 		let expected_owner = H160::repeat_byte(0xab);
-		let owner_bytes_base64 = base64::engine::general_purpose::STANDARD.encode(expected_owner.as_bytes());
-		
+		let owner_bytes_base64 =
+			base64::engine::general_purpose::STANDARD.encode(expected_owner.as_bytes());
+
 		provider.push_result_with_partial_params(
 			"invokefunction",
 			json!([contract_hash_hex, "ownerOf"]),
@@ -777,13 +778,13 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		let client = providers::RpcClient::new(provider);
 		let mut nft_contract = NftContract::new(&contract_hash, Some(&client));
-		
+
 		let token_id: Bytes = vec![1, 2, 3, 4];
 		let result = nft_contract.owner_of(token_id).await;
-		
+
 		assert!(result.is_ok(), "owner_of should succeed");
 		let actual_owner = result.unwrap();
 		assert_eq!(actual_owner, expected_owner, "owner_of should return correct owner address");
@@ -794,14 +795,14 @@ mod tests {
 		//! Test token_uri method on NftContract.
 
 		use crate::neo_clients::MockProvider;
-		use serde_json::json;
 		use base64::Engine;
+		use serde_json::json;
 
 		let provider = MockProvider::new();
 		let test_nft_hash = "0x0000000000000000000000000000000000000001";
 		let contract_hash = H160::from_str(test_nft_hash).unwrap();
 		let contract_hash_hex = contract_hash.to_hex();
-		
+
 		// Mock decimals response (divisibility check)
 		provider.push_result_with_partial_params(
 			"invokefunction",
@@ -813,11 +814,11 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		// Mock tokenURI response
 		let expected_uri = "ipfs://QmXyZ123.../metadata.json";
 		let uri_base64 = base64::engine::general_purpose::STANDARD.encode(expected_uri.as_bytes());
-		
+
 		provider.push_result_with_partial_params(
 			"invokefunction",
 			json!([contract_hash_hex, "tokenURI"]),
@@ -832,13 +833,13 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		let client = providers::RpcClient::new(provider);
 		let mut nft_contract = NftContract::new(&contract_hash, Some(&client));
-		
+
 		let token_id: Bytes = vec![5, 6, 7, 8];
 		let result = nft_contract.token_uri(token_id).await;
-		
+
 		assert!(result.is_ok(), "token_uri should succeed");
 		let actual_uri = result.unwrap();
 		assert_eq!(actual_uri, expected_uri, "token_uri should return correct URI");
@@ -849,14 +850,14 @@ mod tests {
 		//! Test properties method on NftContract.
 
 		use crate::neo_clients::MockProvider;
-		use serde_json::json;
 		use base64::Engine;
+		use serde_json::json;
 
 		let provider = MockProvider::new();
 		let test_nft_hash = "0x0000000000000000000000000000000000000001";
 		let contract_hash = H160::from_str(test_nft_hash).unwrap();
 		let contract_hash_hex = contract_hash.to_hex();
-		
+
 		// Mock response for properties - returns a Map of key-value pairs
 		let name_key = base64::engine::general_purpose::STANDARD.encode("name");
 		let name_value = base64::engine::general_purpose::STANDARD.encode("Test Dragon #123");
@@ -864,7 +865,7 @@ mod tests {
 		let rarity_value = base64::engine::general_purpose::STANDARD.encode("Epic");
 		let image_key = base64::engine::general_purpose::STANDARD.encode("image");
 		let image_value = base64::engine::general_purpose::STANDARD.encode("ipfs://QmImageHash");
-		
+
 		provider.push_result_with_partial_params(
 			"invokefunction",
 			json!([contract_hash_hex.clone(), "properties"]),
@@ -882,16 +883,16 @@ mod tests {
 				]
 			}),
 		);
-		
+
 		let client = providers::RpcClient::new(provider);
 		let mut nft_contract = NftContract::new(&contract_hash, Some(&client));
-		
+
 		let token_id: Bytes = vec![10, 20, 30];
 		let result = nft_contract.properties(token_id).await;
-		
+
 		assert!(result.is_ok(), "properties should succeed");
 		let props = result.unwrap();
-		
+
 		assert_eq!(props.len(), 3, "Should have exactly 3 properties");
 		let name_value = props.get("name").expect("name should exist");
 		assert_eq!(name_value.as_string().unwrap(), "Test Dragon #123");

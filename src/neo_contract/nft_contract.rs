@@ -101,23 +101,28 @@ impl<'a, P: JsonRpcProvider> NonFungibleTokenTrait<'a, P> for NftContract<'a, P>
 	async fn token_uri(&mut self, token_id: Bytes) -> Result<String, ContractError> {
 		self.throw_if_divisible_nft().await?;
 
-		self.call_function_returning_string(
-			Self::TOKEN_URI,
-			vec![token_id.into()],
-		)
-		.await
+		self.call_function_returning_string(Self::TOKEN_URI, vec![token_id.into()])
+			.await
 	}
 
-	async fn properties(&mut self, token_id: Bytes) -> Result<HashMap<String, StackItem>, ContractError> {
+	async fn properties(
+		&mut self,
+		token_id: Bytes,
+	) -> Result<HashMap<String, StackItem>, ContractError> {
 		self.custom_properties(token_id).await
 	}
 
-	async fn custom_properties(&mut self, token_id: Bytes) -> Result<HashMap<String, StackItem>, ContractError> {
-		let invocation_result = self.call_invoke_function(
-			<NftContract<P> as NonFungibleTokenTrait<P>>::PROPERTIES,
-			vec![token_id.into()],
-			vec![],
-		).await?;
+	async fn custom_properties(
+		&mut self,
+		token_id: Bytes,
+	) -> Result<HashMap<String, StackItem>, ContractError> {
+		let invocation_result = self
+			.call_invoke_function(
+				<NftContract<P> as NonFungibleTokenTrait<P>>::PROPERTIES,
+				vec![token_id.into()],
+				vec![],
+			)
+			.await?;
 		self.throw_if_fault_state(&invocation_result)?;
 
 		let stack_item = invocation_result

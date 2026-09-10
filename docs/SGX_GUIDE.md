@@ -5,7 +5,10 @@
 
 NeoRust exposes compile gates and scaffolding for Intel SGX (Software Guard Extensions). Treat this as an integration starting point, not certified enclave support. The general SDK still depends on `std` for normal host targets, and `no_std` is not certified for arbitrary embedded or WASM targets.
 
-> Security note: The SGX module is still evolving. In particular, remote attestation quote verification is **not implemented** in the current SDK (`QuoteVerifier::verify_quote` returns an error). Do not treat quotes as verified unless you integrate a real verifier (DCAP/IAS) in your deployment.
+> Security note: The SGX module is still evolving. Quote parsing and certificate-chain checks do
+> not establish a complete attestation verdict. Production deployments must integrate Intel DCAP
+> QVL and validate current PCK CRLs, TCB Info, QE Identity, and the applicable collateral before
+> trusting a quote.
 
 ## Table of Contents
 
@@ -14,7 +17,7 @@ NeoRust exposes compile gates and scaffolding for Intel SGX (Software Guard Exte
 3. [Setup](#setup)
 4. [Architecture](#architecture)
 5. [Usage](#usage)
-6. [Security Benefits](#security-benefits)
+6. [Security Boundary](#security-boundary)
 7. [Performance Considerations](#performance-considerations)
 8. [Troubleshooting](#troubleshooting)
 
@@ -29,7 +32,7 @@ NeoRust exposes compile gates and scaffolding for Intel SGX (Software Guard Exte
 - Ubuntu 18.04/20.04/22.04 or Windows 10/11
 - Intel SGX SDK 2.15+
 - Intel SGX PSW (Platform Software)
-- Rust 1.91+ with `no_std` support
+- Rust 1.95+ for the SDK host build
 
 ### Installation
 
@@ -51,33 +54,17 @@ chmod +x sgx_linux_x64_sdk_2.19.100.3.bin
 
 ## Features
 
-### Core Capabilities
+### Experimental API Surface
 
-1. **Secure Key Management**
-   - Hardware-protected key generation
-   - Sealed key storage
-   - Key derivation functions
+- Host-compilable quote parsing and certificate-path validation primitives
+- Enclave crypto, storage, networking, and integration scaffolding exported only for an SGX target
+- SGX quote v3 parsing and measurement extraction helpers
+- PCK certificate-path and caller-supplied CRL validation primitives
+- Feature gates for deployment-specific SGX toolchains
 
-2. **Protected Transaction Signing**
-   - Sign transactions inside enclave
-   - Private keys never leave enclave
-   - Hardware-based attestation
-
-3. **Cryptographic Operations**
-   - SHA256 hashing
-   - ECDSA signing/verification
-   - AES-GCM encryption
-   - Random number generation
-
-4. **Secure Storage**
-   - Data sealing with platform binding
-   - Encrypted persistent storage
-   - Secure key-value store
-
-5. **Remote Attestation (Experimental)**
-   - Quote generation scaffolding
-   - Measurement extraction helpers
-   - **Verification must be implemented by integrators** (DCAP/IAS)
+These APIs do not prove that keys were generated or retained in hardware, that stored data is
+rollback protected, or that an enclave is trustworthy. Those properties depend on the enclave
+implementation, platform configuration, fresh collateral, and a complete Intel DCAP QVL verdict.
 
 ## Setup
 
@@ -86,7 +73,7 @@ chmod +x sgx_linux_x64_sdk_2.19.100.3.bin
 ```toml
 # Cargo.toml
 [dependencies]
-neo3 = { version = "3.0.0", features = ["sgx", "no_std"] }
+neo3 = { version = "3.3.1", features = ["sgx", "no_std"] }
 
 [target.'cfg(target_env = "sgx")'.dependencies]
 sgx_tstd = { git = "https://github.com/apache/teaclave-sgx-sdk.git", rev = "v2.0.0" }
@@ -143,6 +130,10 @@ enclave {
 
 ### Component Overview
 
+The following is a target integration architecture, not a statement that this SDK has established
+the depicted trust boundary. The application must build, deploy, and validate the enclave and its
+complete attestation flow.
+
 ```
 ┌─────────────────────────────────────┐
 │         Untrusted World             │
@@ -169,6 +160,9 @@ enclave {
 
 ### Module Structure
 
+The `neo_sgx` tree below is enclave-target scaffolding compiled only when both the `sgx` feature and
+`target_env = "sgx"` are active.
+
 ```rust
 neo3/
 ├── neo_sgx/
@@ -182,6 +176,9 @@ neo3/
 ```
 
 ## Usage
+
+The snippets in this section are enclave-target integration sketches. They are not host-runnable
+examples or a complete attestation protocol.
 
 ### Basic Example
 
@@ -309,44 +306,27 @@ async fn secure_rpc_call() -> Result<Vec<u8>, SgxError> {
 }
 ```
 
-## Security Benefits
+## Security Boundary
 
-### Hardware-Based Protection
-- **Memory Encryption**: Enclave memory encrypted by CPU
-- **Isolation**: Protected from OS, hypervisor, and other processes
-- **Attestation**: Experimental scaffolding; verification requires external integration (DCAP/IAS)
-
-### Key Protection
-- **Sealed Storage**: Keys bound to specific platform and enclave
-- **No Extraction**: Private keys never leave enclave in plaintext
-- **Secure Generation**: Hardware RNG for key generation
-
-### Attack Mitigation
-- **Side-Channel Protection**: Hardware countermeasures against timing attacks
-- **Replay Protection**: Monotonic counters prevent replay attacks
-- **Rollback Protection**: Sealed data versioning
+- The SDK does not establish memory isolation, hardware key provenance, non-extractability, or
+  sealed-storage rollback protection by itself.
+- The storage and networking modules are integration scaffolding and have not been certified as
+  side-channel, replay, or rollback resistant.
+- Quote parsing and PCK path validation are local primitives, not an attestation verdict. A complete
+  verifier must validate the quote/QE binding, QE Identity, TCB Info, current revocation collateral,
+  and a caller challenge bound to REPORTDATA.
+- Enclave behavior must be tested with the exact SGX runtime, signing policy, and deployment target.
 
 ## Performance Considerations
 
-### Overhead
-- **ECALL/OCALL**: ~8,000 CPU cycles per transition
-- **Memory**: Limited to EPC size (typically 128MB)
-- **Sealing**: ~1ms for 1KB data
+No SGX performance baseline is published for this SDK. Measure enclave transitions, EPC pressure,
+cryptographic operations, and sealing on the actual deployment hardware and toolchain.
 
 ### Optimization Tips
 1. **Batch Operations**: Minimize ECALL/OCALL transitions
 2. **Cache Data**: Keep frequently used data in enclave
 3. **Async Operations**: Use async for I/O operations
 4. **Memory Management**: Implement efficient allocators
-
-### Benchmarks
-
-| Operation | Without SGX | With SGX | Overhead |
-|-----------|------------|----------|----------|
-| Sign Transaction | 0.5ms | 1.2ms | 140% |
-| Verify Signature | 0.8ms | 1.5ms | 87% |
-| SHA256 (1KB) | 0.05ms | 0.08ms | 60% |
-| Key Generation | 2ms | 3ms | 50% |
 
 ## Troubleshooting
 
@@ -374,7 +354,9 @@ Error: SGX_ERROR_OUT_OF_EPC
 ```
 Error: Quote verification failed
 ```
-**Solution**: Quote verification is not implemented in the SDK. Integrate a real DCAP/IAS verifier in your deployment and ensure network/configuration are correct.
+**Solution**: Integrate Intel DCAP QVL, supply current collateral, and inspect the verifier's
+supplemental result. The SDK's parser and certificate-chain checks are not a complete attestation
+verdict.
 
 ### Debug Mode
 
@@ -420,12 +402,7 @@ let config = EnclaveConfig {
 
 ## Summary
 
-SGX support in NeoRust v2.0.0 provides:
-
-- **Hardware Security**: CPU-based memory encryption and isolation
-- **Key Protection**: Secure key generation and sealed storage
-- **Remote Attestation**: Experimental scaffolding; verification is not implemented in the SDK
-- **No-STD Support**: Run in constrained environments
-- **Deployment Ready**: For key protection/signing use-cases; attestation verification requires external integration
-
-For production deployments, ensure proper configuration, disable debug mode, and implement comprehensive error handling and monitoring.
+NeoRust exposes experimental SGX integration scaffolding plus quote-parsing and PCK path-validation
+primitives. It does not ship a complete enclave implementation or Intel DCAP verifier. Enclave and
+attestation behavior must be validated with the target SGX toolchain, a complete Intel DCAP QVL,
+fresh deployment collateral, and an application-specific challenge policy.

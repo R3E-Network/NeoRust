@@ -77,9 +77,7 @@ fn seeded_wallet(count: usize) -> Wallet {
 fn bench_wallet_lifecycle(c: &mut Criterion) {
 	let mut group = fast_group(c, "wallet/lifecycle");
 
-	group.bench_function("wallet_creation", |b| {
-		b.iter(|| std::hint::black_box(Wallet::new()))
-	});
+	group.bench_function("wallet_creation", |b| b.iter(|| std::hint::black_box(Wallet::new())));
 
 	group.bench_function("account_addition", |b| {
 		b.iter(|| {
@@ -104,20 +102,16 @@ fn bench_encryption(c: &mut Criterion) {
 	// Sequential encryption scaling across account counts.
 	for count in [1usize, 10] {
 		let base = seeded_wallet(count);
-		group.bench_with_input(
-			BenchmarkId::new("encrypt_sequential", count),
-			&count,
-			|b, _| {
-				b.iter_batched(
-					|| base.clone(),
-					|mut wallet| {
-						wallet.encrypt_accounts(password).unwrap();
-						std::hint::black_box(())
-					},
-					criterion::BatchSize::SmallInput,
-				)
-			},
-		);
+		group.bench_with_input(BenchmarkId::new("encrypt_sequential", count), &count, |b, _| {
+			b.iter_batched(
+				|| base.clone(),
+				|mut wallet| {
+					wallet.encrypt_accounts(password).unwrap();
+					std::hint::black_box(())
+				},
+				criterion::BatchSize::SmallInput,
+			)
+		});
 	}
 
 	// Parallel encryption for a larger wallet (rayon work-stealing path).

@@ -9,18 +9,18 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Crates.io](https://img.shields.io/crates/v/neo3.svg)](https://crates.io/crates/neo3)
 [![Documentation](https://docs.rs/neo3/badge.svg)](https://docs.rs/neo3)
-[![MSRV](https://img.shields.io/badge/MSRV-1.91.0-blue)](https://blog.rust-lang.org/2025/10/30/Rust-1.91.0.html)
+[![MSRV](https://img.shields.io/badge/MSRV-1.95.0-blue)](https://blog.rust-lang.org/)
 
 A comprehensive Rust SDK for the Neo N3 blockchain platform. NeoRust provides a production-focused toolkit with simplified APIs, real-time features, and developer tools for building blockchain applications.
 
 ## 📊 Project Status
 
-- **Version**: 3.2.0 (in development)
+- **Version**: 3.3.1
 - **Rust Version**: 1.95.0+
 - **Neo Version**: Neo N3 compatible
 - **Platform Support**: Linux verified locally; Windows and macOS are intended targets and should be validated in your CI before release
-- **Security**: Dependency auditing via `cargo deny`; wallet exports use authenticated encryption; comprehensive fuzz testing preventing 10M+ random input tests; Intel SGX DCAP quote verifier for production enclave deployments
-- **Coverage**: Comprehensive testing with property-based tests; >95% branch coverage on critical paths; HD wallet overflow regression tests covering all derivation paths
+- **Security**: Dependency auditing via `cargo deny`; wallet exports use authenticated encryption; property-based fuzz regression tests; experimental SGX quote parsing and certificate-chain validation primitives
+- **Coverage**: Unit, integration, and property-based tests, including HD wallet overflow regressions
 - **Production Readiness**: Core wallet, cryptography, RPC, WebSocket, and simulation paths are tested; hardware devices, SGX/no_std, and live broadcasts require environment-specific validation
 - **Performance**: <100ms WebSocket latency, <10ms HD derivation, 50-70% code reduction
 
@@ -47,9 +47,9 @@ A comprehensive Rust SDK for the Neo N3 blockchain platform. NeoRust provides a 
 - ⚡ **Performance Optimized** - <100ms event processing, efficient caching
 - 🆕 **Neo v3.9.1 Compatible** - Full support for latest Neo N3 protocols including Hardfork Echidna, Faun, and Gorgon
 - 🛡️ **Fuzz Testing Infrastructure** - Property-based testing across script parsing, crypto primitives, and RPC deserialization
-- 🛡️ **SGX Quote Verifier** - Intel DCAP ECDSA quote verification for production enclave deployments
+- 🛡️ **Experimental SGX Primitives** - DCAP quote parsing and X.509 chain checks; complete attestation still requires Intel DCAP QVL and current collateral
 - 🛡️ **Zeroize Memory Handling** - Secure memory sanitization for sensitive cryptographic data
-- 📊 **Enhanced Test Coverage** - >95% branch coverage verification in CI; HD wallet overflow regression tests
+- 📊 **Test Coverage** - Unit, integration, property-based, and HD wallet overflow regression tests
 
 ### Applications
 - 🖥️ **CLI Tools** - Command-line interface for common blockchain operations
@@ -60,7 +60,7 @@ Add NeoRust to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-neo3 = "2.1.0"
+neo3 = "3.3.1"
 ```
 
 ## Basic Usage

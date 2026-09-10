@@ -41,14 +41,27 @@ jobs:
           key: ${{ runner.os }}-bench-trend-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-bench-trend-
 
-      - name: Install cargo-criterion
-        run: cargo install cargo-criterion --locked || true
-
       - name: Run full benchmark suite (save monthly baseline)
+        shell: bash
         run: |
+          set -euo pipefail
           MONTH_TAG="$(date -u +%Y-%m)"
           echo "MONTH_TAG=$MONTH_TAG" >> "$GITHUB_ENV"
-          cargo bench --benches -- --save-baseline "monthly-$MONTH_TAG" --noplot
+          rm -rf target/criterion
+          mapfile -t BENCH_TARGETS < <(
+            cargo metadata --locked --no-deps --format-version 1 |
+              jq -r '.packages[] | select(.name == "neo3") | .targets[] | select(.kind == ["bench"]) | .name'
+          )
+          if [ "${#BENCH_TARGETS[@]}" -eq 0 ]; then
+            echo "Error: no registered Criterion targets"
+            exit 1
+          fi
+          BENCH_ARGS=()
+          for target in "${BENCH_TARGETS[@]}"; do
+            BENCH_ARGS+=(--bench "$target")
+          done
+          cargo bench --locked "${BENCH_ARGS[@]}" \
+            -- --save-baseline "monthly-$MONTH_TAG" --noplot
 
       - name: Render monthly report
         run: |
@@ -70,4 +83,3 @@ jobs:
             benchmark-report-*.md
             target/criterion/**/report/**
           if-no-files-found: ignore
-          retention-days: 400

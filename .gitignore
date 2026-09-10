@@ -10,7 +10,13 @@ node_modules/
 .hive-mind/sessions/
 .worktrees/
 *.bak
-scripts/
+/scripts/*
+!/scripts/check_bench_regression.py
+!/scripts/criterion_results.py
+!/scripts/render_monthly_report.py
+!/scripts/tests/
+/scripts/tests/*
+!/scripts/tests/test_benchmark_scripts.py
 .claude/
 .claude-flow/
 neo_csharp/
@@ -30,4 +36,3 @@ neo_csharp/
 # Sources live in docs/src (+ docs/*.md) and website/{docs,cli,sdk,blog,src}.
 docs/book/
 website/build/
-

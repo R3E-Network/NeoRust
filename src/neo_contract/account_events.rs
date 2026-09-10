@@ -77,7 +77,8 @@ pub type AccountEventResult = ContractEventResult;
 ///   matches exactly are returned; when unset, all event names match.
 /// - **block range** (required by [`execute`](Self::execute)) — the inclusive
 ///   `from..=to` span of blocks to scan.
-/// - **limit** (optional) — an early-exit cap on the number of results.
+/// - **limit** (optional) — an early-exit cap on the number of results. When
+///   combined with `page_size`, the smaller value is used.
 /// - **pagination** (optional) — [`offset`](Self::offset) and [`page_size`](Self::page_size)
 ///   allow clients to page through large result sets without loading everything into memory.
 ///
@@ -109,11 +110,8 @@ pub type AccountEventResult = ContractEventResult;
 /// - ✅ **Use smaller ranges**: Query by day (≈720 blocks) instead of months
 /// - ✅ **Set `limit` early**: Stop scanning once you have enough results
 /// - ✅ **Filter by event name**: Reduces filtering work on client side
-/// - ✅ **Fast path for transfers**: When querying only `Transfer` events from a
-///   known contract, use [`AccountEventQuery::execute_fast`](Self::execute_fast)
-///   which uses the specialized `getnep17transfers` RPC call (~5-10ms vs ~200ms)
 /// - ✅ **Paginate deep queries**: Use [`offset`](Self::offset) + [`page_size`](Self::page_size)
-///   to walk backwards through history without loading millions of rows
+///   to walk through a fixed block range without retaining every matching event
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountEventQuery {
 	account: H160,
@@ -187,6 +185,7 @@ impl AccountEventQuery {
 	}
 
 	/// Caps the number of returned events, stopping the scan early once reached.
+	/// If [`page_size`](Self::page_size) is also set, the smaller cap applies.
 	pub fn limit(mut self, limit: usize) -> Self {
 		self.limit = Some(limit);
 		self
@@ -213,7 +212,9 @@ impl AccountEventQuery {
 		self
 	}
 
-	/// Sets the maximum number of results to return per page.
+	/// Sets the maximum number of results to return per page, after applying
+	/// [`offset`](Self::offset). If [`limit`](Self::limit) is also set, the
+	/// smaller cap applies.
 	///
 	/// Recommended values: 50-200. Avoid very large pages (>1000) as they may cause
 	/// out-of-memory conditions when scanning dense blocks.
@@ -262,6 +263,19 @@ impl AccountEventQuery {
 		self.page_size
 	}
 
+	/// Returns the maximum number of results this query may return.
+	///
+	/// `limit` and `page_size` are both upper bounds, so their intersection is
+	/// represented by the smaller value when both are configured.
+	fn effective_result_cap(&self) -> Option<usize> {
+		match (self.limit, self.page_size) {
+			(Some(limit), Some(page_size)) => Some(limit.min(page_size)),
+			(Some(limit), None) => Some(limit),
+			(None, Some(page_size)) => Some(page_size),
+			(None, None) => None,
+		}
+	}
+
 	/// Recursively checks whether `state` references `account`.
 	///
 	/// Arrays, structs, and maps are traversed depth-first. A leaf
@@ -270,9 +284,9 @@ impl AccountEventQuery {
 	/// `account.as_bytes()`.
 	fn stack_item_contains_account(state: &StackItem, account: &H160) -> bool {
 		match state {
-			StackItem::Array { value } | StackItem::Struct { value } => value
-				.iter()
-				.any(|item| Self::stack_item_contains_account(item, account)),
+			StackItem::Array { value } | StackItem::Struct { value } => {
+				value.iter().any(|item| Self::stack_item_contains_account(item, account))
+			},
 			StackItem::Map { value } => value.iter().any(|entry| {
 				Self::stack_item_contains_account(&entry.key, account)
 					|| Self::stack_item_contains_account(&entry.value, account)
@@ -363,8 +377,10 @@ impl AccountEventQuery {
 	/// For each block in `from..=to` the full block is fetched (`getblock`) to
 	/// enumerate its transactions, and each transaction's application log
 	/// (`getapplicationlog`) is decoded and filtered. Scanning stops early once
-	/// [`limit`](Self::limit) results have been collected. If [`offset`](Self::offset)
-	/// is set, that many matching events are discarded before beginning result collection.
+	/// the effective result cap has been collected. The cap is the smaller of
+	/// [`limit`](Self::limit) and [`page_size`](Self::page_size) when both are set.
+	/// If [`offset`](Self::offset) is set, that many matching events are discarded
+	/// once across the complete scan before beginning result collection.
 	///
 	/// # Performance Warning
 	///
@@ -386,9 +402,13 @@ impl AccountEventQuery {
 		P: JsonRpcProvider,
 	{
 		let (from, to) = self.validated_range()?;
+		let result_cap = self.effective_result_cap();
+		if result_cap == Some(0) {
+			return Ok(Vec::new());
+		}
+
 		let mut results: Vec<AccountEventResult> = Vec::new();
-		let mut skipped: usize = 0;
-		let target_offset = self.offset.unwrap_or(0);
+		let mut remaining_offset = self.offset.unwrap_or(0);
 
 		for index in from..=to {
 			let block = client.get_block_by_index(index, true).await?;
@@ -396,20 +416,13 @@ impl AccountEventQuery {
 				let tx_hash = tx.hash;
 				let log = client.get_application_log(tx_hash).await?;
 				let matched = self.collect_from_log(tx_hash, index, &log);
-				let count = matched.len();
+				let skip_count = remaining_offset.min(matched.len());
+				remaining_offset -= skip_count;
+				results.extend(matched.into_iter().skip(skip_count));
 
-				// Apply offset: skip this many matches before collecting results
-				if skipped + count <= target_offset {
-					skipped += count;
-				} else {
-					let start = target_offset.saturating_sub(skipped);
-					results.extend(matched.into_iter().skip(start));
-					skipped = 0; // Reset after applying offset
-				}
-
-				if let Some(limit) = self.limit {
-					if results.len() >= limit {
-						results.truncate(limit);
+				if let Some(cap) = result_cap {
+					if results.len() >= cap {
+						results.truncate(cap);
 						return Ok(results);
 					}
 				}
@@ -419,41 +432,22 @@ impl AccountEventQuery {
 		Ok(results)
 	}
 
-	/// Fast path for querying NEP-17 Transfer events involving `account`.
+	/// Compatibility wrapper for [`execute`](Self::execute).
 	///
-	/// When the query targets only `Transfer` events, this method uses the
-	/// optimized `getnep17transfers` RPC endpoint instead of scanning every
-	/// transaction in a block range. Neo nodes maintain a server-side index of
-	/// NEP-17 transfers keyed by account, so a single RPC call replaces the
-	/// per-block `getblock` + per-transaction `getapplicationlog` fan-out of
-	/// [`execute`](Self::execute) — typically ~5-10ms versus hundreds of
-	/// milliseconds (or more) for a wide block scan.
+	/// Earlier versions used the indexed `getnep17transfers` RPC here. That RPC can
+	/// apply server-side history and result limits, and it returns sent and received
+	/// transfers as separate collections. Those constraints make it impossible to
+	/// guarantee the same complete, canonical block/transaction/notification order
+	/// as [`execute`](Self::execute), which in turn makes offset pagination unsafe.
 	///
-	/// # How it works
-	///
-	/// 1. Calls `getnep17transfers(account)` once, returning every NEP-17 transfer
-	///    (both `sent` and `received`) that references the target account.
-	/// 2. Filters the returned transfers client-side by the configured block range
-	///    (`block_index` in `from..=to`).
-	/// 3. If a [`contract`](Self::contract) filter is set, keeps only transfers
-	///    whose `asset_hash` matches that token contract.
-	/// 4. Reconstructs a NEP-17 `Transfer`-shaped `state` (`[from, to, amount]`)
-	///    for each surviving transfer so the results are shape-compatible with
-	///    [`execute`](Self::execute).
-	/// 5. Applies [`limit`](Self::limit) and [`offset`](Self::offset) client-side.
-	///
-	/// # Requirements
-	///
-	/// This fast path is only valid when the [`event_name`](Self::event_name)
-	/// filter is either unset or exactly `"Transfer"`; the underlying RPC only
-	/// indexes NEP-17 transfers. For any other event name, call
-	/// [`execute`](Self::execute) instead.
+	/// For correctness and API compatibility, this method now delegates directly to
+	/// [`execute`](Self::execute). It accepts the same filters and has identical
+	/// ordering, pagination, performance, and error behavior. New code should call
+	/// [`execute`](Self::execute) directly.
 	///
 	/// # Errors
 	///
-	/// Returns [`ContractError::InvalidArgError`] if the event filter is set to
-	/// something other than `"Transfer"`, if the block range is missing/inverted,
-	/// or a wrapped [`ContractError::ProviderError`] if the RPC call fails.
+	/// Returns the same errors as [`execute`](Self::execute).
 	///
 	/// # Example
 	///
@@ -468,7 +462,7 @@ impl AccountEventQuery {
 	///
 	///     let account = ScriptHash::from_str("0x0000000000000000000000000000000000000001")?;
 	///
-	///     // Uses getnep17transfers - much faster than scanning all blocks.
+	///     // Compatibility entry point; equivalent to execute().
 	///     let transfers = AccountEventQuery::new(account)
 	///         .event_name("Transfer")
 	///         .block_range(1_000_000, 1_000_100)
@@ -488,99 +482,7 @@ impl AccountEventQuery {
 	where
 		P: JsonRpcProvider,
 	{
-		// The getnep17transfers index only covers NEP-17 `Transfer` events, so the
-		// fast path is only valid when no event filter is set or it is exactly
-		// "Transfer". Any other event name must fall back to execute().
-		if let Some(name) = &self.event_name {
-			if name != "Transfer" {
-				return Err(ContractError::InvalidArgError(format!(
-					"execute_fast only supports the 'Transfer' event (got '{name}'); \
-					 use execute(..) for other event names"
-				)));
-			}
-		}
-
-		let (from, to) = self.validated_range()?;
-
-		// One indexed RPC call returns every NEP-17 transfer for the account.
-		let transfers = client.get_nep17_transfers(self.account).await?;
-
-		let mut results: Vec<AccountEventResult> = Vec::new();
-		let mut skipped: usize = 0;
-		let target_offset = self.offset.unwrap_or(0);
-
-		// `sent` transfers have the account as sender; `received` as receiver.
-		let classified = transfers
-			.sent
-			.iter()
-			.map(|t| (t, true))
-			.chain(transfers.received.iter().map(|t| (t, false)));
-
-		for (transfer, account_is_sender) in classified {
-			// Client-side block-range filter (the RPC returns the full history).
-			if transfer.block_index < from || transfer.block_index > to {
-				continue;
-			}
-
-			// Optional contract (token) filter maps onto the transfer's asset hash.
-			if let Some(contract) = self.contract_filter {
-				if transfer.asset_hash != contract {
-					continue;
-				}
-			}
-
-			// Reconstruct a NEP-17 Transfer state [from, to, amount] so results are
-			// shape-compatible with execute(). The counterparty is the transfer's
-			// `transfer_address`; the account itself is the other party.
-			let counterparty = H160::from_address(&transfer.transfer_address).ok();
-			let (from_item, to_item) = if account_is_sender {
-				(account_byte_item(&self.account), counterparty_byte_item(counterparty))
-			} else {
-				(counterparty_byte_item(counterparty), account_byte_item(&self.account))
-			};
-			let state = StackItem::Array {
-				value: vec![from_item, to_item, StackItem::Integer { value: transfer.amount as i64 }],
-			};
-
-			// Apply the pagination offset before collecting.
-			if skipped < target_offset {
-				skipped += 1;
-				continue;
-			}
-
-			results.push(AccountEventResult::new(
-				transfer.asset_hash,
-				"Transfer".to_string(),
-				state,
-				transfer.tx_hash,
-				transfer.block_index,
-				transfer.transfer_notify_index as usize,
-			));
-
-			if let Some(limit) = self.limit {
-				if results.len() >= limit {
-					break;
-				}
-			}
-		}
-
-		Ok(results)
-	}
-}
-
-/// A `ByteString` stack item wrapping the 20-byte value of `account`.
-fn account_byte_item(account: &H160) -> StackItem {
-	StackItem::new_byte_string(account.as_bytes().to_vec())
-}
-
-/// A `ByteString` stack item for a (possibly unresolvable) counterparty hash.
-///
-/// Falls back to [`StackItem::Any`] when the transfer's counterparty address
-/// could not be decoded into a script hash (for example a mint/burn sentinel).
-fn counterparty_byte_item(counterparty: Option<H160>) -> StackItem {
-	match counterparty {
-		Some(hash) => StackItem::new_byte_string(hash.as_bytes().to_vec()),
-		None => StackItem::Any,
+		self.execute(client).await
 	}
 }
 
@@ -633,6 +535,58 @@ mod tests {
 		}
 	}
 
+	fn transaction(tx_hash: H256) -> RTransaction {
+		RTransaction::new(
+			tx_hash,
+			0,
+			0,
+			0,
+			String::new(),
+			"0".to_string(),
+			"0".to_string(),
+			0,
+			vec![],
+			vec![],
+			String::new(),
+			vec![],
+		)
+	}
+
+	fn block(index: u32, transactions: Vec<RTransaction>) -> NeoBlock {
+		NeoBlock {
+			hash: H256::zero(),
+			size: 0,
+			version: 0,
+			prev_block_hash: H256::zero(),
+			merkle_root_hash: H256::zero(),
+			time: 0,
+			nonce: "0".to_string(),
+			index,
+			primary: None,
+			next_consensus: String::new(),
+			witnesses: None,
+			transactions: Some(transactions),
+			confirmations: 1,
+			next_block_hash: None,
+		}
+	}
+
+	fn push_block_with_logs(provider: &MockProvider, index: u32, logs: &[ApplicationLog]) {
+		let transactions = logs.iter().map(|log| transaction(log.transaction_id)).collect();
+		provider.push_result_with_params(
+			"getblock",
+			json!([index, 1]),
+			serde_json::to_value(block(index, transactions)).unwrap(),
+		);
+		for log in logs {
+			provider.push_result_with_params(
+				"getapplicationlog",
+				json!([hex::encode(log.transaction_id.0)]),
+				serde_json::to_value(log).unwrap(),
+			);
+		}
+	}
+
 	#[test]
 	fn builder_stores_filters() {
 		let account = sample_account();
@@ -652,6 +606,23 @@ mod tests {
 	}
 
 	#[test]
+	fn effective_result_cap_uses_tighter_bound() {
+		let account = sample_account();
+
+		assert_eq!(AccountEventQuery::new(account).effective_result_cap(), None);
+		assert_eq!(AccountEventQuery::new(account).limit(5).effective_result_cap(), Some(5));
+		assert_eq!(AccountEventQuery::new(account).page_size(3).effective_result_cap(), Some(3));
+		assert_eq!(
+			AccountEventQuery::new(account).limit(5).page_size(3).effective_result_cap(),
+			Some(3)
+		);
+		assert_eq!(
+			AccountEventQuery::new(account).limit(2).page_size(3).effective_result_cap(),
+			Some(2)
+		);
+	}
+
+	#[test]
 	fn from_and_to_block_setters_are_independent() {
 		let query = AccountEventQuery::new(sample_account()).from_block(7).to_block(9);
 		assert_eq!(query.from_block_index(), Some(7));
@@ -665,7 +636,9 @@ mod tests {
 		assert_eq!(query.account(), account);
 
 		let err = AccountEventQuery::address("not-a-valid-address").unwrap_err();
-		assert!(matches!(err, ContractError::InvalidArgError(msg) if msg.contains("Invalid account")));
+		assert!(
+			matches!(err, ContractError::InvalidArgError(msg) if msg.contains("Invalid account"))
+		);
 	}
 
 	#[test]
@@ -800,7 +773,9 @@ mod tests {
 
 		// No range configured at all.
 		let err = AccountEventQuery::new(sample_account()).execute(&client).await.unwrap_err();
-		assert!(matches!(err, ContractError::InvalidArgError(msg) if msg.contains("starting block")));
+		assert!(
+			matches!(err, ContractError::InvalidArgError(msg) if msg.contains("starting block"))
+		);
 
 		// Only the start block configured.
 		let err = AccountEventQuery::new(sample_account())
@@ -824,10 +799,9 @@ mod tests {
 		let account = sample_account();
 		let other_account = H160::repeat_byte(0xbb);
 		let contract = sample_contract();
-		let tx_hash = H256::from_str(
-			"0x1111111111111111111111111111111111111111111111111111111111111111",
-		)
-		.unwrap();
+		let tx_hash =
+			H256::from_str("0x1111111111111111111111111111111111111111111111111111111111111111")
+				.unwrap();
 
 		let tx = RTransaction::new(
 			tx_hash,
@@ -905,10 +879,9 @@ mod tests {
 	async fn execute_honours_limit() {
 		let account = sample_account();
 		let contract = sample_contract();
-		let tx_hash = H256::from_str(
-			"0x2222222222222222222222222222222222222222222222222222222222222222",
-		)
-		.unwrap();
+		let tx_hash =
+			H256::from_str("0x2222222222222222222222222222222222222222222222222222222222222222")
+				.unwrap();
 
 		let tx = RTransaction::new(
 			tx_hash,
@@ -979,14 +952,23 @@ mod tests {
 	async fn execute_honours_offset() {
 		let account = sample_account();
 		let contract = sample_contract();
-		let tx_hash = H256::from_str(
-			"0x3333333333333333333333333333333333333333333333333333333333333333",
-		)
-		.unwrap();
+		let tx_hash =
+			H256::from_str("0x3333333333333333333333333333333333333333333333333333333333333333")
+				.unwrap();
 
 		let tx = RTransaction::new(
-			tx_hash, 0, 0, 0, String::new(), "0".to_string(), "0".to_string(), 0, vec![], vec![],
-			String::new(), vec![],
+			tx_hash,
+			0,
+			0,
+			0,
+			String::new(),
+			"0".to_string(),
+			"0".to_string(),
+			0,
+			vec![],
+			vec![],
+			String::new(),
+			vec![],
 		);
 		let block = NeoBlock {
 			hash: H256::zero(),
@@ -1043,79 +1025,213 @@ mod tests {
 	}
 
 	#[tokio::test]
-	async fn execute_fast_rejects_non_transfer_event() {
-		let provider = MockProvider::new();
-		let client = RpcClient::new(provider);
-
-		let err = AccountEventQuery::new(sample_account())
-			.event_name("Approval")
-			.block_range(0, 10)
-			.execute_fast(&client)
-			.await
-			.unwrap_err();
-		assert!(matches!(err, ContractError::InvalidArgError(msg) if msg.contains("Transfer")));
-	}
-
-	#[tokio::test]
-	async fn execute_fast_uses_indexed_transfers() {
-		use crate::neo_protocol::{Nep17Transfer, Nep17Transfers};
-
+	async fn execute_applies_offset_once_across_transactions() {
 		let account = sample_account();
 		let contract = sample_contract();
-		let other_contract = H160::repeat_byte(0xcd);
-		let counterparty = account.to_address();
-
-		let mk = |block_index: u32, asset: H160, byte: u8| {
-			Nep17Transfer::new(
-				0,
-				asset,
-				counterparty.clone(),
-				5,
-				block_index,
-				0,
-				H256::repeat_byte(byte),
-			)
-		};
-
-		let transfers = Nep17Transfers {
-			// sent: one in range, one out of range, one on the wrong contract.
-			sent: vec![
-				mk(100, contract, 0x11),        // in range, right contract -> keep
-				mk(300, contract, 0x22),        // out of range -> drop
-				mk(120, other_contract, 0x33),  // wrong contract -> drop
-			],
-			// received: one in range on the right contract.
-			received: vec![mk(150, contract, 0x44)],
-			transfer_address: counterparty.clone(),
-		};
+		let tx_hashes = [
+			H256::repeat_byte(0x41),
+			H256::repeat_byte(0x42),
+			H256::repeat_byte(0x43),
+			H256::repeat_byte(0x44),
+		];
+		let block = block(301, tx_hashes.iter().copied().map(transaction).collect());
 
 		let provider = MockProvider::new();
 		provider.push_result_with_params(
-			"getnep17transfers",
-			json!([account.to_address()]),
-			serde_json::to_value(&transfers).unwrap(),
+			"getblock",
+			json!([301, 1]),
+			serde_json::to_value(&block).unwrap(),
 		);
-		let client = RpcClient::new(provider.clone());
+		for tx_hash in tx_hashes {
+			let log =
+				application_log(tx_hash, vec![account_notification(contract, "Transfer", account)]);
+			provider.push_result_with_params(
+				"getapplicationlog",
+				json!([hex::encode(tx_hash.0)]),
+				serde_json::to_value(&log).unwrap(),
+			);
+		}
+		let client = RpcClient::new(provider);
 
 		let results = AccountEventQuery::new(account)
-			.contract(contract)
 			.event_name("Transfer")
-			.block_range(100, 200)
-			.execute_fast(&client)
+			.block_range(301, 301)
+			.offset(1)
+			.execute(&client)
 			.await
 			.unwrap();
 
-		// Only the two in-range, right-contract transfers survive.
-		assert_eq!(results.len(), 2);
-		for result in &results {
-			assert_eq!(result.contract, contract);
-			assert_eq!(result.event_name, "Transfer");
-			assert!(result.block_index >= 100 && result.block_index <= 200);
-		}
+		assert_eq!(results.iter().map(|event| event.tx_hash).collect::<Vec<_>>(), tx_hashes[1..]);
+	}
 
-		// Exactly one indexed RPC call replaced the whole block scan.
-		let requests = provider.take_requests();
-		let methods: Vec<String> = requests.iter().map(|(m, _)| m.clone()).collect();
-		assert_eq!(methods, vec!["getnep17transfers".to_string()]);
+	#[tokio::test]
+	async fn execute_honours_page_size_without_limit() {
+		let account = sample_account();
+		let contract = sample_contract();
+		let tx_hash = H256::repeat_byte(0x51);
+		let block = block(302, vec![transaction(tx_hash)]);
+		let log = application_log(
+			tx_hash,
+			vec![
+				account_notification(contract, "Transfer", account),
+				account_notification(contract, "Transfer", account),
+				account_notification(contract, "Transfer", account),
+			],
+		);
+
+		let provider = MockProvider::new();
+		provider.push_result_with_params(
+			"getblock",
+			json!([302, 1]),
+			serde_json::to_value(&block).unwrap(),
+		);
+		provider.push_result_with_params(
+			"getapplicationlog",
+			json!([hex::encode(tx_hash.0)]),
+			serde_json::to_value(&log).unwrap(),
+		);
+		let client = RpcClient::new(provider);
+
+		let results = AccountEventQuery::new(account)
+			.event_name("Transfer")
+			.block_range(302, 302)
+			.page_size(2)
+			.execute(&client)
+			.await
+			.unwrap();
+
+		assert_eq!(results.len(), 2);
+		assert_eq!(results[0].notification_index, 0);
+		assert_eq!(results[1].notification_index, 1);
+	}
+
+	#[tokio::test]
+	async fn execute_uses_smaller_of_limit_and_page_size_after_offset() {
+		let account = sample_account();
+		let contract = sample_contract();
+		let tx_hash = H256::repeat_byte(0x52);
+		let log = application_log(
+			tx_hash,
+			(0..5).map(|_| account_notification(contract, "Transfer", account)).collect(),
+		);
+
+		let provider = MockProvider::new();
+		push_block_with_logs(&provider, 303, &[log]);
+		let client = RpcClient::new(provider);
+
+		let results = AccountEventQuery::new(account)
+			.event_name("Transfer")
+			.block_range(303, 303)
+			.offset(1)
+			.limit(3)
+			.page_size(2)
+			.execute(&client)
+			.await
+			.unwrap();
+
+		assert_eq!(results.len(), 2);
+		assert_eq!(results[0].notification_index, 1);
+		assert_eq!(results[1].notification_index, 2);
+	}
+
+	#[tokio::test]
+	async fn execute_applies_offset_across_blocks() {
+		let account = sample_account();
+		let contract = sample_contract();
+		let first_tx = H256::repeat_byte(0x53);
+		let second_tx = H256::repeat_byte(0x54);
+		let first_log =
+			application_log(first_tx, vec![account_notification(contract, "Transfer", account)]);
+		let second_log = application_log(
+			second_tx,
+			vec![
+				account_notification(contract, "Transfer", account),
+				account_notification(contract, "Transfer", account),
+			],
+		);
+
+		let provider = MockProvider::new();
+		push_block_with_logs(&provider, 304, &[first_log]);
+		push_block_with_logs(&provider, 305, &[second_log]);
+		let client = RpcClient::new(provider);
+
+		let results = AccountEventQuery::new(account)
+			.event_name("Transfer")
+			.block_range(304, 305)
+			.offset(2)
+			.execute(&client)
+			.await
+			.unwrap();
+
+		assert_eq!(results.len(), 1);
+		assert_eq!(results[0].block_index, 305);
+		assert_eq!(results[0].tx_hash, second_tx);
+		assert_eq!(results[0].notification_index, 1);
+	}
+
+	#[tokio::test]
+	async fn zero_result_cap_issues_no_rpc_requests() {
+		let page_provider = MockProvider::new();
+		let page_client = RpcClient::new(page_provider.clone());
+		let page_results = AccountEventQuery::new(sample_account())
+			.block_range(1, 2)
+			.page_size(0)
+			.execute(&page_client)
+			.await
+			.unwrap();
+
+		assert!(page_results.is_empty());
+		assert!(page_provider.take_requests().is_empty());
+
+		let limit_provider = MockProvider::new();
+		let limit_client = RpcClient::new(limit_provider.clone());
+		let limit_results = AccountEventQuery::new(sample_account())
+			.block_range(1, 2)
+			.limit(0)
+			.execute_fast(&limit_client)
+			.await
+			.unwrap();
+
+		assert!(limit_results.is_empty());
+		assert!(limit_provider.take_requests().is_empty());
+	}
+
+	#[tokio::test]
+	async fn execute_fast_delegates_with_identical_order_and_pagination() {
+		let account = sample_account();
+		let contract = sample_contract();
+		let first_tx = H256::repeat_byte(0x61);
+		let second_tx = H256::repeat_byte(0x62);
+		let first_log = application_log(
+			first_tx,
+			vec![
+				account_notification(contract, "Approval", account),
+				account_notification(contract, "Transfer", account),
+			],
+		);
+		let second_log =
+			application_log(second_tx, vec![account_notification(contract, "Mint", account)]);
+		let configured_provider = || {
+			let provider = MockProvider::new();
+			push_block_with_logs(&provider, 400, std::slice::from_ref(&first_log));
+			push_block_with_logs(&provider, 401, std::slice::from_ref(&second_log));
+			provider
+		};
+		let query = AccountEventQuery::new(account).block_range(400, 401).offset(1).page_size(2);
+
+		let canonical_provider = configured_provider();
+		let canonical_client = RpcClient::new(canonical_provider.clone());
+		let canonical = query.execute(&canonical_client).await.unwrap();
+
+		let compatibility_provider = configured_provider();
+		let compatibility_client = RpcClient::new(compatibility_provider.clone());
+		let compatibility = query.execute_fast(&compatibility_client).await.unwrap();
+
+		assert_eq!(compatibility, canonical);
+		assert_eq!(
+			compatibility.iter().map(|event| event.event_name.as_str()).collect::<Vec<_>>(),
+			vec!["Transfer", "Mint"]
+		);
+		assert_eq!(compatibility_provider.take_requests(), canonical_provider.take_requests());
 	}
 }

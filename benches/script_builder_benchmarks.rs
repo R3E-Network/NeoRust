@@ -62,8 +62,7 @@ fn bench_script_primitives(c: &mut Criterion) {
 		});
 	});
 
-	let contract_hash =
-		ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap();
+	let contract_hash = ScriptHash::from_str("0xd2a4cff31913016155e38e474a2c06d08be276cf").unwrap();
 	group.bench_function("script_builder_contract_call", |b| {
 		b.iter(|| {
 			let mut builder = ScriptBuilder::new();
@@ -96,26 +95,23 @@ fn bench_transaction_assembly(c: &mut Criterion) {
 
 	let mut group = configured_group(c, "script/transaction", 150);
 	group.bench_function("transaction_assembly", |b| {
-		// Benchmark the assembly workflow and verify it compiles
+		// Benchmark the offline assembly stage. TransactionBuilder::build performs
+		// RPC fee estimation, which belongs in an integration benchmark with a node.
 		b.iter_batched(
 			|| (),
 			|_| {
 				let mut builder: TransactionBuilder<HttpProvider> = TransactionBuilder::new();
 				builder.set_script(Some(vec![0x00, 0x01, 0x02]));
-				let signer: Signer = AccountSigner::called_by_entry_hash160(account.get_script_hash())
-					.unwrap()
-					.into();
+				let signer: Signer =
+					AccountSigner::called_by_entry_hash160(account.get_script_hash())
+						.unwrap()
+						.into();
 				let _ = builder.set_signers(vec![signer]);
 				builder.nonce(12345).unwrap();
 				builder.set_additional_system_fee(1_000_000);
 				builder.set_additional_network_fee(500_000);
 				builder.valid_until_block(1_000_000).unwrap();
-				// Move the tx out so black_box doesn't keep references alive.
-				// Use a synchronous executor for criterion's batch mode
-				let rt = tokio::runtime::Runtime::new().unwrap();
-				let tx = rt.block_on(async { builder.build().await })
-					.expect("build failed");
-				std::hint::black_box(&tx);
+				std::hint::black_box(builder);
 			},
 			criterion::BatchSize::SmallInput,
 		)
@@ -123,9 +119,5 @@ fn bench_transaction_assembly(c: &mut Criterion) {
 	group.finish();
 }
 
-criterion_group!(
-	script_builder_benches,
-	bench_script_primitives,
-	bench_transaction_assembly,
-);
+criterion_group!(script_builder_benches, bench_script_primitives, bench_transaction_assembly,);
 criterion_main!(script_builder_benches);

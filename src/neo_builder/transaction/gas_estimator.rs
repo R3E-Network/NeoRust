@@ -155,28 +155,38 @@ pub trait TransactionBuilderGasExt {
 impl<'a, P: JsonRpcProvider + 'static> TransactionBuilderGasExt for TransactionBuilder<'a, P> {
 	async fn estimate_gas_realtime(&self) -> Result<i64, TransactionError> {
 		let client = self.client.ok_or_else(|| {
-			TransactionError::IllegalState("Client is not set. Use with_client() to configure.".to_string())
+			TransactionError::IllegalState(
+				"Client is not set. Use with_client() to configure.".to_string(),
+			)
 		})?;
-		
+
 		let script = self.script().as_ref().ok_or(TransactionError::NoScript)?;
 		if script.is_empty() {
 			return Err(TransactionError::EmptyScript);
 		}
-		
+
 		GasEstimator::estimate_gas_realtime(client, script, self.signers().clone()).await
 	}
-	
+
 	async fn estimate_gas_with_margin(&self, margin_percent: u8) -> Result<i64, TransactionError> {
 		let client = self.client.ok_or_else(|| {
-			TransactionError::IllegalState("Client is not set. Use with_client() to configure.".to_string())
+			TransactionError::IllegalState(
+				"Client is not set. Use with_client() to configure.".to_string(),
+			)
 		})?;
-		
+
 		let script = self.script().as_ref().ok_or(TransactionError::NoScript)?;
 		if script.is_empty() {
 			return Err(TransactionError::EmptyScript);
 		}
-		
-		GasEstimator::estimate_gas_with_margin(client, script, self.signers().clone(), margin_percent).await
+
+		GasEstimator::estimate_gas_with_margin(
+			client,
+			script,
+			self.signers().clone(),
+			margin_percent,
+		)
+		.await
 	}
 }
 
@@ -205,7 +215,7 @@ mod tests {
 	#[tokio::test]
 	async fn test_gas_ext_without_client_returns_error() {
 		let builder: TransactionBuilder<HttpProvider> = TransactionBuilder::default();
-		
+
 		// Should error because no client is set
 		let result = builder.estimate_gas_realtime().await;
 		assert!(result.is_err());
@@ -219,9 +229,9 @@ mod tests {
 			let guard = mock_provider.lock().await;
 			Arc::new(guard.into_client())
 		};
-		
+
 		let builder = TransactionBuilder::with_client(&client);
-		
+
 		// Should error because no script is set
 		let result = builder.estimate_gas_realtime().await;
 		assert!(result.is_err());
@@ -235,10 +245,10 @@ mod tests {
 			let guard = mock_provider.lock().await;
 			Arc::new(guard.into_client())
 		};
-		
+
 		let mut builder = TransactionBuilder::with_client(&client);
 		builder.set_script(Some(vec![]));
-		
+
 		// Should error because script is empty
 		let result = builder.estimate_gas_realtime().await;
 		assert!(result.is_err());
@@ -250,23 +260,28 @@ mod tests {
 		let mock_provider = Arc::new(Mutex::new(MockClient::new().await));
 		{
 			let mut guard = mock_provider.lock().await;
-			guard.mock_response_with_file_ignore_param("invokescript", "invokescript_necessary_mock.json").await;
+			guard
+				.mock_response_with_file_ignore_param(
+					"invokescript",
+					"invokescript_necessary_mock.json",
+				)
+				.await;
 			guard.mount_mocks().await;
 		}
-		
+
 		let client = {
 			let guard = mock_provider.lock().await;
 			Arc::new(guard.into_client())
 		};
-		
+
 		let mut builder = TransactionBuilder::with_client(&client);
 		builder.set_script(Some(vec![1, 2, 3]));
-		
+
 		// Should succeed with mock returning gas_consumed: "30"
 		let result = builder.estimate_gas_realtime().await;
 		assert!(result.is_ok());
 		assert_eq!(result.unwrap(), 30);
-		
+
 		// Test with margin
 		let result_with_margin = builder.estimate_gas_with_margin(10).await;
 		assert!(result_with_margin.is_ok());

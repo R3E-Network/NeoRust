@@ -130,32 +130,43 @@ jobs:
           echo "commit=${TAG_COMMIT}" >> "$GITHUB_OUTPUT"
           echo "tag_oid=${TAG_OID}" >> "$GITHUB_OUTPUT"
 
-      - name: Verify Cargo.toml version
+      - name: Verify package versions
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           VERSION_NUM="${VERSION#v}"
-          CARGO_VERSION="v$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2)"
-          if [ "$VERSION" != "$CARGO_VERSION" ]; then
-            echo "Error: Tag version ($VERSION) doesn't match Cargo.toml version ($CARGO_VERSION)"
+          METADATA="$(cargo metadata --locked --format-version 1)"
+          SDK_VERSION="$(jq -er '.packages[] | select(.name == "neo3") | .version' <<< "$METADATA")"
+          SDK_ID="$(jq -er '.packages[] | select(.name == "neo3") | .id' <<< "$METADATA")"
+          CLI_VERSION="$(jq -er '.packages[] | select(.name == "neo-cli") | .version' <<< "$METADATA")"
+          CLI_ID="$(jq -er '.packages[] | select(.name == "neo-cli") | .id' <<< "$METADATA")"
+          CLI_SDK_REQUIREMENT="$(jq -er '.packages[] | select(.name == "neo-cli") | .dependencies[] | select(.name == "neo3") | .req' <<< "$METADATA")"
+          RESOLVED_CLI_SDK_ID="$(jq -er --arg cli_id "$CLI_ID" '.resolve.nodes[] | select(.id == $cli_id) | .deps[] | select(.name == "neo3") | .pkg' <<< "$METADATA")"
+
+          if [ "$VERSION_NUM" != "$SDK_VERSION" ]; then
+            echo "Error: tag version ($VERSION_NUM) doesn't match neo3 ($SDK_VERSION)"
             exit 1
           fi
-
-          CLI_VERSION="$(grep '^version' neo-cli/Cargo.toml | head -1 | cut -d'"' -f2)"
           if [ "$VERSION_NUM" != "$CLI_VERSION" ]; then
-            echo "Error: neo-cli version ($CLI_VERSION) doesn't match release version ($VERSION_NUM)"
+            echo "Error: tag version ($VERSION_NUM) doesn't match neo-cli ($CLI_VERSION)"
             exit 1
           fi
-
-          EXPECTED_CLI_DEPENDENCY="neo3 = { path = \"..\", version = \"${VERSION_NUM}\""
-          if ! grep -Fq "$EXPECTED_CLI_DEPENDENCY" neo-cli/Cargo.toml; then
-            echo "Error: neo-cli must require neo3 ${VERSION_NUM}"
+          if [ "$CLI_SDK_REQUIREMENT" != "^${SDK_VERSION}" ]; then
+            echo "Error: neo-cli must declare neo3 ${SDK_VERSION} as its compatibility floor"
+            exit 1
+          fi
+          if [ "$RESOLVED_CLI_SDK_ID" != "$SDK_ID" ]; then
+            echo "Error: neo-cli's neo3 dependency does not resolve to the workspace SDK"
             exit 1
           fi
 
           LOCK_NEO3_VERSION="$(awk '/^name = "neo3"$/ { getline; gsub(/"/, "", $3); print $3; exit }' Cargo.lock)"
           LOCK_CLI_VERSION="$(awk '/^name = "neo-cli"$/ { getline; gsub(/"/, "", $3); print $3; exit }' Cargo.lock)"
-          if [ "$LOCK_NEO3_VERSION" != "$VERSION_NUM" ] || [ "$LOCK_CLI_VERSION" != "$VERSION_NUM" ]; then
-            echo "Error: Cargo.lock package versions ($LOCK_NEO3_VERSION, $LOCK_CLI_VERSION) don't match $VERSION_NUM"
+          if [ "$LOCK_NEO3_VERSION" != "$SDK_VERSION" ]; then
+            echo "Error: Cargo.lock neo3 version ($LOCK_NEO3_VERSION) doesn't match manifest ($SDK_VERSION)"
+            exit 1
+          fi
+          if [ "$LOCK_CLI_VERSION" != "$CLI_VERSION" ]; then
+            echo "Error: Cargo.lock neo-cli version ($LOCK_CLI_VERSION) doesn't match manifest ($CLI_VERSION)"
             exit 1
           fi
 
@@ -182,25 +193,24 @@ jobs:
           ref: ${{ needs.prepare.outputs.commit }}
           persist-credentials: false
 
-      - name: Setup Rust 1.96.0
-        id: rust
-        uses: dtolnay/rust-toolchain@1.96.0
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
       - name: Check formatting
-        run: cargo +${{ steps.rust.outputs.name }} fmt --all -- --check
+        run: cargo fmt --all -- --check
 
       - name: Run Clippy
-        run: cargo +${{ steps.rust.outputs.name }} clippy --workspace --locked --all-features --all-targets -- -D warnings
+        run: cargo clippy --workspace --locked --all-features --all-targets -- -D warnings
 
       - name: Run workspace tests
-        run: cargo +${{ steps.rust.outputs.name }} test --workspace --locked
+        run: cargo test --workspace --locked
 
       - name: Build API documentation
         env:
           RUSTDOCFLAGS: -D warnings
-        run: cargo +${{ steps.rust.outputs.name }} doc -p neo3 --locked --all-features --no-deps
+        run: cargo doc -p neo3 --locked --all-features --no-deps
 
       - name: Audit dependencies
         uses: rustsec/audit-check@v2.0.0
@@ -242,9 +252,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Build release binary
-        run: |
-          cargo build --release --locked --target ${{ matrix.target }} --no-default-features --workspace
-          cargo build --release --locked --target ${{ matrix.target }} -p neo-cli --bin neo-cli
+        run: cargo build --release --locked --target ${{ matrix.target }} -p neo-cli --bin neo-cli
 
       - name: Package artifacts (Unix)
         if: runner.os != 'Windows'

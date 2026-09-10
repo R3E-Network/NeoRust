@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- Correct SGX quote parsing to follow the DCAP v3 binary layout and reject malformed lengths
+  without panicking.
+- Reject malformed, truncated, or untrusted certificate chains instead of accepting arbitrary
+  non-empty data. Certificate-chain validation remains only one part of DCAP attestation:
+  production callers must use Intel DCAP QVL with current PCK CRLs, TCB Info, QE Identity, and
+  the applicable collateral.
+- Validate caller-supplied signed CRLs and require fresh revocation coverage by default.
+
+### Fixed
+
+- Apply account-event offsets once across the complete scan and enforce `page_size` in both query
+  entry points. `execute_fast` now delegates to the canonical scan because the indexed RPC's
+  server-side history and result limits cannot guarantee complete, consistently ordered pages.
+- Repair formatting, MSRV, fuzz, release, and benchmark CI gates so failures are exercised instead
+  of skipped or ignored.
+
+## [3.3.1] - 2026-09-10
+
+### Changed
+
+- Clean up unused test-only dependencies without changing the SDK's runtime feature set.
+
 ## [3.2.0] - 2026-09-06
 
 ### Added
@@ -18,15 +44,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **NEP-27 contract event query builder** (`ContractEventQuery` /
   `ContractEventResult`), exported via the prelude.
 - **NEP-91 account event query builder** (`AccountEventQuery` / `AccountEventResult`) for filtering contract notifications by account across a block range, exported via the prelude.
-- **NEP-91 fast-path Transfer queries** (`AccountEventQuery::execute_fast`) that
-  service `Transfer`-only queries through the indexed `getnep17transfers` RPC
-  endpoint instead of a per-block `getblock` + per-transaction
-  `getapplicationlog` scan, collapsing a wide block scan into a single call.
+- **NEP-91 compatibility query entry point** (`AccountEventQuery::execute_fast`). It currently
+  uses the same canonical block scan as `execute` so ordering and pagination remain complete.
 - **NEP-91 pagination** via `AccountEventQuery::offset` and
   `AccountEventQuery::page_size`, letting callers stream large result sets.
 - **NEP-91 performance guidance**: expanded `AccountEventQuery` docs with an RPC
-  cost analysis, explicit cost warnings, and optimization strategies for wide
-  block ranges, plus a runnable `examples/basic/nep91_basic.rs` walkthrough.
+  cost analysis, explicit cost warnings, and guidance to keep block ranges bounded,
+  plus a runnable `examples/basic/nep91_basic.rs` walkthrough.
 - **Multi-signature signing workflow** and the `TransactionBuilderGasExt`
   extension trait.
 - **NEP-11 NFT standard methods:** `owner_of`, `token_uri`, and `properties`.
@@ -40,16 +64,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🔒 Security
 
-- **SGX Certificate Chain Validation — Critical security improvements.** Implemented full X.509 certificate chain verification for Intel DCAP enclave attestation with cryptographic signature verification using `p256` and `k256` ECDSA algorithms (Intel uses both). Features include:
+- **SGX Certificate Chain Validation (experimental foundation).** Added X.509 parsing and P-256
+  signature-chain validation primitives for Intel DCAP enclave attestation. This is not a complete
+  DCAP quote-verification implementation. In particular, PCK CRL, TCB Info, QE Identity, and other
+  collateral checks require Intel DCAP QVL. Features include:
   - **Cryptographic Signature Verification**: X.509 certificates validated via actual ECDSA signature verification, not just header parsing
-  - **Pinned Intel Root CA Trust Anchors**: Hardcoded 2 trusted root CAs ("Intel Atom ITTM Server EPS ECRA" and "Intel EPID 3.0 Non-TCMV Baseline 04") with actual Subject RDN matching (CN, O, C)
+  - **Pinned Root CA Trust Anchor**: Public-key pinning for the Intel SGX Provisioning Certification Root CA
   - **CRL Honesty**: No production CRL infrastructure exists; explicitly documented as placeholder rather than implementing fake validation
-  - **Certified Dependency Stack**: Uses `x509-cert = "0.2"` (maintained, secure) instead of vulnerable legacy crates
-  - **Feature-Gated Behind `sgx`**: SGX module exclusively available via `features = ["sgx"]`; not part of default build; clearly documented in README as "enclave-only"
-  - **Production-Safety Warnings**: Documentation includes explicit caveats about SGX key generation still being CPU-based (not hardware-enforced); DCAP provides authentication/integrity but not secrecy
+  - **Dependency Stack**: Uses `x509-cert = "0.2"` instead of vulnerable legacy crates
+  - **Feature-Gated X.509 Validation**: Certificate parsing dependencies are enabled with `features = ["sgx"]`
+  - **Production-Safety Warnings**: Documentation identifies this as an integration foundation and requires a complete external DCAP verifier for production attestation
   
-**Files**: `src/sgx/certificate_verification.rs`, `src/sgx/mod.rs`, `docs/SGX_GUIDE.md`
-**Migration**: Users upgrading from v3.2.0 who enable the `sgx` feature get automatic protection; no API changes for non-SGX builds
+**Files**: `src/sgx/certificate_chain.rs`, `src/sgx/mod.rs`, `docs/SGX_GUIDE.md`
+**Migration**: Enabling the `sgx` feature exposes certificate-path validation APIs. Applications
+must invoke them explicitly, supply current signed CRLs, and use a complete DCAP QVL before making
+an attestation trust decision; there are no API changes for non-SGX builds.
 
 ### ✨ Added
 
@@ -114,7 +143,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🏗️ Infrastructure
 
 - **GitHub Actions Workflows**: Benchmark tracking (`benchmark.yml`, `benchmark-trend.yml`), fuzz testing (`fuzz-test.yml`)
-- **Monthly Release Reports**: Automated rendering pipeline for performance/regression reporting
+- **Monthly Performance Reports**: Automated rendering pipeline for per-run performance snapshots
 - **Production Readiness Score**: Maintained >99% across all validation gates
 
 ### 📚 Documentation
@@ -130,10 +159,12 @@ None. This is a backward-compatible release.
 
 ### 🔄 Migration Notes
 
-- **SGX users**: Enable `features = ["sgx"]` to get certificate validation; no API changes
+- **SGX users**: Enable `features = ["sgx"]` to expose certificate-path APIs, then invoke them
+  explicitly and provide current signed CRLs; no API changes for non-SGX callers
 - **Monitoring users**: Add `features = ["metrics-prometheus", "metrics-otlp"]` and configure endpoints via `examples/monitoring_exporters.rs`
 - **Test developers**: Use `TestNode` for faster CI runs; migrate expensive network-dependent tests
-- **Non-SGX builds**: Unchanged; SGX features completely absent unless explicitly enabled
+- **Non-SGX builds**: Certificate-path validation is unavailable unless the `sgx` feature is enabled;
+  common quote parsing helpers remain available
 
 ### ✅ Verified
 

@@ -162,7 +162,7 @@ impl SessionManager {
 			Ok(session) => {
 				// Run custom validation callbacks
 				let callbacks = self.auth_callbacks.read().unwrap();
-				for (_, callback) in callbacks.iter() {
+				for callback in callbacks.values() {
 					if !callback(&session) {
 						return Ok(false);
 					}

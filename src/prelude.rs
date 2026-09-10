@@ -146,8 +146,10 @@ pub use crate::neo_contract::{AccountEventQuery, AccountEventResult};
 
 // Session Key Management
 // Temporary, limited-permission keys for enterprise/multi-sig delegation
-pub use crate::neo_wallets::{SessionKeyConfig, SessionSigner, CallFlagsWrapper};
+pub use crate::neo_wallets::{CallFlagsWrapper, SessionKeyConfig, SessionSigner};
 
 // Test Node Emulator
 // In-process mock RPC server for deterministic testing and simulation
-pub use crate::neo_protocol::{TestNode, TestNodeConfig, TestNodeError, TestBlock, TestTransaction};
+pub use crate::neo_protocol::{
+	TestBlock, TestNode, TestNodeConfig, TestNodeError, TestTransaction,
+};

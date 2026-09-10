@@ -3923,7 +3923,7 @@ dependencies = [
 
 [[package]]
 name = "neo-cli"
-version = "3.3.0"
+version = "3.3.1"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -7203,6 +7203,8 @@ checksum = "1301e935010a701ae5f8655edc0ad17c44bad3ac5ce8c39185f75453b720ae94"
 dependencies = [
  "const-oid 0.9.6",
  "der",
+ "sha1",
+ "signature",
  "spki",
  "tls_codec",
 ]
