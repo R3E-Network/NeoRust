@@ -1,0 +1,79 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "crates/neo-primitives",
+    "crates/neo-protocol",
+    "crates/neo-client",
+    "crates/neo-standards",
+    "crates/neo-zk",
+    "crates/neo-dao",
+    "crates/neo-sgx",
+    "crates/neo-ffi/python",
+    "crates/neo-ffi/nodejs",
+    "crates/neo-sdk",
+    "crates/neo-cli",
+]
+
+[workspace.package]
+version = "4.0.0-alpha.1"
+edition = "2021"
+rust-version = "1.95.0"
+license = "MIT"
+repository = "https://github.com/r3e-network/neo-rust-sdk"
+authors = ["R3E Network <jimmy@r3e.network>"]
+
+[workspace.dependencies]
+# 内部依赖
+neo-primitives = { path = "crates/neo-primitives" }
+neo-protocol = { path = "crates/neo-protocol" }
+neo-client = { path = "crates/neo-client" }
+neo-standards = { path = "crates/neo-standards" }
+neo-zk = { path = "crates/neo-zk" }
+neo-dao = { path = "crates/neo-dao" }
+neo-sgx = { path = "crates/neo-sgx" }
+neo-sdk = { path = "crates/neo-sdk" }
+
+# 外部依赖 - 统一版本管理
+tokio = { version = "1.53", features = ["full"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+async-trait = "0.1"
+
+# 密码学
+k256 = { version = "0.13", features = ["ecdsa"] }
+sha2 = "0.10"
+ripemd = "0.1"
+
+# ZK 依赖
+ark-groth16 = "0.4"
+ark-bn254 = "0.4"
+ark-std = "0.4"
+
+# SGX 依赖 (占位符 - 需要实际的 crate)
+# sgx-dcap-quoteverify-rs = "0.2"
+
+# FFI 依赖
+pyo3 = "0.20"
+napi = "2.16"
+napi-derive = "2.16"
+
+# 工具
+hex = "0.4"
+bs58 = "0.5"
+base64 = "0.22"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.test]
+opt-level = 2

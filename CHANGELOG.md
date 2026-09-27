@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.2] - 2026-09-27
+
+### Security
+
+- **CRITICAL**: Update rustls to 0.23.45 to fix RUSTSEC-2026-0285 (CVE-2025-61730)
+  - Vulnerability: TLS 1.3 handshake messages incorrectly accepted across encryption level boundaries
+  - Impact: Medium severity - handshake transcript authenticated but plaintext messages could be accepted when they should be encrypted
+  - Recommendation: All users should upgrade immediately
+  - Fixed by updating rustls 0.23.44 → 0.23.45 across all transport layers (reqwest, hyper-rustls, tokio-rustls)
+
+### Fixed
+
+- Remove obsolete RUSTSEC-2024-0436 from deny.toml ignore list (paste crate no longer in dependency tree)
+
+### Changed
+
+- Update dependency chain to use rustls 0.23.45 for secure TLS 1.3 handshake validation
+- Bump version to 3.3.2 for security hotfix release
+
+## [3.3.1] - 2026-09-10
+
 ### Security
 
 - Correct SGX quote parsing to follow the DCAP v3 binary layout and reject malformed lengths
