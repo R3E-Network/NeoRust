@@ -21,6 +21,8 @@ extern crate alloc;
 pub mod attribute;
 pub mod constants;
 pub mod errors;
+pub mod opcode;
+pub mod script_builder;
 pub mod serialization;
 pub mod signer;
 pub mod transaction;
@@ -28,6 +30,8 @@ pub mod witness;
 
 pub use attribute::{OracleResponseCode, TransactionAttribute};
 pub use errors::{Error, Result};
+pub use opcode::{CallFlags, OpCode};
+pub use script_builder::{ContractParameter, ScriptBuilder};
 pub use serialization::{var_int_size, Reader, Serializable, Writer};
 pub use signer::{Signer, WitnessScope};
 pub use transaction::Transaction;
