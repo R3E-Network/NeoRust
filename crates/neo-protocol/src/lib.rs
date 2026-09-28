@@ -26,6 +26,7 @@ pub mod script_builder;
 pub mod serialization;
 pub mod signer;
 pub mod transaction;
+pub mod transaction_builder;
 pub mod witness;
 
 pub use attribute::{OracleResponseCode, TransactionAttribute};
@@ -35,4 +36,5 @@ pub use script_builder::{ContractParameter, ScriptBuilder};
 pub use serialization::{var_int_size, Reader, Serializable, Writer};
 pub use signer::{Signer, WitnessScope};
 pub use transaction::Transaction;
+pub use transaction_builder::TransactionBuilder;
 pub use witness::Witness;

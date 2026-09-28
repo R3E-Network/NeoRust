@@ -3961,7 +3961,7 @@ dependencies = [
 
 [[package]]
 name = "neo-primitives"
-version = "4.0.0-alpha.1"
+version = "3.4.0"
 dependencies = [
  "bs58",
  "getrandom 0.2.17",
@@ -3977,7 +3977,7 @@ dependencies = [
 
 [[package]]
 name = "neo-protocol"
-version = "4.0.0-alpha.1"
+version = "3.4.0"
 dependencies = [
  "hex",
  "neo-primitives",
@@ -3987,7 +3987,7 @@ dependencies = [
 
 [[package]]
 name = "neo3"
-version = "3.3.2"
+version = "3.4.0"
 dependencies = [
  "aes",
  "alloy",
