@@ -1,56 +1,33 @@
-//! # neo-primitives
+//! Neo primitives - Core types for Neo N3 blockchain
 //!
-//! Core primitive types for Neo N3 blockchain.
+//! This crate provides low-level, `no_std`-compatible primitives:
+//! - Hash types (Hash160, Hash256)
+//! - Address encoding/decoding
+//! - Script types
+//! - Cryptographic utilities
 //!
-//! This crate is `no_std` compatible and provides the fundamental building blocks
-//! for Neo blockchain development:
+//! # Features
+//! - `std` (default): Enable standard library support and random key generation
 //!
-//! - Addresses and hashes
-//! - Cryptographic keys and signatures
-//! - Script building
-//! - Error types
+//! # Examples
 //!
-//! ## Features
+//! ```
+//! use neo_primitives::{Address, Hash160};
+//! use core::str::FromStr;
 //!
-//! - `std` (default): Enable standard library support
-//!
-//! ## Example
-//!
-//! ```rust
-//! use neo_primitives::Address;
-//!
-//! let address = Address::from_string("NbTiM6h8r99kpRtb428XcsUk1TzKed2gTc").unwrap();
-//! println!("Address: {}", address);
+//! let addr = Address::from_str("NM7Aky765FG8NhhwtxjXRx7jEL1cnw7PBP").unwrap();
+//! let hash = addr.to_script_hash().unwrap();
+//! println!("Script hash: {}", hash);
 //! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![warn(missing_docs, rust_2018_idioms)]
+#![forbid(unsafe_code)]
 
 extern crate alloc;
 
-pub mod types;
 pub mod crypto;
 pub mod errors;
+pub mod types;
 
-// Re-exports
-pub use types::{Address, Hash160, Hash256, Script, UInt256};
-pub use crypto::{PrivateKey, PublicKey, Signature};
 pub use errors::{Error, Result};
-
-/// Prelude module for convenient imports
-pub mod prelude {
-    pub use crate::types::*;
-    pub use crate::crypto::*;
-    pub use crate::errors::*;
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_primitives_basic() {
-        // Basic smoke test
-        assert!(true);
-    }
-}
+pub use types::{Address, Hash160, Hash256, Script};

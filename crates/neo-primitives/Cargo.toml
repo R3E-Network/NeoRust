@@ -1,31 +1,49 @@
 [package]
 name = "neo-primitives"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-repository.workspace = true
-authors.workspace = true
+version = "4.0.0-alpha.1"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+repository = "https://github.com/r3e-network/neo-rust-sdk"
+authors = ["R3E Network <jimmy@r3e.network>"]
 description = "Core primitive types for Neo N3 blockchain (no_std compatible)"
 keywords = ["neo", "blockchain", "crypto", "no_std"]
 categories = ["cryptography", "no-std"]
 
 [dependencies]
+# Serialization
 serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
+
+# Encoding
 hex = { version = "0.4", default-features = false, features = ["alloc"] }
 bs58 = { version = "0.5", default-features = false, features = ["alloc"] }
+
+# Cryptography
 sha2 = { version = "0.10", default-features = false }
 ripemd = { version = "0.1", default-features = false }
-k256 = { version = "0.13", default-features = false, features = ["ecdsa", "alloc"] }
-thiserror = { version = "2.0", optional = true }
+p256 = { version = "0.13", default-features = false, features = ["ecdsa", "alloc"] }
+zeroize = { version = "1.9", default-features = false, features = ["alloc"] }
+subtle = { version = "2.6", default-features = false }
+
+# Random (std-only)
+getrandom = { version = "0.2", optional = true }
 
 [features]
 default = ["std"]
-std = ["serde/std", "hex/std", "bs58/std", "sha2/std", "ripemd/std", "k256/std", "dep:thiserror"]
+std = [
+	"serde/std",
+	"hex/std",
+	"bs58/std",
+	"sha2/std",
+	"ripemd/std",
+	"p256/std",
+	"zeroize/std",
+	"dep:getrandom",
+]
 
 [dev-dependencies]
-criterion = "0.5"
+serde_json = "1.0"
 
-[[bench]]
-name = "primitives"
-harness = false
+[lib]
+name = "neo_primitives"
+path = "src/lib.rs"

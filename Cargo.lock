@@ -3946,7 +3946,7 @@ dependencies = [
  "primitive-types 0.14.0",
  "rand 0.9.5",
  "reqwest 0.12.28",
- "ripemd",
+ "ripemd 0.2.0",
  "security-framework",
  "serde",
  "serde_json",
@@ -3957,6 +3957,22 @@ dependencies = [
  "toml",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "neo-primitives"
+version = "4.0.0-alpha.1"
+dependencies = [
+ "bs58",
+ "getrandom 0.2.17",
+ "hex",
+ "p256",
+ "ripemd 0.1.3",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "subtle",
+ "zeroize",
 ]
 
 [[package]]
@@ -4015,7 +4031,7 @@ dependencies = [
  "rayon",
  "reqwest 0.12.28",
  "ring",
- "ripemd",
+ "ripemd 0.2.0",
  "rustc-hash",
  "scrypt",
  "serde",
@@ -5247,6 +5263,15 @@ dependencies = [
 
 [[package]]
 name = "ripemd"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd124222d17ad93a644ed9d011a40f4fb64aa54275c08cc216524a9ea82fb09f"
+dependencies = [
+ "digest 0.10.7",
+]
+
+[[package]]
+name = "ripemd"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4dd4211456b4172d7e44261920c25acf07367c4f04bb5f5d54fc21b090d9b159"
@@ -6130,7 +6155,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",

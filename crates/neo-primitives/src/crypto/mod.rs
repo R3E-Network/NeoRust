@@ -1,9 +1,5 @@
-//! Cryptographic primitives
+//! Core cryptographic primitives
 
-pub mod key;
-pub mod signature;
 pub mod hash;
 
-pub use key::{PrivateKey, PublicKey};
-pub use signature::Signature;
-pub use hash::Hasher;
+pub use hash::{hash160, hash256, ripemd160, sha256};
