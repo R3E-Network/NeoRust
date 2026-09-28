@@ -3976,6 +3976,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "neo-protocol"
+version = "4.0.0-alpha.1"
+dependencies = [
+ "hex",
+ "neo-primitives",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "neo3"
 version = "3.3.2"
 dependencies = [

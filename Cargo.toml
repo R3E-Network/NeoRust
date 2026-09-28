@@ -77,7 +77,8 @@ members = [
     "examples/neo_wallets",
     "examples/neo_crypto",
     "examples/standalone",
-    "crates/neo-primitives"
+    "crates/neo-primitives",
+    "crates/neo-protocol"
 ]
 exclude = [
     "examples/sgx_enclave",
