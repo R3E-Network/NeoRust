@@ -5,7 +5,11 @@ use crate::{
 	errors::{Error, Result},
 	types::Hash160,
 };
-use alloc::{format, string::String, vec::Vec};
+use alloc::{
+	format,
+	string::{String, ToString},
+	vec::Vec,
+};
 use core::{fmt, str::FromStr};
 use serde::{Deserialize, Serialize};
 
@@ -27,10 +31,7 @@ impl Address {
 			.map_err(|_| Error::InvalidAddress("base58 decode failed".into()))?;
 
 		if decoded.len() != 25 {
-			return Err(Error::InvalidAddress(format!(
-				"expected 25 bytes, got {}",
-				decoded.len()
-			)));
+			return Err(Error::InvalidAddress(format!("expected 25 bytes, got {}", decoded.len())));
 		}
 
 		if decoded[0] != ADDRESS_VERSION {

@@ -29,5 +29,6 @@ pub mod crypto;
 pub mod errors;
 pub mod types;
 
+pub use crypto::{KeyPair, PrivateKey, PublicKey, Signature};
 pub use errors::{Error, Result};
 pub use types::{Address, Hash160, Hash256, Script};

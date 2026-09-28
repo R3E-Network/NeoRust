@@ -201,14 +201,9 @@ impl FromStr for Hash256 {
 
 /// Decodes hex, requiring exactly `len` decoded bytes.
 fn decode_hex_exact(s: &str, len: usize) -> Result<Vec<u8>> {
-	let bytes =
-		hex::decode(s).map_err(|e| Error::InvalidHash(format!("invalid hex: {}", e)))?;
+	let bytes = hex::decode(s).map_err(|e| Error::InvalidHash(format!("invalid hex: {}", e)))?;
 	if bytes.len() != len {
-		return Err(Error::InvalidHash(format!(
-			"expected {} bytes, got {}",
-			len,
-			bytes.len()
-		)));
+		return Err(Error::InvalidHash(format!("expected {} bytes, got {}", len, bytes.len())));
 	}
 	Ok(bytes)
 }
@@ -217,26 +212,36 @@ fn decode_hex_exact(s: &str, len: usize) -> Result<Vec<u8>> {
 // is what we serialize. This keeps round-trips through RPC payloads lossless.
 
 impl Serialize for Hash160 {
-	fn serialize<S: serde::Serializer>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error> {
+	fn serialize<S: serde::Serializer>(
+		&self,
+		serializer: S,
+	) -> core::result::Result<S::Ok, S::Error> {
 		serializer.serialize_str(&self.to_hex())
 	}
 }
 
 impl<'de> Deserialize<'de> for Hash160 {
-	fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> core::result::Result<Self, D::Error> {
+	fn deserialize<D: serde::Deserializer<'de>>(
+		deserializer: D,
+	) -> core::result::Result<Self, D::Error> {
 		let s = String::deserialize(deserializer)?;
 		Self::from_hex(&s).map_err(serde::de::Error::custom)
 	}
 }
 
 impl Serialize for Hash256 {
-	fn serialize<S: serde::Serializer>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error> {
+	fn serialize<S: serde::Serializer>(
+		&self,
+		serializer: S,
+	) -> core::result::Result<S::Ok, S::Error> {
 		serializer.serialize_str(&self.to_hex())
 	}
 }
 
 impl<'de> Deserialize<'de> for Hash256 {
-	fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> core::result::Result<Self, D::Error> {
+	fn deserialize<D: serde::Deserializer<'de>>(
+		deserializer: D,
+	) -> core::result::Result<Self, D::Error> {
 		let s = String::deserialize(deserializer)?;
 		Self::from_hex(&s).map_err(serde::de::Error::custom)
 	}
@@ -343,10 +348,9 @@ mod tests {
 
 	#[test]
 	fn test_serde_roundtrip_hash256() {
-		let hash = Hash256::from_hex(
-			"0x0000000000000000000000000000000000000000000000000000000000000042",
-		)
-		.unwrap();
+		let hash =
+			Hash256::from_hex("0x0000000000000000000000000000000000000000000000000000000000000042")
+				.unwrap();
 		let json = serde_json::to_string(&hash).unwrap();
 		let back: Hash256 = serde_json::from_str(&json).unwrap();
 		assert_eq!(hash, back);
